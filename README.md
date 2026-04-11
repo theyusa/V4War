@@ -1,88 +1,104 @@
 # V4War
 
 <p align="center">
-  <img src="./V.png" alt="V4War Logo" width="220" />
+  <img src="./V.png" alt="V4War logo" width="220" />
 </p>
 
-**TR**
+**Freedom first.**
 
-V4War, internet ozgurlugu icin verilen mucadelenin teknik tarafinda duran bir Android istemcisidir.
-Misyonumuz; sansur, trafik manipulasyonu ve baglanti kisitlarina karsi dayanikli bir kullanim deneyimi sunmak,
-kullanicinin kendi ag rotasini kendi kosullarina gore yonetebilmesini saglamaktir.
+V4War is an Android client built for the fight for internet freedom.
+Its mission is simple: help users keep control over their own network routes under censorship,
+traffic manipulation, and restrictive network conditions.
 
-V4War bir hazir VPN saticisi degildir; kendi profil/proxy altyapinizi Android tarafinda yonetmeniz icin gelistirilmis,
-teknik odakli bir istemcidir.
-
-## TR - Ozet
-
-- Cekirdek mimari: `V2Ray + sing-box hibrit altyapi`
-- Profil/abonelik yonetimi, import ve guncelleme akislari
-- Gelismis baglanti protokolleri (VLESS, VMess, Trojan, Shadowsocks vb.)
-- Android odakli, hizli ve ozellestirilebilir kullanim
-
-## TR - Derleme
-
-Gereksinimler:
-
-- JDK 21
-- Android NDK `29.0.14206865`
-- Go surumu: `buildScript/init/version.sh` ile uyumlu
-
-```sh
-git clone https://github.com/TheYusa/V4War.git --depth=1
-cd V4War
-make libcore_android
-make assets
-./gradlew :composeApp:exportLibraryDefinitions
-make apk
-```
-
-APK ciktilari:
-
-```text
-androidApp/build/outputs/apk
-```
+V4War is not a VPN provider and does not sell network access.
+It is a technical client for users who run and manage their own profile/proxy infrastructure.
 
 ---
 
-**EN**
+Turkce dokuman icin: **[README.tr.md](./README.tr.md)**
 
-V4War is an Android client built for the technical side of the fight for internet freedom.
-Our mission is to provide a censorship-resistant, operator-controlled experience against blocking,
-traffic manipulation, and restrictive network conditions.
+## Why V4War
 
-V4War is not a VPN provider. It is a power-user client that helps you run and manage your own
-profiles/proxy infrastructure on Android.
+- Censorship resistance and operator-controlled routing
+- Fast profile import and subscription update workflows
+- Protocol flexibility with a modern hybrid core
+- Android-first experience focused on reliability and control
 
-## EN - Overview
+## Core Architecture
 
-- Core architecture: `V2Ray + sing-box hybrid stack`
-- Profile/subscription management, import and update workflows
-- Modern protocol support (VLESS, VMess, Trojan, Shadowsocks, etc.)
-- Android-focused, fast, and customizable UX
+V4War uses a **hybrid core architecture**:
 
-## EN - Build
+- **V2Ray ecosystem compatibility** for broad profile format support
+- **sing-box core engine** for modern routing and runtime behavior
 
-Requirements:
+This design keeps compatibility and performance in a single Android-focused client.
+
+## Supported Protocol Families
+
+V4War includes support for major protocol families used in modern proxy workflows,
+including VLESS, VMess, Trojan, Shadowsocks, SOCKS/HTTP based profiles, and related formats.
+
+## Project Identity
+
+- App name: `V4War`
+- Package name: `tr.theyusa.v4war`
+- Developer: `TheYusa`
+- Name and trademark rights: `TheYusa`
+
+## Build (Android)
+
+### Requirements
 
 - JDK 21
 - Android NDK `29.0.14206865`
 - Go version compatible with `buildScript/init/version.sh`
 
+### 1) Clone
+
 ```sh
-git clone https://github.com/TheYusa/V4War.git --depth=1
+git clone https://github.com/theyusa/V4War.git --depth=1
 cd V4War
+```
+
+### 2) Build libcore for Android
+
+```sh
 make libcore_android
+```
+
+This generates:
+
+```text
+composeApp/libs/libcore.aar
+```
+
+### 3) Download geo assets
+
+```sh
 make assets
+```
+
+### 4) Export OSS license metadata
+
+```sh
 ./gradlew :composeApp:exportLibraryDefinitions
+```
+
+### 5) Build APK
+
+```sh
 make apk
 ```
 
-Output:
+APK output:
 
 ```text
 androidApp/build/outputs/apk
 ```
+
+## Contributing
+
+Please read **[CONTRIBUTING.md](./CONTRIBUTING.md)**.
 
 ## License
 
