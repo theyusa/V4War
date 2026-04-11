@@ -2,17 +2,6 @@ name: Android Build (Latest sing-box)
 
 on:
   workflow_dispatch:
-    inputs:
-      ref:
-        description: Branch, tag, or commit to build
-        required: true
-        default: main
-        type: string
-      singbox_version:
-        description: sing-box version (use "latest" for newest)
-        required: true
-        default: latest
-        type: string
   schedule:
     - cron: '0 5 * * 1'
 
@@ -27,13 +16,13 @@ jobs:
       current: ${{ steps.detect.outputs.current }}
       latest: ${{ steps.detect.outputs.latest }}
       target: ${{ steps.detect.outputs.target }}
-      requested: ${{ steps.detect.outputs.requested }}
+      needs_upgrade: ${{ steps.detect.outputs.needs_upgrade }}
       build_ref: ${{ steps.ref.outputs.build_ref }}
     steps:
       - name: Resolve build ref
         id: ref
         run: |
-          build_ref="${{ github.event.inputs.ref || 'main' }}"
+          build_ref="${{ github.ref_name }}"
           echo "build_ref=${build_ref}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout selected ref
@@ -62,19 +51,19 @@ jobs:
           set -euo pipefail
           cd libcore
           current=$(go list -m -f '{{.Version}}' github.com/sagernet/sing-box)
-          latest=$(go list -m -f '{{.Version}}' github.com/sagernet/sing-box@latest)
+          latest=$(go list -m -versions github.com/sagernet/sing-box | awk '{print $NF}')
+          target="$latest"
 
-          requested="${{ github.event.inputs.singbox_version || 'latest' }}"
-          if [ "$requested" = "latest" ]; then
-            target="$latest"
+          if [ "$target" = "$current" ]; then
+            needs_upgrade=false
           else
-            target="$requested"
+            needs_upgrade=true
           fi
 
           echo "current=$current" >> "$GITHUB_OUTPUT"
           echo "latest=$latest" >> "$GITHUB_OUTPUT"
           echo "target=$target" >> "$GITHUB_OUTPUT"
-          echo "requested=$requested" >> "$GITHUB_OUTPUT"
+          echo "needs_upgrade=$needs_upgrade" >> "$GITHUB_OUTPUT"
 
       - name: Summary
         run: |
@@ -84,14 +73,15 @@ jobs:
             echo "- Build ref: \`${{ steps.ref.outputs.build_ref }}\`"
             echo "- Current: \`${{ steps.detect.outputs.current }}\`"
             echo "- Latest: \`${{ steps.detect.outputs.latest }}\`"
-            echo "- Requested: \`${{ steps.detect.outputs.requested }}\`"
             echo "- Target: \`${{ steps.detect.outputs.target }}\`"
+            echo "- Needs upgrade: \`${{ steps.detect.outputs.needs_upgrade }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
   build-android:
     name: Build APK with target sing-box
     runs-on: ubuntu-latest
     needs: detect-singbox
+    if: needs.detect-singbox.outputs.needs_upgrade == 'true'
     env:
       KEYSTORE_PASS: android
       ALIAS_NAME: androiddebugkey
@@ -236,4 +226,22 @@ jobs:
             echo "- Latest detected: \`${{ needs.detect-singbox.outputs.latest }}\`"
             echo "- Target requested: \`${{ needs.detect-singbox.outputs.target }}\`"
             echo "- Resolved in go.mod: \`${{ steps.upgrade-singbox.outputs.resolved }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  no-upgrade:
+    name: No sing-box upgrade needed
+    runs-on: ubuntu-latest
+    needs: detect-singbox
+    if: needs.detect-singbox.outputs.needs_upgrade != 'true'
+    steps:
+      - name: Summary
+        run: |
+          {
+            echo "## No Upgrade Needed"
+            echo
+            echo "Current sing-box is already latest for this branch."
+            echo
+            echo "- Ref: \`${{ needs.detect-singbox.outputs.build_ref }}\`"
+            echo "- Current: \`${{ needs.detect-singbox.outputs.current }}\`"
+            echo "- Latest: \`${{ needs.detect-singbox.outputs.latest }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
