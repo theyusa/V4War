@@ -2,12 +2,6 @@ name: V4War Android Build
 
 on:
   workflow_dispatch:
-    inputs:
-      branch:
-        description: Branch, tag, or commit to build
-        required: true
-        default: main
-        type: string
 
 permissions:
   contents: write
@@ -20,13 +14,13 @@ jobs:
       - name: Checkout selected ref
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
           submodules: recursive
 
       - name: Show checked out revision
         run: |
-          echo "requested_ref=${{ inputs.branch }}"
+          echo "requested_ref=${{ github.ref_name }}"
           git rev-parse HEAD
           git branch --show-current || true
           git log -1 --oneline
@@ -156,13 +150,13 @@ jobs:
       - name: Checkout selected ref
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
           submodules: recursive
 
       - name: Show checked out revision
         run: |
-          echo "requested_ref=${{ inputs.branch }}"
+          echo "requested_ref=${{ github.ref_name }}"
           git rev-parse HEAD
           git branch --show-current || true
           git log -1 --oneline
