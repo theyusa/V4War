@@ -35,7 +35,12 @@ when {
 
 include(":androidApp")
 include(":composeApp")
-include(":library:compose-code-editor:codeeditor")
-include(":library:DragDropSwipeLazyColumn")
+
+if (file("library/compose-code-editor/codeeditor").isDirectory) {
+    include(":library:compose-code-editor:codeeditor")
+}
+if (file("library/DragDropSwipeLazyColumn").isDirectory) {
+    include(":library:DragDropSwipeLazyColumn")
+}
 
 rootProject.name = "V4War"
