@@ -1,0 +1,4 @@
+<resources>
+    <string name="auto_connect">Auto Connect</string>
+    <string name="auto_connect_summary">Enable proxy on startup/app update if it was running before</string>
+</resources>

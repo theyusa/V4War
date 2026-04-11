@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="auto_connect">Otomatik bağlan</string>
+    <string name="auto_connect_summary">Önceden çalışıyorsa uygulama açılışında veya güncellemeden sonra proxy'yi otomatik etkinleştir</string>
+</resources>

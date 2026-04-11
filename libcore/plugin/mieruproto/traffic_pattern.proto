@@ -1,0 +1,93 @@
+// Copyright (C) 2024  mieru authors
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+syntax = "proto3";
+
+package mieruproto;
+
+option go_package = "libcore/plugin/mieruproto;mieruproto";
+
+message TrafficPattern {
+    // Generate stable implicit traffic patterns that are not explictly set.
+    // Generated traffic patterns are also influenced by "unlockAll" below.
+    optional int32 seed = 1;
+
+    // If true, implicit traffic patterns can use all possible options,
+    // which may not be desired. Otherwise, implicit traffic patterns
+    // only use limited options.
+    // All explicitly set traffic patterns are available regardless of this.
+    optional bool unlockAll = 2;
+
+    // Split TCP packets by fragmentation.
+    optional TCPFragment tcpFragment = 3;
+
+    // Manipulate nonce prefix.
+    optional NoncePattern nonce = 4;
+}
+
+message TCPFragment {
+    // Enable additional TCP fragmentation.
+    optional bool enable = 1;
+
+    // Max sleep time in milliseconds between sending two fragments.
+    // This value can't exceed 100.
+    // If not set, a reasonable default value is used.
+    optional int32 maxSleepMs = 2;
+}
+
+message NoncePattern {
+    // Strategy to manipulate nonce.
+    optional NonceType type = 1;
+
+    // If the pattern applies to each UDP packet,
+    // or only applies to the first UDP packet.
+    optional bool applyToAllUDPPacket = 2;
+
+    // Minimum number of bytes to manipulate.
+    // It is ignored when NonceType is NONCE_TYPE_RANDOM or NONCE_TYPE_FIXED.
+    optional int32 minLen = 3;
+
+    // Maximum number of bytes to manipulate.
+    // This value can't exceed 12.
+    // It is ignored when NonceType is NONCE_TYPE_RANDOM or NONCE_TYPE_FIXED.
+    optional int32 maxLen = 4;
+
+    // A list of hex string (without 0x) that represent customized
+    // nonce prefix to use. For example, string "00010203"
+    // represent a 4 bytes nonce prefix [0, 1, 2, 3].
+    //
+    // Each nonce prefix can't exceed 12 bytes.
+    //
+    // When multiple strings are provided, a random one is used each time.
+    //
+    // It has no effect when NonceType is not NONCE_TYPE_FIXED.
+    repeated string customHexStrings = 5;
+}
+
+enum NonceType {
+    // Do not make change to the original random nonce.
+    NONCE_TYPE_RANDOM = 0;
+
+    // Use printable ASCII characters from 0x20 to 0x7E.
+    NONCE_TYPE_PRINTABLE = 1;
+
+    // Use a pre-defined subset of printable ASCII characters.
+    NONCE_TYPE_PRINTABLE_SUBSET = 2;
+
+    // Use a customized nonce prefix.
+    // If field customHexStrings is not set in NoncePattern,
+    // the behavior is the same as NONCE_TYPE_RANDOM.
+    NONCE_TYPE_FIXED = 3;
+}

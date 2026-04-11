@@ -1,0 +1,4 @@
+<resources>
+    <string name="auto_connect">ارتباط خودکار</string>
+    <string name="auto_connect_summary">فعال کردن پروکسی در هنگام راه‌اندازی/به‌روزرسانی برنامه اگر قبلاً اجرا می‌شد</string>
+</resources>

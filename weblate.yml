@@ -1,0 +1,6 @@
+component:
+  name: V4War
+  slug: v4war
+  project: v4war
+  filemask: composeApp/src/commonMain/composeResources/values-*/strings.xml
+  template: composeApp/src/commonMain/composeResources/values/strings.xml

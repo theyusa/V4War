@@ -1,0 +1,4 @@
+<resources>
+    <string name="auto_connect">Conexión automática</string>
+    <string name="auto_connect_summary">Activa el proxy en el inicio/actualización de la aplicación si se estaba ejecutando antes</string>
+</resources>

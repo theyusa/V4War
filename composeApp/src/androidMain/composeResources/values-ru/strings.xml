@@ -1,0 +1,4 @@
+<resources>
+    <string name="auto_connect">Автоматическое подключение</string>
+    <string name="auto_connect_summary">Включить прокси при запуске/обновлении приложения, если он был запущен до этого</string>
+</resources>

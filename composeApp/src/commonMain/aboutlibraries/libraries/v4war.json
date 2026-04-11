@@ -1,0 +1,13 @@
+{
+  "uniqueId": "fr.v4war:v4war",
+  "name": "V4War",
+  "website": "https://github.com/TheYusa/V4War",
+  "developers": [
+    {
+      "name": "V4War authors"
+    }
+  ],
+  "licenses": [
+    "GPL-3.0-or-later"
+  ]
+}

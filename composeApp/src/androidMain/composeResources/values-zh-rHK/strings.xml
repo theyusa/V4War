@@ -1,0 +1,4 @@
+<resources>
+    <string name="auto_connect">自動連接</string>
+    <string name="auto_connect_summary">在開機或本程式更新後將自動重新啓用代理</string>
+</resources>

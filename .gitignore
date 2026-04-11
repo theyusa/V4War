@@ -1,0 +1,31 @@
+*.iml
+.gradle
+.kotlin
+.idea
+.vscode
+.DS_Store
+build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+/composeApp/libs/
+/service_account_credentials.json
+jniLibs/
+go.work*
+*.srs
+*.zip
+*.tgz
+*.zst
+*.tar.*
+*.tar
+*.swp
+.gradle-home/
+
+# Vibe coding
+.claude
+.gemini
+.codex
+
+# submodules
+/external
