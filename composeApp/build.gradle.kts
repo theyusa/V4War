@@ -80,8 +80,12 @@ kotlin {
                 implementation(libs.filekit.dialogs.compose)
                 implementation(libs.aboutlibraries.compose.m3)
                 implementation(libs.zxing.core)
-                implementation(project(":library:compose-code-editor:codeeditor"))
-                implementation(project(":library:DragDropSwipeLazyColumn"))
+                rootProject.findProject(":library:compose-code-editor:codeeditor")?.let {
+                    implementation(it)
+                }
+                rootProject.findProject(":library:DragDropSwipeLazyColumn")?.let {
+                    implementation(it)
+                }
 
                 implementation(project.dependencies.platform(libs.koin.bom))
                 implementation(libs.koin.core)
