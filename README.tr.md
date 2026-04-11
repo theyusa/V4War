@@ -4,54 +4,51 @@
   <img src="./V.png" alt="V4War logo" width="220" />
 </p>
 
-**Once ozgurluk.**
+V4War, internet ozgurlugu ve sansure direnc odakli bir Android istemcisidir.
 
-V4War, internet ozgurlugu mucadelesi icin gelistirilmis bir Android istemcisidir.
-Misyonu nettir: sansur, trafik manipulasyonu ve baglanti kisitlari altinda
-kullanicinin kendi ag rotalari uzerindeki kontrolunu korumasina yardim etmek.
+Misyonu, kisitli ag kosullarinda kullanicinin kendi routing ve baglanti kontrolunu korumasina yardim etmektir.
+V4War hazir erisim satan bir servis degildir; kendi profil altyapisini yoneten kullanicilar icin teknik bir istemcidir.
 
-V4War bir VPN saticisi degildir ve hazir erisim satmaz.
-Kendi profil/proxy altyapisini yoneten kullanicilar icin teknik bir istemcidir.
+English README: **[README.md](./README.md)**
 
----
+## Uyari
 
-English documentation: **[README.md](./README.md)**
+2025 Agustos doneminde Google, Android dagitim surecinde merkezilesmeyi artiran bir dogrulama modeli duyurdu.
+V4War, ozgur yazilim ilkeleri geregi acik ekosistem, kullanici ozerkligi ve bagimsiz dagitim tarafinda durur.
 
-## Neden V4War
+Acikligin korunmasi icin: [Keep Android Open](https://keepandroidopen.org/)
 
-- Sansure dayanikli, kullanici kontrollu rota yonetimi
-- Hizli profil import ve abonelik guncelleme akislari
-- Modern hibrit cekirdek ile protokol esnekligi
-- Guvenilirlik ve kontrol odakli Android deneyimi
+## Ana Yonelim
+
+- Ozgurluk odakli ag araclari
+- Sansure dayanikli ve kullanici kontrollu routing
+- Android odakli guvenilirlik ve pratik kontrol
+- Denetlenebilir, topluluk destekli gelisim yaklasimi
 
 ## Cekirdek Mimari
 
-V4War, **hibrit cekirdek mimarisi** kullanir:
+V4War hibrit cekirdek tasarimi kullanir:
 
-- **V2Ray ekosistemi uyumlulugu** ile genis profil formati destegi
-- **sing-box cekirdegi** ile modern routing ve calisma davranisi
+- V2Ray ekosistemi uyumlulugu
+- sing-box runtime ve routing motoru
 
-Bu tasarim, uyumluluk ve performansi tek bir Android odakli istemcide birlestirir.
+Bu yapi, genis profil uyumlulugunu modern routing davranisi ile birlestirir.
 
-## Desteklenen Protokol Aileleri
+## Ozellik Ozeti
 
-V4War; VLESS, VMess, Trojan, Shadowsocks, SOCKS/HTTP tabanli profiller
-ve iliskili modern formatlar dahil olmak uzere yaygin protokol ailelerini destekler.
+- Link, subscription ve dosya tabanli profil importu
+- Subscription guncelleme akislari
+- VLESS, VMess, Trojan, Shadowsocks ve benzeri protokol aileleri
+- Sorun tespiti icin loglama ve tanilama araclari
+- Desteklenen hedefler icin plugin tabanli genisleme
 
-## Proje Kimligi
-
-- Uygulama adi: `V4War`
-- Paket adi: `tr.theyusa.v4war`
-- Gelistirici: `TheYusa`
-- Isim ve marka haklari: `TheYusa`
-
-## Derleme (Android)
+## Derleme Rehberi (Android)
 
 ### Gereksinimler
 
 - JDK 21
 - Android NDK `29.0.14206865`
-- Go surumu: `buildScript/init/version.sh` ile uyumlu olmali
+- Go surumu `buildScript/init/version.sh` ile uyumlu olmali
 
 ### 1) Kaynagi al
 
@@ -60,13 +57,13 @@ git clone https://github.com/theyusa/V4War.git --depth=1
 cd V4War
 ```
 
-### 2) Android icin libcore derle
+### 2) libcore (Android) derle
 
 ```sh
 make libcore_android
 ```
 
-Uretilen cikti:
+Cikti:
 
 ```text
 composeApp/libs/libcore.aar
@@ -78,7 +75,7 @@ composeApp/libs/libcore.aar
 make assets
 ```
 
-### 4) OSS lisans metadata dosyasini uret
+### 4) OSS lisans metadata olustur
 
 ```sh
 ./gradlew :composeApp:exportLibraryDefinitions
@@ -96,10 +93,45 @@ APK cikti dizini:
 androidApp/build/outputs/apk
 ```
 
+## Plugin Derleme
+
+```sh
+make plugin PLUGIN=<plugin-name>
+```
+
+Bilinen plugin hedefleri:
+
+- `hysteria2`
+- `juicity`
+- `naive`
+- `mieru`
+- `shadowquic`
+
+## Proje Kimligi
+
+- Uygulama adi: `V4War`
+- Paket adi: `tr.theyusa.v4war`
+- Gelistirici: `TheYusa`
+- Isim ve marka haklari: `TheYusa`
+
 ## Katki
 
-Lutfen **[CONTRIBUTING.md](./CONTRIBUTING.md)** dosyasini okuyun.
+Oku: **[CONTRIBUTING.md](./CONTRIBUTING.md)**
 
 ## Lisans
 
 `GPL-3.0-or-later`
+
+## Tesekkur
+
+- [SagerNet/sing-box](https://github.com/SagerNet/sing-box)
+- [shadowsocks/shadowsocks-android](https://github.com/shadowsocks/shadowsocks-android)
+- [SagerNet/SagerNet](https://github.com/SagerNet/SagerNet)
+- [XTLS/AnXray](https://github.com/XTLS/AnXray)
+- [MatsuriDayo/NekoBoxForAndroid](https://github.com/MatsuriDayo/NekoBoxForAndroid)
+- [SagerNet/sing-box-for-android](https://github.com/SagerNet/sing-box-for-android)
+- [AntiNeko/CatBoxForAndroid](https://github.com/AntiNeko/CatBoxForAndroid)
+- [MetaCubeX/ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid)
+- [dyhkwong/Exclave](https://github.com/dyhkwong/Exclave)
+- [chen08209/FlClash](https://github.com/chen08209/FlClash)
+- [RikkaApps/RikkaX](https://github.com/RikkaApps/RikkaX)
