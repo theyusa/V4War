@@ -34,6 +34,7 @@ fun initPlugins(
                             }
                         }
                 }
+                else -> {}
             }
         }
     }
@@ -90,6 +91,7 @@ fun launchPlugins(
                         mutableMapOf("HYSTERIA_DISABLE_UPDATE_CHECK" to "1"),
                     )
                 }
+                else -> {}
             }
         }
     }

@@ -49,6 +49,7 @@ import fr.husi.fmt.tuic.TuicBean
 import fr.husi.fmt.tuic.buildSingBoxOutboundTuicBean
 import fr.husi.fmt.v2ray.StandardV2RayBean
 import fr.husi.fmt.v2ray.buildSingBoxOutboundStandardV2RayBean
+import fr.husi.platform.PlatformInfo
 
 import fr.husi.ktx.JSONMap
 import fr.husi.ktx.asKxsMap
