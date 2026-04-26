@@ -9,7 +9,6 @@ import fr.husi.fmt.hysteria.parseHysteria1Json
 import fr.husi.fmt.parseOutbound
 import fr.husi.fmt.shadowsocks.parseShadowsocks
 import fr.husi.fmt.v2ray.StandardV2RayBean
-import fr.husi.fmt.wireguard.WireGuardBean
 import fr.husi.ktx.JSONMap
 import fr.husi.ktx.Logs
 import fr.husi.ktx.SubscriptionFoundException
@@ -29,8 +28,6 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import org.ini4j.Ini
-import java.io.StringReader
 
 @Suppress("EXPERIMENTAL_API_USAGE", "UNCHECKED_CAST")
 object RawUpdater : GroupUpdater() {
@@ -100,22 +97,6 @@ object RawUpdater : GroupUpdater() {
 
         val proxies = mutableListOf<AbstractBean>()
 
-        if (text.contains("[Interface]")) {
-            // wireguard
-            try {
-                val beans = parseWireGuard(text)
-                val hasFileName = fileName.isNotBlank()
-                for ((i, bean) in beans.withIndex()) {
-                    if (hasFileName) bean.name = bean.name.removeSuffix(".conf")
-                    if (beans.size > 1) bean.name += i
-                }
-                proxies.addAll(beans)
-                return proxies
-            } catch (e: Exception) {
-                Logs.w(e)
-            }
-        }
-
         val trimmed = text.trimStart()
         if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
             try {
@@ -144,46 +125,6 @@ object RawUpdater : GroupUpdater() {
         }
 
         return null
-    }
-
-    fun parseWireGuard(conf: String): List<WireGuardBean> {
-        val ini = Ini(StringReader(conf))
-        val iface = ini["Interface"] ?: error("Missing 'Interface' selection")
-        val bean = WireGuardBean().applyDefaultValues()
-        val localAddresses = iface.getAll("Address")
-        if (localAddresses.isNullOrEmpty()) error("Empty address in 'Interface' selection")
-        bean.localAddress = localAddresses.flatMap {
-            it.split(",").map { address ->
-                address.trim()
-            }
-        }.joinToString("\n")
-        bean.privateKey = iface["PrivateKey"].orEmpty()
-        bean.mtu = iface["MTU"]?.toIntOrNull() ?: 1408
-        bean.listenPort = iface["ListenPort"]?.toIntOrNull() ?: 0
-        val peers = ini.getAll("Peer")
-        if (peers.isNullOrEmpty()) error("Missing 'Peer' selections")
-        val beans = mutableListOf<WireGuardBean>()
-        loopPeer@ for (peer in peers) {
-            val peerBean = bean.clone()
-            for ((keyName, keyValue) in peer) {
-                when (keyName.lowercase()) {
-                    "endpoint" -> {
-                        peerBean.serverPort = keyValue.substringAfterLast(":", "").toIntOrNull()
-                            ?: continue@loopPeer
-                        peerBean.serverAddress = keyValue.substringBeforeLast(":")
-                    }
-
-                    "publickey" -> peerBean.publicKey = keyValue ?: continue@loopPeer
-                    "presharedkey" -> peerBean.preSharedKey = keyValue
-                    "persistentkeepalive" -> {
-                        peerBean.persistentKeepaliveInterval = keyValue.toIntOrNull() ?: 0
-                    }
-                }
-            }
-            beans.add(peerBean.applyDefaultValues())
-        }
-        if (beans.isEmpty()) error("Empty available peer list")
-        return beans
     }
 
     fun parseJSON(element: JsonElement): List<AbstractBean> {

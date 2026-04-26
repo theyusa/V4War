@@ -159,9 +159,7 @@ import fr.husi.resources.inbound_username
 import fr.husi.resources.insecure_warn
 import fr.husi.resources.ipv4_only
 import fr.husi.resources.ipv6_only
-import fr.husi.resources.juicity_provider
-import fr.husi.resources.keep_default
-import fr.husi.resources.language
+import fr.husi.resources.protocol_settings
 import fr.husi.resources.language_system_default
 import fr.husi.resources.lock
 import fr.husi.resources.log_level
@@ -193,7 +191,6 @@ import fr.husi.resources.prefer_ipv6
 import fr.husi.resources.profile_traffic_statistics
 import fr.husi.resources.profile_traffic_statistics_summary
 import fr.husi.resources.protocol_settings
-import fr.husi.resources.provider_naive
 import fr.husi.resources.public_icon
 import fr.husi.resources.push_pin
 import fr.husi.resources.remote_dns
@@ -985,54 +982,6 @@ fun SettingsScreen(
                             },
                             values = listOf(ProtocolProvider.CORE, ProtocolProvider.PLUGIN),
                             title = { Text(stringResource(Res.string.hysteria2_provider)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.flight_takeoff),
-                                    null,
-                                )
-                            },
-                            summary = { Text(stringOrRes(pluginProviderText(value))) },
-                            type = ListPreferenceType.DROPDOWN_MENU,
-                            valueToText = { AnnotatedString(stringOrRes(pluginProviderText(it))) },
-                        )
-                    }
-                    item(Key.PROVIDER_JUICITY, PreferenceType.LIST) {
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.PROVIDER_JUICITY, ProtocolProvider.PLUGIN)
-                            .collectAsStateWithLifecycle(ProtocolProvider.PLUGIN)
-
-                        ListPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.providerJuicity = it
-                                needReload()
-                            },
-                            values = listOf(ProtocolProvider.CORE, ProtocolProvider.PLUGIN),
-                            title = { Text(stringResource(Res.string.juicity_provider)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.flight_takeoff),
-                                    null,
-                                )
-                            },
-                            summary = { Text(stringOrRes(pluginProviderText(value))) },
-                            type = ListPreferenceType.DROPDOWN_MENU,
-                            valueToText = { AnnotatedString(stringOrRes(pluginProviderText(it))) },
-                        )
-                    }
-                    item(Key.PROVIDER_NAIVE, PreferenceType.LIST) {
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.PROVIDER_NAIVE, ProtocolProvider.CORE)
-                            .collectAsStateWithLifecycle(ProtocolProvider.CORE)
-
-                        ListPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.providerNaive = it
-                                needReload()
-                            },
-                            values = listOf(ProtocolProvider.CORE, ProtocolProvider.PLUGIN),
-                            title = { Text(stringResource(Res.string.provider_naive)) },
                             icon = {
                                 Icon(
                                     vectorResource(Res.drawable.flight_takeoff),
