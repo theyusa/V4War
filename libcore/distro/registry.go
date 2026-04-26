@@ -12,23 +12,19 @@ import (
 	"github.com/sagernet/sing-box/dns/transport/hosts"
 	"github.com/sagernet/sing-box/dns/transport/local"
 	"github.com/sagernet/sing-box/dns/transport/quic"
-	"github.com/sagernet/sing-box/protocol/anytls"
 	"github.com/sagernet/sing-box/protocol/block"
 	"github.com/sagernet/sing-box/protocol/direct"
 	"github.com/sagernet/sing-box/protocol/group"
-	"github.com/sagernet/sing-box/protocol/http"
 	"github.com/sagernet/sing-box/protocol/hysteria"
 	"github.com/sagernet/sing-box/protocol/hysteria2"
 	"github.com/sagernet/sing-box/protocol/mixed"
 	"github.com/sagernet/sing-box/protocol/shadowsocks"
-	"github.com/sagernet/sing-box/protocol/shadowtls"
 	"github.com/sagernet/sing-box/protocol/socks"
 	"github.com/sagernet/sing-box/protocol/ssh"
 	"github.com/sagernet/sing-box/protocol/trojan"
-	"github.com/sagernet/sing-box/protocol/tuic"
 	"github.com/sagernet/sing-box/protocol/tun"
 	"github.com/sagernet/sing-box/protocol/vmess"
-	"github.com/sagernet/sing-box/protocol/wireguard"
+
 	_ "github.com/sagernet/sing-box/transport/v2rayquic"
 )
 
@@ -39,15 +35,7 @@ func InboundRegistry() *inbound.Registry {
 	direct.RegisterInbound(registry)
 
 	socks.RegisterInbound(registry)
-	http.RegisterInbound(registry)
 	mixed.RegisterInbound(registry)
-
-	// shadowsocks.RegisterInbound(registry)
-	// vmess.RegisterInbound(registry)
-	// trojan.RegisterInbound(registry)
-	// naive.RegisterInbound(registry)
-	// shadowtls.RegisterInbound(registry)
-	// vless.RegisterInbound(registry)
 
 	registerQUICInbounds(registry)
 
@@ -64,17 +52,12 @@ func OutboundRegistry() *outbound.Registry {
 	group.RegisterURLTest(registry)
 
 	socks.RegisterOutbound(registry)
-	// http.RegisterOutbound(registry) // Move to plugin
 	shadowsocks.RegisterOutbound(registry)
 	vmess.RegisterOutbound(registry)
 	trojan.RegisterOutbound(registry)
 	ssh.RegisterOutbound(registry)
-	shadowtls.RegisterOutbound(registry)
-	// vless.RegisterOutbound(registry) // Move to plugin
-	anytls.RegisterOutbound(registry)
 
 	registerQUICOutbounds(registry)
-	registerNaiveOutbound(registry)
 
 	registerPluginsOutbound(registry)
 
@@ -84,15 +67,10 @@ func OutboundRegistry() *outbound.Registry {
 func EndpointRegistry() *endpoint.Registry {
 	registry := endpoint.NewRegistry()
 
-	registerWireGuardEndpoint(registry)
-
 	return registry
 }
 
 func registerQUICInbounds(registry *inbound.Registry) {
-	// hysteria.RegisterInbound(registry)
-	// tuic.RegisterInbound(registry)
-	// hysteria2.RegisterInbound(registry)
 }
 
 func registerQUICOutbounds(registry *outbound.Registry) {
@@ -101,16 +79,10 @@ func registerQUICOutbounds(registry *outbound.Registry) {
 	hysteria2.RegisterOutbound(registry)
 }
 
-func registerWireGuardEndpoint(registry *endpoint.Registry) {
-	wireguard.RegisterEndpoint(registry)
-}
-
 func DNSTransportRegistry() *dns.TransportRegistry {
 	registry := dns.NewTransportRegistry()
 
-	// transport.RegisterTCP(registry) // Move to plugin
 	transport.RegisterUDP(registry)
-	// transport.RegisterTLS(registry) // Move to plugin
 	transport.RegisterHTTPS(registry)
 	hosts.RegisterTransport(registry)
 	local.RegisterTransport(registry)
@@ -136,10 +108,6 @@ func ServiceRegistry() *service.Registry {
 
 func CertificateProviderRegistry() *certificate.Registry {
 	registry := certificate.NewRegistry()
-
-	// registerACMECertificateProvider(registry)
-	// registerTailscaleCertificateProvider(registry)
-	// originca.RegisterCertificateProvider(registry)
 
 	return registry
 }

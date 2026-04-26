@@ -1,5 +1,3 @@
-//go:build !with_naive_outbound
-
 package distro
 
 import (
