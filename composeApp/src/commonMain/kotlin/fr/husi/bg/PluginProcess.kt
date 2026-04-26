@@ -4,15 +4,6 @@ import fr.husi.database.DataStore
 import fr.husi.fmt.ConfigBuildResult
 import fr.husi.fmt.hysteria.HysteriaBean
 import fr.husi.fmt.hysteria.buildHysteriaConfig
-import fr.husi.fmt.juicity.JuicityBean
-import fr.husi.fmt.juicity.buildJuicityConfig
-import fr.husi.fmt.mieru.MieruBean
-import fr.husi.fmt.mieru.buildMieruConfig
-import fr.husi.fmt.naive.NaiveBean
-import fr.husi.fmt.naive.buildNaiveConfig
-import fr.husi.fmt.shadowquic.ShadowQUICBean
-import fr.husi.fmt.shadowquic.buildShadowQUICConfig
-import fr.husi.libcore.Libcore
 import fr.husi.platform.PlatformInfo
 import fr.husi.plugin.PluginManager
 import fr.husi.repository.resolveRepository
@@ -25,25 +16,16 @@ fun initPlugins(
 ): Map<Int, Pair<Int, String>> {
     val repository = resolveRepository()
     val pluginConfigs = hashMapOf<Int, Pair<Int, String>>()
-    val logLevel = DataStore.logLevel
     for ((chain) in config.externalIndex) {
         chain.entries.forEach { (port, profile) ->
             when (val bean = profile.requireBean()) {
-                is MieruBean -> {
-                    PluginManager.init("mieru-plugin")
-                    pluginConfigs[port] = profile.type to bean.buildMieruConfig(port, logLevel)
-                }
-
-                is NaiveBean -> {
-                    PluginManager.init("naive-plugin")
-                    pluginConfigs[port] = profile.type to bean.buildNaiveConfig(port)
-                }
-
                 is HysteriaBean -> {
-                    when (bean.protocolVersion) {
-                        HysteriaBean.PROTOCOL_VERSION_1 -> PluginManager.init("hysteria-plugin")
-                        HysteriaBean.PROTOCOL_VERSION_2 -> PluginManager.init("hysteria2-plugin")
-                    }
+                    PluginManager.init(
+                        when (bean.protocolVersion) {
+                            HysteriaBean.PROTOCOL_VERSION_1 -> "hysteria-plugin"
+                            HysteriaBean.PROTOCOL_VERSION_2 -> "hysteria2-plugin"
+                        }
+                    )
                     pluginConfigs[port] =
                         profile.type to bean.buildHysteriaConfig(port, isVPN) { type ->
                             File(repository.cacheDir, "hysteria_${System.currentTimeMillis()}.$type").also {
@@ -51,17 +33,6 @@ fun initPlugins(
                                 cacheFiles.add(it)
                             }
                         }
-                }
-
-                is JuicityBean -> {
-                    PluginManager.init("juicity-plugin")
-                    pluginConfigs[port] = profile.type to bean.buildJuicityConfig(port, isVPN)
-                }
-
-                is ShadowQUICBean -> {
-                    PluginManager.init("shadowquic-plugin")
-                    pluginConfigs[port] =
-                        profile.type to bean.buildShadowQUICConfig(port, isVPN, logLevel)
                 }
             }
         }
@@ -84,32 +55,6 @@ fun launchPlugins(
             val (_, cfg) = pluginConfigs[port] ?: return@forEach
 
             when (bean) {
-                is MieruBean -> {
-                    val configFile = File(cacheDir, "mieru_${System.currentTimeMillis()}.json")
-                    configFile.writeText(cfg)
-                    cacheFiles.add(configFile)
-                    processes.start(
-                        listOf(PluginManager.init("mieru-plugin")!!.path, "run"),
-                        mutableMapOf(
-                            "MIERU_CONFIG_JSON_FILE" to configFile.absolutePath,
-                            "MIERU_PROTECT_PATH" to Libcore.ProtectPath,
-                        ),
-                    )
-                }
-
-                is NaiveBean -> {
-                    val configFile = File(cacheDir, "naive_${System.currentTimeMillis()}.json")
-                    configFile.writeText(cfg)
-                    cacheFiles.add(configFile)
-                    processes.start(
-                        listOf(
-                            PluginManager.init("naive-plugin")!!.path,
-                            configFile.absolutePath,
-                        ),
-                        mutableMapOf(),
-                    )
-                }
-
                 is HysteriaBean -> {
                     val configFile = File(cacheDir, "hysteria_${System.currentTimeMillis()}.json")
                     configFile.writeText(cfg)
@@ -143,34 +88,6 @@ fun launchPlugins(
                     processes.start(
                         commands,
                         mutableMapOf("HYSTERIA_DISABLE_UPDATE_CHECK" to "1"),
-                    )
-                }
-
-                is JuicityBean -> {
-                    val configFile = File(cacheDir, "juicity_${System.currentTimeMillis()}.json")
-                    configFile.writeText(cfg)
-                    cacheFiles.add(configFile)
-                    processes.start(
-                        listOf(
-                            PluginManager.init("juicity-plugin")!!.path,
-                            "run",
-                            "-c",
-                            configFile.absolutePath,
-                        ),
-                        mutableMapOf("QUIC_GO_DISABLE_GSO" to "1"),
-                    )
-                }
-
-                is ShadowQUICBean -> {
-                    val configFile = File(cacheDir, "shadowquic_${System.currentTimeMillis()}.yaml")
-                    configFile.writeText(cfg)
-                    cacheFiles.add(configFile)
-                    processes.start(
-                        listOf(
-                            PluginManager.init("shadowquic-plugin")!!.path,
-                            "-c",
-                            configFile.absolutePath,
-                        ),
                     )
                 }
             }

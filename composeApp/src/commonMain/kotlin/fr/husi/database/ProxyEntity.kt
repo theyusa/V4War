@@ -11,18 +11,16 @@ import androidx.room.Transaction
 import androidx.room.Update
 import com.esotericsoftware.kryo.io.ByteBufferInput
 import com.esotericsoftware.kryo.io.ByteBufferOutput
-import fr.husi.ProtocolProvider
+import fr.husi.database.SagerDatabase
 import fr.husi.fmt.AbstractBean
 import fr.husi.fmt.KryoConverters
 import fr.husi.fmt.Serializable
 import fr.husi.fmt.anytls.AnyTLSBean
-import fr.husi.fmt.anytls.toUri
 import fr.husi.fmt.buildConfig
 import fr.husi.fmt.buildSingBoxOutbound
 import fr.husi.fmt.config.ConfigBean
 import fr.husi.fmt.direct.DirectBean
 import fr.husi.fmt.http.HttpBean
-import fr.husi.fmt.http.toUri
 import fr.husi.fmt.hysteria.HysteriaBean
 import fr.husi.fmt.hysteria.buildHysteriaConfig
 import fr.husi.fmt.hysteria.canUseSingBox
@@ -30,16 +28,9 @@ import fr.husi.fmt.hysteria.toUri
 import fr.husi.fmt.internal.ChainBean
 import fr.husi.fmt.internal.ProxySetBean
 import fr.husi.fmt.juicity.JuicityBean
-import fr.husi.fmt.juicity.buildJuicityConfig
-import fr.husi.fmt.juicity.toUri
 import fr.husi.fmt.mieru.MieruBean
-import fr.husi.fmt.mieru.buildMieruConfig
-import fr.husi.fmt.mieru.toUri
 import fr.husi.fmt.naive.NaiveBean
-import fr.husi.fmt.naive.buildNaiveConfig
-import fr.husi.fmt.naive.toUri
 import fr.husi.fmt.shadowquic.ShadowQUICBean
-import fr.husi.fmt.shadowquic.buildShadowQUICConfig
 import fr.husi.fmt.shadowsocks.ShadowsocksBean
 import fr.husi.fmt.shadowsocks.toUri
 import fr.husi.fmt.shadowtls.ShadowTLSBean
@@ -49,7 +40,6 @@ import fr.husi.fmt.ssh.SSHBean
 import fr.husi.fmt.toUniversalLink
 import fr.husi.fmt.trojan.TrojanBean
 import fr.husi.fmt.trusttunnel.TrustTunnelBean
-import fr.husi.fmt.trusttunnel.toUri
 import fr.husi.fmt.tuic.TuicBean
 import fr.husi.fmt.tuic.toUri
 import fr.husi.fmt.v2ray.VLESSBean
@@ -197,24 +187,14 @@ data class ProxyEntity(
     fun putByteArray(byteArray: ByteArray) {
         when (type) {
             TYPE_SOCKS -> socksBean = KryoConverters.socksDeserialize(byteArray)
-            TYPE_HTTP -> httpBean = KryoConverters.httpDeserialize(byteArray)
             TYPE_SS -> ssBean = KryoConverters.shadowsocksDeserialize(byteArray)
             TYPE_VMESS -> vmessBean = KryoConverters.vmessDeserialize(byteArray)
             TYPE_VLESS -> vlessBean = KryoConverters.vlessDeserialize(byteArray)
             TYPE_TROJAN -> trojanBean = KryoConverters.trojanDeserialize(byteArray)
-            TYPE_MIERU -> mieruBean = KryoConverters.mieruDeserialize(byteArray)
-            TYPE_NAIVE -> naiveBean = KryoConverters.naiveDeserialize(byteArray)
             TYPE_HYSTERIA -> hysteriaBean = KryoConverters.hysteriaDeserialize(byteArray)
             TYPE_SSH -> sshBean = KryoConverters.sshDeserialize(byteArray)
-            TYPE_WG -> wgBean = KryoConverters.wireguardDeserialize(byteArray)
             TYPE_TUIC -> tuicBean = KryoConverters.tuicDeserialize(byteArray)
-            TYPE_JUICITY -> juicityBean = KryoConverters.juicityDeserialize(byteArray)
-            TYPE_DIRECT -> directBean = KryoConverters.directDeserialize(byteArray)
-            TYPE_SHADOWTLS -> shadowTLSBean = KryoConverters.shadowTLSDeserialize(byteArray)
-            TYPE_ANYTLS -> anyTLSBean = KryoConverters.anyTLSDeserialize(byteArray)
-            TYPE_SHADOWQUIC -> shadowQUICBean = KryoConverters.shadowQUICDeserialize(byteArray)
             TYPE_PROXY_SET -> proxySetBean = KryoConverters.proxySetDeserialize(byteArray)
-            TYPE_TRUST_TUNNEL -> trustTunnelBean = KryoConverters.trustTunnelDeserialize(byteArray)
             TYPE_CHAIN -> chainBean = KryoConverters.chainDeserialize(byteArray)
             TYPE_CONFIG -> configBean = KryoConverters.configDeserialize(byteArray)
         }
@@ -235,24 +215,14 @@ data class ProxyEntity(
     fun requireBean(): AbstractBean {
         return when (type) {
             TYPE_SOCKS -> socksBean
-            TYPE_HTTP -> httpBean
             TYPE_SS -> ssBean
             TYPE_VMESS -> vmessBean
             TYPE_VLESS -> vlessBean
             TYPE_TROJAN -> trojanBean
-            TYPE_MIERU -> mieruBean
-            TYPE_NAIVE -> naiveBean
             TYPE_HYSTERIA -> hysteriaBean
             TYPE_SSH -> sshBean
-            TYPE_WG -> wgBean
             TYPE_TUIC -> tuicBean
-            TYPE_JUICITY -> juicityBean
-            TYPE_DIRECT -> directBean
-            TYPE_ANYTLS -> anyTLSBean
-            TYPE_SHADOWQUIC -> shadowQUICBean
-            TYPE_SHADOWTLS -> shadowTLSBean
             TYPE_PROXY_SET -> proxySetBean
-            TYPE_TRUST_TUNNEL -> trustTunnelBean
             TYPE_CHAIN -> chainBean
             TYPE_CONFIG -> configBean
             else -> error("Undefined type $type")
@@ -263,16 +233,12 @@ data class ProxyEntity(
     fun haveLink(): Boolean = when (type) {
         TYPE_PROXY_SET -> false
         TYPE_CHAIN -> false
-        TYPE_DIRECT -> false
         else -> true
     }
 
     /** Determines if has standard link. */
     fun haveStandardLink(): Boolean = when (type) {
         TYPE_SSH -> false
-        TYPE_WG -> false
-        TYPE_SHADOWQUIC -> false
-        TYPE_SHADOWTLS -> false
         TYPE_PROXY_SET -> false
         TYPE_CHAIN -> false
         TYPE_CONFIG -> false
@@ -282,26 +248,18 @@ data class ProxyEntity(
     fun toStdLink(): String = with(requireBean()) {
         when (this) {
             is SOCKSBean -> toUri()
-            is HttpBean -> toUri()
             is ShadowsocksBean -> toUri()
             is VMessBean -> toUriVMessVLESSTrojan()
             is VLESSBean -> toUriVMessVLESSTrojan()
             is TrojanBean -> toUriVMessVLESSTrojan()
-            is NaiveBean -> toUri()
             is HysteriaBean -> toUri()
             is TuicBean -> toUri()
-            is JuicityBean -> toUri()
-            is MieruBean -> toUri()
-            is AnyTLSBean -> toUri()
-            is TrustTunnelBean -> toUri()
             else -> toUniversalLink()
         }
     }
 
     fun mustUsePlugin(): Boolean = when (type) {
-        TYPE_MIERU -> true
-        TYPE_JUICITY -> true
-        TYPE_SHADOWQUIC -> true
+        TYPE_HYSTERIA -> !hysteriaBean!!.canUseSingBox()
         else -> false
     }
 
@@ -317,33 +275,12 @@ data class ProxyEntity(
                     name = "profiles.txt"
                 }
 
-                val logLevel = DataStore.logLevel
                 for ((chain) in config.externalIndex) {
                     chain.entries.forEach { (port, profile) ->
                         when (val bean = profile.requireBean()) {
-                            is MieruBean -> {
-                                append("\n\n")
-                                append(bean.buildMieruConfig(port, logLevel))
-                            }
-
-                            is NaiveBean -> {
-                                append("\n\n")
-                                append(bean.buildNaiveConfig(port))
-                            }
-
                             is HysteriaBean -> {
                                 append("\n\n")
                                 append(bean.buildHysteriaConfig(port, false, null))
-                            }
-
-                            is JuicityBean -> {
-                                append("\n\n")
-                                append(bean.buildJuicityConfig(port, false))
-                            }
-
-                            is ShadowQUICBean -> {
-                                append("\n\n")
-                                append(bean.buildShadowQUICConfig(port, false, logLevel))
                             }
                         }
                     }
@@ -356,50 +293,20 @@ data class ProxyEntity(
 
     fun needExternal(): Boolean {
         return when (type) {
-            TYPE_MIERU -> true
-            TYPE_SHADOWQUIC -> true
-
             TYPE_HYSTERIA -> !hysteriaBean!!.canUseSingBox()
-
-            TYPE_JUICITY -> {
-                // https://github.com/juicity/juicity/issues/140
-                !DataStore.enableFakeDns && DataStore.providerJuicity != ProtocolProvider.CORE
-            }
-
-            TYPE_NAIVE -> {
-                val bean = naiveBean!!
-                if (bean.enableEch) {
-                    return false
-                }
-                if (bean.noPostQuantum) {
-                    return true
-                }
-                DataStore.providerNaive == ProtocolProvider.PLUGIN
-            }
-
             else -> false
         }
     }
 
     fun putBean(bean: AbstractBean): ProxyEntity {
         socksBean = null
-        httpBean = null
         ssBean = null
         vmessBean = null
         vlessBean = null
         trojanBean = null
-        mieruBean = null
-        naiveBean = null
         hysteriaBean = null
         sshBean = null
-        wgBean = null
         tuicBean = null
-        juicityBean = null
-        directBean = null
-        shadowTLSBean = null
-        anyTLSBean = null
-        shadowQUICBean = null
-        trustTunnelBean = null
         proxySetBean = null
         chainBean = null
         configBean = null
@@ -408,11 +315,6 @@ data class ProxyEntity(
             is SOCKSBean -> {
                 type = TYPE_SOCKS
                 socksBean = bean
-            }
-
-            is HttpBean -> {
-                type = TYPE_HTTP
-                httpBean = bean
             }
 
             is ShadowsocksBean -> {
@@ -435,16 +337,6 @@ data class ProxyEntity(
                 trojanBean = bean
             }
 
-            is MieruBean -> {
-                type = TYPE_MIERU
-                mieruBean = bean
-            }
-
-            is NaiveBean -> {
-                type = TYPE_NAIVE
-                naiveBean = bean
-            }
-
             is HysteriaBean -> {
                 type = TYPE_HYSTERIA
                 hysteriaBean = bean
@@ -455,44 +347,9 @@ data class ProxyEntity(
                 sshBean = bean
             }
 
-            is WireGuardBean -> {
-                type = TYPE_WG
-                wgBean = bean
-            }
-
             is TuicBean -> {
                 type = TYPE_TUIC
                 tuicBean = bean
-            }
-
-            is JuicityBean -> {
-                type = TYPE_JUICITY
-                juicityBean = bean
-            }
-
-            is DirectBean -> {
-                type = TYPE_DIRECT
-                directBean = bean
-            }
-
-            is ShadowTLSBean -> {
-                type = TYPE_SHADOWTLS
-                shadowTLSBean = bean
-            }
-
-            is AnyTLSBean -> {
-                type = TYPE_ANYTLS
-                anyTLSBean = bean
-            }
-
-            is ShadowQUICBean -> {
-                type = TYPE_SHADOWQUIC
-                shadowQUICBean = bean
-            }
-
-            is TrustTunnelBean -> {
-                type = TYPE_TRUST_TUNNEL
-                trustTunnelBean = bean
             }
 
             is ProxySetBean -> {

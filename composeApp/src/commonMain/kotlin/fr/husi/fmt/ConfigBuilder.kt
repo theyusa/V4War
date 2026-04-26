@@ -33,38 +33,23 @@ import fr.husi.fmt.SingBoxOptions.Outbound_SOCKSOptions
 import fr.husi.fmt.SingBoxOptions.Rule_Default
 import fr.husi.fmt.SingBoxOptions.Rule_Logical
 import fr.husi.fmt.SingBoxOptions.User
-import fr.husi.fmt.anytls.AnyTLSBean
-import fr.husi.fmt.anytls.buildSingBoxOutboundAnyTLSBean
 import fr.husi.fmt.config.ConfigBean
-import fr.husi.fmt.direct.DirectBean
-import fr.husi.fmt.direct.buildSingBoxOutboundDirectBean
-import fr.husi.platform.PlatformInfo
 import fr.husi.fmt.hysteria.HysteriaBean
 import fr.husi.fmt.hysteria.buildSingBoxOutboundHysteriaBean
 import fr.husi.fmt.internal.ChainBean
 import fr.husi.fmt.internal.ProxySetBean
 import fr.husi.fmt.internal.buildSingBoxOutboundProxySetBean
-import fr.husi.fmt.juicity.JuicityBean
-import fr.husi.fmt.juicity.buildSingBoxOutboundJuicityBean
-import fr.husi.fmt.naive.NaiveBean
-import fr.husi.fmt.naive.buildSingBoxOutboundNaiveBean
-import fr.husi.fmt.shadowquic.ShadowQUICBean
 import fr.husi.fmt.shadowsocks.ShadowsocksBean
 import fr.husi.fmt.shadowsocks.buildSingBoxOutboundShadowsocksBean
-import fr.husi.fmt.shadowtls.ShadowTLSBean
-import fr.husi.fmt.shadowtls.buildSingBoxOutboundShadowTLSBean
 import fr.husi.fmt.socks.SOCKSBean
 import fr.husi.fmt.socks.buildSingBoxOutboundSocksBean
 import fr.husi.fmt.ssh.SSHBean
 import fr.husi.fmt.ssh.buildSingBoxOutboundSSHBean
-import fr.husi.fmt.trusttunnel.TrustTunnelBean
-import fr.husi.fmt.trusttunnel.buildSingBoxOutboundTrustTunnelBean
 import fr.husi.fmt.tuic.TuicBean
 import fr.husi.fmt.tuic.buildSingBoxOutboundTuicBean
 import fr.husi.fmt.v2ray.StandardV2RayBean
 import fr.husi.fmt.v2ray.buildSingBoxOutboundStandardV2RayBean
-import fr.husi.fmt.wireguard.WireGuardBean
-import fr.husi.fmt.wireguard.buildSingBoxEndpointWireGuardBean
+
 import fr.husi.ktx.JSONMap
 import fr.husi.ktx.asKxsMap
 import fr.husi.ktx.toJsonObjectKxs
@@ -549,9 +534,6 @@ fun buildConfig(
                     currentOutbound = when (bean) {
                         is ConfigBean -> bean.config.toJsonMapKxs()
 
-                        is ShadowTLSBean -> // before StandardV2RayBean
-                            buildSingBoxOutboundShadowTLSBean(bean).asKxsMap()
-
                         is StandardV2RayBean -> // http/trojan/vmess/vless
                             buildSingBoxOutboundStandardV2RayBean(bean).asKxsMap()
 
@@ -563,19 +545,7 @@ fun buildConfig(
 
                         is ShadowsocksBean -> buildSingBoxOutboundShadowsocksBean(bean).asKxsMap()
 
-                        is WireGuardBean -> buildSingBoxEndpointWireGuardBean(bean).asKxsMap()
-
                         is SSHBean -> buildSingBoxOutboundSSHBean(bean).asKxsMap()
-
-                        is DirectBean -> buildSingBoxOutboundDirectBean(bean).asKxsMap()
-
-                        is AnyTLSBean -> buildSingBoxOutboundAnyTLSBean(bean).asKxsMap()
-
-                        is JuicityBean -> buildSingBoxOutboundJuicityBean(bean).asKxsMap()
-
-                        is NaiveBean -> buildSingBoxOutboundNaiveBean(bean).asKxsMap()
-
-                        is TrustTunnelBean -> buildSingBoxOutboundTrustTunnelBean(bean).asKxsMap()
 
                         is ProxySetBean -> {
                             val memberTags = LinkedHashSet<String>()
@@ -608,16 +578,6 @@ fun buildConfig(
                         // don't loopback
                         if (!pastBean.serverAddress.isIpAddress()) {
                             domainListDNSDirectForce.add(pastBean.serverAddress)
-                        }
-
-                        if (pastBean is ShadowQUICBean && pastBean.subProtocol == ShadowQUICBean.SUB_PROTOCOL_SUNNY_QUIC) {
-                            pastBean.extraPaths.lines().forEach {
-                                val address = it.substringBeforeLast(":", "").blankAsNull()
-                                    ?: return@forEach
-                                if (!address.isIpAddress()) {
-                                    domainListDNSDirectForce.add(address)
-                                }
-                            }
                         }
                     }
 

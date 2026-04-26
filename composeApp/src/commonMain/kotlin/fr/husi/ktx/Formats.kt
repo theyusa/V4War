@@ -2,18 +2,12 @@ package fr.husi.ktx
 
 import fr.husi.fmt.AbstractBean
 import fr.husi.fmt.Serializable
-import fr.husi.fmt.anytls.parseAnyTLS
-import fr.husi.fmt.http.parseHttp
 import fr.husi.fmt.hysteria.parseHysteria1
 import fr.husi.fmt.hysteria.parseHysteria2
-import fr.husi.fmt.juicity.parseJuicity
-import fr.husi.fmt.mieru.parseMieru
-import fr.husi.fmt.naive.parseNaive
 import fr.husi.fmt.parseUniversal
 import fr.husi.fmt.shadowsocks.parseShadowsocks
 import fr.husi.fmt.socks.parseSOCKS
 import fr.husi.fmt.trojan.parseTrojan
-import fr.husi.fmt.trusttunnel.parseTrustTunnel
 import fr.husi.fmt.tuic.parseTuic
 import fr.husi.fmt.v2ray.parseV2Ray
 import java.io.ByteArrayOutputStream
@@ -131,15 +125,6 @@ suspend fun parseProxies(text: String): List<AbstractBean> {
                 }
             }
 
-            "http", "https" -> {
-                Logs.d("Try parse http link: $this")
-                try {
-                    entities.add(parseHttp(this))
-                } catch (e: Exception) {
-                    Logs.w(e)
-                }
-            }
-
             "vmess", "vless" -> {
                 Logs.d("Try parse v2ray link: $this")
                 runCatching {
@@ -168,15 +153,6 @@ suspend fun parseProxies(text: String): List<AbstractBean> {
                 }
             }
 
-            "naive+https", "naive+quic" -> {
-                Logs.d("Try parse naive link: $this")
-                runCatching {
-                    entities.add(parseNaive(this))
-                }.onFailure {
-                    Logs.w(it)
-                }
-            }
-
             "hysteria" -> {
                 Logs.d("Try parse hysteria1 link: $this")
                 runCatching {
@@ -199,42 +175,6 @@ suspend fun parseProxies(text: String): List<AbstractBean> {
                 Logs.d("Try parse TUIC link: $this")
                 runCatching {
                     entities.add(parseTuic(this))
-                }.onFailure {
-                    Logs.w(it)
-                }
-            }
-
-            "juicity" -> {
-                Logs.d("Try parse Juicity link: $this")
-                runCatching {
-                    entities.add(parseJuicity(this))
-                }.onFailure {
-                    Logs.w(it)
-                }
-            }
-
-            "mierus" -> {
-                Logs.d("Try parse Mieru link: $this")
-                runCatching {
-                    entities.add(parseMieru(this))
-                }.onFailure {
-                    Logs.w(it)
-                }
-            }
-
-            "anytls" -> {
-                Logs.d("Try parse AnyTLS link: $this")
-                runCatching {
-                    entities.add(parseAnyTLS(this))
-                }.onFailure {
-                    Logs.w(it)
-                }
-            }
-
-            "tt" -> {
-                Logs.d("Try parse TrustTunnel link: $this")
-                runCatching {
-                    entities.add(parseTrustTunnel(this))
                 }.onFailure {
                     Logs.w(it)
                 }

@@ -1,13 +1,8 @@
 package fr.husi.ktx
 
 import fr.husi.fmt.AbstractBean
-import fr.husi.fmt.anytls.AnyTLSBean
-import fr.husi.fmt.http.HttpBean
 import fr.husi.fmt.hysteria.HysteriaBean
-import fr.husi.fmt.juicity.JuicityBean
-import fr.husi.fmt.shadowquic.ShadowQUICBean
 import fr.husi.fmt.shadowsocks.ShadowsocksBean
-import fr.husi.fmt.shadowtls.ShadowTLSBean
 import fr.husi.fmt.socks.SOCKSBean
 import fr.husi.fmt.trojan.TrojanBean
 import fr.husi.fmt.tuic.TuicBean
@@ -18,7 +13,6 @@ import fr.husi.resources.warn_hysteria_legacy
 import fr.husi.resources.warn_not_encrypted
 import fr.husi.resources.warn_quic_0_rtt
 import fr.husi.resources.warn_shadowsocks_stream_cipher
-import fr.husi.resources.warn_shadowtls_legacy
 import fr.husi.resources.warn_vmess_md5_auth
 import org.jetbrains.compose.resources.StringResource
 
@@ -44,8 +38,6 @@ fun AbstractBean.isInsecure(): ValidateResult {
                 }
             }
         }
-
-        is HttpBean -> if (!isTLS) return ValidateResult.Insecure(Res.string.warn_not_encrypted)
 
         is SOCKSBean -> return ValidateResult.Insecure(Res.string.warn_not_encrypted)
 
@@ -73,18 +65,6 @@ fun AbstractBean.isInsecure(): ValidateResult {
         }
 
         is TuicBean -> {
-            if (zeroRTT) return ValidateResult.Insecure(Res.string.warn_quic_0_rtt)
-        }
-
-        is ShadowTLSBean -> {
-            if (protocolVersion < 3) return ValidateResult.Deprecated(Res.string.warn_shadowtls_legacy)
-        }
-
-        is JuicityBean -> {}
-
-        is AnyTLSBean -> {}
-
-        is ShadowQUICBean -> {
             if (zeroRTT) return ValidateResult.Insecure(Res.string.warn_quic_0_rtt)
         }
     }

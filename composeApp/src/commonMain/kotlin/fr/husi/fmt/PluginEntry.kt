@@ -3,10 +3,6 @@ package fr.husi.fmt
 import fr.husi.resources.Res
 import fr.husi.resources.action_hysteria
 import fr.husi.resources.action_hysteria2
-import fr.husi.resources.action_juicity
-import fr.husi.resources.action_mieru
-import fr.husi.resources.action_naive
-import fr.husi.resources.action_shadowquic
 import org.jetbrains.compose.resources.StringResource
 
 enum class PluginEntry(
@@ -14,22 +10,6 @@ enum class PluginEntry(
     val displayName: StringResource,
     val downloadSource: DownloadSource,
 ) {
-    MieruProxy(
-        "mieru-plugin",
-        Res.string.action_mieru,
-        DownloadSource(
-            apk = "https://github.com/TheYusa/V4War/releases?q=plugin-mieru",
-            binary = "https://github.com/enfein/mieru/releases",
-        ),
-    ),
-    NaiveProxy(
-        "naive-plugin",
-        Res.string.action_naive,
-        DownloadSource(
-            apk = "https://github.com/klzgrad/naiveproxy/releases",
-            binary = "https://github.com/klzgrad/naiveproxy/releases",
-        ),
-    ),
     Hysteria(
         "hysteria-plugin",
         Res.string.action_hysteria,
@@ -45,41 +25,17 @@ enum class PluginEntry(
             apk = "https://github.com/TheYusa/V4War/releases?q=plugin-hysteria2",
             binary = "https://github.com/apernet/hysteria/releases",
         ),
-    ),
-    Juicity(
-        "juicity-plugin",
-        Res.string.action_juicity,
-        DownloadSource(
-            apk = "https://github.com/TheYusa/V4War/releases?q=plugin-juicity",
-            binary = "https://github.com/juicity/juicity/releases",
-        ),
-    ),
-    ShadowQuic(
-        "shadowquic-plugin",
-        Res.string.action_shadowquic,
-        DownloadSource(
-            apk = "https://github.com/TheYusa/V4War/releases?q=plugin-shadowquic",
-            binary = "https://github.com/spongebob888/shadowquic/releases",
-        ),
     )
     ;
 
     fun getVersion(executable: String): String {
         val output = when (this) {
-            MieruProxy -> runCommand(executable, "version")
-            NaiveProxy -> runCommand(executable, "--version")
             Hysteria -> runCommand(executable, "--version")
             Hysteria2 -> runCommand(executable, "version")
-            Juicity -> runCommand(executable, "--version")
-            ShadowQuic -> runCommand(executable, "--version")
         }
         return when (this) {
-            MieruProxy -> parseMieru(output)
-            NaiveProxy -> parseNaive(output)
             Hysteria -> parseHysteria(output)
             Hysteria2 -> parseHysteria2(output)
-            Juicity -> parseJuicity(output)
-            ShadowQuic -> parseShadowQuic(output)
         }
     }
 
@@ -99,19 +55,6 @@ enum class PluginEntry(
             return null
         }
 
-    }
-
-    // 3.27.0
-    private fun parseMieru(output: String): String {
-        val line = firstNonBlankLine(output) ?: return "unknown"
-        return line.trim().ifEmpty { "unknown" }
-    }
-
-    // naive 143.0.7499.109
-    private fun parseNaive(output: String): String {
-        val line = firstNonBlankLine(output) ?: return "unknown"
-        val tokens = tokenize(line)
-        return if (tokens.size >= 2) tokens[1] else "unknown"
     }
 
     // hysteria version v1.3.5 2023-06-11 23:47:46 57c5164854d6cfe00bead730cce731da2babe406
@@ -151,30 +94,6 @@ Libraries:	quic-go=v0.57.2-0.20260111184307-eec823306178
             }
         }
         return "unknown"
-    }
-
-    /*
-juicity-client version v0.5.0
-go runtime go1.24.4 linux/amd64
-CGO_ENABLED: 0
-Copyright (c) 2023 juicity
-License GNU AGPLv3 <https://github.com/juicity/juicity/blob/main/LICENSE>
-     */
-    private fun parseJuicity(output: String): String {
-        val line = firstNonBlankLine(output) ?: return "unknown"
-        val tokens = tokenize(line)
-        val index = tokens.indexOf("version")
-        if (index >= 0 && index + 1 < tokens.size) {
-            return tokens[index + 1].removePrefix("v")
-        }
-        return "unknown"
-    }
-
-    // shadowquic 0.3.3
-    private fun parseShadowQuic(output: String): String {
-        val line = firstNonBlankLine(output) ?: return "unknown"
-        val tokens = tokenize(line)
-        return if (tokens.size >= 2) tokens[1] else "unknown"
     }
 
     private fun firstNonBlankLine(output: String): String? {

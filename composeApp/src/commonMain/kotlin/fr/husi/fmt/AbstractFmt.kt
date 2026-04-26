@@ -11,11 +11,8 @@ import fr.husi.fmt.SingBoxOptions.OutboundMultiplexOptions
 import fr.husi.fmt.SingBoxOptions.OutboundRealityOptions
 import fr.husi.fmt.SingBoxOptions.OutboundTLSOptions
 import fr.husi.fmt.SingBoxOptions.OutboundUTLSOptions
-import fr.husi.fmt.SingBoxOptions.TYPE_ANYTLS
-import fr.husi.fmt.SingBoxOptions.TYPE_HTTP
 import fr.husi.fmt.SingBoxOptions.TYPE_HYSTERIA
 import fr.husi.fmt.SingBoxOptions.TYPE_HYSTERIA2
-import fr.husi.fmt.SingBoxOptions.TYPE_NAIVE
 import fr.husi.fmt.SingBoxOptions.TYPE_SHADOWSOCKS
 import fr.husi.fmt.SingBoxOptions.TYPE_SOCKS
 import fr.husi.fmt.SingBoxOptions.TYPE_SSH
@@ -23,31 +20,16 @@ import fr.husi.fmt.SingBoxOptions.TYPE_TROJAN
 import fr.husi.fmt.SingBoxOptions.TYPE_TUIC
 import fr.husi.fmt.SingBoxOptions.TYPE_VLESS
 import fr.husi.fmt.SingBoxOptions.TYPE_VMESS
-import fr.husi.fmt.SingBoxOptions.TYPE_WIREGUARD
-import fr.husi.fmt.anytls.AnyTLSBean
-import fr.husi.fmt.anytls.buildSingBoxOutboundAnyTLSBean
-import fr.husi.fmt.anytls.parseAnyTLSOutbound
 import fr.husi.fmt.config.ConfigBean
-import fr.husi.fmt.direct.DirectBean
-import fr.husi.fmt.direct.buildSingBoxOutboundDirectBean
-import fr.husi.fmt.http.HttpBean
-import fr.husi.fmt.http.parseHttpOutbound
 import fr.husi.fmt.hysteria.HysteriaBean
 import fr.husi.fmt.hysteria.buildSingBoxOutboundHysteriaBean
 import fr.husi.fmt.hysteria.parseHysteria1Outbound
 import fr.husi.fmt.hysteria.parseHysteria2Outbound
 import fr.husi.fmt.internal.ChainBean
 import fr.husi.fmt.internal.ProxySetBean
-import fr.husi.fmt.juicity.JuicityBean
-import fr.husi.fmt.mieru.MieruBean
-import fr.husi.fmt.naive.NaiveBean
-import fr.husi.fmt.naive.buildSingBoxOutboundNaiveBean
-import fr.husi.fmt.naive.parseNaiveOutbound
-import fr.husi.fmt.shadowquic.ShadowQUICBean
 import fr.husi.fmt.shadowsocks.ShadowsocksBean
 import fr.husi.fmt.shadowsocks.buildSingBoxOutboundShadowsocksBean
 import fr.husi.fmt.shadowsocks.parseShadowsocksOutbound
-import fr.husi.fmt.shadowtls.ShadowTLSBean
 import fr.husi.fmt.socks.SOCKSBean
 import fr.husi.fmt.socks.buildSingBoxOutboundSocksBean
 import fr.husi.fmt.socks.parseSocksOutbound
@@ -55,8 +37,6 @@ import fr.husi.fmt.ssh.SSHBean
 import fr.husi.fmt.ssh.buildSingBoxOutboundSSHBean
 import fr.husi.fmt.ssh.parseSSHOutbound
 import fr.husi.fmt.trojan.TrojanBean
-import fr.husi.fmt.trusttunnel.TrustTunnelBean
-import fr.husi.fmt.trusttunnel.buildSingBoxOutboundTrustTunnelBean
 import fr.husi.fmt.tuic.TuicBean
 import fr.husi.fmt.tuic.buildSingBoxOutboundTuicBean
 import fr.husi.fmt.tuic.parseTuicOutbound
@@ -65,9 +45,6 @@ import fr.husi.fmt.v2ray.VLESSBean
 import fr.husi.fmt.v2ray.VMessBean
 import fr.husi.fmt.v2ray.buildSingBoxOutboundStandardV2RayBean
 import fr.husi.fmt.v2ray.parseStandardV2RayOutbound
-import fr.husi.fmt.wireguard.WireGuardBean
-import fr.husi.fmt.wireguard.buildSingBoxEndpointWireGuardBean
-import fr.husi.fmt.wireguard.parseWireGuardEndpoint
 import fr.husi.ktx.JSONMap
 import fr.husi.ktx.getBool
 import fr.husi.ktx.getIntOrNull
@@ -77,33 +54,23 @@ import fr.husi.ktx.kxs
 import fr.husi.ktx.toJsonStringKxs
 
 fun AbstractBean.toJsonStringKxs(): String = when (this) {
-    is AnyTLSBean -> kxs.encodeToString(this)
     is ConfigBean -> kxs.encodeToString(this)
-    is DirectBean -> kxs.encodeToString(this)
-    is HttpBean -> kxs.encodeToString(this)
     is HysteriaBean -> kxs.encodeToString(this)
     is ChainBean -> kxs.encodeToString(this)
     is ProxySetBean -> kxs.encodeToString(this)
-    is JuicityBean -> kxs.encodeToString(this)
-    is MieruBean -> kxs.encodeToString(this)
-    is NaiveBean -> kxs.encodeToString(this)
-    is ShadowQUICBean -> kxs.encodeToString(this)
     is ShadowsocksBean -> kxs.encodeToString(this)
-    is ShadowTLSBean -> kxs.encodeToString(this)
     is SOCKSBean -> kxs.encodeToString(this)
     is SSHBean -> kxs.encodeToString(this)
     is TrojanBean -> kxs.encodeToString(this)
-    is TrustTunnelBean -> kxs.encodeToString(this)
     is TuicBean -> kxs.encodeToString(this)
     is VLESSBean -> kxs.encodeToString(this)
     is VMessBean -> kxs.encodeToString(this)
-    is WireGuardBean -> kxs.encodeToString(this)
+    is StandardV2RayBean -> kxs.encodeToString(this)
     else -> error("impossible bean type: ${this.javaClass.simpleName}")
 }
 
 fun buildSingBoxOutbound(bean: AbstractBean): String = when (bean) {
     is ConfigBean -> bean.config // What if full config?
-    is DirectBean -> kxs.encodeToString(buildSingBoxOutboundDirectBean(bean).apply { tag = bean.name })
     is StandardV2RayBean ->
         buildSingBoxOutboundStandardV2RayBean(bean).apply { tag = bean.name }.toJsonStringKxs()
     is HysteriaBean ->
@@ -113,14 +80,6 @@ fun buildSingBoxOutbound(bean: AbstractBean): String = when (bean) {
     is SOCKSBean -> kxs.encodeToString(buildSingBoxOutboundSocksBean(bean).apply { tag = bean.name })
     is SSHBean -> kxs.encodeToString(buildSingBoxOutboundSSHBean(bean).apply { tag = bean.name })
     is TuicBean -> kxs.encodeToString(buildSingBoxOutboundTuicBean(bean).apply { tag = bean.name })
-    is WireGuardBean ->
-        kxs.encodeToString(buildSingBoxEndpointWireGuardBean(bean).apply { tag = bean.name })
-    is AnyTLSBean ->
-        kxs.encodeToString(buildSingBoxOutboundAnyTLSBean(bean).apply { tag = bean.name })
-    is NaiveBean ->
-        kxs.encodeToString(buildSingBoxOutboundNaiveBean(bean).apply { tag = bean.name })
-    is TrustTunnelBean ->
-        kxs.encodeToString(buildSingBoxOutboundTrustTunnelBean(bean).apply { tag = bean.name })
     else -> error("invalid bean: ${bean.javaClass.simpleName}")
 }
 
@@ -167,13 +126,9 @@ fun buildHeader(raw: String): Map<String, MutableList<String>> {
 fun parseOutbound(json: JSONMap): AbstractBean? = when (json["type"].toString()) {
     TYPE_SOCKS -> parseSocksOutbound(json)
 
-    TYPE_HTTP -> parseHttpOutbound(json)
-
     TYPE_SHADOWSOCKS -> parseShadowsocksOutbound(json)
 
     TYPE_VMESS, TYPE_VLESS, TYPE_TROJAN -> parseStandardV2RayOutbound(json)
-
-    TYPE_WIREGUARD -> parseWireGuardEndpoint(json)
 
     TYPE_HYSTERIA -> parseHysteria1Outbound(json)
 
@@ -182,10 +137,6 @@ fun parseOutbound(json: JSONMap): AbstractBean? = when (json["type"].toString())
     TYPE_TUIC -> parseTuicOutbound(json)
 
     TYPE_SSH -> parseSSHOutbound(json)
-
-    TYPE_ANYTLS -> parseAnyTLSOutbound(json)
-
-    TYPE_NAIVE -> parseNaiveOutbound(json)
 
     else -> null
 }
