@@ -12,11 +12,8 @@ import fr.husi.database.SubscriptionBean
 import fr.husi.fmt.AbstractBean
 import fr.husi.fmt.Deduplication
 import fr.husi.fmt.SingBoxOptions
-import fr.husi.fmt.http.HttpBean
 import fr.husi.fmt.hysteria.HysteriaBean
-import fr.husi.fmt.juicity.JuicityBean
-import fr.husi.fmt.naive.NaiveBean
-import fr.husi.fmt.shadowquic.ShadowQUICBean
+import fr.husi.fmt.trojan.TrojanBean
 import fr.husi.fmt.tuic.TuicBean
 import fr.husi.fmt.v2ray.StandardV2RayBean
 import fr.husi.fmt.v2ray.VLESSBean
@@ -87,16 +84,17 @@ abstract class GroupUpdater {
 
         with(bean) {
             when (this) {
-                is HttpBean -> {
-                    if (isTLS && sni.isBlank()) sni = bean.serverAddress
+                is TrojanBean -> {
+                    if (sni.isBlank()) sni = bean.serverAddress
                 }
-
                 is StandardV2RayBean -> {
                     when (security) {
                         "tls" -> if (sni.isBlank()) sni = bean.serverAddress
                     }
                 }
-
+                is TuicBean -> {
+                    if (sni.isBlank()) sni = bean.serverAddress
+                }
                 is HysteriaBean -> {
                     if (sni.isBlank()) sni = bean.serverAddress
                 }
@@ -275,10 +273,6 @@ abstract class GroupUpdater {
         val customSni = subscription.customSni
 
         when (proxy) {
-            is HttpBean -> {
-                if (customSni.isNotBlank() && proxy.isTLS) proxy.sni = customSni
-            }
-
             is VLESSBean -> {
                 if (customSni.isNotBlank() && proxy.isTLS) proxy.sni = customSni
             }
@@ -294,18 +288,6 @@ abstract class GroupUpdater {
             is TuicBean -> {
                 if (customSni.isNotBlank()) proxy.sni = customSni
             }
-
-            is JuicityBean -> {
-                if (customSni.isNotBlank()) proxy.sni = customSni
-            }
-
-            is NaiveBean -> {
-                if (customSni.isNotBlank()) proxy.sni = customSni
-            }
-
-            is ShadowQUICBean -> {
-                if (customSni.isNotBlank()) proxy.sni = customSni
-            }
         }
     }
 
@@ -314,9 +296,6 @@ abstract class GroupUpdater {
             is StandardV2RayBean -> proxy.isTLS
             is HysteriaBean -> true
             is TuicBean -> true
-            is JuicityBean -> true
-            is NaiveBean -> true
-            is ShadowQUICBean -> true
             else -> false
         }
     }
