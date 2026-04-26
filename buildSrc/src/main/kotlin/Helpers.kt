@@ -229,6 +229,10 @@ fun Project.setupApp() {
         productFlavors {
             create("foss")
             create("play")
+            create("lite") {
+                dimension = "vendor"
+                versionNameSuffix = "-lite"
+            }
         }
 
         registerApkRenamer(
