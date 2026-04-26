@@ -107,20 +107,6 @@ fun ProfileEditorScreen(
             onOpenConfigEditor = onOpenConfigEditor,
         )
 
-        ProxyEntity.TYPE_DIRECT -> DirectSettingsScreen(
-            profileId = profileId,
-            isSubscription = isSubscription,
-            onResult = onResult,
-            onOpenConfigEditor = onOpenConfigEditor,
-        )
-
-        ProxyEntity.TYPE_HTTP -> HttpSettingsScreen(
-            profileId = profileId,
-            isSubscription = isSubscription,
-            onResult = onResult,
-            onOpenConfigEditor = onOpenConfigEditor,
-        )
-
         ProxyEntity.TYPE_SOCKS -> SocksSettingsScreen(
             profileId = profileId,
             isSubscription = isSubscription,
@@ -136,20 +122,6 @@ fun ProfileEditorScreen(
         )
 
         ProxyEntity.TYPE_HYSTERIA -> HysteriaSettingsScreen(
-            profileId = profileId,
-            isSubscription = isSubscription,
-            onResult = onResult,
-            onOpenConfigEditor = onOpenConfigEditor,
-        )
-
-        ProxyEntity.TYPE_MIERU -> MieruSettingsScreen(
-            profileId = profileId,
-            isSubscription = isSubscription,
-            onResult = onResult,
-            onOpenConfigEditor = onOpenConfigEditor,
-        )
-
-        ProxyEntity.TYPE_ANYTLS -> AnyTLSSettingsScreen(
             profileId = profileId,
             isSubscription = isSubscription,
             onResult = onResult,
@@ -179,49 +151,7 @@ fun ProfileEditorScreen(
             onOpenConfigEditor = onOpenConfigEditor,
         )
 
-        ProxyEntity.TYPE_NAIVE -> NaiveSettingsScreen(
-            profileId = profileId,
-            isSubscription = isSubscription,
-            onResult = onResult,
-            onOpenConfigEditor = onOpenConfigEditor,
-        )
-
-        ProxyEntity.TYPE_JUICITY -> JuicitySettingsScreen(
-            profileId = profileId,
-            isSubscription = isSubscription,
-            onResult = onResult,
-            onOpenConfigEditor = onOpenConfigEditor,
-        )
-
-        ProxyEntity.TYPE_WG -> WireGuardSettingsScreen(
-            profileId = profileId,
-            isSubscription = isSubscription,
-            onResult = onResult,
-            onOpenConfigEditor = onOpenConfigEditor,
-        )
-
         ProxyEntity.TYPE_TUIC -> TuicSettingsScreen(
-            profileId = profileId,
-            isSubscription = isSubscription,
-            onResult = onResult,
-            onOpenConfigEditor = onOpenConfigEditor,
-        )
-
-        ProxyEntity.TYPE_SHADOWTLS -> ShadowTLSSettingsScreen(
-            profileId = profileId,
-            isSubscription = isSubscription,
-            onResult = onResult,
-            onOpenConfigEditor = onOpenConfigEditor,
-        )
-
-        ProxyEntity.TYPE_SHADOWQUIC -> ShadowQUICSettingsScreen(
-            profileId = profileId,
-            isSubscription = isSubscription,
-            onResult = onResult,
-            onOpenConfigEditor = onOpenConfigEditor,
-        )
-
-        ProxyEntity.TYPE_TRUST_TUNNEL -> TrustTunnelSettingsScreen(
             profileId = profileId,
             isSubscription = isSubscription,
             onResult = onResult,

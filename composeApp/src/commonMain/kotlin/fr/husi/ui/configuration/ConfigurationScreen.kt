@@ -105,26 +105,16 @@ import fr.husi.ktx.runOnIoDispatcher
 import fr.husi.ktx.showAndDismissOld
 import fr.husi.repository.resolveRepository
 import fr.husi.resources.Res
-import fr.husi.resources.action_anytls
-import fr.husi.resources.action_direct
-import fr.husi.resources.action_http
 import fr.husi.resources.action_hysteria
 import fr.husi.resources.action_import
 import fr.husi.resources.action_import_file
-import fr.husi.resources.action_juicity
-import fr.husi.resources.action_mieru
-import fr.husi.resources.action_naive
-import fr.husi.resources.action_shadowquic
 import fr.husi.resources.action_shadowsocks
-import fr.husi.resources.action_shadowtls
 import fr.husi.resources.action_socks
 import fr.husi.resources.action_ssh
 import fr.husi.resources.action_trojan
-import fr.husi.resources.action_trusttunnel
 import fr.husi.resources.action_tuic
 import fr.husi.resources.action_vless
 import fr.husi.resources.action_vmess
-import fr.husi.resources.action_wireguard
 import fr.husi.resources.add_profile
 import fr.husi.resources.add_profile_methods_manual_settings
 import fr.husi.resources.apply
@@ -347,23 +337,13 @@ fun ConfigurationScreen(
     val manualProfileEntries = remember {
         listOf(
             Res.string.action_socks to ProxyEntity.TYPE_SOCKS,
-            Res.string.action_http to ProxyEntity.TYPE_HTTP,
             Res.string.action_shadowsocks to ProxyEntity.TYPE_SS,
             Res.string.action_vmess to ProxyEntity.TYPE_VMESS,
             Res.string.action_vless to ProxyEntity.TYPE_VLESS,
             Res.string.action_trojan to ProxyEntity.TYPE_TROJAN,
-            Res.string.action_mieru to ProxyEntity.TYPE_MIERU,
-            Res.string.action_naive to ProxyEntity.TYPE_NAIVE,
             Res.string.action_hysteria to ProxyEntity.TYPE_HYSTERIA,
             Res.string.action_tuic to ProxyEntity.TYPE_TUIC,
-            Res.string.action_juicity to ProxyEntity.TYPE_JUICITY,
-            Res.string.action_direct to ProxyEntity.TYPE_DIRECT,
             Res.string.action_ssh to ProxyEntity.TYPE_SSH,
-            Res.string.action_wireguard to ProxyEntity.TYPE_WG,
-            Res.string.action_shadowtls to ProxyEntity.TYPE_SHADOWTLS,
-            Res.string.action_anytls to ProxyEntity.TYPE_ANYTLS,
-            Res.string.action_shadowquic to ProxyEntity.TYPE_SHADOWQUIC,
-            Res.string.action_trusttunnel to ProxyEntity.TYPE_TRUST_TUNNEL,
             Res.string.proxy_set to ProxyEntity.TYPE_PROXY_SET,
             Res.string.custom_config to ProxyEntity.TYPE_CONFIG,
             Res.string.proxy_chain to ProxyEntity.TYPE_CHAIN,
