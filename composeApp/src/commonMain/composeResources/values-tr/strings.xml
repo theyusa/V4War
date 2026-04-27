@@ -475,6 +475,8 @@
     <string name="acquire_wake_lock">WakeLock al</string>
     <string name="release_wake_lock">WakeLock bırak</string>
     <string name="acquire_wake_lock_summary">CPU'yu açık tut</string>
+    <string name="smart_wake_lock">Smart Wake Lock</string>
+    <string name="smart_wake_lock_summary">Automatically acquire wake lock during VPN to prevent connection drops, and release when idle to save battery</string>
     <string name="action_switch">Değiştir</string>
     <string name="tuic_udp_relay_mode">UDP Relay Mode</string>
     <string name="tuic_congestion_controller">Congestion Controller</string>

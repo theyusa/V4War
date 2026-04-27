@@ -98,6 +98,7 @@ object Key {
     const val CUSTOM_PLUGIN_PREFIX = "customPluginPrefix"
 
     const val ACQUIRE_WAKE_LOCK = "acquireWakeLock"
+    const val SMART_WAKE_LOCK = "smartWakeLock"
 
     const val TUN_IMPLEMENTATION = "tunImplementation"
     const val PROFILE_TRAFFIC_STATISTICS = "profileTrafficStatistics"

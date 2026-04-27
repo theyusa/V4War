@@ -116,6 +116,9 @@ class BaseService {
                             resolveRepository().boxService?.pause()
                         } else {
                             resolveRepository().boxService?.wake()
+                            runOnDefaultDispatcher {
+                                resetNetwork()
+                            }
                         }
                     }
                 }
@@ -128,6 +131,14 @@ class BaseService {
                             showToast(resolveRepository().getString(Res.string.have_reset_network))
                         }
                     }
+                }
+
+                Intent.ACTION_SCREEN_OFF -> {
+                    DataStore.screenOff = true
+                }
+
+                Intent.ACTION_SCREEN_ON -> {
+                    DataStore.screenOff = false
                 }
 
                 else -> service.stopRunner()
@@ -371,7 +382,7 @@ class BaseService {
                 wakeLock = null
             }
 
-            if (DataStore.acquireWakeLock) {
+            if (DataStore.acquireWakeLock || DataStore.smartWakeLock) {
                 acquireWakeLock()
                 data.notification.onWakeLock(true)
             } else {
@@ -402,6 +413,8 @@ class BaseService {
                     // addAction(Action.SWITCH_WAKE_LOCK)
                     addAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)
                     addAction(Action.RESET_UPSTREAM_CONNECTIONS)
+                    addAction(Intent.ACTION_SCREEN_ON)
+                    addAction(Intent.ACTION_SCREEN_OFF)
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     registerReceiver(

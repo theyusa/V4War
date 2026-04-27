@@ -438,6 +438,8 @@
     <string name="acquire_wake_lock">取得喚醒鎖定</string>
     <string name="release_wake_lock">釋放喚醒鎖定</string>
     <string name="acquire_wake_lock_summary">保持 CPU 開啟</string>
+    <string name="smart_wake_lock">Smart Wake Lock</string>
+    <string name="smart_wake_lock_summary">Automatically acquire wake lock during VPN to prevent connection drops, and release when idle to save battery</string>
     <string name="action_switch">切換</string>
     <string name="tuic_udp_relay_mode">UDP 轉送模式</string>
     <string name="tuic_congestion_controller">擁塞控制</string>

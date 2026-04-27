@@ -450,6 +450,8 @@
     <string name="enable_brutal">Включить контроллер перегрузки TCP Brutal</string>
     <string name="release_wake_lock">Отключить WakeLock</string>
     <string name="acquire_wake_lock_summary">Удерживать CPU в активном состоянии</string>
+    <string name="smart_wake_lock">Smart Wake Lock</string>
+    <string name="smart_wake_lock_summary">Automatically acquire wake lock during VPN to prevent connection drops, and release when idle to save battery</string>
     <string name="action_switch">Сменить</string>
     <string name="nat_result_hint">Провести проверку NAT</string>
     <string name="acquire_wake_lock">Использовать WakeLock</string>

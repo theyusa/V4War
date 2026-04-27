@@ -418,6 +418,8 @@
     <string name="backup_import_summary">Під час імпорту існуючі дані будуть перезаписані.</string>
     <string name="packet_encoding">Кодування пакетів</string>
     <string name="acquire_wake_lock_summary">Підтримувати CPU увімкненим</string>
+    <string name="smart_wake_lock">Smart Wake Lock</string>
+    <string name="smart_wake_lock_summary">Automatically acquire wake lock during VPN to prevent connection drops, and release when idle to save battery</string>
     <string name="connection_test_delete_unavailable">Видалити недоступні</string>
     <string name="utls_fingerprint">Відбиток uTLS</string>
     <string name="xtls_flow">Flow (підпротокол VLESS)</string>

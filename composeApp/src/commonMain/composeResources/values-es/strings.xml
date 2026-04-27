@@ -426,6 +426,8 @@
     <string name="acquire_wake_lock">Adquirir WakeLock</string>
     <string name="release_wake_lock">Liberar WakeLock</string>
     <string name="acquire_wake_lock_summary">Mantiene la CPU encendida</string>
+    <string name="smart_wake_lock">Smart Wake Lock</string>
+    <string name="smart_wake_lock_summary">Automatically acquire wake lock during VPN to prevent connection drops, and release when idle to save battery</string>
     <string name="action_switch">Cambiar</string>
     <string name="connection_test_delete_unavailable">Borrar los no disponibles</string>
     <string name="neko_plugin_internal_error">%1$s error interno</string>

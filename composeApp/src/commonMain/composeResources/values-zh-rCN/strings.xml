@@ -436,6 +436,8 @@
     <string name="acquire_wake_lock">获取唤醒锁</string>
     <string name="release_wake_lock">释放唤醒锁</string>
     <string name="acquire_wake_lock_summary">保持 CPU 开启</string>
+    <string name="smart_wake_lock">Smart Wake Lock</string>
+    <string name="smart_wake_lock_summary">Automatically acquire wake lock during VPN to prevent connection drops, and release when idle to save battery</string>
     <string name="neko_plugin_internal_error">%1$s 内部错误</string>
     <string name="move">移动</string>
     <string name="subscription_expire">过期: %1$s</string>

@@ -25,6 +25,9 @@ import fr.husi.ktx.getColour
 import fr.husi.resources.Res
 import fr.husi.resources.acquire_wake_lock
 import fr.husi.resources.acquire_wake_lock_summary
+import fr.husi.resources.battery_charging_full
+import fr.husi.resources.smart_wake_lock
+import fr.husi.resources.smart_wake_lock_summary
 import fr.husi.resources.allow_apps_bypass_vpn
 import fr.husi.resources.auto_connect
 import fr.husi.resources.auto_connect_summary
@@ -205,6 +208,30 @@ internal actual fun LazyListScope.platformMiscOptions(needReload: () -> Unit) {
                 )
             },
             summary = { Text(stringResource(Res.string.acquire_wake_lock_summary)) },
+        )
+    }
+    item(Key.SMART_WAKE_LOCK, PreferenceType.SWITCH) {
+        val wakeLockValue by DataStore.configurationStore
+            .booleanFlow(Key.ACQUIRE_WAKE_LOCK, true)
+            .collectAsStateWithLifecycle(true)
+        val value by DataStore.configurationStore
+            .booleanFlow(Key.SMART_WAKE_LOCK, true)
+            .collectAsStateWithLifecycle(true)
+        SwitchPreference(
+            value = value,
+            onValueChange = {
+                DataStore.smartWakeLock = it
+                needReload()
+            },
+            title = { Text(stringResource(Res.string.smart_wake_lock)) },
+            icon = {
+                Icon(
+                    vectorResource(Res.drawable.battery_charging_full),
+                    null,
+                )
+            },
+            summary = { Text(stringResource(Res.string.smart_wake_lock_summary)) },
+            enabled = !wakeLockValue,
         )
     }
 }

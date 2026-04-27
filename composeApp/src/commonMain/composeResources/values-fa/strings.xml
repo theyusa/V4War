@@ -413,6 +413,8 @@
     <string name="acquire_wake_lock">به‌دست آوردن WakeLock</string>
     <string name="release_wake_lock">آزاد کردن WakeLock</string>
     <string name="acquire_wake_lock_summary">پردازنده مرکزی را روشن نگه‌دارید</string>
+    <string name="smart_wake_lock">Smart Wake Lock</string>
+    <string name="smart_wake_lock_summary">Automatically acquire wake lock during VPN to prevent connection drops, and release when idle to save battery</string>
     <string name="action_switch">تعویض</string>
     <string name="tuic_udp_relay_mode">حالت رله UDP</string>
     <string name="tuic_congestion_controller">کنترل کننده ازدحام(ترافیک)</string>

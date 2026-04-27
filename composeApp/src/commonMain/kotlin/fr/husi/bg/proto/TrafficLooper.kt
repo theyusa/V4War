@@ -121,8 +121,16 @@ class TrafficLooper(
                 // Wait until valid value
                 currentDelayMs = speedInterval.filter { it > 0L }.first()
             }
-            if (currentDelayMs != delayMs) {
-                delayMs = currentDelayMs
+
+            // Throttle when screen is off to save battery
+            val effectiveDelay = if (DataStore.screenOff) {
+                (currentDelayMs.coerceAtLeast(1000L) * 5).coerceAtMost(30000L)
+            } else {
+                currentDelayMs
+            }
+
+            if (effectiveDelay != delayMs) {
+                delayMs = effectiveDelay
                 persistTicks = persistTicksForDelay(delayMs)
                 ticks = 0
             }
