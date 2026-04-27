@@ -159,6 +159,8 @@ import fr.husi.resources.inbound_username
 import fr.husi.resources.insecure_warn
 import fr.husi.resources.ipv4_only
 import fr.husi.resources.ipv6_only
+import fr.husi.resources.keep_default
+import fr.husi.resources.language
 import fr.husi.resources.protocol_settings
 import fr.husi.resources.language_system_default
 import fr.husi.resources.lock
@@ -190,7 +192,6 @@ import fr.husi.resources.prefer_ipv4
 import fr.husi.resources.prefer_ipv6
 import fr.husi.resources.profile_traffic_statistics
 import fr.husi.resources.profile_traffic_statistics_summary
-import fr.husi.resources.protocol_settings
 import fr.husi.resources.public_icon
 import fr.husi.resources.push_pin
 import fr.husi.resources.remote_dns
@@ -430,7 +431,7 @@ fun SettingsScreen(
                                 languageController.value = newValue
                             },
                             values = values,
-                            title = { Text(stringResource(Res.string.language)) },
+                            title = { Text(stringResource(language)) },
                             icon = {
                                 Icon(
                                     vectorResource(Res.drawable.translate),
@@ -757,10 +758,10 @@ fun SettingsScreen(
                     item(Key.NETWORK_INTERFACE_STRATEGY, PreferenceType.LIST) {
                         fun networkInterfaceStrategyTextRes(selection: Int): StringResource =
                             when (selection) {
-                                NetworkInterfaceStrategy.DEFAULT -> Res.string.keep_default
+                                NetworkInterfaceStrategy.DEFAULT -> keep_default
                                 NetworkInterfaceStrategy.HYBRID -> Res.string.hybrid
                                 NetworkInterfaceStrategy.FALLBACK -> Res.string.fallback
-                                else -> Res.string.keep_default
+                                else -> keep_default
                             }
 
                         val value by DataStore.configurationStore
