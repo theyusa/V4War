@@ -1234,7 +1234,7 @@ fun SettingsScreen(
                             summary = { Text(stringResource(Res.string.hijack_dns_sum)) },
                         )
                     }
-                    item(Key.OPTIMISTIC_DNS_CACHE, PreferenceType.SWITCH) {
+item(Key.OPTIMISTIC_DNS_CACHE, PreferenceType.SWITCH) {
                         val value by DataStore.configurationStore
                             .booleanFlow(Key.OPTIMISTIC_DNS_CACHE, false)
                             .collectAsStateWithLifecycle(false)
@@ -1247,7 +1247,7 @@ fun SettingsScreen(
                             title = { Text(stringResource(Res.string.optimistic_dns_cache)) },
                             icon = {
                                 Icon(
-                                    vectorResource(Res.drawable.cached),
+                                    vectorResource(Res.drawable.speed),
                                     null,
                                 )
                             },
@@ -1533,7 +1533,7 @@ fun SettingsScreen(
                             title = { Text(stringResource(Res.string.enable_clash_api)) },
                             icon = {
                                 Icon(
-                                    vectorResource(Res.drawable.view_list),
+                                    vectorResource(Res.drawable.router),
                                     null,
                                 )
                             },
@@ -1552,7 +1552,7 @@ fun SettingsScreen(
                             title = { Text(stringResource(Res.string.allow_insecure_on_request)) },
                             icon = {
                                 Icon(
-                                    vectorResource(Res.drawable.https),
+                                    vectorResource(Res.drawable.security),
                                     null,
                                 )
                             },
@@ -1571,7 +1571,7 @@ fun SettingsScreen(
                             title = { Text(stringResource(Res.string.network_change_reset_connections)) },
                             icon = {
                                 Icon(
-                                    vectorResource(Res.drawable.cached),
+                                    vectorResource(Res.drawable.traffic),
                                     null,
                                 )
                             },
@@ -1590,7 +1590,7 @@ fun SettingsScreen(
                             title = { Text(stringResource(Res.string.wake_reset_connections)) },
                             icon = {
                                 Icon(
-                                    vectorResource(Res.drawable.bolt),
+                                    vectorResource(Res.drawable.battery_charging_full),
                                     null,
                                 )
                             },
