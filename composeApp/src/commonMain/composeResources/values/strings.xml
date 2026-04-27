@@ -99,6 +99,8 @@
     <string name="security_settings">TLS Security Settings</string>
     <string name="allow_insecure">Allow Insecure</string>
     <string name="allow_insecure_sum">Disable certificate checking. When enabled, this configuration is as secure as plaintext</string>
+    <string name="allow_insecure_on_request">Allow Insecure on Request</string>
+    <string name="allow_insecure_on_request_sum">Skip certificate verification for subscription updates and connection tests</string>
     <string name="traffic" translatable="false">%1$s↑ %2$s↓</string>
     <string name="speed_detail">Proxy： %1$s↑ %2$s↓\nDirect： %3$s↑ %4$s↓</string>
     <string name="speed">%1$s/s</string>
@@ -661,6 +663,7 @@
     <string name="sniff">Sniff</string>
     <string name="network_strategy">Network Strategy</string>
     <string name="hijack_dns">Hijack DNS</string>
+    <string name="hijack_dns_sum">Route DNS queries through the proxy tunnel instead of using direct resolution</string>
     <string name="initial_mtu">Initial MTU</string>
     <string name="udp_over_stream" translatable="false">UDP Over Stream</string>
     <string name="minimum_mtu">Minimum MTU</string>

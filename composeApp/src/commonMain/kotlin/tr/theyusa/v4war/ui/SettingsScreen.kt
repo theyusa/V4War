@@ -239,6 +239,9 @@ import tr.theyusa.v4war.resources.wake_reset_connections_sum
 import tr.theyusa.v4war.resources.optimistic_dns_cache
 import tr.theyusa.v4war.resources.optimistic_dns_cache_sum
 import tr.theyusa.v4war.resources.hijack_dns
+import tr.theyusa.v4war.resources.hijack_dns_sum
+import tr.theyusa.v4war.resources.allow_insecure_on_request
+import tr.theyusa.v4war.resources.allow_insecure_on_request_sum
 import io.github.oikvpqya.compose.fastscroller.material3.defaultMaterialScrollbarStyle
 import io.github.oikvpqya.compose.fastscroller.rememberScrollbarAdapter
 import kotlinx.coroutines.delay
@@ -771,6 +774,12 @@ fun SettingsScreen(
                                 needReload()
                             },
                             title = { Text(stringResource(Res.string.resolve_destination)) },
+                            icon = {
+                                Icon(
+                                    vectorResource(Res.drawable.dns),
+                                    null,
+                                )
+                            },
                             summary = { Text(stringResource(Res.string.resolve_destination_summary)) },
                         )
                     }
@@ -1216,6 +1225,13 @@ fun SettingsScreen(
                                 needReload()
                             },
                             title = { Text(stringResource(Res.string.hijack_dns)) },
+                            icon = {
+                                Icon(
+                                    vectorResource(Res.drawable.dns),
+                                    null,
+                                )
+                            },
+                            summary = { Text(stringResource(Res.string.hijack_dns_sum)) },
                         )
                     }
                     item(Key.OPTIMISTIC_DNS_CACHE, PreferenceType.SWITCH) {
@@ -1229,6 +1245,12 @@ fun SettingsScreen(
                                 needReload()
                             },
                             title = { Text(stringResource(Res.string.optimistic_dns_cache)) },
+                            icon = {
+                                Icon(
+                                    vectorResource(Res.drawable.cached),
+                                    null,
+                                )
+                            },
                             summary = { Text(stringResource(Res.string.optimistic_dns_cache_sum)) },
                         )
                     }
@@ -1509,7 +1531,32 @@ fun SettingsScreen(
                                 needReload()
                             },
                             title = { Text(stringResource(Res.string.enable_clash_api)) },
+                            icon = {
+                                Icon(
+                                    vectorResource(Res.drawable.view_list),
+                                    null,
+                                )
+                            },
                             summary = { Text(stringResource(Res.string.enable_clash_api_sum)) },
+                        )
+                    }
+                    item(Key.ALLOW_INSECURE_ON_REQUEST, PreferenceType.SWITCH) {
+                        val value by DataStore.configurationStore
+                            .booleanFlow(Key.ALLOW_INSECURE_ON_REQUEST, false)
+                            .collectAsStateWithLifecycle(false)
+                        SwitchPreference(
+                            value = value,
+                            onValueChange = {
+                                DataStore.allowInsecureOnRequest = it
+                            },
+                            title = { Text(stringResource(Res.string.allow_insecure_on_request)) },
+                            icon = {
+                                Icon(
+                                    vectorResource(Res.drawable.https),
+                                    null,
+                                )
+                            },
+                            summary = { Text(stringResource(Res.string.allow_insecure_on_request_sum)) },
                         )
                     }
                     item(Key.NETWORK_CHANGE_RESET_CONNECTIONS, PreferenceType.SWITCH) {
@@ -1522,6 +1569,12 @@ fun SettingsScreen(
                                 DataStore.networkChangeResetConnections = it
                             },
                             title = { Text(stringResource(Res.string.network_change_reset_connections)) },
+                            icon = {
+                                Icon(
+                                    vectorResource(Res.drawable.cached),
+                                    null,
+                                )
+                            },
                             summary = { Text(stringResource(Res.string.network_change_reset_connections_sum)) },
                         )
                     }
@@ -1535,6 +1588,12 @@ fun SettingsScreen(
                                 DataStore.wakeResetConnections = it
                             },
                             title = { Text(stringResource(Res.string.wake_reset_connections)) },
+                            icon = {
+                                Icon(
+                                    vectorResource(Res.drawable.bolt),
+                                    null,
+                                )
+                            },
                             summary = { Text(stringResource(Res.string.wake_reset_connections_sum)) },
                         )
                     }
