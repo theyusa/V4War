@@ -238,6 +238,7 @@ import tr.theyusa.v4war.resources.wake_reset_connections
 import tr.theyusa.v4war.resources.wake_reset_connections_sum
 import tr.theyusa.v4war.resources.optimistic_dns_cache
 import tr.theyusa.v4war.resources.optimistic_dns_cache_sum
+import tr.theyusa.v4war.resources.hijack_dns
 import io.github.oikvpqya.compose.fastscroller.material3.defaultMaterialScrollbarStyle
 import io.github.oikvpqya.compose.fastscroller.rememberScrollbarAdapter
 import kotlinx.coroutines.delay

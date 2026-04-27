@@ -123,14 +123,8 @@ object SingBoxOptions {
         @JvmField
         var username: String? = null
 
-@JvmField
-        var default_fallback_delay: String? = null
-
         @JvmField
-        var sniff: Int? = null
-
-        @JvmField
-        var resolve_destination: Boolean? = null
+        var password: String? = null
 
     }
 
@@ -242,6 +236,12 @@ object SingBoxOptions {
 
         @JvmField
         var default_fallback_delay: String? = null
+
+        @JvmField
+        var sniff: Int? = null
+
+        @JvmField
+        var resolve_destination: Boolean? = null
 
     }
 
