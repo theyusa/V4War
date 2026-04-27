@@ -1,6 +1,6 @@
 package tr.theyusa.v4war
 
-const val CONNECTION_TEST_URL = "https://www.gstatic.com/generate_204"
+const val CONNECTION_TEST_URL = "http://cp.cloudflare.com/"
 const val SPEED_TEST_URL = "http://speed.cloudflare.com/__down?bytes=20000000"
 const val SPEED_TEST_UPLOAD_URL = "http://speed.cloudflare.com/__up"
 
