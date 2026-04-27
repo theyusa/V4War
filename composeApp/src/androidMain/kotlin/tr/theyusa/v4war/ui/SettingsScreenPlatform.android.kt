@@ -10,6 +10,7 @@ import tr.theyusa.v4war.compose.material3.Icon
 import tr.theyusa.v4war.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -241,11 +242,14 @@ internal actual fun LazyListScope.platformMiscOptions(needReload: () -> Unit) {
         val value by DataStore.configurationStore
             .intFlow(Key.BATTERY_THROTTLE_FACTOR, 5)
             .collectAsStateWithLifecycle(5)
+        var previewValue by remember { mutableFloatStateOf(value.toFloat()) }
         SliderPreference(
             value = value.toFloat(),
-            onValueChange = {
-                DataStore.batteryThrottleFactor = it
+            onValueChange = { floatValue ->
+                DataStore.batteryThrottleFactor = floatValue.toInt()
             },
+            sliderValue = previewValue,
+            onSliderValueChange = { previewValue = it },
             title = { Text(stringResource(Res.string.battery_throttle_factor)) },
             valueRange = 1f..10f,
             valueSteps = 9,
@@ -256,7 +260,7 @@ internal actual fun LazyListScope.platformMiscOptions(needReload: () -> Unit) {
                 )
             },
             summary = { Text(stringResource(Res.string.battery_throttle_factor_summary)) },
-            valueText = { Text(value.toString()) },
+            valueText = { Text(previewValue.toInt().toString()) },
         )
     }
 }
