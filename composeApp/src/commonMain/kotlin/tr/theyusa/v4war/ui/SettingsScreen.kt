@@ -239,8 +239,7 @@ import tr.theyusa.v4war.resources.clash_api_secret
 import tr.theyusa.v4war.resources.clash_api_secret_sum
 import tr.theyusa.v4war.resources.clash_api_panel_url
 import tr.theyusa.v4war.resources.clash_api_panel_url_sum
-import tr.theyusa.v4war.resources.open_panel
-import tr.theyusa.v4war.resources.open_panel_sum
+
 import tr.theyusa.v4war.resources.network_change_reset_connections
 import tr.theyusa.v4war.resources.network_change_reset_connections_sum
 import tr.theyusa.v4war.resources.wake_reset_connections
