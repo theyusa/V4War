@@ -1563,7 +1563,7 @@ item(Key.OPTIMISTIC_DNS_CACHE, PreferenceType.SWITCH) {
                             textToValue = { it.toIntOrNull() ?: 9090 },
                             icon = {
                                 Icon(
-                                    vectorResource(Res.drawable.https),
+                                    vectorResource(Res.drawable.router),
                                     null,
                                 )
                             },
@@ -1597,7 +1597,7 @@ item(Key.OPTIMISTIC_DNS_CACHE, PreferenceType.SWITCH) {
                             textToValue = { it },
                             icon = {
                                 Icon(
-                                    vectorResource(Res.drawable.link),
+                                    vectorResource(Res.drawable.public_icon),
                                     null,
                                 )
                             },
@@ -1605,20 +1605,27 @@ item(Key.OPTIMISTIC_DNS_CACHE, PreferenceType.SWITCH) {
                             valueToText = { it },
                         )
                     }
-                    val uriHandler = LocalUriHandler.current
-                    Preference(
-                        title = { Text(stringResource(Res.string.open_panel)) },
-                        summary = { Text(stringResource(Res.string.open_panel_sum)) },
-                        icon = {
-                            Icon(
-                                vectorResource(Res.drawable.https),
-                                null,
-                            )
-                        },
-                        onClick = {
-                            uriHandler.openUri(DataStore.clashApiPanelUrl)
-                        },
-                    )
+                    item(Key.OPEN_PANEL, PreferenceType.SWITCH) {
+                        val uriHandler = LocalUriHandler.current
+                        val panelUrl by DataStore.configurationStore
+                            .stringFlow(Key.CLASH_API_PANEL_URL, "http://127.0.0.1:9090/ui")
+                            .collectAsStateWithLifecycle("http://127.0.0.1:9090/ui")
+                        SwitchPreference(
+                            value = false,
+                            onValueChange = {
+                                uriHandler.openUri(panelUrl)
+                                false
+                            },
+                            title = { Text(stringResource(Res.string.open_panel)) },
+                            icon = {
+                                Icon(
+                                    vectorResource(Res.drawable.router),
+                                    null,
+                                )
+                            },
+                            summary = { Text(stringResource(Res.string.open_panel_sum)) },
+                        )
+                    }
                     item(Key.ALLOW_INSECURE_ON_REQUEST, PreferenceType.SWITCH) {
                         val value by DataStore.configurationStore
                             .booleanFlow(Key.ALLOW_INSECURE_ON_REQUEST, false)

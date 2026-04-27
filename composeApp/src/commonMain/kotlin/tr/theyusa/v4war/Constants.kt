@@ -114,6 +114,7 @@ object Key {
     const val CLASH_API_PORT = "clashApiPort"
     const val CLASH_API_SECRET = "clashApiSecret"
     const val CLASH_API_PANEL_URL = "clashApiPanelUrl"
+    const val OPEN_PANEL = "openPanel"
     const val NETWORK_CHANGE_RESET_CONNECTIONS = "networkChangeResetConnections"
     const val WAKE_RESET_CONNECTIONS = "wakeResetConnections"
     const val ALLOW_INSECURE_ON_REQUEST = "allowInsecureOnRequest"

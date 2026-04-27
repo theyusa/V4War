@@ -48,6 +48,7 @@ import tr.theyusa.v4war.compose.material3.IconButton
 import tr.theyusa.v4war.compose.material3.NavigationDrawer
 import tr.theyusa.v4war.compose.material3.Text
 import tr.theyusa.v4war.compose.material3.rememberDrawerStateHolder
+import tr.theyusa.v4war.database.DataStore
 import tr.theyusa.v4war.database.SagerDatabase
 import tr.theyusa.v4war.fmt.PluginEntry
 import tr.theyusa.v4war.ktx.restartApplication
