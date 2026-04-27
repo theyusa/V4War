@@ -746,4 +746,23 @@
     <string name="tun_auto_redirect">Tun auto redirect</string>
     <string name="no_plugin_found">Eklenti bulunamadı!</string>
     <string name="traffic_pattern">Traffic Pattern</string>
+
+    <string name="traffic_sniffing">Trafik Sniffing</string>
+    <string name="traffic_sniffing_disabled">Devre dışı</string>
+    <string name="traffic_sniffing_enabled">Etkin</string>
+    <string name="traffic_sniffing_route">Sadece Yönlendirme</string>
+    <string name="resolve_destination">Hedefi Çözümle</string>
+    <string name="resolve_destination_summary">Hedef adres bir alan adıysa, IPv6 stratejisine göre geçirilir (FakeDNS ile çakışır)</string>
+    <string name="enable_clash_api">Clash API'yi Etkinleştir</string>
+    <string name="enable_clash_api_sum">Harici dashboard bağlantıları için Clash uyumlu API'yi etkinleştir</string>
+    <string name="network_change_reset_connections">Ağ Değişikliğinde Bağlantıları Sıfırla</string>
+    <string name="network_change_reset_connections_sum">Ağ değiştiğinde tüm bağlantıları kapat (örn. Wi-Fi'dan mobil veriye geçiş)</string>
+    <string name="wake_reset_connections">Uyanmada Bağlantıları Sıfırla</string>
+    <string name="wake_reset_connections_sum">Cihaz Doze modundan uyandığında tüm bağlantıları kapat</string>
+    <string name="optimistic_dns_cache">Optimistic DNS Önbelleği</string>
+    <string name="optimistic_dns_cache_sum">Arka planda yenilenirken önbelleğe alınmış DNS sonuçlarını hemen döndür</string>
+    <string name="cag_route">Yönlendirme Ayarları</string>
+    <string name="hijack_dns_sum">DNS sorgularını doğrudan çözümleme yerine proxy tüneli üzerinden yönlendir</string>
+    <string name="allow_insecure_on_request">İsteklerde Güvensize İzin Ver</string>
+    <string name="allow_insecure_on_request_sum">Abonelik güncellemeleri ve bağlantı testleri için sertifika doğrulamasını atla</string>
 </resources>
