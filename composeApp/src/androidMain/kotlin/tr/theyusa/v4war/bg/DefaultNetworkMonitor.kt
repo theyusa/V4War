@@ -1,6 +1,7 @@
 package tr.theyusa.v4war.bg
 
 import android.net.Network
+import tr.theyusa.v4war.database.DataStore
 import tr.theyusa.v4war.libcore.InterfaceUpdateListener
 import tr.theyusa.v4war.repository.resolveAndroidRepository
 import kotlinx.coroutines.sync.Mutex
@@ -12,6 +13,7 @@ object DefaultNetworkMonitor {
     private var listener: InterfaceUpdateListener? = null
     private val access = Mutex()
     private var refCount = 0
+    private var previousInterfaceName: String? = null
 
     suspend fun start() {
         access.withLock {
@@ -67,9 +69,16 @@ object DefaultNetworkMonitor {
                     Thread.sleep(100)
                     continue
                 }
+                if (interfaceName != previousInterfaceName && previousInterfaceName != null) {
+                    if (DataStore.networkChangeResetConnections) {
+                        ServiceRegistry.baseService?.data?.resetNetwork()
+                    }
+                }
+                previousInterfaceName = interfaceName
                 listener.updateDefaultInterface(interfaceName, interfaceIndex)
             }
         } else {
+            previousInterfaceName = null
             listener.updateDefaultInterface("", -1)
         }
     }

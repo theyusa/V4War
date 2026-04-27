@@ -122,8 +122,11 @@ object OpenOnlineConfigUpdater : GroupUpdater() {
             if (DataStore.serviceState.started) {
                 useSocks5(DataStore.mixedPort, DataStore.inboundUsername, DataStore.inboundPassword)
             }
-            // Strict !!!
-            restrictedTLS()
+            if (DataStore.allowInsecureOnRequest) {
+                insecureSkipVerify()
+            } else {
+                restrictedTLS()
+            }
             if (certSha256 != null) pinnedSHA256(certSha256)
         }.newRequest().apply {
             setURL(baseLink.string)

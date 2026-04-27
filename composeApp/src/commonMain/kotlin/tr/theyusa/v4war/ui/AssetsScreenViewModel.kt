@@ -363,6 +363,9 @@ internal class AssetsScreenViewModel(
 
         Libcore.newHttpClient().apply {
             keepAlive()
+            if (DataStore.allowInsecureOnRequest) {
+                insecureSkipVerify()
+            }
             if (DataStore.serviceState.started) {
                 useSocks5(DataStore.mixedPort, DataStore.inboundUsername, DataStore.inboundPassword)
             }
@@ -484,6 +487,9 @@ internal abstract class AssetsUpdater(
 ) {
     private val httpClient = Libcore.newHttpClient().apply {
         keepAlive()
+        if (DataStore.allowInsecureOnRequest) {
+            insecureSkipVerify()
+        }
         if (DataStore.serviceState.started) {
             useSocks5(DataStore.mixedPort, DataStore.inboundUsername, DataStore.inboundPassword)
         }

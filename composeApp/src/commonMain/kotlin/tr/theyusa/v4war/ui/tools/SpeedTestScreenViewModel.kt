@@ -118,6 +118,9 @@ internal class SpeedTestScreenViewModel : ViewModel() {
         try {
             Libcore.newHttpClient()
                 .apply {
+                    if (DataStore.allowInsecureOnRequest) {
+                        insecureSkipVerify()
+                    }
                     if (DataStore.serviceState.started) {
                         useSocks5(
                             DataStore.mixedPort,
@@ -157,6 +160,9 @@ internal class SpeedTestScreenViewModel : ViewModel() {
         try {
             Libcore.newHttpClient()
                 .apply {
+                    if (DataStore.allowInsecureOnRequest) {
+                        insecureSkipVerify()
+                    }
                     if (DataStore.serviceState.started) {
                         useSocks5(
                             DataStore.mixedPort,

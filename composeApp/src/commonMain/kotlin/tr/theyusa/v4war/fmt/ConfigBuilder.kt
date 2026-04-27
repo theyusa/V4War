@@ -1011,7 +1011,9 @@ fun buildConfig(
             }.asKxsMap(),
         )
 
-        if (!forTest) localDNSPort?.let {
+        val enableDnsRouting = DataStore.enableDnsRouting
+
+        if (!forTest && enableDnsRouting) localDNSPort?.let {
             inbounds!!.add(
                 0,
                 Inbound_DirectOptions().apply {
@@ -1129,31 +1131,33 @@ fun buildConfig(
             )
 
             // built-in DNS rules
-            val builtInDNSRule = localDNSPort?.let {
-                Rule_Logical().also {
-                    it.type = SingBoxOptions.TYPE_LOGICAL
-                    it.mode = SingBoxOptions.LOGICAL_OR
-                    it.rules = mutableListOf(
-                        Rule_Default().apply {
-                            inbound = mutableListOf(TAG_DNS_IN)
-                        }.toJsonObjectKxs(),
-                        Rule_Default().apply {
-                            ip_cidr = mutableListOf(
-                                VpnConstants.PRIVATE_VLAN4_ROUTER,
-                                VpnConstants.PRIVATE_VLAN6_ROUTER,
-                            )
-                        }.toJsonObjectKxs(),
+            if (enableDnsRouting) {
+                val builtInDNSRule = localDNSPort?.let {
+                    Rule_Logical().also {
+                        it.type = SingBoxOptions.TYPE_LOGICAL
+                        it.mode = SingBoxOptions.LOGICAL_OR
+                        it.rules = mutableListOf(
+                            Rule_Default().apply {
+                                inbound = mutableListOf(TAG_DNS_IN)
+                            }.toJsonObjectKxs(),
+                            Rule_Default().apply {
+                                ip_cidr = mutableListOf(
+                                    VpnConstants.PRIVATE_VLAN4_ROUTER,
+                                    VpnConstants.PRIVATE_VLAN6_ROUTER,
+                                )
+                            }.toJsonObjectKxs(),
+                        )
+                        it.action = SingBoxOptions.ACTION_HIJACK_DNS
+                    }.asKxsMap()
+                } ?: Rule_Default().apply {
+                    ip_cidr = mutableListOf(
+                        VpnConstants.PRIVATE_VLAN4_ROUTER,
+                        VpnConstants.PRIVATE_VLAN6_ROUTER,
                     )
-                    it.action = SingBoxOptions.ACTION_HIJACK_DNS
+                    action = SingBoxOptions.ACTION_HIJACK_DNS
                 }.asKxsMap()
-            } ?: Rule_Default().apply {
-                ip_cidr = mutableListOf(
-                    VpnConstants.PRIVATE_VLAN4_ROUTER,
-                    VpnConstants.PRIVATE_VLAN6_ROUTER,
-                )
-                action = SingBoxOptions.ACTION_HIJACK_DNS
-            }.asKxsMap()
-            route!!.rules!!.add(0, builtInDNSRule)
+                route!!.rules!!.add(0, builtInDNSRule)
+            }
 
             // FakeDNS obj
             if (useFakeDns) {

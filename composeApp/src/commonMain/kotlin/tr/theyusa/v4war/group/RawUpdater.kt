@@ -48,6 +48,9 @@ object RawUpdater : GroupUpdater() {
         } else {
 
             val response = Libcore.newHttpClient().apply {
+                if (DataStore.allowInsecureOnRequest) {
+                    insecureSkipVerify()
+                }
                 if (DataStore.serviceState.started) {
                     useSocks5(
                         DataStore.mixedPort,

@@ -100,8 +100,12 @@ object SIP008Updater : GroupUpdater() {
                         DataStore.inboundPassword,
                     )
                 }
-                // Strict !!!
-                restrictedTLS()
+                if (DataStore.allowInsecureOnRequest) {
+                    insecureSkipVerify()
+                } else {
+                    // Strict !!!
+                    restrictedTLS()
+                }
             }.newRequest().apply {
                 setURL(subscription.link)
                 setUserAgent(generateUserAgent(subscription.customUserAgent))

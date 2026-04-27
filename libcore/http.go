@@ -38,6 +38,9 @@ type HTTPClient interface {
 	// https://github.com/Shadowsocks-NET/OpenOnlineConfig/blob/0db1f2452f8ad579967ca4c5092f5e11053c813c/docs/0001-open-online-config-v1.md?plain=1#L69
 	PinnedSHA256(sumHex string)
 
+	// InsecureSkipVerify disables TLS certificate verification.
+	InsecureSkipVerify()
+
 	// UseSocks5 connects to server by socks5.
 	UseSocks5(port int32, username, password string)
 
@@ -125,7 +128,7 @@ func (c *httpClient) PinnedSHA256(sumHex string) {
 	c.tls.VerifyPeerCertificate = func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
 		opts := x509.VerifyOptions{
 			DNSName:       c.tls.ServerName,
-			Roots:         c.tls.RootCAs,
+			Roots:          c.tls.RootCAs,
 			Intermediates: x509.NewCertPool(),
 		}
 		if c.tls.Time != nil {
@@ -146,6 +149,10 @@ func (c *httpClient) PinnedSHA256(sumHex string) {
 		}
 		return E.Errors(err, E.New("cert sha256 not matched"))
 	}
+}
+
+func (c *httpClient) InsecureSkipVerify() {
+	c.tls.InsecureSkipVerify = true
 }
 
 func (c *httpClient) UseSocks5(port int32, username, password string) {
