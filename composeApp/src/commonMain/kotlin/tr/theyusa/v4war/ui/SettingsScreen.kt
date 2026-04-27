@@ -61,6 +61,7 @@ import tr.theyusa.v4war.CertProvider
 import tr.theyusa.v4war.Key
 import tr.theyusa.v4war.NetworkInterfaceStrategy
 import tr.theyusa.v4war.ProtocolProvider
+import tr.theyusa.v4war.TrafficSniffing
 import tr.theyusa.v4war.RuleProvider
 import tr.theyusa.v4war.TunImplementation
 import tr.theyusa.v4war.bg.BackendState
@@ -111,6 +112,7 @@ import tr.theyusa.v4war.resources.apps
 import tr.theyusa.v4war.resources.auto
 import tr.theyusa.v4war.resources.blurred_address
 import tr.theyusa.v4war.resources.bug_report
+import tr.theyusa.v4war.resources.cag_route
 import tr.theyusa.v4war.resources.cag_dns
 import tr.theyusa.v4war.resources.cag_misc
 import tr.theyusa.v4war.resources.cancel
@@ -195,7 +197,6 @@ import tr.theyusa.v4war.resources.profile_traffic_statistics_summary
 import tr.theyusa.v4war.resources.public_icon
 import tr.theyusa.v4war.resources.push_pin
 import tr.theyusa.v4war.resources.remote_dns
-import tr.theyusa.v4war.resources.route_options
 import tr.theyusa.v4war.resources.route_rules_official
 import tr.theyusa.v4war.resources.route_rules_provider
 import tr.theyusa.v4war.resources.router
@@ -223,6 +224,20 @@ import tr.theyusa.v4war.resources.translate
 import tr.theyusa.v4war.resources.tun_implementation
 import tr.theyusa.v4war.resources.wb_sunny
 import tr.theyusa.v4war.resources.wifi
+import tr.theyusa.v4war.resources.traffic_sniffing
+import tr.theyusa.v4war.resources.traffic_sniffing_disabled
+import tr.theyusa.v4war.resources.traffic_sniffing_enabled
+import tr.theyusa.v4war.resources.traffic_sniffing_route
+import tr.theyusa.v4war.resources.resolve_destination
+import tr.theyusa.v4war.resources.resolve_destination_summary
+import tr.theyusa.v4war.resources.enable_clash_api
+import tr.theyusa.v4war.resources.enable_clash_api_sum
+import tr.theyusa.v4war.resources.network_change_reset_connections
+import tr.theyusa.v4war.resources.network_change_reset_connections_sum
+import tr.theyusa.v4war.resources.wake_reset_connections
+import tr.theyusa.v4war.resources.wake_reset_connections_sum
+import tr.theyusa.v4war.resources.optimistic_dns_cache
+import tr.theyusa.v4war.resources.optimistic_dns_cache_sum
 import io.github.oikvpqya.compose.fastscroller.material3.defaultMaterialScrollbarStyle
 import io.github.oikvpqya.compose.fastscroller.rememberScrollbarAdapter
 import kotlinx.coroutines.delay
@@ -707,7 +722,56 @@ fun SettingsScreen(
                     }
 
                     item(Key.ROUTE_SETTINGS, PreferenceType.CATEGORY) {
-                        PreferenceCategory(text = { Text(stringResource(Res.string.route_options)) })
+                        PreferenceCategory(text = { Text(stringResource(Res.string.cag_route)) })
+                    }
+                    item(Key.TRAFFIC_SNIFFING, PreferenceType.LIST) {
+                        fun sniffingTextRes(value: Int): StringResource = when (value) {
+                            TrafficSniffing.DISABLED -> Res.string.traffic_sniffing_disabled
+                            TrafficSniffing.ENABLED -> Res.string.traffic_sniffing_enabled
+                            TrafficSniffing.ROUTE -> Res.string.traffic_sniffing_route
+                            else -> Res.string.traffic_sniffing_disabled
+                        }
+
+                        val value by DataStore.configurationStore
+                            .intFlow(Key.TRAFFIC_SNIFFING, 1)
+                            .collectAsStateWithLifecycle(1)
+
+                        ListPreference(
+                            value = value,
+                            onValueChange = {
+                                DataStore.trafficSniffing = it
+                                needReload()
+                            },
+                            values = listOf(
+                                TrafficSniffing.DISABLED,
+                                TrafficSniffing.ENABLED,
+                                TrafficSniffing.ROUTE,
+                            ),
+                            title = { Text(stringResource(Res.string.traffic_sniffing)) },
+                            icon = {
+                                Icon(
+                                    vectorResource(Res.drawable.router),
+                                    null,
+                                )
+                            },
+                            summary = { Text(stringResource(sniffingTextRes(value))) },
+                            type = ListPreferenceType.DROPDOWN_MENU,
+                            valueToText = { AnnotatedString(stringResource(sniffingTextRes(it))) },
+                        )
+                    }
+                    item(Key.RESOLVE_DESTINATION, PreferenceType.SWITCH) {
+                        val value by DataStore.configurationStore
+                            .booleanFlow(Key.RESOLVE_DESTINATION, false)
+                            .collectAsStateWithLifecycle(false)
+                        SwitchPreference(
+                            value = value,
+                            onValueChange = {
+                                DataStore.resolveDestination = it
+                                needReload()
+                            },
+                            title = { Text(stringResource(Res.string.resolve_destination)) },
+                            summary = { Text(stringResource(Res.string.resolve_destination_summary)) },
+                        )
                     }
                     proxyAppsPreferences(openAppManager)
                     platformRouteOptions(
@@ -1140,6 +1204,33 @@ fun SettingsScreen(
                             HostTextField(value, onValueChange, onOk)
                         }
                     }
+                    item(Key.ENABLE_DNS_ROUTING, PreferenceType.SWITCH) {
+                        val value by DataStore.configurationStore
+                            .booleanFlow(Key.ENABLE_DNS_ROUTING, true)
+                            .collectAsStateWithLifecycle(true)
+                        SwitchPreference(
+                            value = value,
+                            onValueChange = {
+                                DataStore.enableDnsRouting = it
+                                needReload()
+                            },
+                            title = { Text(stringResource(Res.string.hijack_dns)) },
+                        )
+                    }
+                    item(Key.OPTIMISTIC_DNS_CACHE, PreferenceType.SWITCH) {
+                        val value by DataStore.configurationStore
+                            .booleanFlow(Key.OPTIMISTIC_DNS_CACHE, false)
+                            .collectAsStateWithLifecycle(false)
+                        SwitchPreference(
+                            value = value,
+                            onValueChange = {
+                                DataStore.optimisticDnsCache = it
+                                needReload()
+                            },
+                            title = { Text(stringResource(Res.string.optimistic_dns_cache)) },
+                            summary = { Text(stringResource(Res.string.optimistic_dns_cache_sum)) },
+                        )
+                    }
 
                     item(Key.INBOUND_SETTINGS, PreferenceType.CATEGORY) {
                         PreferenceCategory(text = { Text(stringResource(Res.string.inbound_settings)) })
@@ -1404,6 +1495,46 @@ fun SettingsScreen(
                             summary = { Text(stringResource(certProviderTextRes(value))) },
                             type = ListPreferenceType.DROPDOWN_MENU,
                             valueToText = { AnnotatedString(stringResource(certProviderTextRes(it))) },
+                        )
+                    }
+                    item(Key.ENABLE_CLASH_API, PreferenceType.SWITCH) {
+                        val value by DataStore.configurationStore
+                            .booleanFlow(Key.ENABLE_CLASH_API, true)
+                            .collectAsStateWithLifecycle(true)
+                        SwitchPreference(
+                            value = value,
+                            onValueChange = {
+                                DataStore.enableClashAPI = it
+                                needReload()
+                            },
+                            title = { Text(stringResource(Res.string.enable_clash_api)) },
+                            summary = { Text(stringResource(Res.string.enable_clash_api_sum)) },
+                        )
+                    }
+                    item(Key.NETWORK_CHANGE_RESET_CONNECTIONS, PreferenceType.SWITCH) {
+                        val value by DataStore.configurationStore
+                            .booleanFlow(Key.NETWORK_CHANGE_RESET_CONNECTIONS, true)
+                            .collectAsStateWithLifecycle(true)
+                        SwitchPreference(
+                            value = value,
+                            onValueChange = {
+                                DataStore.networkChangeResetConnections = it
+                            },
+                            title = { Text(stringResource(Res.string.network_change_reset_connections)) },
+                            summary = { Text(stringResource(Res.string.network_change_reset_connections_sum)) },
+                        )
+                    }
+                    item(Key.WAKE_RESET_CONNECTIONS, PreferenceType.SWITCH) {
+                        val value by DataStore.configurationStore
+                            .booleanFlow(Key.WAKE_RESET_CONNECTIONS, false)
+                            .collectAsStateWithLifecycle(false)
+                        SwitchPreference(
+                            value = value,
+                            onValueChange = {
+                                DataStore.wakeResetConnections = it
+                            },
+                            title = { Text(stringResource(Res.string.wake_reset_connections)) },
+                            summary = { Text(stringResource(Res.string.wake_reset_connections_sum)) },
                         )
                     }
                     disableProcessText()

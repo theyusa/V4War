@@ -106,6 +106,8 @@ object DataStore {
     var allowAppsBypassVpn by configurationStore.boolean(Key.ALLOW_APPS_BYPASS_VPN) { false }
 
     var bypassLan by configurationStore.boolean(Key.BYPASS_LAN) { true }
+    var trafficSniffing by configurationStore.int(Key.TRAFFIC_SNIFFING) { 1 }
+    var resolveDestination by configurationStore.boolean(Key.RESOLVE_DESTINATION) { false }
     var inboundUsername by configurationStore.string(Key.INBOUND_USERNAME) { "" }
     var inboundPassword by configurationStore.string(Key.INBOUND_PASSWORD) { "" }
 
@@ -125,6 +127,8 @@ object DataStore {
     var domainStrategyForServer by configurationStore.string(Key.DOMAIN_STRATEGY_FOR_SERVER)
     var enableFakeDns by configurationStore.boolean(Key.ENABLE_FAKE_DNS) { false }
     var fakeDNSForAll by configurationStore.boolean(Key.FAKE_DNS_FOR_ALL) { false }
+    var enableDnsRouting by configurationStore.boolean(Key.ENABLE_DNS_ROUTING) { true }
+    var optimisticDnsCache by configurationStore.boolean(Key.OPTIMISTIC_DNS_CACHE) { false }
 
     // https://developer.chrome.com/blog/local-network-access
     // Use the address belongs to these "local" networks
@@ -200,6 +204,10 @@ object DataStore {
     var profileTrafficStatistics by configurationStore.boolean(Key.PROFILE_TRAFFIC_STATISTICS) { true }
     var certProvider by configurationStore.int(Key.CERT_PROVIDER) { CertProvider.MOZILLA }
     var disableProcessText by configurationStore.boolean(Key.DISABLE_PROCESS_TEXT)
+    var enableClashAPI by configurationStore.boolean(Key.ENABLE_CLASH_API) { true }
+    var networkChangeResetConnections by configurationStore.boolean(Key.NETWORK_CHANGE_RESET_CONNECTIONS) { true }
+    var wakeResetConnections by configurationStore.boolean(Key.WAKE_RESET_CONNECTIONS) { false }
+    var allowInsecureOnRequest by configurationStore.boolean(Key.ALLOW_INSECURE_ON_REQUEST) { false }
 
     var trafficDescending by configurationStore.boolean(Key.TRAFFIC_DESCENDING) { false }
     var trafficSortMode by configurationStore.int(Key.TRAFFIC_SORT_MODE) { TrafficSortMode.START }

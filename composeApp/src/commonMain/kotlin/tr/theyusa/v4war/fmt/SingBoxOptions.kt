@@ -123,8 +123,15 @@ object SingBoxOptions {
         @JvmField
         var username: String? = null
 
+@JvmField
+        var default_fallback_delay: String? = null
+
         @JvmField
-        var password: String? = null
+        var sniff: Int? = null
+
+        @JvmField
+        var resolve_destination: Boolean? = null
+
     }
 
     open class MyOptions : SingBoxOption() {

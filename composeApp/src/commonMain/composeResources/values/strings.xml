@@ -760,4 +760,17 @@
     <string name="tun_auto_redirect">Tun auto redirect</string>
     <string name="no_plugin_found">No plugin found!</string>
     <string name="traffic_pattern">Traffic Pattern</string>
+    <string name="traffic_sniffing">Traffic Sniffing</string>
+    <string name="traffic_sniffing_disabled">Disabled</string>
+    <string name="traffic_sniffing_enabled">Enabled</string>
+    <string name="traffic_sniffing_route">Route Only</string>
+    <string name="enable_clash_api">Enable Clash API</string>
+    <string name="enable_clash_api_sum">Enable Clash-compatible API for external dashboard connections</string>
+    <string name="network_change_reset_connections">Reset Connections on Network Change</string>
+    <string name="network_change_reset_connections_sum">Close all connections when the network changes (e.g. Wi-Fi to mobile)</string>
+    <string name="wake_reset_connections">Reset Connections on Wake</string>
+    <string name="wake_reset_connections_sum">Close all connections when the device wakes from Doze mode</string>
+    <string name="optimistic_dns_cache">Optimistic DNS Cache</string>
+    <string name="optimistic_dns_cache_sum">Return cached DNS results immediately while refreshing in the background</string>
+    <string name="cag_route">Route Settings</string>
 </resources>

@@ -38,6 +38,8 @@ object Key {
     const val FAKE_DNS_RANGE_4 = "fakeDNSRange4"
     const val FAKE_DNS_RANGE_6 = "fakeDNSRange6"
     const val DNS_HOSTS = "dnsHosts"
+    const val ENABLE_DNS_ROUTING = "enableDnsRouting"
+    const val OPTIMISTIC_DNS_CACHE = "optimisticDnsCache"
 
     const val PROXY_APPS = "proxyApps"
     const val UPDATE_PROXY_APPS_WHEN_INSTALL = "updateProxyAppsWhenInstall"
@@ -54,6 +56,8 @@ object Key {
     const val CUSTOM_RULE_PROVIDER = "customRuleProvider"
 
     const val BYPASS_LAN = "bypassLan"
+    const val TRAFFIC_SNIFFING = "trafficSniffing"
+    const val RESOLVE_DESTINATION = "resolveDestination"
 
     const val APPEND_HTTP_PROXY = "appendHttpProxy"
     const val HTTP_PROXY_BYPASS = "httpProxyBypass"
@@ -106,6 +110,10 @@ object Key {
 
     const val CERT_PROVIDER = "certProvider"
     const val DISABLE_PROCESS_TEXT = "disableProcessText"
+    const val ENABLE_CLASH_API = "enableClashAPI"
+    const val NETWORK_CHANGE_RESET_CONNECTIONS = "networkChangeResetConnections"
+    const val WAKE_RESET_CONNECTIONS = "wakeResetConnections"
+    const val ALLOW_INSECURE_ON_REQUEST = "allowInsecureOnRequest"
 
     const val TRAFFIC_DESCENDING = "trafficDescending"
     const val TRAFFIC_SORT_MODE = "trafficSortMode"
@@ -225,6 +233,12 @@ object NetworkInterfaceStrategy {
     const val DEFAULT = 0
     const val HYBRID = 1
     const val FALLBACK = 2
+}
+
+object TrafficSniffing {
+    const val DISABLED = 0
+    const val ENABLED = 1
+    const val ROUTE = 2
 }
 
 object CertProvider {

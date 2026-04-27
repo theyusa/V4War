@@ -116,8 +116,10 @@ class BaseService {
                             resolveRepository().boxService?.pause()
                         } else {
                             resolveRepository().boxService?.wake()
-                            runOnDefaultDispatcher {
-                                resetNetwork()
+                            if (DataStore.wakeResetConnections) {
+                                runOnDefaultDispatcher {
+                                    resetNetwork()
+                                }
                             }
                         }
                     }
