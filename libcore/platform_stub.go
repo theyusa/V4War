@@ -1,6 +1,7 @@
 package libcore
 
 import (
+	"net/netip"
 	"os"
 
 	"github.com/sagernet/sing-box/adapter"
@@ -142,4 +143,8 @@ func (p platformInterfaceStub) StartNeighborMonitor(_ adapter.NeighborUpdateList
 
 func (p platformInterfaceStub) CloseNeighborMonitor(_ adapter.NeighborUpdateListener) error {
 	return os.ErrInvalid
+}
+
+func (p platformInterfaceStub) MyInterfaceAddress() []netip.Addr {
+	return nil
 }

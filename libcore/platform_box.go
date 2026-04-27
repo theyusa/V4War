@@ -254,3 +254,7 @@ func (w *boxPlatformInterfaceWrapper) StartNeighborMonitor(listener adapter.Neig
 func (w *boxPlatformInterfaceWrapper) CloseNeighborMonitor(listener adapter.NeighborUpdateListener) error {
 	return os.ErrInvalid
 }
+
+func (w *boxPlatformInterfaceWrapper) MyInterfaceAddress() []netip.Addr {
+	return nil
+}

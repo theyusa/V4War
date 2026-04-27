@@ -14,7 +14,6 @@ import (
 	"github.com/sagernet/sing-box/common/tls"
 	C "github.com/sagernet/sing-box/constant"
 	"github.com/sagernet/sing-box/dns"
-	"github.com/sagernet/sing-box/dns/transport"
 	"github.com/sagernet/sing-box/log"
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
@@ -32,7 +31,7 @@ func RegisterTLS(registry *dns.TransportRegistry) {
 }
 
 type TLSTransport struct {
-	*transport.BaseTransport
+	dns.TransportAdapter
 	logger                logger.ContextLogger
 	dialer                tls.Dialer
 	serverAddr            M.Socksaddr
@@ -97,7 +96,7 @@ func NewTLS(ctx context.Context, logger log.ContextLogger, tag string, options p
 
 func NewTLSRaw(ctx context.Context, logger logger.ContextLogger, adapter dns.TransportAdapter, dialer N.Dialer, serverAddr M.Socksaddr, tlsConfig tls.Config, enablePipeline bool, idleTimeout time.Duration, disableKeepAlive bool, maxQueries int) *TLSTransport {
 	transport := &TLSTransport{
-		BaseTransport:    transport.NewBaseTransport(adapter, logger),
+		TransportAdapter: adapter,
 		logger:           logger,
 		dialer:           tls.NewDialer(dialer, tlsConfig),
 		serverAddr:       serverAddr,
@@ -117,10 +116,6 @@ func (t *TLSTransport) Start(stage adapter.StartStage) error {
 	if stage != adapter.StartStateStart {
 		return nil
 	}
-	err := t.SetStarted()
-	if err != nil {
-		return err
-	}
 	if t.connections != nil {
 		t.connections.Start()
 	}
@@ -131,7 +126,7 @@ func (t *TLSTransport) Close() error {
 	if t.connections != nil {
 		t.connections.Close()
 	}
-	return t.BaseTransport.Close()
+	return nil
 }
 
 func (t *TLSTransport) Reset() {
@@ -238,11 +233,6 @@ func (t *TLSTransport) getDetectionCounters() (*int32, *int32, *int32) {
 }
 
 func (t *TLSTransport) Exchange(ctx context.Context, message *mDNS.Msg) (*mDNS.Msg, error) {
-	if !t.BeginQuery() {
-		return nil, transport.ErrTransportClosed
-	}
-	defer t.EndQuery()
-
 	if t.connections == nil {
 		return t.createNewConnection(ctx, message)
 	}

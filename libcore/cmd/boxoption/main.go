@@ -147,7 +147,6 @@ var outboundList = []any{
 	option.URLTestOutboundOptions{},
 	option.SOCKSOutboundOptions{},
 	// option.HTTPOutboundOptions{},
-	pluginoption.HTTPOutboundOptions{},
 	option.SSHOutboundOptions{},
 	option.TrojanOutboundOptions{},
 	option.HysteriaOutboundOptions{},
@@ -157,9 +156,6 @@ var outboundList = []any{
 	pluginoption.VLESSOutboundOptions{},
 	option.VMessOutboundOptions{},
 	option.AnyTLSOutboundOptions{},
-	pluginoption.JuicityOutboundOptions{},
-	option.NaiveOutboundOptions{},
-	pluginoption.TrustTunnelOutboundOptions{},
 }
 
 var endpointList = []any{
