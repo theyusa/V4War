@@ -1585,8 +1585,8 @@ item(Key.OPTIMISTIC_DNS_CACHE, PreferenceType.SWITCH) {
                     }
                     item(Key.CLASH_API_PANEL_URL, PreferenceType.TEXT_FIELD) {
                         val value by DataStore.configurationStore
-                            .stringFlow(Key.CLASH_API_PANEL_URL, "https://metacubexd.pages.dev")
-                            .collectAsStateWithLifecycle("https://metacubexd.pages.dev")
+                            .stringFlow(Key.CLASH_API_PANEL_URL, "http://127.0.0.1:9090/ui")
+                            .collectAsStateWithLifecycle("http://127.0.0.1:9090/ui")
                         TextFieldPreference(
                             value = value,
                             onValueChange = {
