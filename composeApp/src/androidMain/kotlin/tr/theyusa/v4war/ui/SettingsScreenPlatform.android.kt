@@ -28,6 +28,8 @@ import tr.theyusa.v4war.resources.acquire_wake_lock_summary
 import tr.theyusa.v4war.resources.battery_charging_full
 import tr.theyusa.v4war.resources.smart_wake_lock
 import tr.theyusa.v4war.resources.smart_wake_lock_summary
+import tr.theyusa.v4war.resources.battery_throttle_factor
+import tr.theyusa.v4war.resources.battery_throttle_factor_summary
 import tr.theyusa.v4war.resources.allow_apps_bypass_vpn
 import tr.theyusa.v4war.resources.auto_connect
 import tr.theyusa.v4war.resources.auto_connect_summary
@@ -51,6 +53,7 @@ import tr.theyusa.v4war.resources.transform
 import kotlinx.coroutines.flow.flowOf
 import me.zhanghai.compose.preference.SwitchPreference
 import me.zhanghai.compose.preference.TextFieldPreference
+import me.zhanghai.compose.preference.SliderPreference
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 
@@ -192,8 +195,8 @@ internal actual fun LazyListScope.platformRouteOptions(needReload: () -> Unit, i
 internal actual fun LazyListScope.platformMiscOptions(needReload: () -> Unit) {
     item(Key.ACQUIRE_WAKE_LOCK, PreferenceType.SWITCH) {
         val value by DataStore.configurationStore
-            .booleanFlow(Key.ACQUIRE_WAKE_LOCK, true)
-            .collectAsStateWithLifecycle(true)
+            .booleanFlow(Key.ACQUIRE_WAKE_LOCK, false)
+            .collectAsStateWithLifecycle(false)
         SwitchPreference(
             value = value,
             onValueChange = {
@@ -212,8 +215,8 @@ internal actual fun LazyListScope.platformMiscOptions(needReload: () -> Unit) {
     }
     item(Key.SMART_WAKE_LOCK, PreferenceType.SWITCH) {
         val wakeLockValue by DataStore.configurationStore
-            .booleanFlow(Key.ACQUIRE_WAKE_LOCK, true)
-            .collectAsStateWithLifecycle(true)
+            .booleanFlow(Key.ACQUIRE_WAKE_LOCK, false)
+            .collectAsStateWithLifecycle(false)
         val value by DataStore.configurationStore
             .booleanFlow(Key.SMART_WAKE_LOCK, true)
             .collectAsStateWithLifecycle(true)
@@ -232,6 +235,28 @@ internal actual fun LazyListScope.platformMiscOptions(needReload: () -> Unit) {
             },
             summary = { Text(stringResource(Res.string.smart_wake_lock_summary)) },
             enabled = !wakeLockValue,
+        )
+    }
+    item(Key.BATTERY_THROTTLE_FACTOR, PreferenceType.TEXT_FIELD) {
+        val value by DataStore.configurationStore
+            .intFlow(Key.BATTERY_THROTTLE_FACTOR, 5)
+            .collectAsStateWithLifecycle(5)
+        SliderPreference(
+            value = value.toFloat(),
+            onValueChange = {
+                DataStore.batteryThrottleFactor = it
+            },
+            title = { Text(stringResource(Res.string.battery_throttle_factor)) },
+            valueRange = 1f..10f,
+            valueSteps = 9,
+            icon = {
+                Icon(
+                    vectorResource(Res.drawable.battery_charging_full),
+                    null,
+                )
+            },
+            summary = { Text(stringResource(Res.string.battery_throttle_factor_summary)) },
+            valueText = { Text(value.toString()) },
         )
     }
 }

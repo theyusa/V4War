@@ -99,6 +99,7 @@ object Key {
 
     const val ACQUIRE_WAKE_LOCK = "acquireWakeLock"
     const val SMART_WAKE_LOCK = "smartWakeLock"
+    const val BATTERY_THROTTLE_FACTOR = "batteryThrottleFactor"
 
     const val TUN_IMPLEMENTATION = "tunImplementation"
     const val PROFILE_TRAFFIC_STATISTICS = "profileTrafficStatistics"

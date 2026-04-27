@@ -116,7 +116,7 @@ object DataStore {
     var screenOff = false
 
     val effectiveSpeedInterval: Int
-        get() = if (screenOff) (speedInterval.coerceAtLeast(1000) * 5).coerceAtMost(30000) else speedInterval
+        get() = if (screenOff) (speedInterval.coerceAtLeast(1000) * batteryThrottleFactor).coerceAtMost(30000) else speedInterval
     var showGroupInNotification by configurationStore.boolean(Key.SHOW_GROUP_IN_NOTIFICATION)
 
     var remoteDns by configurationStore.string(Key.REMOTE_DNS) { "tcp://dns.google" }
@@ -144,6 +144,7 @@ object DataStore {
     var logMaxLine by configurationStore.int(Key.LOG_MAX_LINE) { 1024 }
     var acquireWakeLock by configurationStore.boolean(Key.ACQUIRE_WAKE_LOCK)
     var smartWakeLock by configurationStore.boolean(Key.SMART_WAKE_LOCK) { true }
+    var batteryThrottleFactor by configurationStore.int(Key.BATTERY_THROTTLE_FACTOR) { 5 }
 
     // hopefully hashCode = mHandle doesn't change, currently this is true from KitKat to Nougat
     private val userIndex by lazy { callingUserIndex() }

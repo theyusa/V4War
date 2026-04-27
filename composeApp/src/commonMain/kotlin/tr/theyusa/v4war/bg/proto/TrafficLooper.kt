@@ -124,7 +124,7 @@ class TrafficLooper(
 
             // Throttle when screen is off to save battery
             val effectiveDelay = if (DataStore.screenOff) {
-                (currentDelayMs.coerceAtLeast(1000L) * 5).coerceAtMost(30000L)
+                (currentDelayMs.coerceAtLeast(1000L) * DataStore.batteryThrottleFactor).coerceAtMost(30000L)
             } else {
                 currentDelayMs
             }

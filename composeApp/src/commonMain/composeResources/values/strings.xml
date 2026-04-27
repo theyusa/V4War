@@ -488,6 +488,8 @@
     <string name="acquire_wake_lock_summary">Keep the CPU on</string>
     <string name="smart_wake_lock">Smart Wake Lock</string>
     <string name="smart_wake_lock_summary">Automatically acquire wake lock during VPN to prevent connection drops, and release when idle to save battery</string>
+    <string name="battery_throttle_factor">Battery Throttle Factor</string>
+    <string name="battery_throttle_factor_summary">Speed update interval multiplier when screen is off (1-10, higher saves more battery)</string>
     <string name="action_switch">Switch</string>
     <string name="tuic_udp_relay_mode">UDP Relay Mode</string>
     <string name="tuic_congestion_controller">Congestion Controller</string>

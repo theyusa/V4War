@@ -307,9 +307,6 @@ fun SettingsScreen(
     val fakeDNSState by DataStore.configurationStore
         .booleanFlow(Key.ENABLE_FAKE_DNS, false)
         .collectAsStateWithLifecycle(false)
-    val ntpEnableState by DataStore.configurationStore
-        .booleanFlow(Key.ENABLE_NTP, false)
-        .collectAsStateWithLifecycle(false)
     val serviceModeState by DataStore.configurationStore
         .stringFlow(Key.SERVICE_MODE, Key.MODE_VPN)
         .collectAsStateWithLifecycle(Key.MODE_VPN)
@@ -914,87 +911,6 @@ fun SettingsScreen(
                         }
                     }
 
-                    item(Key.PROTOCOL_SETTINGS, PreferenceType.CATEGORY) {
-                        PreferenceCategory(text = { Text(stringResource(Res.string.protocol_settings)) })
-                    }
-                    item(Key.UPLOAD_SPEED, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.UPLOAD_SPEED, 0)
-                            .collectAsStateWithLifecycle(0)
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.uploadSpeed = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.hysteria_upload_mbps)) },
-                            textToValue = { it.toIntOrNull() ?: 0 },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.file_upload),
-                                    null,
-                                )
-                            },
-                            summary = { Text(value.toString()) },
-                            valueToText = { it.toString() },
-                        ) { value, onValueChange, onOk ->
-                            UIntegerTextField(value, onValueChange, onOk)
-                        }
-                    }
-                    item(Key.DOWNLOAD_SPEED, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.DOWNLOAD_SPEED, 0)
-                            .collectAsStateWithLifecycle(0)
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.downloadSpeed = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.hysteria_download_mbps)) },
-                            textToValue = { it.toIntOrNull() ?: 0 },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.download),
-                                    null,
-                                )
-                            },
-                            summary = { Text(value.toString()) },
-                            valueToText = { it.toString() },
-                        ) { value, onValueChange, onOk ->
-                            UIntegerTextField(value, onValueChange, onOk)
-                        }
-                    }
-                    fun pluginProviderText(index: Int): StringOrRes = when (index) {
-                        ProtocolProvider.CORE -> StringOrRes.Direct("sing-box")
-                        ProtocolProvider.PLUGIN -> StringOrRes.Res(Res.string.plugin)
-                        else -> StringOrRes.Direct("sing-box")
-                    }
-                    item(Key.PROVIDER_HYSTERIA2, PreferenceType.LIST) {
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.PROVIDER_HYSTERIA2, ProtocolProvider.CORE)
-                            .collectAsStateWithLifecycle(ProtocolProvider.CORE)
-
-                        ListPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.providerHysteria2 = it
-                                needReload()
-                            },
-                            values = listOf(ProtocolProvider.CORE, ProtocolProvider.PLUGIN),
-                            title = { Text(stringResource(Res.string.hysteria2_provider)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.flight_takeoff),
-                                    null,
-                                )
-                            },
-                            summary = { Text(stringOrRes(pluginProviderText(value))) },
-                            type = ListPreferenceType.DROPDOWN_MENU,
-                            valueToText = { AnnotatedString(stringOrRes(pluginProviderText(it))) },
-                        )
-                    }
-
                     item(Key.DNS_SETTINGS, PreferenceType.CATEGORY) {
                         PreferenceCategory(text = { Text(stringResource(Res.string.cag_dns)) })
                     }
@@ -1491,104 +1407,7 @@ fun SettingsScreen(
                         )
                     }
                     disableProcessText()
-                    item(Key.NTP_SETTINGS, PreferenceType.CATEGORY) {
-                        PreferenceCategory(text = { Text(stringResource(Res.string.ntp_category)) })
                     }
-                    item(Key.ENABLE_NTP, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.ENABLE_NTP, false)
-                            .collectAsStateWithLifecycle(false)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.ntpEnable = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.enable_ntp)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.timelapse),
-                                    null,
-                                )
-                            },
-                            summary = { Text(stringResource(Res.string.ntp_sum)) },
-                        )
-                    }
-                    item(Key.NTP_SERVER, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .stringFlow(Key.NTP_SERVER, "time.apple.com")
-                            .collectAsStateWithLifecycle("time.apple.com")
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.ntpAddress = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.ntp_server_address)) },
-                            textToValue = { it },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.router),
-                                    null,
-                                )
-                            },
-                            summary = { Text(contentOrUnset(value)) },
-                            valueToText = { it },
-                            enabled = ntpEnableState,
-                        )
-                    }
-                    item(Key.NTP_PORT, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.NTP_PORT, 123)
-                            .collectAsStateWithLifecycle(123)
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.ntpPort = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.ntp_server_port)) },
-                            textToValue = { it.toIntOrNull() ?: 123 },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.directions_boat),
-                                    null,
-                                )
-                            },
-                            summary = { Text(value.toString()) },
-                            valueToText = { it.toString() },
-                            enabled = ntpEnableState,
-                            textField = { value, onValueChange, onOk ->
-                                PortTextField(value, onValueChange, onOk)
-                            },
-                        )
-                    }
-                    item(Key.NTP_INTERVAL, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .stringFlow(Key.NTP_INTERVAL, "30m")
-                            .collectAsStateWithLifecycle("30m")
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.ntpInterval = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.ntp_sync_interval)) },
-                            textToValue = { it },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.flip_camera_android),
-                                    null,
-                                )
-                            },
-                            summary = { Text(contentOrUnset(value)) },
-                            valueToText = { it },
-                            enabled = ntpEnableState,
-                        ) { value, onValueChange, onOk ->
-                            DurationTextField(value, onValueChange, onOk)
-                        }
-                    }
-                }
 
                 BoxedVerticalScrollbar(
                     modifier = Modifier
