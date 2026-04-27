@@ -753,6 +753,14 @@
     <string name="traffic_sniffing_route">Sadece Yönlendirme</string>
     <string name="enable_clash_api">Clash API\'yi Etkinleştir</string>
     <string name="enable_clash_api_sum">Harici dashboard bağlantıları için Clash uyumlu API'yi etkinleştir</string>
+    <string name="clash_api_port">API Portu</string>
+    <string name="clash_api_port_sum">Clash API sunucu portu (varsayılan: 9090)</string>
+    <string name="clash_api_secret">API Secret</string>
+    <string name="clash_api_secret_sum">API kimlik doğrulaması için gizli anahtar (opsiyonel)</string>
+    <string name="clash_api_panel_url">Panel URL</string>
+    <string name="clash_api_panel_url_sum">Dashboard panel URL (örn. http://127.0.0.1:9090/ui)</string>
+    <string name="open_panel">Paneli Aç</string>
+    <string name="open_panel_sum">Clash dashboardu harici tarayıcıda aç</string>
     <string name="network_change_reset_connections">Ağ Değişikliğinde Bağlantıları Sıfırla</string>
     <string name="network_change_reset_connections_sum">Ağ değiştiğinde tüm bağlantıları kapat (örn. Wi-Fi'dan mobil veriye geçiş)</string>
     <string name="wake_reset_connections">Uyanmada Bağlantıları Sıfırla</string>

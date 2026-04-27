@@ -311,7 +311,10 @@ fun buildConfig(
                 path = "../cache/cache.db"
             }
             if (DataStore.enableClashAPI) clash_api = SingBoxOptions.ClashAPIOptions().apply {
-                external_controller = "127.0.0.1:9090"
+                external_controller = "127.0.0.1:${DataStore.clashApiPort}"
+                if (DataStore.clashApiSecret.isNotBlank()) {
+                    secret = DataStore.clashApiSecret
+                }
             }
         }
 

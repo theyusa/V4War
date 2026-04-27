@@ -205,6 +205,9 @@ object DataStore {
     var certProvider by configurationStore.int(Key.CERT_PROVIDER) { CertProvider.MOZILLA }
     var disableProcessText by configurationStore.boolean(Key.DISABLE_PROCESS_TEXT)
     var enableClashAPI by configurationStore.boolean(Key.ENABLE_CLASH_API) { true }
+    var clashApiPort by configurationStore.int(Key.CLASH_API_PORT) { 9090 }
+    var clashApiSecret by configurationStore.string(Key.CLASH_API_SECRET) { "" }
+    var clashApiPanelUrl by configurationStore.string(Key.CLASH_API_PANEL_URL) { "http://127.0.0.1:9090/ui" }
     var networkChangeResetConnections by configurationStore.boolean(Key.NETWORK_CHANGE_RESET_CONNECTIONS) { true }
     var wakeResetConnections by configurationStore.boolean(Key.WAKE_RESET_CONNECTIONS) { false }
     var allowInsecureOnRequest by configurationStore.boolean(Key.ALLOW_INSECURE_ON_REQUEST) { false }

@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
@@ -232,6 +233,14 @@ import tr.theyusa.v4war.resources.resolve_destination
 import tr.theyusa.v4war.resources.resolve_destination_summary
 import tr.theyusa.v4war.resources.enable_clash_api
 import tr.theyusa.v4war.resources.enable_clash_api_sum
+import tr.theyusa.v4war.resources.clash_api_port
+import tr.theyusa.v4war.resources.clash_api_port_sum
+import tr.theyusa.v4war.resources.clash_api_secret
+import tr.theyusa.v4war.resources.clash_api_secret_sum
+import tr.theyusa.v4war.resources.clash_api_panel_url
+import tr.theyusa.v4war.resources.clash_api_panel_url_sum
+import tr.theyusa.v4war.resources.open_panel
+import tr.theyusa.v4war.resources.open_panel_sum
 import tr.theyusa.v4war.resources.network_change_reset_connections
 import tr.theyusa.v4war.resources.network_change_reset_connections_sum
 import tr.theyusa.v4war.resources.wake_reset_connections
@@ -1540,6 +1549,76 @@ item(Key.OPTIMISTIC_DNS_CACHE, PreferenceType.SWITCH) {
                             summary = { Text(stringResource(Res.string.enable_clash_api_sum)) },
                         )
                     }
+                    item(Key.CLASH_API_PORT, PreferenceType.TEXT_FIELD) {
+                        val value by DataStore.configurationStore
+                            .intFlow(Key.CLASH_API_PORT, 9090)
+                            .collectAsStateWithLifecycle(9090)
+                        TextFieldPreference(
+                            value = value,
+                            onValueChange = {
+                                DataStore.clashApiPort = it
+                                needReload()
+                            },
+                            title = { Text(stringResource(Res.string.clash_api_port)) },
+                            textToValue = { it.toIntOrNull() ?: 9090 },
+                            icon = {
+                                Icon(
+                                    vectorResource(Res.drawable.https),
+                                    null,
+                                )
+                            },
+                            summary = { Text(value.toString()) },
+                            valueToText = { it.toString() },
+                        )
+                    }
+                    item(Key.CLASH_API_SECRET, PreferenceType.TEXT_FIELD) {
+                        val value by DataStore.configurationStore
+                            .stringFlow(Key.CLASH_API_SECRET, "")
+                            .collectAsStateWithLifecycle("")
+                        PasswordPreference(
+                            value = value,
+                            onValueChange = {
+                                DataStore.clashApiSecret = it
+                                needReload()
+                            },
+                            title = { Text(stringResource(Res.string.clash_api_secret)) },
+                        )
+                    }
+                    item(Key.CLASH_API_PANEL_URL, PreferenceType.TEXT_FIELD) {
+                        val value by DataStore.configurationStore
+                            .stringFlow(Key.CLASH_API_PANEL_URL, "http://127.0.0.1:9090/ui")
+                            .collectAsStateWithLifecycle("http://127.0.0.1:9090/ui")
+                        TextFieldPreference(
+                            value = value,
+                            onValueChange = {
+                                DataStore.clashApiPanelUrl = it
+                            },
+                            title = { Text(stringResource(Res.string.clash_api_panel_url)) },
+                            textToValue = { it },
+                            icon = {
+                                Icon(
+                                    vectorResource(Res.drawable.link),
+                                    null,
+                                )
+                            },
+                            summary = { Text(contentOrUnset(value)) },
+                            valueToText = { it },
+                        )
+                    }
+                    val uriHandler = LocalUriHandler.current
+                    Preference(
+                        title = { Text(stringResource(Res.string.open_panel)) },
+                        summary = { Text(stringResource(Res.string.open_panel_sum)) },
+                        icon = {
+                            Icon(
+                                vectorResource(Res.drawable.https),
+                                null,
+                            )
+                        },
+                        onClick = {
+                            uriHandler.openUri(DataStore.clashApiPanelUrl)
+                        },
+                    )
                     item(Key.ALLOW_INSECURE_ON_REQUEST, PreferenceType.SWITCH) {
                         val value by DataStore.configurationStore
                             .booleanFlow(Key.ALLOW_INSECURE_ON_REQUEST, false)
