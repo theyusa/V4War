@@ -751,9 +751,7 @@
     <string name="traffic_sniffing_disabled">Devre dışı</string>
     <string name="traffic_sniffing_enabled">Etkin</string>
     <string name="traffic_sniffing_route">Sadece Yönlendirme</string>
-    <string name="resolve_destination">Hedefi Çözümle</string>
-    <string name="resolve_destination_summary">Hedef adres bir alan adıysa, IPv6 stratejisine göre geçirilir (FakeDNS ile çakışır)</string>
-    <string name="enable_clash_api">Clash API'yi Etkinleştir</string>
+    <string name="enable_clash_api">Clash API\'yi Etkinleştir</string>
     <string name="enable_clash_api_sum">Harici dashboard bağlantıları için Clash uyumlu API'yi etkinleştir</string>
     <string name="network_change_reset_connections">Ağ Değişikliğinde Bağlantıları Sıfırla</string>
     <string name="network_change_reset_connections_sum">Ağ değiştiğinde tüm bağlantıları kapat (örn. Wi-Fi'dan mobil veriye geçiş)</string>
