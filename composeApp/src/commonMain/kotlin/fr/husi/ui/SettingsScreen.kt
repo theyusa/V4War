@@ -431,7 +431,7 @@ fun SettingsScreen(
                                 languageController.value = newValue
                             },
                             values = values,
-                            title = { Text(stringResource(language)) },
+                            title = { Text(stringResource(Res.string.language)) },
                             icon = {
                                 Icon(
                                     vectorResource(Res.drawable.translate),
@@ -758,10 +758,10 @@ fun SettingsScreen(
                     item(Key.NETWORK_INTERFACE_STRATEGY, PreferenceType.LIST) {
                         fun networkInterfaceStrategyTextRes(selection: Int): StringResource =
                             when (selection) {
-                                NetworkInterfaceStrategy.DEFAULT -> keep_default
+                                NetworkInterfaceStrategy.DEFAULT -> Res.string.keep_default
                                 NetworkInterfaceStrategy.HYBRID -> Res.string.hybrid
                                 NetworkInterfaceStrategy.FALLBACK -> Res.string.fallback
-                                else -> keep_default
+                                else -> Res.string.keep_default
                             }
 
                         val value by DataStore.configurationStore
