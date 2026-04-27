@@ -1590,7 +1590,7 @@ item(Key.OPTIMISTIC_DNS_CACHE, PreferenceType.SWITCH) {
                             title = { Text(stringResource(Res.string.wake_reset_connections)) },
                             icon = {
                                 Icon(
-                                    vectorResource(Res.drawable.battery_charging_full),
+                                    vectorResource(Res.drawable.flip_camera_android),
                                     null,
                                 )
                             },
