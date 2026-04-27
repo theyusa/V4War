@@ -1,0 +1,367 @@
+package tr.theyusa.v4war.ui
+
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.selection.SelectionContainer
+import tr.theyusa.v4war.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import tr.theyusa.v4war.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import fr.v4war.BuildConfig
+import tr.theyusa.v4war.bg.BackendState
+import tr.theyusa.v4war.bg.ServiceState
+import tr.theyusa.v4war.compose.PlatformMenuIcon
+import tr.theyusa.v4war.compose.SagerFab
+import tr.theyusa.v4war.compose.SimpleTopAppBar
+import tr.theyusa.v4war.compose.StatsBar
+import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
+import tr.theyusa.v4war.compose.rememberScrollHideState
+import tr.theyusa.v4war.compose.theme.AppTheme
+import tr.theyusa.v4war.compose.withNavigation
+import tr.theyusa.v4war.database.DataStore
+import tr.theyusa.v4war.libcore.Libcore
+import tr.theyusa.v4war.repository.resolveRepository
+import tr.theyusa.v4war.resources.*
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
+import io.github.oikvpqya.compose.fastscroller.material3.defaultMaterialScrollbarStyle
+import io.github.oikvpqya.compose.fastscroller.rememberScrollbarAdapter
+import org.koin.compose.viewmodel.koinViewModel
+
+@Composable
+fun AboutScreen(
+    modifier: Modifier = Modifier,
+    mainViewModel: MainViewModel,
+    onDrawerClick: () -> Unit,
+    onNavigateToLibraries: () -> Unit,
+) {
+    val windowInsets = WindowInsets.safeDrawing
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val scope = rememberCoroutineScope()
+    val snackbarState = remember { SnackbarHostState() }
+    val listState = rememberLazyListState()
+    val scrollHideVisible by rememberScrollHideState(listState)
+
+    val displayVersion = remember {
+        "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) - V4War Edition"
+    }
+    val releaseLink = remember {
+        "https://github.com/TheYusa"
+    }
+    val coreVersion = remember { Libcore.version() }
+
+    val shouldRequestBattery = rememberShouldRequestBatteryOptimizations()
+    val requestIgnoreBatteryOptimizations = rememberRequestIgnoreBatteryOptimizations()
+
+    val serviceStatus by BackendState.status.collectAsStateWithLifecycle()
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            SimpleTopAppBar(
+                title = { Text(stringResource(Res.string.menu_about)) },
+                navigationIcon = {
+                    PlatformMenuIcon(
+                        imageVector = vectorResource(Res.drawable.menu),
+                        contentDescription = stringResource(Res.string.menu),
+                        onClick = onDrawerClick,
+                    )
+                },
+                windowInsets = windowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+                scrollBehavior = scrollBehavior,
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbarState) },
+        floatingActionButton = {
+            SagerFab(
+                visible = scrollHideVisible,
+                state = serviceStatus.state,
+                showSnackbar = { message ->
+                    scope.launch {
+                        snackbarState.showSnackbar(
+                            message = getStringOrRes(message),
+                            actionLabel = resolveRepository().getString(Res.string.ok),
+                            duration = SnackbarDuration.Short,
+                        )
+                    }
+                },
+            )
+        },
+        bottomBar = {
+            if (serviceStatus.state == ServiceState.Connected) {
+                StatsBar(
+                    status = serviceStatus,
+                    visible = scrollHideVisible,
+                    mainViewModel = mainViewModel,
+                )
+            }
+        },
+    ) { innerPadding ->
+        val uriHandler = LocalUriHandler.current
+        val contentPadding = innerPadding.withNavigation()
+
+        Row(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection),
+                contentPadding = contentPadding,
+            ) {
+            item("versions_card") {
+                OutlinedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        CardItem(
+                            icon = { Icon(vectorResource(Res.drawable.android), null) },
+                            title = stringResource(Res.string.app_name),
+                            titleTextStyle = null,
+                            description = displayVersion,
+                            onCLick = {
+                                uriHandler.openUri(releaseLink)
+                            },
+                        )
+                        CardItem(
+                            icon = {
+                                Icon(
+                                    vectorResource(Res.drawable.library_music),
+                                    null,
+                                )
+                            },
+                            title = stringResource(Res.string.version_x, "sing-box"),
+                            description = coreVersion,
+                            onCLick = {
+                                uriHandler.openUri("https://github.com/TheYusa")
+                            },
+                        )
+
+                        if (shouldRequestBattery) {
+                            CardItem(
+                                icon = {
+                                    Icon(
+                                        vectorResource(Res.drawable.battery_charging_full),
+                                        null,
+                                    )
+                                },
+                                title = stringResource(Res.string.ignore_battery_optimizations),
+                                description = stringResource(Res.string.ignore_battery_optimizations_sum),
+                                onCLick = { requestIgnoreBatteryOptimizations() },
+                            )
+                        }
+                        CardItem(
+                            icon = {
+                                Icon(
+                                    vectorResource(Res.drawable.public_icon),
+                                    null,
+                                )
+                            },
+                            title = stringResource(Res.string.sekai),
+                            onCLick = {
+                                uriHandler.openUri("https://github.com/TheYusa")
+                            },
+                            onLongClick = {
+                                val isExpert = !DataStore.isExpert
+                                DataStore.isExpert = isExpert
+                                scope.launch {
+                                    snackbarState.showSnackbar(
+                                        message = "isExpert: $isExpert",
+                                        actionLabel = resolveRepository().getString(Res.string.ok),
+                                        duration = SnackbarDuration.Short,
+                                    )
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+
+                item("project_card") {
+                OutlinedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.project),
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+
+                        CardItem(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            icon = { Icon(vectorResource(Res.drawable.code), null) },
+                            title = stringResource(Res.string.github),
+                            onCLick = { uriHandler.openUri("https://github.com/TheYusa") },
+                        )
+                        CardItem(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            icon = {
+                                Icon(
+                                    vectorResource(Res.drawable.gavel),
+                                    null,
+                                )
+                            },
+                            title = stringResource(Res.string.oss_licenses),
+                            onCLick = onNavigateToLibraries,
+                        )
+                    }
+                }
+            }
+            }
+
+            BoxedVerticalScrollbar(
+                modifier = Modifier
+                    .padding(contentPadding)
+                    .fillMaxHeight(),
+                adapter = rememberScrollbarAdapter(scrollState = listState),
+                style = defaultMaterialScrollbarStyle().copy(
+                    thickness = 12.dp,
+                ),
+            )
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        mainViewModel.uiEvent.collect { event ->
+            when (event) {
+                is MainViewModelUiEvent.Snackbar -> scope.launch {
+                    snackbarState.showSnackbar(
+                        message = getStringOrRes(event.message),
+                        actionLabel = resolveRepository().getString(Res.string.ok),
+                        duration = SnackbarDuration.Short,
+                    )
+                }
+
+                is MainViewModelUiEvent.SnackbarWithAction -> scope.launch {
+                    val result = snackbarState.showSnackbar(
+                        message = getStringOrRes(event.message),
+                        actionLabel = getStringOrRes(event.actionLabel),
+                        duration = SnackbarDuration.Short,
+                    )
+                    event.callback(result)
+                }
+
+                else -> {}
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun CardItem(
+    modifier: Modifier = Modifier,
+    icon: @Composable () -> Unit = {
+        Spacer(
+            Modifier.size(24.dp),
+        )
+    },
+    title: String,
+    titleTextStyle: TextStyle? = null,
+    description: String? = null,
+    onCLick: () -> Unit = {},
+    onLongClick: () -> Unit = {},
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 56.dp)
+            .combinedClickable(
+                onClick = onCLick,
+                onLongClick = onLongClick,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier.size(24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            icon()
+        }
+        Spacer(Modifier.size(16.dp))
+        Column(
+            modifier = modifier.weight(1f),
+        ) {
+            Text(
+                text = title,
+                style = titleTextStyle ?: MaterialTheme.typography.titleMedium,
+            )
+            if (description != null) {
+                Spacer(Modifier.height(4.dp))
+                SelectionContainer {
+                    Text(
+                        text = description,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewAboutScreen() {
+    ensurePreviewRepository()
+    val mainViewModel = koinViewModel<MainViewModel>()
+
+    AppTheme {
+        AboutScreen(
+            mainViewModel = mainViewModel,
+            onDrawerClick = {},
+            onNavigateToLibraries = {},
+        )
+    }
+}

@@ -341,7 +341,7 @@ ANJA_COMMON_ARGS=(
     -trimpath
     -buildvcs=false
     -ldflags="-X github.com/sagernet/sing-box/constant.Version=${box_version} -s -w -buildid="
-    -javapkg="fr.husi"
+    -javapkg="tr.theyusa.v4war"
 )
 
 ANJA_ANDROID_ARGS=(

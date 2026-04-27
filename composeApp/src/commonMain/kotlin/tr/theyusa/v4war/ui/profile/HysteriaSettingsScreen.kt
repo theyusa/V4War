@@ -1,0 +1,544 @@
+package tr.theyusa.v4war.ui.profile
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
+import tr.theyusa.v4war.compose.DurationTextField
+import tr.theyusa.v4war.compose.MultilineTextField
+import tr.theyusa.v4war.compose.PasswordPreference
+import tr.theyusa.v4war.compose.PreferenceCategory
+import tr.theyusa.v4war.compose.UIntegerTextField
+import tr.theyusa.v4war.compose.ValidatedTextField
+import tr.theyusa.v4war.compose.material3.Icon
+import tr.theyusa.v4war.compose.material3.Text
+import tr.theyusa.v4war.fmt.hysteria.HysteriaBean
+import tr.theyusa.v4war.ktx.contentOrUnset
+import tr.theyusa.v4war.ktx.intListN
+import tr.theyusa.v4war.ktx.readableMessage
+import tr.theyusa.v4war.libcore.Libcore
+import tr.theyusa.v4war.resources.Res
+import tr.theyusa.v4war.resources.allow_insecure
+import tr.theyusa.v4war.resources.allow_insecure_sum
+import tr.theyusa.v4war.resources.alpn
+import tr.theyusa.v4war.resources.block
+import tr.theyusa.v4war.resources.cert_public_key_sha256
+import tr.theyusa.v4war.resources.certificates
+import tr.theyusa.v4war.resources.compare_arrows
+import tr.theyusa.v4war.resources.copyright
+import tr.theyusa.v4war.resources.directions_boat
+import tr.theyusa.v4war.resources.ech
+import tr.theyusa.v4war.resources.ech_config
+import tr.theyusa.v4war.resources.ech_query_server_name
+import tr.theyusa.v4war.resources.emoji_symbols
+import tr.theyusa.v4war.resources.enable
+import tr.theyusa.v4war.resources.enhanced_encryption
+import tr.theyusa.v4war.resources.hop_interval
+import tr.theyusa.v4war.resources.hysteria_auth_payload
+import tr.theyusa.v4war.resources.hysteria_auth_type
+import tr.theyusa.v4war.resources.hysteria_bbr_profile
+import tr.theyusa.v4war.resources.hysteria_bbr_profile_aggressive
+import tr.theyusa.v4war.resources.hysteria_bbr_profile_conservative
+import tr.theyusa.v4war.resources.hysteria_bbr_profile_standard
+import tr.theyusa.v4war.resources.hysteria_connection_receive_window
+import tr.theyusa.v4war.resources.hysteria_disable_mtu_discovery
+import tr.theyusa.v4war.resources.hysteria_hop_interval_range_hint
+import tr.theyusa.v4war.resources.hysteria_obfs
+import tr.theyusa.v4war.resources.hysteria_stream_receive_window
+import tr.theyusa.v4war.resources.layers
+import tr.theyusa.v4war.resources.lock
+import tr.theyusa.v4war.resources.multiple_stop
+import tr.theyusa.v4war.resources.mutual_tls
+import tr.theyusa.v4war.resources.nfc
+import tr.theyusa.v4war.resources.not_set
+import tr.theyusa.v4war.resources.password
+import tr.theyusa.v4war.resources.plugin_disabled
+import tr.theyusa.v4war.resources.profile_config
+import tr.theyusa.v4war.resources.profile_name
+import tr.theyusa.v4war.resources.protocol
+import tr.theyusa.v4war.resources.protocol_version
+import tr.theyusa.v4war.resources.proxy_cat
+import tr.theyusa.v4war.resources.router
+import tr.theyusa.v4war.resources.search
+import tr.theyusa.v4war.resources.security
+import tr.theyusa.v4war.resources.server_address
+import tr.theyusa.v4war.resources.server_port
+import tr.theyusa.v4war.resources.sni
+import tr.theyusa.v4war.resources.ssh_private_key
+import tr.theyusa.v4war.resources.texture
+import tr.theyusa.v4war.resources.timelapse
+import tr.theyusa.v4war.resources.toc
+import tr.theyusa.v4war.resources.transform
+import tr.theyusa.v4war.resources.tuic_congestion_controller
+import tr.theyusa.v4war.resources.tuic_disable_sni
+import tr.theyusa.v4war.resources.update
+import tr.theyusa.v4war.resources.vpn_key
+import tr.theyusa.v4war.resources.wb_sunny
+import tr.theyusa.v4war.ui.NavRoutes
+import tr.theyusa.v4war.ui.StringOrRes
+import tr.theyusa.v4war.ui.stringOrRes
+import me.zhanghai.compose.preference.ListPreference
+import me.zhanghai.compose.preference.ListPreferenceType
+import me.zhanghai.compose.preference.SwitchPreference
+import me.zhanghai.compose.preference.TextFieldPreference
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HysteriaSettingsScreen(
+    profileId: Long,
+    isSubscription: Boolean,
+    onResult: (updated: Boolean) -> Unit,
+    onOpenConfigEditor: (NavRoutes.ConfigEditor) -> Unit,
+) {
+    val viewModel: HysteriaSettingsViewModel = profileEditorViewModel(
+        profileId = profileId,
+        isSubscription = isSubscription,
+    ) {
+        HysteriaSettingsViewModel()
+    }
+
+    ProfileSettingsScreenScaffold(
+        title = Res.string.profile_config,
+        viewModel = viewModel,
+        onResult = onResult,
+        onOpenConfigEditor = onOpenConfigEditor,
+    ) { uiState, _ ->
+        hysteriaSettings(uiState as HysteriaUiState, viewModel)
+    }
+}
+
+private fun LazyListScope.hysteriaSettings(
+    uiState: HysteriaUiState,
+    viewModel: HysteriaSettingsViewModel,
+) {
+    item("name") {
+        TextFieldPreference(
+            value = uiState.name,
+            onValueChange = { viewModel.setName(it) },
+            title = { Text(stringResource(Res.string.profile_name)) },
+            textToValue = { it },
+            icon = { Icon(vectorResource(Res.drawable.emoji_symbols), null) },
+            summary = { Text(contentOrUnset(uiState.name)) },
+            valueToText = { it },
+        )
+    }
+
+    item("protocol_version") {
+        ListPreference(
+            value = uiState.protocolVersion,
+            values = listOf(HysteriaBean.PROTOCOL_VERSION_1, HysteriaBean.PROTOCOL_VERSION_2),
+            onValueChange = { viewModel.setProtocolVersion(it) },
+            title = { Text(stringResource(Res.string.protocol_version)) },
+            icon = { Icon(vectorResource(Res.drawable.update), null) },
+            summary = { Text(uiState.protocolVersion.toString()) },
+            type = ListPreferenceType.DROPDOWN_MENU,
+        )
+    }
+
+    item("category_proxy") {
+        PreferenceCategory(text = { Text(stringResource(Res.string.proxy_cat)) })
+    }
+    item("address") {
+        TextFieldPreference(
+            value = uiState.address,
+            onValueChange = { viewModel.setAddress(it) },
+            title = { Text(stringResource(Res.string.server_address)) },
+            textToValue = { it },
+            icon = { Icon(vectorResource(Res.drawable.router), null) },
+            summary = { Text(contentOrUnset(uiState.address)) },
+            valueToText = { it },
+        )
+    }
+    item("ports") {
+        TextFieldPreference(
+            value = uiState.ports,
+            onValueChange = { viewModel.setPorts(it) },
+            title = { Text(stringResource(Res.string.server_port)) },
+            textToValue = { it },
+            icon = { Icon(vectorResource(Res.drawable.directions_boat), null) },
+            summary = { Text(contentOrUnset(uiState.ports)) },
+            valueToText = { it },
+        )
+    }
+    item("hop_interval") {
+        TextFieldPreference(
+            value = uiState.hopInterval,
+            onValueChange = { viewModel.setHopInterval(it) },
+            title = { Text(stringResource(Res.string.hop_interval)) },
+            textToValue = { it },
+            enabled = uiState.ports.toIntOrNull() == null,
+            icon = { Icon(vectorResource(Res.drawable.timelapse), null) },
+            summary = { Text(contentOrUnset(uiState.hopInterval)) },
+            valueToText = { it },
+            textField = { value, onValueChange, onOk ->
+                HopIntervalTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    onOk = onOk,
+                    supportRange = uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_2,
+                )
+            },
+        )
+    }
+    item("obfuscation") {
+        PasswordPreference(
+            value = uiState.obfuscation,
+            onValueChange = { viewModel.setObfuscation(it) },
+            title = { Text(stringResource(Res.string.hysteria_obfs)) },
+            icon = { Icon(vectorResource(Res.drawable.texture), null) },
+        )
+    }
+    if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_1) {
+        item("auth_type") {
+            fun authTypeName(type: Int): StringOrRes = when (type) {
+                HysteriaBean.TYPE_NONE -> StringOrRes.Res(Res.string.plugin_disabled)
+                HysteriaBean.TYPE_STRING -> StringOrRes.Direct("STRING")
+                HysteriaBean.TYPE_BASE64 -> StringOrRes.Direct("BASE64")
+                else -> error("impossible")
+            }
+            ListPreference(
+                value = uiState.authType,
+                values = intListN(3),
+                onValueChange = { viewModel.setAuthType(it) },
+                title = { Text(stringResource(Res.string.hysteria_auth_type)) },
+                icon = { Icon(vectorResource(Res.drawable.compare_arrows), null) },
+                summary = { Text(stringOrRes(authTypeName(uiState.authType))) },
+                type = ListPreferenceType.DROPDOWN_MENU,
+                valueToText = { AnnotatedString(stringOrRes(authTypeName(it))) },
+            )
+        }
+    }
+    if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_1 && uiState.authType != HysteriaBean.TYPE_NONE ||
+        uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_2
+    ) {
+        item("auth_payload") {
+            val titleRes = if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_2) {
+                Res.string.password
+            } else {
+                Res.string.hysteria_auth_payload
+            }
+            PasswordPreference(
+                value = uiState.authPayload,
+                onValueChange = { viewModel.setAuthPayload(it) },
+                title = { Text(stringResource(titleRes)) },
+            )
+        }
+    }
+    if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_1) {
+        item("protocol") {
+            val protocolNames = remember {
+                listOf(
+                    "UDP",
+                    "FakeTCP (Root Required)",
+                    "WeChat Video",
+                )
+            }
+            ListPreference(
+                value = uiState.protocol,
+                values = intListN(3),
+                onValueChange = { viewModel.setProtocol(it) },
+                title = { Text(stringResource(Res.string.protocol)) },
+                icon = { Icon(vectorResource(Res.drawable.layers), null) },
+                summary = { Text(protocolNames[uiState.protocol]) },
+                type = ListPreferenceType.DROPDOWN_MENU,
+                valueToText = { AnnotatedString(protocolNames[it]) },
+            )
+        }
+    }
+    item("sni") {
+        TextFieldPreference(
+            value = uiState.sni,
+            onValueChange = { viewModel.setSni(it) },
+            title = { Text(stringResource(Res.string.sni)) },
+            textToValue = { it },
+            icon = { Icon(vectorResource(Res.drawable.copyright), null) },
+            summary = { Text(contentOrUnset(uiState.sni)) },
+            valueToText = { it },
+        )
+    }
+    if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_1) {
+        item("alpn") {
+            TextFieldPreference(
+                value = uiState.alpn,
+                onValueChange = { viewModel.setAlpn(it) },
+                title = { Text(stringResource(Res.string.alpn)) },
+                textToValue = { it },
+                icon = { Icon(vectorResource(Res.drawable.toc), null) },
+                summary = { Text(contentOrUnset(uiState.alpn)) },
+                valueToText = { it },
+                textField = { value, onValueChange, onOk ->
+                    MultilineTextField(value, onValueChange, onOk)
+                },
+            )
+        }
+    }
+    item("certificates") {
+        TextFieldPreference(
+            value = uiState.certificates,
+            onValueChange = { viewModel.setCertificates(it) },
+            title = { Text(stringResource(Res.string.certificates)) },
+            textToValue = { it },
+            icon = { Icon(vectorResource(Res.drawable.vpn_key), null) },
+            summary = { Text(contentOrUnset(uiState.certificates)) },
+            valueToText = { it },
+            textField = { value, onValueChange, onOk ->
+                MultilineTextField(value, onValueChange, onOk)
+            },
+        )
+    }
+    item("cert_public_key_sha256") {
+        TextFieldPreference(
+            value = uiState.certPublicKeySha256,
+            onValueChange = { viewModel.setCertPublicKeySha256(it) },
+            title = { Text(stringResource(Res.string.cert_public_key_sha256)) },
+            textToValue = { it },
+            icon = { Icon(vectorResource(Res.drawable.wb_sunny), null) },
+            summary = { Text(contentOrUnset(uiState.certPublicKeySha256)) },
+            valueToText = { it },
+            textField = { value, onValueChange, onOk ->
+                MultilineTextField(value, onValueChange, onOk)
+            },
+        )
+    }
+    item("allow_insecure") {
+        SwitchPreference(
+            value = rememberEffectiveAllowInsecure(uiState.allowInsecure),
+            onValueChange = { viewModel.setAllowInsecure(it) },
+            title = { Text(stringResource(Res.string.allow_insecure)) },
+            summary = { Text(stringResource(Res.string.allow_insecure_sum)) },
+            icon = { Icon(vectorResource(Res.drawable.enhanced_encryption), null) },
+        )
+    }
+    item("disable_sni") {
+        SwitchPreference(
+            value = uiState.disableSNI,
+            onValueChange = { viewModel.setDisableSNI(it) },
+            title = { Text(stringResource(Res.string.tuic_disable_sni)) },
+            icon = { Icon(vectorResource(Res.drawable.block), null) },
+        )
+    }
+    if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_1) {
+        item("stream_receive_window") {
+            TextFieldPreference(
+                value = uiState.streamReceiveWindow,
+                onValueChange = { viewModel.setStreamReceiveWindow(it) },
+                title = { Text(stringResource(Res.string.hysteria_stream_receive_window)) },
+                textToValue = { it.toIntOrNull() ?: 0 },
+                icon = { Icon(vectorResource(Res.drawable.texture), null) },
+                summary = {
+                    val text = if (uiState.streamReceiveWindow == 0) {
+                        stringResource(Res.string.not_set)
+                    } else {
+                        uiState.streamReceiveWindow.toString()
+                    }
+                    Text(text)
+                },
+                valueToText = { it.toString() },
+                textField = { value, onValueChange, onOk ->
+                    UIntegerTextField(value, onValueChange, onOk)
+                },
+            )
+        }
+        item("connection_receive_window") {
+            TextFieldPreference(
+                value = uiState.connectionReceiveWindow,
+                onValueChange = { viewModel.setConnectionReceiveWindow(it) },
+                title = { Text(stringResource(Res.string.hysteria_connection_receive_window)) },
+                textToValue = { it.toIntOrNull() ?: 0 },
+                icon = { Icon(vectorResource(Res.drawable.transform), null) },
+                summary = {
+                    val text = if (uiState.connectionReceiveWindow == 0) {
+                        stringResource(Res.string.not_set)
+                    } else {
+                        uiState.connectionReceiveWindow.toString()
+                    }
+                    Text(text)
+                },
+                valueToText = { it.toString() },
+                textField = { value, onValueChange, onOk ->
+                    UIntegerTextField(value, onValueChange, onOk)
+                },
+            )
+        }
+        item("disable_mtu_discovery") {
+            SwitchPreference(
+                value = uiState.disableMtuDiscovery,
+                onValueChange = { viewModel.setDisableMtuDiscovery(it) },
+                title = { Text(stringResource(Res.string.hysteria_disable_mtu_discovery)) },
+                icon = { Icon(vectorResource(Res.drawable.multiple_stop), null) },
+            )
+        }
+    }
+
+    if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_2) {
+        item("category_mtls") {
+            PreferenceCategory(text = { Text(stringResource(Res.string.mutual_tls)) })
+        }
+        item("mtls_cert") {
+            TextFieldPreference(
+                value = uiState.clientCert,
+                onValueChange = { viewModel.setClientCert(it) },
+                title = { Text(stringResource(Res.string.certificates)) },
+                textToValue = { it },
+                icon = { Icon(vectorResource(Res.drawable.lock), null) },
+                summary = { Text(contentOrUnset(uiState.clientCert)) },
+                valueToText = { it },
+                textField = { value, onValueChange, onOk ->
+                    MultilineTextField(value, onValueChange, onOk)
+                },
+            )
+        }
+        item("mtls_key") {
+            TextFieldPreference(
+                value = uiState.clientKey,
+                onValueChange = { viewModel.setClientKey(it) },
+                title = { Text(stringResource(Res.string.ssh_private_key)) },
+                textToValue = { it },
+                icon = { Icon(vectorResource(Res.drawable.vpn_key), null) },
+                summary = { Text(contentOrUnset(uiState.clientKey)) },
+                valueToText = { it },
+                textField = { value, onValueChange, onOk ->
+                    MultilineTextField(value, onValueChange, onOk)
+                },
+            )
+        }
+        item("congestion_control") {
+            val hysteriaCongestionControls = remember {
+                listOf(
+                    HysteriaBean.CONGESTION_CONTROL_BBR,
+                    HysteriaBean.CONGESTION_CONTROL_RENO,
+                )
+            }
+
+            fun congestionControlName(control: String): String = when (control) {
+                HysteriaBean.CONGESTION_CONTROL_BBR -> "BBR"
+                HysteriaBean.CONGESTION_CONTROL_RENO -> "Reno"
+                else -> error("impossible")
+            }
+            ListPreference(
+                value = uiState.congestionControl,
+                values = hysteriaCongestionControls,
+                onValueChange = { viewModel.setCongestionControl(it) },
+                title = { Text(stringResource(Res.string.tuic_congestion_controller)) },
+                icon = { Icon(vectorResource(Res.drawable.compare_arrows), null) },
+                summary = { Text(congestionControlName(uiState.congestionControl)) },
+                type = ListPreferenceType.DROPDOWN_MENU,
+                valueToText = { AnnotatedString(congestionControlName(it)) },
+            )
+        }
+        if (uiState.congestionControl == HysteriaBean.CONGESTION_CONTROL_BBR) {
+            fun bbrProfileName(profile: Int): StringResource = when (profile) {
+                HysteriaBean.BBR_PROFILE_CONSERVATIVE -> Res.string.hysteria_bbr_profile_conservative
+                HysteriaBean.BBR_PROFILE_STANDARD -> Res.string.hysteria_bbr_profile_standard
+                HysteriaBean.BBR_PROFILE_AGGRESSIVE -> Res.string.hysteria_bbr_profile_aggressive
+                else -> error("impossible")
+            }
+            item("bbr_profile") {
+                ListPreference(
+                    value = uiState.bbrProfile,
+                    values = intListN(3),
+                    onValueChange = { viewModel.setBBRProfile(it) },
+                    title = { Text(stringResource(Res.string.hysteria_bbr_profile)) },
+                    icon = { Icon(vectorResource(Res.drawable.transform), null) },
+                    summary = { Text(stringResource(bbrProfileName(uiState.bbrProfile))) },
+                    type = ListPreferenceType.DROPDOWN_MENU,
+                    valueToText = { AnnotatedString(stringResource(bbrProfileName(it))) },
+                )
+            }
+        }
+    }
+
+    item("category_ech") {
+        PreferenceCategory(text = { Text(stringResource(Res.string.ech)) })
+    }
+    item("ech") {
+        SwitchPreference(
+            value = uiState.ech,
+            onValueChange = { viewModel.setEch(it) },
+            title = { Text(stringResource(Res.string.enable)) },
+            icon = { Icon(vectorResource(Res.drawable.security), null) },
+        )
+    }
+    item("ech_config") {
+        TextFieldPreference(
+            value = uiState.echConfig,
+            onValueChange = { viewModel.setEchConfig(it) },
+            title = { Text(stringResource(Res.string.ech_config)) },
+            textToValue = { it },
+            icon = { Icon(vectorResource(Res.drawable.nfc), null) },
+            enabled = uiState.ech,
+            summary = { Text(contentOrUnset(uiState.echConfig)) },
+            valueToText = { it },
+            textField = { value, onValueChange, onOk ->
+                MultilineTextField(value, onValueChange, onOk)
+            },
+        )
+    }
+    item("ech_query_server_name") {
+        TextFieldPreference(
+            value = uiState.echQueryServerName,
+            onValueChange = { viewModel.setEchQueryServerName(it) },
+            title = { Text(stringResource(Res.string.ech_query_server_name)) },
+            textToValue = { it },
+            icon = { Icon(vectorResource(Res.drawable.search), null) },
+            enabled = uiState.ech,
+            summary = { Text(contentOrUnset(uiState.echQueryServerName)) },
+            valueToText = { it },
+        )
+    }
+}
+
+@Composable
+private fun HopIntervalTextField(
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    onOk: () -> Unit,
+    supportRange: Boolean,
+) {
+    if (!supportRange) {
+        DurationTextField(value, onValueChange, onOk)
+        return
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = stringResource(Res.string.hysteria_hop_interval_range_hint),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall,
+        )
+        ValidatedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            onOk = onOk,
+            validator = { text ->
+                when {
+                    text.isBlank() -> null
+                    text.lines().size > 1 -> "Unexpected new line"
+                    text.count { it == '-' } > 1 -> "Only one '-' is allowed"
+                    else -> {
+                        val parts = text.split("-", limit = 2)
+                        if (parts.any { it.isBlank() }) {
+                            "Duration range is incomplete"
+                        } else try {
+                            for (part in parts) {
+                                Libcore.parseDuration(part)
+                            }
+                            null
+                        } catch (e: Exception) {
+                            e.readableMessage
+                        }
+                    }
+                }
+            },
+        )
+    }
+}

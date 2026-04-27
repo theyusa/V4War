@@ -3,7 +3,7 @@
 
 -dontobfuscate
 -keepattributes SourceFile,LineNumberTable
--keep class fr.husi.** { *;}
+-keep class tr.theyusa.v4war.** { *;}
 
 # Clean Kotlin
 -assumenosideeffects class kotlin.jvm.internal.Intrinsics {

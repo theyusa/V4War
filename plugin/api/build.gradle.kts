@@ -5,7 +5,7 @@ plugins {
 
 setupKotlinCommon()
 extensions.configure<com.android.build.api.dsl.LibraryExtension> {
-    namespace = "fr.husi.plugin"
+    namespace = "tr.theyusa.v4war.plugin"
     buildTypes {
         release {
             isMinifyEnabled = false

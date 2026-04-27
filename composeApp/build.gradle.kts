@@ -42,7 +42,7 @@ kotlin {
     }
 
     android {
-        namespace = "fr.husi.lib"
+        namespace = "tr.theyusa.v4war.lib"
         compileSdk = 36
         minSdk = 24
         androidResources {
@@ -151,7 +151,7 @@ kotlin {
 }
 
 compose.resources {
-    packageOfResClass = "fr.husi.resources"
+    packageOfResClass = "tr.theyusa.v4war.resources"
 }
 
 aboutLibraries {

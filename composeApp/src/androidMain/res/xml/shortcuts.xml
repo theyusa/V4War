@@ -7,7 +7,7 @@
         android:shortcutShortLabel="@string/quick_toggle">
         <intent
             android:action="android.intent.action.MAIN"
-            android:targetClass="fr.husi.QuickToggleShortcut"
+            android:targetClass="tr.theyusa.v4war.QuickToggleShortcut"
             android:targetPackage="tr.theyusa.v4war" />
     </shortcut>
     <shortcut
@@ -17,7 +17,7 @@
         android:shortcutShortLabel="@string/add_profile_methods_scan_qr_code">
         <intent
             android:action="android.intent.action.MAIN"
-            android:targetClass="fr.husi.ui.configuration.ScannerActivity"
+            android:targetClass="tr.theyusa.v4war.ui.configuration.ScannerActivity"
             android:targetPackage="tr.theyusa.v4war">
             <extra
                 android:name="from_shortcut"

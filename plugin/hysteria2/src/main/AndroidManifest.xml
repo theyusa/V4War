@@ -17,8 +17,8 @@
             android:label="Hysteria 2 Plugin"
             android:roundIcon="@mipmap/ic_launcher_round">
         <provider
-                android:name="fr.husi.plugin.hysteria2.BinaryProvider"
-                android:authorities="fr.husi.plugin.hysteria2.BinaryProvider"
+                android:name="tr.theyusa.v4war.plugin.hysteria2.BinaryProvider"
+                android:authorities="tr.theyusa.v4war.plugin.hysteria2.BinaryProvider"
                 android:directBootAware="true"
                 android:exported="true"
                 tools:ignore="ExportedContentProvider">
@@ -28,7 +28,7 @@
             <intent-filter>
                 <action android:name="io.nekohasekai.sagernet.plugin.ACTION_NATIVE_PLUGIN"/>
                 <data
-                        android:host="fr.husi"
+                        android:host="tr.theyusa.v4war"
                         android:path="/hysteria2-plugin"
                         android:scheme="plugin"/>
             </intent-filter>

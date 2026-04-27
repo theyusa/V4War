@@ -1,0 +1,618 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
+package tr.theyusa.v4war.ui.configuration
+
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.snapshotFlow
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import tr.theyusa.v4war.Key
+import tr.theyusa.v4war.bg.GuardedProcessPool
+import tr.theyusa.v4war.bg.initPlugins
+import tr.theyusa.v4war.bg.launchPlugins
+import tr.theyusa.v4war.database.DataStore
+import tr.theyusa.v4war.database.GroupManager
+import tr.theyusa.v4war.database.ProfileManager
+import tr.theyusa.v4war.database.ProxyEntity
+import tr.theyusa.v4war.database.ProxyGroup
+import tr.theyusa.v4war.database.SagerDatabase
+import tr.theyusa.v4war.fmt.AbstractBean
+import tr.theyusa.v4war.fmt.Deduplication
+import tr.theyusa.v4war.fmt.buildConfig
+import tr.theyusa.v4war.group.RawUpdater
+import tr.theyusa.v4war.ktx.Logs
+import tr.theyusa.v4war.ktx.SubscriptionFoundException
+import tr.theyusa.v4war.ktx.isIpAddress
+import tr.theyusa.v4war.ktx.onDefaultDispatcher
+import tr.theyusa.v4war.ktx.onIoDispatcher
+import tr.theyusa.v4war.ktx.readableMessage
+import tr.theyusa.v4war.ktx.removeFirstMatched
+import tr.theyusa.v4war.ktx.runOnIoDispatcher
+import tr.theyusa.v4war.libcore.Client
+import tr.theyusa.v4war.libcore.Libcore
+import tr.theyusa.v4war.plugin.PluginNotFoundException
+import tr.theyusa.v4war.repository.resolveRepository
+import tr.theyusa.v4war.utils.closeQuietly
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flatMapMerge
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.io.File
+import java.net.InetAddress
+import java.net.UnknownHostException
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.readBytes
+import java.util.concurrent.ConcurrentHashMap
+import java.util.zip.ZipInputStream
+
+@Immutable
+data class ConfigurationUiState(
+    val groups: List<ProxyGroup> = emptyList(),
+    val testState: ConfigurationTestUiState? = null,
+    val alertForDelete: AlertForDelete? = null,
+)
+
+@Immutable
+data class AlertForDelete(
+    val size: Int,
+    val summary: String,
+    val confirm: () -> Unit,
+)
+
+@Immutable
+data class ConfigurationTestUiState(
+    val latestResult: ProfileTestResult? = null,
+    val processedCount: Int = 0,
+    val total: Int = 0,
+)
+
+@Immutable
+data class ProfileTestResult(
+    val profile: ProxyEntity,
+    val result: TestResult,
+)
+
+@Stable
+sealed interface TestResult {
+    data class Success(val ping: Int) : TestResult
+    data class Failure(val reason: FailureReason) : TestResult
+}
+
+@Stable
+sealed interface FailureReason {
+    object InvalidConfig : FailureReason
+    object DomainNotFound : FailureReason
+    object IcmpUnavailable : FailureReason
+    object TcpUnavailable : FailureReason
+    object ConnectionRefused : FailureReason
+    object NetworkUnreachable : FailureReason
+    object Timeout : FailureReason
+    data class Generic(val message: String?) : FailureReason
+    data class PluginNotFound(val plugin: String) : FailureReason
+}
+
+@Stable
+enum class TestType {
+    ICMPPing,
+    TCPPing,
+    URLTest,
+}
+
+@Stable
+class ConfigurationScreenViewModel : ViewModel() {
+
+
+    private val _uiState = MutableStateFlow(ConfigurationUiState())
+    val uiState = _uiState.asStateFlow()
+
+    val selectedGroup = DataStore.configurationStore.longFlow(Key.PROFILE_GROUP)
+
+    internal val childViewModels = mutableMapOf<Long, GroupProfilesHolderViewModel>()
+    private val testErrorMessages = ConcurrentHashMap<Long, String>()
+
+    fun registerChild(groupId: Long, vm: GroupProfilesHolderViewModel) {
+        childViewModels[groupId] = vm
+        vm.query = searchTextFieldState.text.toString()
+    }
+
+    fun unregisterChild(groupId: Long) {
+        childViewModels.remove(groupId)
+    }
+
+    // TODO add back scroll to current
+    fun scrollToProxy(groupId: Long, proxyId: Long, fallbackToTop: Boolean = false) {
+        childViewModels[groupId]?.scrollToProxy(proxyId, fallbackToTop)
+    }
+
+    fun scrollToProxy(proxyId: Long) = viewModelScope.launch {
+        val group = onIoDispatcher {
+            ProfileManager.getProfile(proxyId)?.groupId
+        } ?: return@launch
+        childViewModels[group]?.scrollToProxy(proxyId, true)
+    }
+
+    fun requestFocusIfNotHave(groupId: Long) {
+        childViewModels[groupId]?.requestFocusIfNotHave()
+    }
+
+    private var testJob: Job? = null
+
+    val searchTextFieldState = TextFieldState()
+
+    init {
+        viewModelScope.launch {
+            snapshotFlow { searchTextFieldState.text.toString() }
+                .drop(1)
+                .distinctUntilChanged()
+                .collect { query ->
+                    childViewModels.values.forEach { it.query = query }
+                }
+        }
+    }
+
+    fun clearSearchQuery() {
+        searchTextFieldState.setTextAndPlaceCursorAtEnd("")
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun doTest(group: Long, type: TestType) {
+        val performTest: suspend (ProxyEntity) -> TestResult = when (type) {
+            TestType.ICMPPing -> ::icmpPing
+            TestType.TCPPing -> ::tcpPing
+            TestType.URLTest -> ::urlTest
+        }
+
+        testErrorMessages.clear()
+        testJob = viewModelScope.launch {
+            val proxies = SagerDatabase.proxyDao.getByGroup(group).first()
+            val totalCount = proxies.size
+            var processedCount = 0
+            val concurrent = DataStore.connectionTestConcurrent
+
+            if (proxies.isEmpty()) {
+                _uiState.update { state -> state.copy(testState = null) }
+                return@launch
+            }
+
+            _uiState.update { state ->
+                state.copy(
+                    testState = ConfigurationTestUiState(
+                        total = proxies.size,
+                    ),
+                )
+            }
+            val results = mutableListOf<ProfileTestResult>()
+
+            try {
+                proxies.asFlow()
+                    .flatMapMerge(concurrent) { profile ->
+                        flow {
+                            val result = onIoDispatcher { performTest(profile) }
+                            emit(ProfileTestResult(profile, result))
+                        }
+                    }
+                    .flowOn(Dispatchers.Default)
+                    .collect { profileResult ->
+                        results.add(profileResult)
+                        processedCount++
+                        _uiState.update { state ->
+                            state.copy(
+                                testState = ConfigurationTestUiState(
+                                    latestResult = profileResult,
+                                    processedCount = processedCount,
+                                    total = totalCount,
+                                ),
+                            )
+                        }
+                    }
+            } finally {
+                saveResultsAndFinish(results)
+            }
+        }
+    }
+
+    fun rememberDisplayedError(profileId: Long, message: String?) {
+        if (message.isNullOrEmpty()) {
+            testErrorMessages.remove(profileId)
+        } else {
+            testErrorMessages[profileId] = message
+        }
+    }
+
+    private fun saveResultsAndFinish(results: List<ProfileTestResult>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val displayedErrors = testErrorMessages.toMap()
+            results.forEach {
+                try {
+                    when (val result = it.result) {
+                        is TestResult.Success -> {
+                            it.profile.ping = result.ping
+                            it.profile.status = ProxyEntity.STATUS_AVAILABLE
+                            it.profile.error = null
+                        }
+
+                        is TestResult.Failure -> {
+                            it.profile.ping = 0
+
+                            it.profile.status = when (result.reason) {
+                                FailureReason.ConnectionRefused, FailureReason.IcmpUnavailable,
+                                FailureReason.NetworkUnreachable, FailureReason.Timeout,
+                                    -> ProxyEntity.STATUS_UNREACHABLE
+
+                                is FailureReason.PluginNotFound, FailureReason.DomainNotFound,
+                                FailureReason.InvalidConfig,
+                                    -> ProxyEntity.STATUS_INVALID
+
+                                is FailureReason.Generic, FailureReason.TcpUnavailable -> ProxyEntity.STATUS_UNAVAILABLE
+                            }
+
+                            val displayedError = displayedErrors[it.profile.id]
+                            it.profile.error = when (result.reason) {
+                                is FailureReason.Generic -> displayedError ?: result.reason.message
+                                is FailureReason.PluginNotFound -> {
+                                    displayedError ?: result.reason.plugin
+                                }
+
+                                else -> displayedError
+                            }
+                        }
+                    }
+                    ProfileManager.updateProfile(it.profile)
+                } catch (e: Exception) {
+                    Logs.e(e)
+                }
+            }
+
+            onDefaultDispatcher {
+                _uiState.update { state -> state.copy(testState = null) }
+            }
+            testErrorMessages.clear()
+        }
+    }
+
+    fun cancelTest() {
+        testJob?.cancel()
+        _uiState.update { state ->
+            state.copy(testState = null)
+        }
+    }
+
+    private suspend fun icmpPing(profile: ProxyEntity): TestResult {
+        val bean = profile.requireBean()
+        if (!bean.canICMPing) return TestResult.Failure(FailureReason.IcmpUnavailable)
+
+        var address = bean.serverAddress
+        if (!address.isIpAddress()) try {
+            InetAddress.getAllByName(address)[0]?.let {
+                address = it.hostAddress!!
+            }
+        } catch (_: UnknownHostException) {
+        }
+        if (!address.isIpAddress()) {
+            return TestResult.Failure(FailureReason.DomainNotFound)
+        }
+
+        return try {
+            val result = Libcore.icmpPing(address, 5000)
+            TestResult.Success(result)
+        } catch (e: Exception) {
+            Logs.e(e)
+            TestResult.Failure(FailureReason.Generic(e.readableMessage))
+        }
+    }
+
+    private suspend fun tcpPing(profile: ProxyEntity): TestResult {
+        val bean = profile.requireBean()
+        if (!bean.canTCPing) return TestResult.Failure(FailureReason.TcpUnavailable)
+
+        var address = bean.serverAddress
+        if (!address.isIpAddress()) try {
+            InetAddress.getAllByName(address)[0]?.let {
+                address = it.hostAddress!!
+            }
+        } catch (_: UnknownHostException) {
+        }
+        if (!address.isIpAddress()) {
+            return TestResult.Failure(FailureReason.DomainNotFound)
+        }
+
+        return try {
+            val result = Libcore.tcpPing(address, bean.serverPort.toString(), 3000)
+            TestResult.Success(result)
+        } catch (e: Exception) {
+            Logs.e(e)
+            val message = e.readableMessage
+            when {
+                message.contains("ECONNREFUSED") -> {
+                    TestResult.Failure(FailureReason.ConnectionRefused)
+                }
+
+                message.contains("ENETUNREACH") -> {
+                    TestResult.Failure(FailureReason.NetworkUnreachable)
+                }
+
+                !message.contains("failed:") -> {
+                    TestResult.Failure(FailureReason.Timeout)
+                }
+
+                else -> TestResult.Failure(FailureReason.Generic(e.readableMessage))
+            }
+        }
+    }
+
+    private suspend fun urlTest(profile: ProxyEntity): TestResult {
+        val testURL = DataStore.connectionTestURL
+        val testTimeout = DataStore.connectionTestTimeout
+        var client: Client? = null
+        var processes: GuardedProcessPool? = null
+        val cacheFiles = ArrayList<File>()
+
+        return try {
+            client = Libcore.newClient(null)
+            val config = buildConfig(profile, forTest = true)
+
+            if (config.externalIndex.any { it.chain.isNotEmpty() }) {
+                val pluginConfigs = initPlugins(config, false, cacheFiles)
+                processes = GuardedProcessPool { throw it }
+                launchPlugins(config, pluginConfigs, processes, cacheFiles)
+                delay(500L)
+            }
+
+            val result = client.newInstanceURLTest(config.config, config.mainTag, testURL, testTimeout)
+            TestResult.Success(result)
+        } catch (e: PluginNotFoundException) {
+            TestResult.Failure(FailureReason.PluginNotFound(e.plugin))
+        } catch (e: Exception) {
+            TestResult.Failure(FailureReason.Generic(e.readableMessage))
+        } finally {
+            client?.closeQuietly()
+            processes?.close(viewModelScope)
+            cacheFiles.forEach { it.delete() }
+        }
+    }
+
+    private val profileAccess = Mutex()
+    private val reloadAccess = Mutex()
+
+    fun onProfileSelect(new: Long) = viewModelScope.launch {
+        var lastSelected: Long
+        var updated: Boolean
+        profileAccess.withLock {
+            lastSelected = DataStore.selectedProxy
+            updated = new != lastSelected
+            DataStore.selectedProxy = new
+        }
+        if (updated) {
+            if (DataStore.serviceState.canStop && reloadAccess.tryLock()) {
+                resolveRepository().reloadService()
+                reloadAccess.unlock()
+            }
+        } else if (resolveRepository().isTv) {
+            if (DataStore.serviceState.started) {
+                resolveRepository().stopService()
+            } else {
+                resolveRepository().startService()
+            }
+        }
+        val groupId = DataStore.selectedGroup
+        childViewModels[groupId]?.onProfileSelected(new)
+    }
+
+    init {
+        viewModelScope.launch {
+            ProfileManager.getGroups()
+                .flatMapLatest { groups ->
+                    val ungroupedGroup = groups.find { it.ungrouped }
+                    if (ungroupedGroup != null) {
+                        SagerDatabase.proxyDao.countByGroup(ungroupedGroup.id).map { groups }
+                    } else {
+                        flowOf(groups)
+                    }
+                }
+                .collectLatest { groups ->
+                    reloadGroups(groups)
+                }
+        }
+    }
+
+    private suspend fun reloadGroups(all: List<ProxyGroup>?) {
+        val groups = (all ?: onIoDispatcher {
+            ProfileManager.getGroups().first()
+        }).toMutableList()
+        if (groups.size > 1) groups.removeFirstMatched {
+            it.ungrouped && SagerDatabase.proxyDao.countByGroup(it.id).first() == 0L
+        }
+
+        if (groups.isNotEmpty()) {
+            val selectedId = DataStore.currentGroupId()
+            val selectIndex = groups.indexOfFirst { it.id == selectedId }
+            if (selectIndex < 0) {
+                DataStore.selectedGroup = groups[0].id
+            }
+        }
+        _uiState.emit(
+            _uiState.value.copy(
+                groups = groups,
+            ),
+        )
+    }
+
+    fun updateOrder(groupId: Long, order: Int) = viewModelScope.launch {
+        val group = _uiState.value.groups.find { it.id == groupId } ?: return@launch
+        if (group.order == order) return@launch
+        runOnIoDispatcher {
+            GroupManager.updateGroup(
+                group.copy(
+                    order = order,
+                ),
+            )
+        }
+    }
+
+    fun clearTrafficStatistics(groupId: Long) = viewModelScope.launch {
+        val profiles = onIoDispatcher { SagerDatabase.proxyDao.getByGroup(groupId).first() }
+        val toClear = profiles.mapNotNull {
+            if (it.tx != 0L || it.rx != 0L) {
+                it.tx = 0L
+                it.rx = 0L
+                it
+            } else {
+                null
+            }
+        }
+        if (toClear.isNotEmpty()) onIoDispatcher {
+            SagerDatabase.proxyDao.updateProxy(toClear)
+        }
+    }
+
+    fun clearResults(groupId: Long) = viewModelScope.launch {
+        val profiles = onIoDispatcher { SagerDatabase.proxyDao.getByGroup(groupId).first() }
+        val toClear = profiles.mapNotNull {
+            if (it.status != ProxyEntity.STATUS_INITIAL) {
+                it.status = ProxyEntity.STATUS_INITIAL
+                it.ping = 0
+                it.error = null
+                it
+            } else {
+                null
+            }
+        }
+        if (toClear.isNotEmpty()) onIoDispatcher {
+            SagerDatabase.proxyDao.updateProxy(toClear)
+        }
+    }
+
+    fun deleteUnavailable(groupId: Long) = viewModelScope.launch {
+        val toDelete = onIoDispatcher {
+            SagerDatabase.proxyDao.getByGroup(groupId).first().mapNotNull {
+                when (it.status) {
+                    ProxyEntity.STATUS_INITIAL, ProxyEntity.STATUS_AVAILABLE -> null
+                    else -> it
+                }
+            }
+        }
+        if (toDelete.isEmpty()) return@launch
+
+        val ids = toDelete.map { it.id }
+        _uiState.update { state ->
+            state.copy(
+                alertForDelete = AlertForDelete(
+                    size = toDelete.size,
+                    summary = nameSummary(toDelete),
+                    confirm = {
+                        dismissAlert()
+                        runOnIoDispatcher {
+                            ProfileManager.deleteProfiles(groupId, ids)
+                        }
+                    },
+                ),
+            )
+        }
+    }
+
+    fun removeDuplicate(groupId: Long) = viewModelScope.launch {
+        val profiles = onIoDispatcher {
+            SagerDatabase.proxyDao.getByGroup(groupId).first()
+        }
+        val uniqueProxies = LinkedHashSet<Deduplication>()
+        val toDelete = profiles.mapNotNull {
+            val bean = it.requireBean()
+            val deduplication = Deduplication(bean, bean.javaClass.name)
+            if (uniqueProxies.add(deduplication)) {
+                null
+            } else {
+                it
+            }
+        }
+        if (toDelete.isEmpty()) return@launch
+
+        val ids = toDelete.map { it.id }
+        _uiState.update { state ->
+            state.copy(
+                alertForDelete = AlertForDelete(
+                    size = toDelete.size,
+                    summary = nameSummary(toDelete),
+                    confirm = {
+                        dismissAlert()
+                        runOnIoDispatcher {
+                            ProfileManager.deleteProfiles(groupId, ids)
+                        }
+                    },
+                ),
+            )
+        }
+    }
+
+    fun dismissAlert() {
+        _uiState.update { it.copy(alertForDelete = null) }
+    }
+
+    private fun nameSummary(profiles: List<ProxyEntity>): String {
+        return profiles.joinToString(separator = "\n") { it.displayName() }
+    }
+
+    fun importFile(
+        file: PlatformFile,
+        onProxiesFound: (List<AbstractBean>) -> Unit,
+        onSubscriptionFound: (String) -> Unit,
+        onNoProxies: () -> Unit,
+        onError: (String) -> Unit,
+    ) = runOnIoDispatcher {
+        try {
+            val fileName = file.name
+            val bytes = file.readBytes()
+            val proxies = mutableListOf<AbstractBean>()
+            if (fileName.endsWith(".zip")) {
+                ZipInputStream(bytes.inputStream()).use { zip ->
+                    while (true) {
+                        val entry = zip.nextEntry ?: break
+                        if (entry.isDirectory) continue
+                        val fileText = zip.bufferedReader().readText()
+                        RawUpdater.parseRaw(fileText, entry.name)?.let { beans ->
+                            proxies.addAll(beans)
+                        }
+                        zip.closeEntry()
+                    }
+                }
+            } else {
+                val fileText = bytes.decodeToString()
+                RawUpdater.parseRaw(fileText, fileName)?.let { beans ->
+                    proxies.addAll(beans)
+                }
+            }
+            if (proxies.isEmpty()) {
+                onNoProxies()
+            } else {
+                onProxiesFound(proxies)
+            }
+
+        } catch (e: SubscriptionFoundException) {
+            onSubscriptionFound(e.link)
+        } catch (e: Exception) {
+            Logs.w(e)
+            onError(e.readableMessage)
+        }
+    }
+
+}

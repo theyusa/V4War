@@ -1,0 +1,35 @@
+package tr.theyusa.v4war.fmt.v2ray
+
+import kotlinx.serialization.Serializable as KxsSerializable
+import tr.theyusa.v4war.fmt.AbstractBean
+import tr.theyusa.v4war.fmt.KryoConverters
+
+@KxsSerializable
+class VLESSBean : StandardV2RayBean() {
+
+    companion object {
+        @JvmField
+        val CREATOR = object : CREATOR<VLESSBean>() {
+            override fun newInstance(): VLESSBean {
+                return VLESSBean()
+            }
+
+            override fun newArray(size: Int): Array<VLESSBean?> {
+                return arrayOfNulls(size)
+            }
+        }
+    }
+
+    var flow: String = ""
+
+    override fun applyFeatureSettings(other: AbstractBean) {
+        if (other !is VLESSBean) return
+        other.flow = flow
+    }
+
+    override fun clone(): VLESSBean {
+        return KryoConverters.deserialize(VLESSBean(), KryoConverters.serialize(this))
+    }
+
+    override val defaultPort get() = 443
+}

@@ -31,7 +31,7 @@ android {
     buildFeatures {
         buildConfig = false
     }
-    namespace = "fr.husi"
+    namespace = "tr.theyusa.v4war"
 
 }
 
