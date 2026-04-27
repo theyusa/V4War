@@ -24,6 +24,7 @@ fun initPlugins(
                         when (bean.protocolVersion) {
                             HysteriaBean.PROTOCOL_VERSION_1 -> "hysteria-plugin"
                             HysteriaBean.PROTOCOL_VERSION_2 -> "hysteria2-plugin"
+                            else -> "hysteria2-plugin"
                         }
                     )
                     pluginConfigs[port] =
