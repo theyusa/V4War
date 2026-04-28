@@ -18,9 +18,22 @@ import (
 
 	"github.com/xchacha20-poly1305/anchor/anchorservice"
 
-	"libcore/combinedapi"
 	"libcore/protect"
 )
+
+type clashServerWrapper struct {
+	adapter.ClashServer
+}
+
+func (w *clashServerWrapper) QueryStats(name string, isUpload bool) int64 {
+	return 0
+}
+
+func (w *clashServerWrapper) TrafficManager() interface{} {
+	return nil
+}
+
+func (w *clashServerWrapper) SetMode(mode string) {}
 
 type boxInstance struct {
 	ctx    context.Context
@@ -30,7 +43,7 @@ type boxInstance struct {
 
 	platformInterface PlatformInterface
 	protect           *protect.Service
-	api               adapter.ClashServer
+	api               *clashServerWrapper
 	anchor            *anchorservice.Anchor
 
 	pauseManager pause.Manager
@@ -99,7 +112,10 @@ func newBoxInstance(config string, platformInterface PlatformInterface, forTest 
 		}
 
 		// API
-		b.api = service.FromContext[adapter.ClashServer](b.ctx)
+		clashApi := service.FromContext[adapter.ClashServer](b.ctx)
+		if clashApi != nil {
+			b.api = &clashServerWrapper{clashApi}
+		}
 
 		// Anchor
 		socksPort, dnsPort := sharedPublicPort(options.Inbounds)
