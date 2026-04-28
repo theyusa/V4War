@@ -7,6 +7,7 @@ TAGS=(
     "with_gvisor"
     "with_quic"
     "with_utls"
+    "with_clash_api"
 )
 
 IFS="," BUILD_TAGS="${TAGS[*]}"
