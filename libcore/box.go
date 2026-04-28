@@ -18,6 +18,7 @@ import (
 
 	"github.com/xchacha20-poly1305/anchor/anchorservice"
 
+	"libcore/combinedapi/trafficcontrol"
 	"libcore/protect"
 )
 
@@ -26,14 +27,31 @@ type clashServerWrapper struct {
 }
 
 func (w *clashServerWrapper) QueryStats(name string, isUpload bool) int64 {
-	return 0
+	if w.ClashServer == nil {
+		return 0
+	}
+	return w.ClashServer.QueryStats(name, isUpload)
 }
 
-func (w *clashServerWrapper) TrafficManager() interface{} {
+func (w *clashServerWrapper) TrafficManager() *trafficcontrol.Manager {
+	if w.ClashServer == nil {
+		return nil
+	}
+	type trafficManagerGetter interface {
+		TrafficManager() *trafficcontrol.Manager
+	}
+	if tm, ok := w.ClashServer.(trafficManagerGetter); ok {
+		return tm.TrafficManager()
+	}
 	return nil
 }
 
-func (w *clashServerWrapper) SetMode(mode string) {}
+func (w *clashServerWrapper) SetMode(mode string) {
+	if w.ClashServer == nil {
+		return
+	}
+	w.ClashServer.SetMode(mode)
+}
 
 type boxInstance struct {
 	ctx    context.Context
