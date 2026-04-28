@@ -30,7 +30,13 @@ func (w *clashServerWrapper) QueryStats(name string, isUpload bool) int64 {
 	if w.ClashServer == nil {
 		return 0
 	}
-	return w.ClashServer.QueryStats(name, isUpload)
+	type statsGetter interface {
+		QueryStats(name string, isUpload bool) int64
+	}
+	if sg, ok := w.ClashServer.(statsGetter); ok {
+		return sg.QueryStats(name, isUpload)
+	}
+	return 0
 }
 
 func (w *clashServerWrapper) TrafficManager() *trafficcontrol.Manager {
@@ -50,7 +56,12 @@ func (w *clashServerWrapper) SetMode(mode string) {
 	if w.ClashServer == nil {
 		return
 	}
-	w.ClashServer.SetMode(mode)
+	type setModeSetter interface {
+		SetMode(mode string)
+	}
+	if sm, ok := w.ClashServer.(setModeSetter); ok {
+		sm.SetMode(mode)
+	}
 }
 
 type boxInstance struct {
