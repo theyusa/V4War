@@ -30,7 +30,7 @@ type boxInstance struct {
 
 	platformInterface PlatformInterface
 	protect           *protect.Service
-	api               *combinedapi.CombinedAPI
+	api               adapter.ClashServer
 	anchor            *anchorservice.Anchor
 
 	pauseManager pause.Manager
@@ -99,7 +99,7 @@ func newBoxInstance(config string, platformInterface PlatformInterface, forTest 
 		}
 
 		// API
-		b.api = service.FromContext[adapter.ClashServer](b.ctx).(*combinedapi.CombinedAPI)
+		b.api = service.FromContext[adapter.ClashServer](b.ctx)
 
 		// Anchor
 		socksPort, dnsPort := sharedPublicPort(options.Inbounds)
