@@ -320,6 +320,7 @@ fun buildConfig(
                         secret = DataStore.clashApiSecret
                     }
                 }
+                default_mode = "Rule"
             }
         }
 
