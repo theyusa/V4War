@@ -71,13 +71,16 @@ func (b *boxInstance) InitializeProxySet() {
 
 // watchGroupChange monitors changes in the selected outbound for URLTest groups.
 func (b *boxInstance) watchGroupChange(urlTests []*group.URLTest) {
-	tagCache := make(map[string]string, len(urlTests)) // group:current_tag
+	tagCache := make(map[string]string, len(urlTests))
 	for _, urlTest := range urlTests {
 		tagCache[urlTest.Tag()] = urlTest.Now()
 	}
 
-	hook := observable.NewSubscriber[struct{}](1) // Prevent not receive notification when checking
-	historyStorage := b.api.HistoryStorage()
+	historyStorage := b.historyStorage()
+	if historyStorage == nil {
+		return
+	}
+	hook := observable.NewSubscriber[struct{}](1)
 	historyStorage.SetHook(hook)
 	subscription, done := hook.Subscription()
 	go func() {
@@ -147,7 +150,7 @@ func (c *Client) QueryProxySets() (ProxySetIterator, error) {
 
 func (s *Service) handleQueryProxySets(conn io.ReadWriter, instance *boxInstance) error {
 	outboundManager := instance.Outbound()
-	historyStorage := instance.api.HistoryStorage()
+	historyStorage := instance.historyStorage()
 	var proxySets []*ProxySet
 	for _, outbound := range outboundManager.Outbounds() {
 		outboundGroup, isGroup := outbound.(adapter.OutboundGroup)

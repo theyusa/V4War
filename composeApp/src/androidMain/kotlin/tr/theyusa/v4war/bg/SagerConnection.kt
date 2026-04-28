@@ -59,7 +59,15 @@ class SagerConnection(
 
     override fun onServiceConnected(name: ComponentName?, binder: IBinder) {
         this.binder = binder
-        if (listenForDeath) binder.linkToDeath(this, 0)
+        if (listenForDeath) {
+            try {
+                binder.linkToDeath(this, 0)
+            } catch (_: android.os.DeadObjectException) {
+                return
+            } catch (_: RemoteException) {
+                return
+            }
+        }
         service = IServiceControlStub.asInterface(binder)
         try {
             service?.registerObserver(observer)

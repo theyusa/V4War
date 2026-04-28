@@ -13,6 +13,7 @@ import (
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
 	F "github.com/sagernet/sing/common/format"
+	"github.com/sagernet/sing/common/observable"
 	"github.com/sagernet/sing/service"
 	"github.com/sagernet/sing/service/pause"
 
@@ -62,6 +63,57 @@ func (w *clashServerWrapper) SetMode(mode string) {
 	if sm, ok := w.ClashServer.(setModeSetter); ok {
 		sm.SetMode(mode)
 	}
+}
+
+func (w *clashServerWrapper) ModeList() []string {
+	if w.ClashServer == nil {
+		return nil
+	}
+	type modeLister interface {
+		ModeList() []string
+	}
+	if ml, ok := w.ClashServer.(modeLister); ok {
+		return ml.ModeList()
+	}
+	return nil
+}
+
+func (w *clashServerWrapper) Mode() string {
+	if w.ClashServer == nil {
+		return ""
+	}
+	type moder interface {
+		Mode() string
+	}
+	if m, ok := w.ClashServer.(moder); ok {
+		return m.Mode()
+	}
+	return ""
+}
+
+func (w *clashServerWrapper) SetModeUpdateHook(hook *observable.Subscriber[struct{}]) {
+	if w.ClashServer == nil {
+		return
+	}
+	type hookSetter interface {
+		SetModeUpdateHook(hook *observable.Subscriber[struct{}])
+	}
+	if hs, ok := w.ClashServer.(hookSetter); ok {
+		hs.SetModeUpdateHook(hook)
+	}
+}
+
+func (w *clashServerWrapper) HistoryStorage() adapter.URLTestHistoryStorage {
+	if w.ClashServer == nil {
+		return nil
+	}
+	type historyGetter interface {
+		HistoryStorage() adapter.URLTestHistoryStorage
+	}
+	if hg, ok := w.ClashServer.(historyGetter); ok {
+		return hg.HistoryStorage()
+	}
+	return nil
 }
 
 type boxInstance struct {
@@ -144,6 +196,8 @@ func newBoxInstance(config string, platformInterface PlatformInterface, forTest 
 		clashApi := service.FromContext[adapter.ClashServer](b.ctx)
 		if clashApi != nil {
 			b.api = &clashServerWrapper{clashApi}
+		} else {
+			b.api = &clashServerWrapper{nil}
 		}
 
 		// Anchor
@@ -220,6 +274,9 @@ func (b *boxInstance) NeedWIFIState() bool {
 }
 
 func (b *boxInstance) QueryStats(tag string, isUpload bool) int64 {
+	if b.api == nil {
+		return 0
+	}
 	return b.api.QueryStats(tag, isUpload)
 }
 

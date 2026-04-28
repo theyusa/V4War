@@ -302,15 +302,13 @@ private fun MainScreenContent(
                 )
             }
             for (info in items1) BuildDrawerItem(info)
-            if (DataStore.enableClashAPI) {
-                BuildDrawerItem(
-                    DrawerItemInfo(
-                        Res.string.menu_dashboard,
-                        Res.drawable.transform,
-                        NavRoutes.Dashboard,
-                    ),
-                )
-            }
+            BuildDrawerItem(
+                DrawerItemInfo(
+                    Res.string.menu_dashboard,
+                    Res.drawable.transform,
+                    NavRoutes.Dashboard,
+                ),
+            )
             HorizontalDivider(modifier = Modifier.padding(vertical = dividerPadding))
             DrawerItem(
                 label = { Text(stringResource(Res.string.document)) },

@@ -310,13 +310,15 @@ fun buildConfig(
                 store_fakeip = true
                 path = "../cache/cache.db"
             }
-            if (DataStore.enableClashAPI) clash_api = SingBoxOptions.ClashAPIOptions().apply {
-                external_controller = "127.0.0.1:${DataStore.clashApiPort}"
-                external_ui = "../files/yacd"
-                external_ui_download_url = "https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.tgz"
-                external_ui_download_detour = mainTag
-                if (DataStore.clashApiSecret.isNotBlank()) {
-                    secret = DataStore.clashApiSecret
+            clash_api = SingBoxOptions.ClashAPIOptions().apply {
+                if (DataStore.enableClashAPI) {
+                    external_controller = "127.0.0.1:${DataStore.clashApiPort}"
+                    external_ui = "../files/yacd"
+                    external_ui_download_url = "https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.tgz"
+                    external_ui_download_detour = mainTag
+                    if (DataStore.clashApiSecret.isNotBlank()) {
+                        secret = DataStore.clashApiSecret
+                    }
                 }
             }
         }

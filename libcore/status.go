@@ -34,12 +34,16 @@ func (c *Client) QueryConnections() (TrackerInfoIterator, error) {
 }
 
 func (s *Service) handleQueryConnections(conn io.ReadWriter, instance *boxInstance) error {
-	metadatas := instance.api.TrafficManager().ClosedConnections()
+	trafficManager := instance.api.TrafficManager()
+	if trafficManager == nil {
+		return vario.WriteSlices(conn, []*TrackerInfo{})
+	}
+	metadatas := trafficManager.ClosedConnections()
 	trackerInfos := make([]*TrackerInfo, 0, len(metadatas))
 	for _, metadata := range metadatas {
 		trackerInfos = append(trackerInfos, buildTrackerInfo(metadata))
 	}
-	instance.api.TrafficManager().Range(func(_ uuid.UUID, tracker trafficcontrol.Tracker) bool {
+	trafficManager.Range(func(_ uuid.UUID, tracker trafficcontrol.Tracker) bool {
 		trackerInfos = append(trackerInfos, buildTrackerInfo(tracker.Metadata()))
 		return true
 	})
@@ -357,9 +361,12 @@ func (c *Client) SubscribeConnectionEvent(callback ConnectionEventCallback) erro
 }
 
 func (s *Service) handleSubscribeConnections(conn io.ReadWriter, instance *boxInstance) error {
+	trafficManager := instance.api.TrafficManager()
+	if trafficManager == nil {
+		return E.New("traffic manager not available")
+	}
 	subscriber := observable.NewSubscriber[trafficcontrol.ConnectionEvent](256)
 	defer subscriber.Close()
-	trafficManager := instance.api.TrafficManager()
 	trafficManager.SetEventHook(subscriber)
 	defer trafficManager.SetEventHook(nil)
 	subscription, done := subscriber.Subscription()
@@ -403,7 +410,11 @@ func (s *Service) handleCloseConnection(conn io.ReadWriter, instance *boxInstanc
 	if err != nil {
 		return E.Cause(err, "read uuid")
 	}
-	tracker := instance.api.TrafficManager().Connection(uuidInstance)
+	trafficManager := instance.api.TrafficManager()
+	if trafficManager == nil {
+		return nil
+	}
+	tracker := trafficManager.Connection(uuidInstance)
 	if tracker == nil {
 		return nil
 	}
