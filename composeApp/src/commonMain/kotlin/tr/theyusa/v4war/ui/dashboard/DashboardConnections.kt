@@ -138,13 +138,10 @@ private fun ConnectionCard(
         processInfo = resolveProcessInfo(process, uid)
     }
 
-    val statusColor = when {
-        connection.isClosed -> Color.Gray
-        else -> Color.Green
-    }
-    val networkColor = when (connection.network.lowercase()) {
-        "tcp" -> Color(0xFF2196F3),
-        "udp" -> Color(0xFFFF9800),
+    val statusColor = if (connection.isClosed) Color.Gray else Color.Green
+    val networkColor = when (connection.network) {
+        "tcp" -> Color(0xFF2196F3)
+        "udp" -> Color(0xFFFF9800)
         else -> Color(0xFF9C27B0)
     }
 
@@ -153,13 +150,6 @@ private fun ConnectionCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp),
-        colors = androidx.compose.material3.ElevatedCardDefaults.elevatedCardColors(
-            containerColor = if (connection.isClosed) {
-                Color(0xFF1A1A1A)
-            } else {
-                Color(0xFF1B2B1B)
-            }
-        ),
     ) {
         Row(
             modifier = Modifier
@@ -248,91 +238,6 @@ private fun ConnectionCard(
                     icon = icon,
                     contentDescription = processInfo?.label,
                     modifier = Modifier.size(40.dp),
-                )
-            }
-        }
-    }
-}
-
-    ElevatedCard(
-        onClick = { openDetail(connection.uuid) },
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-            ) {
-                Text(
-                    text = if (connection.protocol == null) {
-                        connection.network
-                    } else {
-                        "${connection.network}/${connection.protocol}"
-                    },
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = LogColors.green,
-                )
-                Text(
-                    text = connection.dst,
-                    fontSize = 16.sp,
-                    color = Color(0xFFFB7299), // Pink
-                )
-                val host = connection.host
-                val showHost = host.isNotBlank() && !connection.dst.startsWith(host)
-                if (showHost) Text(
-                    text = host,
-                    fontSize = 16.sp,
-                    color = LogColors.redLight,
-                )
-                Text(
-                    text = connection.inbound,
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.secondaryFixed,
-                )
-
-                Text(
-                    text = connection.chain,
-                    fontSize = 14.sp,
-                    color = LogColors.blue,
-                )
-
-                Text(
-                    text = stringResource(
-                        Res.string.traffic,
-                        Libcore.formatBytes(connection.uploadTotal),
-                        Libcore.formatBytes(connection.downloadTotal),
-                    ),
-                    fontSize = 14.sp,
-                )
-
-                Text(
-                    text = stringResource(
-                        if (connection.isClosed) {
-                            Res.string.connection_status_closed
-                        } else {
-                            Res.string.connection_status_active
-                        },
-                    ),
-                    fontSize = 14.sp,
-                    color = if (connection.isClosed) {
-                        Color.Red
-                    } else {
-                        Color.Green
-                    },
-                )
-            }
-            processInfo?.icon?.let { icon ->
-                ProcessIcon(
-                    icon = icon,
-                    contentDescription = processInfo?.label,
-                    modifier = Modifier.size(48.dp),
                 )
             }
         }

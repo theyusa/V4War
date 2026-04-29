@@ -39,6 +39,10 @@ import tr.theyusa.v4war.ui.MainViewModel
 import tr.theyusa.v4war.ui.URLTestStatus
 import kotlinx.coroutines.flow.map
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun StatsBar(
