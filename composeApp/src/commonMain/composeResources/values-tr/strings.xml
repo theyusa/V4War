@@ -50,6 +50,7 @@
     <string name="group_create">Grup oluştur</string>
     <string name="group_create_subscription">Abonelik oluştur</string>
     <string name="update_all_subscription">Tüm abonelikleri güncelle</string>
+    <string name="update_subscription">Aboneliği güncelle</string>
     <string name="group_edit">Grubu düzenle</string>
     <string name="group_edit_subscription">Aboneliği düzenle</string>
     <string name="group_status_empty">Boş grup</string>

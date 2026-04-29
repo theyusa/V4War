@@ -4,13 +4,18 @@ package tr.theyusa.v4war.compose
 
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import tr.theyusa.v4war.compose.material3.Surface
 import tr.theyusa.v4war.compose.material3.Text
@@ -41,6 +46,7 @@ fun StatsBar(
     status: ServiceStatus,
     visible: Boolean = true,
     mainViewModel: MainViewModel,
+    onUpdateSubscription: (() -> Unit)? = null,
 ) {
     val urlTestStatus by mainViewModel.urlTestStatus.collectAsStateWithLifecycle()
     val isHTTPS by DataStore.configurationStore
@@ -69,52 +75,73 @@ fun StatsBar(
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 4.dp,
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .padding(
                     bottom = navigationBarsAlwaysInsets()
                         .asPaddingValues()
                         .calculateBottomPadding(),
                 )
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = 16.dp, vertical = 10.dp)
+                .fillMaxWidth(),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
         ) {
-            Text(
-                text = "▲ " + stringResource(
-                    Res.string.speed,
-                    Libcore.formatBytes(status.speed?.txRateProxy ?: 0L),
-                ),
-            )
-            Text(
-                text = "▼ " + stringResource(
-                    Res.string.speed,
-                    Libcore.formatBytes(status.speed?.rxRateProxy ?: 0L),
-                ),
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            val text = when (urlTestStatus) {
-                URLTestStatus.Initial -> stringResource(Res.string.vpn_connected)
-                URLTestStatus.Testing -> stringResource(Res.string.connection_test_testing)
-
-                is URLTestStatus.Success -> stringResource(
-                    if (isHTTPS) {
-                        Res.string.connection_test_available
-                    } else {
-                        Res.string.connection_test_available_http
-                    },
-                    (urlTestStatus as URLTestStatus.Success).legacy,
-                )
-
-                is URLTestStatus.Exception -> {
-                    val exception = (urlTestStatus as URLTestStatus.Exception).exception
-                    stringResource(
-                        Res.string.connection_test_error,
-                        readableUrlTestError(exception)?.let {
-                            stringResource(it)
-                        } ?: exception,
+            Column(
+                modifier = Modifier.weight(1f),
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = "▲ " + stringResource(
+                            Res.string.speed,
+                            Libcore.formatBytes(status.speed?.txRateProxy ?: 0L),
+                        ),
+                    )
+                    Text(
+                        text = "▼ " + stringResource(
+                            Res.string.speed,
+                            Libcore.formatBytes(status.speed?.rxRateProxy ?: 0L),
+                        ),
                     )
                 }
+                Spacer(modifier = Modifier.height(4.dp))
+                val text = when (urlTestStatus) {
+                    URLTestStatus.Initial -> stringResource(Res.string.vpn_connected)
+                    URLTestStatus.Testing -> stringResource(Res.string.connection_test_testing)
+
+                    is URLTestStatus.Success -> stringResource(
+                        if (isHTTPS) {
+                            Res.string.connection_test_available
+                        } else {
+                            Res.string.connection_test_available_http
+                        },
+                        (urlTestStatus as URLTestStatus.Success).legacy,
+                    )
+
+                    is URLTestStatus.Exception -> {
+                        val exception = (urlTestStatus as URLTestStatus.Exception).exception
+                        stringResource(
+                            Res.string.connection_test_error,
+                            readableUrlTestError(exception)?.let {
+                                stringResource(it)
+                            } ?: exception,
+                        )
+                    }
+                }
+                Text(text)
             }
-            Text(text)
+            if (onUpdateSubscription != null) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = vectorResource(Res.drawable.update),
+                    contentDescription = stringResource(Res.string.update_subscription),
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable { onUpdateSubscription() },
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }
