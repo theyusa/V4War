@@ -269,6 +269,7 @@ fun GroupScreen(
                     status = serviceStatus,
                     visible = scrollHideVisible,
                     mainViewModel = mainViewModel,
+                    onUpdateSubscription = { viewModel.doUpdateAll() },
                 )
             }
         },
