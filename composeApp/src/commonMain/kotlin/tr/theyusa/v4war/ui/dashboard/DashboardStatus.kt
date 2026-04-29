@@ -99,6 +99,28 @@ internal fun DashboardStatusScreen(
                     Text(stringResource(Res.string.status_goroutines))
                     Text(uiState.goroutines.toString())
                 }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text("Total Upload", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = Libcore.formatBytes(uiState.totalUpload),
+                        style = MaterialTheme.typography.bodySmallEmphasized,
+                        color = Color(0xFF4CAF50),
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text("Total Download", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = Libcore.formatBytes(uiState.totalDownload),
+                        style = MaterialTheme.typography.bodySmallEmphasized,
+                        color = Color(0xFF2196F3),
+                    )
+                }
             }
         }
 

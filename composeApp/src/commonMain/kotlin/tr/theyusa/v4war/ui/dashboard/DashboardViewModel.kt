@@ -60,6 +60,8 @@ data class DashboardState(
 
     val connections: List<ConnectionDetailState> = emptyList(),
     val filteredConnections: List<ConnectionDetailState> = emptyList(),
+    val totalUpload: Long = 0L,
+    val totalDownload: Long = 0L,
 
     val proxySets: List<ProxySet> = emptyList(),
 ) {
@@ -385,12 +387,16 @@ class DashboardViewModel(
     private suspend fun refreshStatus(): Boolean {
         return try {
             client.withClient { client ->
+                val totalUp = connections.values.sumOf { it.uploadTotal }
+                val totalDown = connections.values.sumOf { it.downloadTotal }
                 _uiState.update { state ->
                     state.copy(
                         memory = client.queryMemory(),
                         goroutines = client.queryGoroutines(),
                         connections = state.connections,
                         proxySets = loadProxySets(client, state.proxySets),
+                        totalUpload = totalUp,
+                        totalDownload = totalDown,
                     )
                 }
             }

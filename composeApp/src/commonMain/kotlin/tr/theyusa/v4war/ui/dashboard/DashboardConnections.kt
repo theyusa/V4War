@@ -134,10 +134,125 @@ private fun ConnectionCard(
     val process = connection.processes?.firstOrNull()
     val uid = connection.uid
     var processInfo by remember { mutableStateOf<ProcessInfo?>(null) }
-    // No keys because LazyColumn's item keys handle it
     LaunchedEffect(Unit) {
         processInfo = resolveProcessInfo(process, uid)
     }
+
+    val statusColor = when {
+        connection.isClosed -> Color.Gray
+        else -> Color.Green
+    }
+    val networkColor = when (connection.network.lowercase()) {
+        "tcp" -> Color(0xFF2196F3),
+        "udp" -> Color(0xFFFF9800),
+        else -> Color(0xFF9C27B0)
+    }
+
+    ElevatedCard(
+        onClick = { openDetail(connection.uuid) },
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp),
+        colors = androidx.compose.material3.ElevatedCardDefaults.elevatedCardColors(
+            containerColor = if (connection.isClosed) {
+                Color(0xFF1A1A1A)
+            } else {
+                Color(0xFF1B2B1B)
+            }
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .padding(end = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                    drawCircle(color = statusColor)
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = connection.network.uppercase(),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = networkColor,
+                    )
+                    Text(
+                        text = if (connection.isClosed) "Closed" else "Active",
+                        fontSize = 12.sp,
+                        color = statusColor,
+                    )
+                }
+                Text(
+                    text = connection.dst,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White,
+                )
+                val host = connection.host
+                if (host.isNotBlank() && !connection.dst.startsWith(host)) {
+                    Text(
+                        text = host,
+                        fontSize = 12.sp,
+                        color = Color(0xFFFFB74D),
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = "↑ ${Libcore.formatBytes(connection.uploadTotal)}",
+                        fontSize = 12.sp,
+                        color = Color(0xFF4CAF50),
+                    )
+                    Text(
+                        text = "↓ ${Libcore.formatBytes(connection.downloadTotal)}",
+                        fontSize = 12.sp,
+                        color = Color(0xFF2196F3),
+                    )
+                }
+                if (connection.inbound.isNotBlank()) {
+                    Text(
+                        text = "In: ${connection.inbound}",
+                        fontSize = 11.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
+                if (connection.outbound.isNotBlank()) {
+                    Text(
+                        text = "Out: ${connection.outbound}",
+                        fontSize = 11.sp,
+                        color = Color.Gray,
+                    )
+                }
+            }
+            processInfo?.icon?.let { icon ->
+                ProcessIcon(
+                    icon = icon,
+                    contentDescription = processInfo?.label,
+                    modifier = Modifier.size(40.dp),
+                )
+            }
+        }
+    }
+}
 
     ElevatedCard(
         onClick = { openDetail(connection.uuid) },
