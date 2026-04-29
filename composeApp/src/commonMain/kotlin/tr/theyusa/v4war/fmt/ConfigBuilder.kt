@@ -310,6 +310,9 @@ fun buildConfig(
                 store_fakeip = true
                 path = "../cache/cache.db"
             }
+            clash_api = SingBoxOptions.ClashAPIOptions().apply {
+                default_mode = "Rule"
+            }
         }
 
         log = LogOptions().apply {
