@@ -33,7 +33,7 @@ ini4j = "0.5.4"
 junitBom = "6.0.3"
 aboutlibraries = "14.0.0-b03"
 androidxTv = "1.0.1"
-androidxSecurityCrypto = "1.0.0"
+androidxSecurityCrypto = "1.1.0-alpha06"
 agp = "9.1.0"
 kotlinGradlePlugin = "2.3.20"
 
