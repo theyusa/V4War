@@ -29,3 +29,4 @@ go.work*
 
 # submodules
 /external
+/prompt
