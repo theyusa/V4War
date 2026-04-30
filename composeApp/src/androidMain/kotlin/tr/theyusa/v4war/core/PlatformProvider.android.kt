@@ -8,9 +8,18 @@ import androidx.security.crypto.MasterKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-actual class PlatformProvider(
+interface PlatformProvider {
+    fun getPlatformName(): String
+    suspend fun isNetworkAvailable(): Boolean
+    suspend fun getDeviceId(): String
+    suspend fun storeSecure(key: String, value: String): Result<Unit>
+    suspend fun retrieveSecure(key: String): Result<String?>
+    suspend fun removeSecure(key: String): Result<Unit>
+}
+
+class AndroidPlatformProvider(
     private val context: Context
-) {
+) : PlatformProvider {
 
     private val masterKey: MasterKey by lazy {
         runCatching {
@@ -32,9 +41,9 @@ actual class PlatformProvider(
         )
     }
 
-    actual override fun getPlatformName(): String = "Android ${Build.VERSION.RELEASE}"
+    override fun getPlatformName(): String = "Android ${Build.VERSION.RELEASE}"
 
-    actual override suspend fun isNetworkAvailable(): Boolean = withContext(Dispatchers.IO) {
+    override suspend fun isNetworkAvailable(): Boolean = withContext(Dispatchers.IO) {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE)
                 as android.net.ConnectivityManager
         val network = connectivityManager.activeNetwork
@@ -42,7 +51,7 @@ actual class PlatformProvider(
         capabilities?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
     }
 
-    actual override suspend fun getDeviceId(): String = withContext(Dispatchers.IO) {
+    override suspend fun getDeviceId(): String = withContext(Dispatchers.IO) {
         val prefsKey = "device_id"
         encryptedPrefs.getString(prefsKey, null) ?: run {
             val newId = generateSecureDeviceId()
@@ -55,21 +64,21 @@ actual class PlatformProvider(
         return java.util.UUID.randomUUID().toString()
     }
 
-    actual override suspend fun storeSecure(key: String, value: String): Result<Unit> =
+    override suspend fun storeSecure(key: String, value: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
                 encryptedPrefs.edit().putString(key, value).apply()
             }
         }
 
-    actual override suspend fun retrieveSecure(key: String): Result<String?> =
+    override suspend fun retrieveSecure(key: String): Result<String?> =
         withContext(Dispatchers.IO) {
             runCatching {
                 encryptedPrefs.getString(key, null)
             }
         }
 
-    actual override suspend fun removeSecure(key: String): Result<Unit> =
+    override suspend fun removeSecure(key: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
                 encryptedPrefs.edit().remove(key).apply()
