@@ -24,52 +24,68 @@ make apk
 ## Key Directories
 
 | Directory | Purpose |
-|-----------|---------|
+|----------|---------|
 | `libcore/` | Go core (sing-box based VPN engine) |
 | `composeApp/` | Android UI in Kotlin/Compose |
 | `androidApp/` | Android shell app |
 
 ## Important Code Locations
 
-- **Dashboard Panel**: `composeApp/src/commonMain/kotlin/tr/theyusa/v4war/ui/dashboard/` - Connection viewing, proxy selection
+- **Dashboard Panel**: `composeApp/.../ui/dashboard/` - Connection viewing, proxy selection
 - **CombinedAPI**: `libcore/combinedapi/` - Traffic tracking (independent of Clash API)
 - **Go Box Instance**: `libcore/box.go` - Core VPN instance management
 
 ## Critical Patterns
 
 ### Panel + CombinedAPI Dependency
-The dashboard panel (Connections, Proxy Sets) relies on `combinedapi` being registered as ClashServer. When modifying `clash_api` config in `ConfigBuilder.kt`, always include an empty `ClashAPIOptions()` or else CombinedAPI won't be created and connections will be empty.
+The dashboard panel relies on `combinedapi` being registered as ClashServer.
 
 ```kotlin
-// ConfigBuilder.kt - ALWAYS include this under experimental:
+// ConfigBuilder.kt - ALWAYS include:
 clash_api = SingBoxOptions.ClashAPIOptions()  // Empty triggers CombinedAPI
 ```
 
-### Box Include
-In `libcore/box_include.go`, the order matters:
+### Box Include (libcore/box_include.go)
 ```go
-// combinedapi must be imported, clashapi is optional for web UI
-_ "libcore/combinedapi"
+_ "libcore/combinedapi"  // Must be imported
+```
+
+### Clean Architecture
+Avoid platform-specific code leaking into common layer:
+```kotlin
+// ❌ Avoid: expect/actual
+expect fun getPlatformName(): String
+
+// ✅ Prefer: Interface + DI
+interface PlatformProvider {
+    fun getPlatformName(): String
+}
+
+class MyViewModel(private val platform: PlatformProvider) : ViewModel()
+```
+
+### Koin DI Pattern
+V4War uses Koin for dependency injection:
+```kotlin
+// androidMain
+single<PlatformProvider> { AndroidPlatformProvider() }
+
+// commonMain
+class MyViewModel(private val platform: PlatformProvider) : ViewModel()
 ```
 
 ### Compose Performance
-Use `remember` and `derivedStateOf` to minimize unnecessary recompositions:
-```kotlin
-val displayData by derivedStateOf {
-    // expensive calculation - only recomputes when dependencies change
-}
-```
-- Avoid `LaunchedEffect` with complex calculations inside - precompute in ViewModel
-- Use `@Stable` and `@Immutable` data classes for state to help Compose optimize
-- Room incremental compilation is active (ksp room.incremental=true)
+- Use `remember` and `derivedStateOf` for expensive calculations
+- Use `@Stable` and `@Immutable` data classes
+- Room incremental: `ksp.arg("room.incremental", "true")`
 
 ## Common Issues
 
 | Issue | Fix |
 |-------|-----|
 | Connections empty | Check ConfigBuilder has `clash_api = ClashAPIOptions()` |
-| Panel crashes on open | `box.go` missing nil check on `b.api` - always initialize wrapper |
-| App crashes when Clash API disabled | Dashboard handler calls `instance.api.TrafficManager()` without nil check |
+| Panel crashes | `box.go` - always initialize wrapper, nil check `b.api` |
+| Crash when Clash API disabled | Handler needs nil check before `TrafficManager()` |
 
 ## Quick Test
 
@@ -81,4 +97,4 @@ cd libcore && go build ./...
 
 - `new` - Development branch
 - `main` - Stable branch
-- `backup-new` - Backup of latest changes before rollback to c360594
+- `backup-new` - Backup of recent changes
