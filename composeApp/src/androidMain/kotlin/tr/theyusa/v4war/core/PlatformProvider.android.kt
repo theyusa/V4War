@@ -8,7 +8,7 @@ import androidx.security.crypto.MasterKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-actual class AndroidPlatformProvider(
+actual class PlatformProvider(
     private val context: Context
 ) : PlatformProvider {
 
