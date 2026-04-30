@@ -10,7 +10,7 @@ import kotlinx.coroutines.withContext
 
 actual class PlatformProvider(
     private val context: Context
-) : PlatformProvider {
+) {
 
     private val masterKey: MasterKey by lazy {
         runCatching {

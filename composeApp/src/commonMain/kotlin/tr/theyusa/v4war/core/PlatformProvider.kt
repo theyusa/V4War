@@ -1,6 +1,6 @@
 package tr.theyusa.v4war.core
 
-expect interface PlatformProvider {
+expect class PlatformProvider(context: Any) {
     fun getPlatformName(): String
     suspend fun isNetworkAvailable(): Boolean
     suspend fun getDeviceId(): String
