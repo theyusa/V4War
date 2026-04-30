@@ -115,6 +115,7 @@ kotlin {
                 implementation(libs.androidx.work.multiprocess)
 
                 implementation(libs.androidx.datastore)
+                implementation(libs.androidx.security.crypto.ktx)
 
                 implementation(libs.androidx.compose.ui.viewbinding)
                 implementation(libs.androidx.activity.compose)

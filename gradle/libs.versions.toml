@@ -33,6 +33,7 @@ ini4j = "0.5.4"
 junitBom = "6.0.3"
 aboutlibraries = "14.0.0-b03"
 androidxTv = "1.0.1"
+androidxSecurityCrypto = "1.0.0"
 agp = "9.1.0"
 kotlinGradlePlugin = "2.3.20"
 
@@ -52,6 +53,7 @@ androidx-work-multiprocess = { module = "androidx.work:work-multiprocess", versi
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "androidxDatastore" }
 androidx-tv-material = { module = "androidx.tv:tv-material", version.ref = "androidxTv" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "androidxDatastore" }
+androidx-security-crypto-ktx = { module = "androidx.security:security-crypto-ktx", version.ref = "androidxSecurityCrypto" }
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "androidxComposeBom" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui" }
 androidx-compose-ui-viewbinding = { module = "androidx.compose.ui:ui-viewbinding" }

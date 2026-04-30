@@ -6,9 +6,12 @@ import tr.theyusa.v4war.compose.material3.standardPlatformMaterialApi
 import tr.theyusa.v4war.compose.theme.PlatformThemeApi
 import tr.theyusa.v4war.compose.theme.TvPlatformThemeApi
 import tr.theyusa.v4war.compose.theme.standardPlatformThemeApi
+import tr.theyusa.v4war.core.AndroidPlatformProvider
+import tr.theyusa.v4war.core.PlatformProvider
 import tr.theyusa.v4war.repository.AndroidRepository
 import tr.theyusa.v4war.repository.Repository
 import tr.theyusa.v4war.repository.resolveRepository
+import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -33,6 +36,7 @@ internal actual fun platformRepositoryModule(repository: Repository): Module = m
         ?: error("Android platform requires AndroidRepository, got ${repository::class.qualifiedName}")
     single<AndroidRepository> { androidRepository }
     single<Repository> { get<AndroidRepository>() }
+    single<PlatformProvider> { AndroidPlatformProvider(androidContext()) }
 }
 
 internal actual fun platformKoinModules(): List<Module> = listOf(androidNavigationModule)
