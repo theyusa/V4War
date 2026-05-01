@@ -361,47 +361,40 @@ private fun DraggableSwipeableItemScope<ProfileItem>.ProxyCard(
     }
 
     val hasTraffic = entity.tx + entity.rx > 0L
-    val trafficText = remember(hasTraffic, trafficStatistic, entity.tx, entity.rx) {
-        hasTraffic.takeIf { trafficStatistic }?.let {
+    val trafficText = if (hasTraffic && trafficStatistic) {
+        stringResource(
+            Res.string.traffic,
+            Libcore.formatBytes(entity.tx),
+            Libcore.formatBytes(entity.rx),
+        )
+    } else null
+
+    val (statusText, statusColor) = when (entity.status) {
+        in Int.MIN_VALUE..ProxyEntity.STATUS_INITIAL -> {
+            trafficText.orEmpty() to MaterialTheme.colorScheme.onSurfaceVariant
+        }
+
+        ProxyEntity.STATUS_AVAILABLE -> {
             stringResource(
-                Res.string.traffic,
-                Libcore.formatBytes(entity.tx),
-                Libcore.formatBytes(entity.rx),
-            )
+                Res.string.available,
+                entity.ping,
+            ) to colorForUrlTestDelay(entity.ping)
         }
-    }
 
-    val statusInfo = remember(entity.status, entity.ping, entity.error) {
-        val scheme = MaterialTheme.colorScheme
-        when (entity.status) {
-            in Int.MIN_VALUE..ProxyEntity.STATUS_INITIAL -> {
-                trafficText.orEmpty() to scheme.onSurfaceVariant
-            }
-
-            ProxyEntity.STATUS_AVAILABLE -> {
-                stringResource(
-                    Res.string.available,
-                    entity.ping,
-                ) to colorForUrlTestDelay(entity.ping)
-            }
-
-            ProxyEntity.STATUS_UNAVAILABLE -> {
-                val text = readableUrlTestError(entity.error)?.let { stringResource(it) }
-                    ?: stringResource(Res.string.unavailable)
-                text to Color.Red
-            }
-
-            ProxyEntity.STATUS_UNREACHABLE -> {
-                val text = readableUrlTestError(entity.error)?.let { stringResource(it) }
-                    ?: stringResource(Res.string.connection_test_unreachable)
-                text to Color.Red
-            }
-
-            else -> "" to scheme.onSurfaceVariant
+        ProxyEntity.STATUS_UNAVAILABLE -> {
+            val text = readableUrlTestError(entity.error)?.let { stringResource(it) }
+                ?: stringResource(Res.string.unavailable)
+            text to Color.Red
         }
+
+        ProxyEntity.STATUS_UNREACHABLE -> {
+            val text = readableUrlTestError(entity.error)?.let { stringResource(it) }
+                ?: stringResource(Res.string.connection_test_unreachable)
+            text to Color.Red
+        }
+
+        else -> "" to MaterialTheme.colorScheme.onSurfaceVariant
     }
-    val statusText = statusInfo.first
-    val statusColor = statusInfo.second
 
     val showMiddleRow =
         address != null || (hasTraffic && entity.status > ProxyEntity.STATUS_INITIAL)
