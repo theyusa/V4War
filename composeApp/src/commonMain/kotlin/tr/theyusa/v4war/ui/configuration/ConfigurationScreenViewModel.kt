@@ -329,12 +329,21 @@ class ConfigurationScreenViewModel : ViewModel() {
         if (!bean.canTCPing) return TestResult.Failure(FailureReason.TcpUnavailable)
 
         var address = bean.serverAddress
-        if (!address.isIpAddress()) try {
-            InetAddress.getAllByName(address)[0]?.let {
-                address = it.hostAddress!!
+        var resolvedAddress: String? = null
+        
+        if (!address.isIpAddress()) {
+            try {
+                val inetAddress = InetAddress.getByName(address)
+                resolvedAddress = inetAddress.hostAddress
+                if (resolvedAddress != null) {
+                    address = resolvedAddress
+                    Logs.d("TCP Ping: $address resolved from domain")
+                }
+            } catch (e: Exception) {
+                Logs.w("TCP Ping: failed to resolve $address: ${e.message}")
             }
-        } catch (_: UnknownHostException) {
         }
+        
         if (!address.isIpAddress()) {
             return TestResult.Failure(FailureReason.DomainNotFound)
         }
@@ -347,6 +356,7 @@ class ConfigurationScreenViewModel : ViewModel() {
                 val start = System.currentTimeMillis()
                 socket.connect(InetSocketAddress(address, bean.serverPort), 3000)
                 val ping = (System.currentTimeMillis() - start).toInt()
+                Logs.d("TCP Ping to $address:${bean.serverPort}: $ping ms")
                 TestResult.Success(ping)
             } finally {
                 socket.close()
