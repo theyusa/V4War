@@ -59,6 +59,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.Socket
 import java.net.UnknownHostException
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.name
@@ -338,21 +340,30 @@ class ConfigurationScreenViewModel : ViewModel() {
         }
 
         return try {
-            val result = Libcore.tcpPing(address, bean.serverPort.toString(), 3000)
-            TestResult.Success(result)
+            val socket = Socket()
+            try {
+                socket.soTimeout = 3000
+                socket.bind(InetSocketAddress(0))
+                val start = System.currentTimeMillis()
+                socket.connect(InetSocketAddress(address, bean.serverPort), 3000)
+                val ping = (System.currentTimeMillis() - start).toInt()
+                TestResult.Success(ping)
+            } finally {
+                socket.close()
+            }
         } catch (e: Exception) {
             Logs.e(e)
             val message = e.readableMessage
             when {
-                message.contains("ECONNREFUSED") -> {
+                message.contains("ECONNREFUSED") || message.contains("Connection refused") -> {
                     TestResult.Failure(FailureReason.ConnectionRefused)
                 }
 
-                message.contains("ENETUNREACH") -> {
+                message.contains("ENETUNREACH") || message.contains("Network unreachable") -> {
                     TestResult.Failure(FailureReason.NetworkUnreachable)
                 }
 
-                !message.contains("failed:") -> {
+                message.contains("timeout") || message.contains("Timeout") -> {
                     TestResult.Failure(FailureReason.Timeout)
                 }
 
