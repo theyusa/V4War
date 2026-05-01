@@ -12,13 +12,4 @@
             <certificates src="system" />
         </trust-anchors>
     </base-config>
-
-    <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">api.v4war.theyusa.tr</domain>
-        <domain includeSubdomains="true">v4war.theyusa.tr</domain>
-        <pin-set expiration="2027-12-31">
-            <pin digest="SHA-256">PLACEHOLDER_PIN_1</pin>
-            <pin digest="SHA-256">PLACEHOLDER_PIN_2</pin>
-        </pin-set>
-    </domain-config>
 </network-security-config>
