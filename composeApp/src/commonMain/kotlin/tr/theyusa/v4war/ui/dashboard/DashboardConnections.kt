@@ -37,7 +37,10 @@ import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.theme.LogColors
 import tr.theyusa.v4war.libcore.Libcore
 import tr.theyusa.v4war.resources.Res
+import tr.theyusa.v4war.resources.connection_status_active
+import tr.theyusa.v4war.resources.connection_status_closed
 import tr.theyusa.v4war.resources.delete_forever
+import tr.theyusa.v4war.resources.traffic
 import io.github.oikvpqya.compose.fastscroller.material3.defaultMaterialScrollbarStyle
 import io.github.oikvpqya.compose.fastscroller.rememberScrollbarAdapter
 import org.jetbrains.compose.resources.stringResource
