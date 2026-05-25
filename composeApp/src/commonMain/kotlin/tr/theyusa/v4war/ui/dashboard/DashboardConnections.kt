@@ -37,10 +37,7 @@ import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.theme.LogColors
 import tr.theyusa.v4war.libcore.Libcore
 import tr.theyusa.v4war.resources.Res
-import tr.theyusa.v4war.resources.connection_status_active
-import tr.theyusa.v4war.resources.connection_status_closed
 import tr.theyusa.v4war.resources.delete_forever
-import tr.theyusa.v4war.resources.traffic
 import io.github.oikvpqya.compose.fastscroller.material3.defaultMaterialScrollbarStyle
 import io.github.oikvpqya.compose.fastscroller.rememberScrollbarAdapter
 import org.jetbrains.compose.resources.stringResource
@@ -79,37 +76,12 @@ internal fun DashboardConnectionsScreen(
                     key = { it.uuid },
                     contentType = { 0 },
                 ) { connection ->
-                    val swipState = rememberSwipeToDismissBoxState()
-                    SwipeToDismissBox(
-                        state = swipState,
-                        backgroundContent = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 16.dp),
-                                contentAlignment = Alignment.CenterEnd,
-                            ) {
-                                Icon(
-                                    imageVector = vectorResource(Res.drawable.delete_forever),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onError,
-                                )
-                            }
-                        },
-                        enableDismissFromStartToEnd = false,
-                        modifier = Modifier.fillMaxWidth(),
-                        onDismiss = { swipeToDismissBoxValue ->
-                            if (swipeToDismissBoxValue == SwipeToDismissBoxValue.EndToStart) {
-                                closeConnection(connection.uuid)
-                            }
-                        },
-                    ) {
-                        ConnectionCard(
-                            connection = connection,
-                            resolveProcessInfo = resolveProcessInfo,
-                            openDetail = openDetail,
-                        )
-                    }
+                    ConnectionItem(
+                        connection = connection,
+                        resolveProcessInfo = resolveProcessInfo,
+                        closeConnection = closeConnection,
+                        openDetail = openDetail,
+                    )
                 }
             }
 
@@ -121,6 +93,46 @@ internal fun DashboardConnectionsScreen(
                 ),
             )
         }
+    }
+}
+
+@Composable
+private fun ConnectionItem(
+    connection: ConnectionDetailState,
+    resolveProcessInfo: suspend (String?, Int) -> ProcessInfo?,
+    closeConnection: (uuid: String) -> Unit,
+    openDetail: (id: String) -> Unit,
+) {
+    val swipState = rememberSwipeToDismissBoxState()
+    SwipeToDismissBox(
+        state = swipState,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                Icon(
+                    imageVector = vectorResource(Res.drawable.delete_forever),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onError,
+                )
+            }
+        },
+        enableDismissFromStartToEnd = false,
+        modifier = Modifier.fillMaxWidth(),
+        onDismiss = { swipeToDismissBoxValue ->
+            if (swipeToDismissBoxValue == SwipeToDismissBoxValue.EndToStart) {
+                closeConnection(connection.uuid)
+            }
+        },
+    ) {
+        ConnectionCard(
+            connection = connection,
+            resolveProcessInfo = resolveProcessInfo,
+            openDetail = openDetail,
+        )
     }
 }
 
