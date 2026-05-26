@@ -63,6 +63,9 @@ fun rememberScrollHideState(scrollState: ScrollState): State<Boolean> {
         var previousValue = scrollState.value
         var lastScrollingDown = false
 
+        val isAtBottom = !scrollState.canScrollForward
+        visible.value = !lastScrollingDown || !isAtBottom
+
         snapshotFlow { scrollState.value }
             .distinctUntilChanged()
             .collectLatest { currentValue ->
@@ -73,8 +76,8 @@ fun rememberScrollHideState(scrollState: ScrollState): State<Boolean> {
                     else -> lastScrollingDown
                 }
 
-                val isAtBottom = !scrollState.canScrollForward
-                visible.value = !isScrollingDown || !isAtBottom
+                val atBottom = !scrollState.canScrollForward
+                visible.value = !isScrollingDown || !atBottom
 
                 lastScrollingDown = isScrollingDown
                 previousValue = currentValue
