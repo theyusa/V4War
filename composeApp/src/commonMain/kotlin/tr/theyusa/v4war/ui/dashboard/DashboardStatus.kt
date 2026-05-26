@@ -32,7 +32,6 @@ import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import tr.theyusa.v4war.compose.rememberScrollHideState
 import tr.theyusa.v4war.compose.setPlainText
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import kotlinx.coroutines.launch
@@ -54,10 +53,9 @@ internal fun DashboardStatusScreen(
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
-    val visible by rememberScrollHideState(scrollState)
 
-    LaunchedEffect(visible) {
-        onVisibleChange(visible)
+    LaunchedEffect(Unit) {
+        onVisibleChange(true)
     }
 
     Row(modifier = modifier.fillMaxSize()) {
