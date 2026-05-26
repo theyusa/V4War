@@ -33,12 +33,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import tr.theyusa.v4war.compose.setPlainText
-import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import kotlinx.coroutines.launch
 import tr.theyusa.v4war.resources.*
 import tr.theyusa.v4war.libcore.Libcore
-import io.github.oikvpqya.compose.fastscroller.material3.defaultMaterialScrollbarStyle
-import io.github.oikvpqya.compose.fastscroller.rememberScrollbarAdapter
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -249,13 +246,5 @@ internal fun DashboardStatusScreen(
                 }
             }
         }
-
-        BoxedVerticalScrollbar(
-            modifier = Modifier.fillMaxHeight(),
-            adapter = rememberScrollbarAdapter(scrollState = scrollState),
-            style = defaultMaterialScrollbarStyle().copy(
-                thickness = 12.dp,
-            ),
-        )
     }
 }
