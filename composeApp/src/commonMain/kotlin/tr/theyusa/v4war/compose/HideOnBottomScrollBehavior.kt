@@ -73,7 +73,8 @@ fun rememberScrollHideState(scrollState: ScrollState): State<Boolean> {
                     else -> lastScrollingDown
                 }
 
-                visible.value = !isScrollingDown
+                val isAtBottom = !scrollState.canScrollForward
+                visible.value = !isScrollingDown || !isAtBottom
 
                 lastScrollingDown = isScrollingDown
                 previousValue = currentValue
