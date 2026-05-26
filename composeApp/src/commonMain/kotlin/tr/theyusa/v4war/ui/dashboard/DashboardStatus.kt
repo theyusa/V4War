@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
@@ -28,6 +27,7 @@ import tr.theyusa.v4war.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboard
@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import tr.theyusa.v4war.compose.setPlainText
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import tr.theyusa.v4war.resources.*
 import tr.theyusa.v4war.libcore.Libcore
@@ -58,6 +59,12 @@ internal fun DashboardStatusScreen(
 
     LaunchedEffect(Unit) {
         onVisibleChange(true)
+    }
+
+    LaunchedEffect(scrollState) {
+        snapshotFlow { scrollState.layoutInfo.visibleItemsInfo }
+            .distinctUntilChanged()
+            .collect {}
     }
 
     Box(modifier = modifier.fillMaxSize()) {
