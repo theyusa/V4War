@@ -5,8 +5,10 @@ package tr.theyusa.v4war.ui.dashboard
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.selection.SelectionContainer
+import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.material3.Button
 import tr.theyusa.v4war.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedCard
@@ -36,6 +39,8 @@ import tr.theyusa.v4war.compose.setPlainText
 import kotlinx.coroutines.launch
 import tr.theyusa.v4war.resources.*
 import tr.theyusa.v4war.libcore.Libcore
+import io.github.oikvpqya.compose.fastscroller.material3.defaultMaterialScrollbarStyle
+import io.github.oikvpqya.compose.fastscroller.rememberScrollbarAdapter
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -55,109 +60,16 @@ internal fun DashboardStatusScreen(
         onVisibleChange(true)
     }
 
-    Row(modifier = modifier.fillMaxSize()) {
-        LazyColumn(
-            state = scrollState,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .padding(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 8.dp,
-                    bottom = bottomPadding + 8.dp,
-                ),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            item {
-                ElevatedCard(
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            text = stringResource(Res.string.status_status),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text(stringResource(Res.string.status_memory))
-                            Text(Libcore.formatMemoryBytes(uiState.memory))
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text(stringResource(Res.string.status_goroutines))
-                            Text(uiState.goroutines.toString())
-                        }
-                    }
-                }
-            }
-
-            item {
-                ElevatedCard(
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            text = stringResource(Res.string.source_address),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text(
-                                text = "IPv4",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                            val text = uiState.ipv4 ?: stringResource(Res.string.no_statistics)
-                            Text(
-                                text = text,
-                                modifier = Modifier.clickable {
-                                    scope.launch {
-                                        clipboard.setPlainText(text)
-                                    }
-                                    onCopySuccess()
-                                },
-                                fontFamily = FontFamily.Monospace,
-                                style = MaterialTheme.typography.bodySmallEmphasized,
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text(
-                                text = "IPv6",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                            val text = uiState.ipv6 ?: stringResource(Res.string.no_statistics)
-                            Text(
-                                text = text,
-                                modifier = Modifier.clickable {
-                                    scope.launch {
-                                        clipboard.setPlainText(text)
-                                    }
-                                    onCopySuccess()
-                                },
-                                fontFamily = FontFamily.Monospace,
-                                style = MaterialTheme.typography.bodySmallEmphasized,
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (uiState.clashModes.isNotEmpty()) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Row(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = scrollState,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                contentPadding = PaddingValues(bottom = bottomPadding),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 item {
                     ElevatedCard(
                         modifier = Modifier.fillMaxWidth(),
@@ -167,76 +79,166 @@ internal fun DashboardStatusScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text(
-                                text = stringResource(Res.string.clash_mode),
+                                text = stringResource(Res.string.status_status),
                                 style = MaterialTheme.typography.titleMedium,
                             )
-                            uiState.clashModes.forEach { mode ->
-                                val selected = mode == uiState.selectedClashMode
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.Center,
-                                ) {
-                                    Button(
-                                        onClick = { selectClashMode(mode) },
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(stringResource(Res.string.status_memory))
+                                Text(Libcore.formatMemoryBytes(uiState.memory))
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(stringResource(Res.string.status_goroutines))
+                                Text(uiState.goroutines.toString())
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    ElevatedCard(
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.source_address),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    text = "IPv4",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                                val text = uiState.ipv4 ?: stringResource(Res.string.no_statistics)
+                                Text(
+                                    text = text,
+                                    modifier = Modifier.clickable {
+                                        scope.launch {
+                                            clipboard.setPlainText(text)
+                                        }
+                                        onCopySuccess()
+                                    },
+                                    fontFamily = FontFamily.Monospace,
+                                    style = MaterialTheme.typography.bodySmallEmphasized,
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    text = "IPv6",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                                val text = uiState.ipv6 ?: stringResource(Res.string.no_statistics)
+                                Text(
+                                    text = text,
+                                    modifier = Modifier.clickable {
+                                        scope.launch {
+                                            clipboard.setPlainText(text)
+                                        }
+                                        onCopySuccess()
+                                    },
+                                    fontFamily = FontFamily.Monospace,
+                                    style = MaterialTheme.typography.bodySmallEmphasized,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (uiState.clashModes.isNotEmpty()) {
+                    item {
+                        ElevatedCard(
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text(
+                                    text = stringResource(Res.string.clash_mode),
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                                uiState.clashModes.forEach { mode ->
+                                    val selected = mode == uiState.selectedClashMode
+                                    Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        enabled = !selected,
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (selected) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else {
-                                                Color.Transparent
-                                            },
-                                            contentColor = if (selected) {
-                                                MaterialTheme.colorScheme.onPrimary
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurface
-                                            },
-                                        ),
-                                        border = if (!selected) {
-                                            BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                                        } else {
-                                            null
-                                        },
+                                        horizontalArrangement = Arrangement.Center,
                                     ) {
-                                        Text(mode)
+                                        Button(
+                                            onClick = { selectClashMode(mode) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            enabled = !selected,
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = if (selected) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    Color.Transparent
+                                                },
+                                                contentColor = if (selected) {
+                                                    MaterialTheme.colorScheme.onPrimary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurface
+                                                },
+                                            ),
+                                            border = if (!selected) {
+                                                BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                                            } else {
+                                                null
+                                            },
+                                        ) {
+                                            Text(mode)
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            item {
-                ElevatedCard(
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                item {
+                    ElevatedCard(
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(
-                            text = stringResource(Res.string.network_interfaces),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        SelectionContainer {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                uiState.networkInterfaces.forEach { interfaceInfo ->
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                                    ) {
-                                        Text(
-                                            text = interfaceInfo.name,
-                                            style = MaterialTheme.typography.titleSmallEmphasized,
-                                        )
-                                        for (address in interfaceInfo.addresses) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.network_interfaces),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            SelectionContainer {
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    uiState.networkInterfaces.forEach { interfaceInfo ->
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                                        ) {
                                             Text(
-                                                text = address,
-                                                fontFamily = FontFamily.Monospace,
-                                                style = MaterialTheme.typography.bodySmall,
+                                                text = interfaceInfo.name,
+                                                style = MaterialTheme.typography.titleSmallEmphasized,
                                             )
+                                            for (address in interfaceInfo.addresses) {
+                                                Text(
+                                                    text = address,
+                                                    fontFamily = FontFamily.Monospace,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -245,6 +247,14 @@ internal fun DashboardStatusScreen(
                     }
                 }
             }
+
+            BoxedVerticalScrollbar(
+                modifier = Modifier.fillMaxHeight(),
+                adapter = rememberScrollbarAdapter(scrollState = scrollState),
+                style = defaultMaterialScrollbarStyle().copy(
+                    thickness = 12.dp,
+                ),
+            )
         }
     }
 }
