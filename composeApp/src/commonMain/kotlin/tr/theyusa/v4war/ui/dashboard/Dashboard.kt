@@ -468,6 +468,7 @@ fun DashboardScreen(
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize(),
+                beyondViewportPageCount = 1,
             ) { page ->
                 when (page) {
                     PAGE_STATUS -> DashboardStatusScreen(
