@@ -91,8 +91,9 @@ import tr.theyusa.v4war.resources.*
 import tr.theyusa.v4war.repository.resolveRepository
 
 private const val PAGE_STATUS = 0
-private const val PAGE_CONNECTIONS = 1
-private const val PAGE_PROXY_SET = 2
+private const val PAGE_NETWORK = 1
+private const val PAGE_CONNECTIONS = 2
+private const val PAGE_PROXY_SET = 3
 
 @Composable
 fun DashboardScreen(
@@ -107,7 +108,7 @@ fun DashboardScreen(
 
     val pagerState = rememberPagerState(
         initialPage = 0,
-        pageCount = { 3 },
+        pageCount = { 4 },
     )
 
     val dashboardViewModel: DashboardViewModel = viewModel { DashboardViewModel(loadPlatformNetworkInfo) }
@@ -383,6 +384,15 @@ fun DashboardScreen(
                         },
                     )
                     Tab(
+                        text = { Text(stringResource(Res.string.network)) },
+                        selected = pagerState.currentPage == PAGE_NETWORK,
+                        onClick = {
+                            scope.launch {
+                                pagerState.animateScrollToPage(PAGE_NETWORK)
+                            }
+                        },
+                    )
+                    Tab(
                         text = { Text(stringResource(Res.string.traffic_connections)) },
                         selected = pagerState.currentPage == PAGE_CONNECTIONS,
                         onClick = {
@@ -475,6 +485,21 @@ fun DashboardScreen(
                         uiState = uiState,
                         bottomPadding = bottomPadding,
                         selectClashMode = { dashboardViewModel.setClashMode(it) },
+                        onCopySuccess = {
+                            scope.launch {
+                                snackbarState.showSnackbar(
+                                    message = resolveRepository().getString(Res.string.copy_success),
+                                    actionLabel = resolveRepository().getString(Res.string.ok),
+                                    duration = SnackbarDuration.Short,
+                                )
+                            }
+                        },
+                        onVisibleChange = { bottomVisible = it },
+                    )
+
+                    PAGE_NETWORK -> DashboardNetworkScreen(
+                        uiState = uiState,
+                        bottomPadding = bottomPadding,
                         onCopySuccess = {
                             scope.launch {
                                 snackbarState.showSnackbar(
