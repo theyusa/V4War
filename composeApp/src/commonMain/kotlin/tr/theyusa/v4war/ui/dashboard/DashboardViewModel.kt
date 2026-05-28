@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import tr.theyusa.v4war.Key
 import tr.theyusa.v4war.TrafficSortMode
+import tr.theyusa.v4war.bg.BackendState
 import tr.theyusa.v4war.bg.DefaultNetworkListener
 import tr.theyusa.v4war.database.DataStore
 import tr.theyusa.v4war.ktx.Logs
@@ -58,18 +59,19 @@ data class DashboardState(
     val clashModes: List<String> = emptyList(),
     val networkInterfaces: List<NetworkInterfaceInfo> = emptyList(),
 
-    val connections: List<ConnectionDetailState> = emptyList(),
+    // Speed and traffic stats
+    val uploadRate: Long = 0L,
+    val downloadRate: Long = 0L,
+    val totalUpload: Long = 0L,
+    val totalDownload: Long = 0L,
+
+val connections: List<ConnectionDetailState> = emptyList(),
     val filteredConnections: List<ConnectionDetailState> = emptyList(),
 
     val proxySets: List<ProxySet> = emptyList(),
 ) {
-    companion object {
-        const val SHOW_TRACKER_ACTIVELY: Byte = 1
-        const val SHOW_TRACKER_CLOSED: Byte = 2
-    }
-
-    val showActivate = queryOptions and SHOW_TRACKER_ACTIVELY != 0.toByte()
-    val showClosed = queryOptions and SHOW_TRACKER_CLOSED != 0.toByte()
+    val activeConnectionCount: Int
+        get() = connections.count { !it.isClosed }
 }
 
 @Immutable
@@ -189,6 +191,18 @@ class DashboardViewModel(
             }
             refreshNetworkInterfaces()
         }
+        viewModelScope.launch {
+            BackendState.status.collectLatest { status ->
+                _uiState.update { state ->
+                    state.copy(
+                        uploadRate = status.speed?.txRateProxy ?: 0L,
+                        downloadRate = status.speed?.rxRateProxy ?: 0L,
+                        totalUpload = status.speed?.txTotal ?: 0L,
+                        totalDownload = status.speed?.rxTotal ?: 0L,
+                    )
+                }
+            }
+        }
     }
 
     private var job: Job? = null
@@ -214,6 +228,10 @@ class DashboardViewModel(
                 filteredConnections = emptyList(),
                 selectedClashMode = "",
                 clashModes = emptyList(),
+                uploadRate = 0L,
+                downloadRate = 0L,
+                totalUpload = 0L,
+                totalDownload = 0L,
             )
         }
         if (!isConnected) return

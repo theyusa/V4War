@@ -782,4 +782,15 @@
     <string name="optimistic_dns_cache">Optimistic DNS Cache</string>
     <string name="optimistic_dns_cache_sum">Return cached DNS results immediately while refreshing in the background</string>
     <string name="cag_route">Route Settings</string>
+    <string name="network_stats">Network Stats</string>
+    <string name="current_session">Current Session</string>
+    <string name="session_upload">Upload</string>
+    <string name="session_download">Download</string>
+    <string name="upload_rate">Upload Rate</string>
+    <string name="download_rate">Download Rate</string>
+    <string name="direct_traffic">Direct Traffic</string>
+    <string name="proxy_traffic">Proxy Traffic</string>
+    <string name="active_connections">Active Connections</string>
+    <string name="connection_details">Connection Details</string>
+    <string name="source_info">Source Info</string>
 </resources>
