@@ -49,7 +49,7 @@ data class DashboardState(
     val isPause: Boolean = false,
     val sortMode: Int = TrafficSortMode.START,
     val isDescending: Boolean = false,
-    val queryOptions: Byte = SHOW_TRACKER_ACTIVELY,
+    val queryOptions: Byte = 1,
 
     val memory: Long = 0,
     val goroutines: Int = 0,
@@ -65,11 +65,19 @@ data class DashboardState(
     val totalUpload: Long = 0L,
     val totalDownload: Long = 0L,
 
-val connections: List<ConnectionDetailState> = emptyList(),
+    val connections: List<ConnectionDetailState> = emptyList(),
     val filteredConnections: List<ConnectionDetailState> = emptyList(),
 
     val proxySets: List<ProxySet> = emptyList(),
 ) {
+    companion object {
+        const val SHOW_TRACKER_ACTIVELY: Byte = 1
+        const val SHOW_TRACKER_CLOSED: Byte = 2
+    }
+
+    val showActivate = queryOptions and SHOW_TRACKER_ACTIVELY != 0.toByte()
+    val showClosed = queryOptions and SHOW_TRACKER_CLOSED != 0.toByte()
+
     val activeConnectionCount: Int
         get() = connections.count { !it.isClosed }
 }
