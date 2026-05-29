@@ -6,11 +6,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -31,12 +29,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import tr.theyusa.v4war.compose.setPlainText
 import tr.theyusa.v4war.libcore.Libcore
-import tr.theyusa.v4war.resources.Res
 import io.github.oikvpqya.compose.fastscroller.material3.defaultMaterialScrollbarStyle
 import io.github.oikvpqya.compose.fastscroller.rememberScrollbarAdapter
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun DashboardNetworkScreen(
@@ -108,7 +104,7 @@ private fun NetworkStatsCard(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = stringResource(Res.string.network_stats),
+                text = "Network Stats",
                 style = MaterialTheme.typography.titleMedium,
             )
 
@@ -118,7 +114,7 @@ private fun NetworkStatsCard(
             ) {
                 Column {
                     Text(
-                        text = stringResource(Res.string.upload_rate),
+                        text = "Upload Rate",
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Text(
@@ -128,7 +124,7 @@ private fun NetworkStatsCard(
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = stringResource(Res.string.download_rate),
+                        text = "Download Rate",
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Text(
@@ -144,7 +140,7 @@ private fun NetworkStatsCard(
             ) {
                 Column {
                     Text(
-                        text = stringResource(Res.string.session_upload),
+                        text = "Upload",
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Text(
@@ -154,7 +150,7 @@ private fun NetworkStatsCard(
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = stringResource(Res.string.session_download),
+                        text = "Download",
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Text(
@@ -169,7 +165,7 @@ private fun NetworkStatsCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = stringResource(Res.string.active_connections),
+                    text = "Active Connections",
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Text(
@@ -197,7 +193,7 @@ private fun SourceAddressCard(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = stringResource(Res.string.source_info),
+                text = "Source Info",
                 style = MaterialTheme.typography.titleMedium,
             )
             Row(
@@ -208,7 +204,7 @@ private fun SourceAddressCard(
                     text = "IPv4",
                     style = MaterialTheme.typography.bodySmall,
                 )
-                val text = ipv4 ?: stringResource(Res.string.no_statistics)
+                val text = ipv4 ?: "No statistics yet"
                 Text(
                     text = text,
                     modifier = Modifier.clickable {
@@ -229,7 +225,7 @@ private fun SourceAddressCard(
                     text = "IPv6",
                     style = MaterialTheme.typography.bodySmall,
                 )
-                val text = ipv6 ?: stringResource(Res.string.no_statistics)
+                val text = ipv6 ?: "No statistics yet"
                 Text(
                     text = text,
                     modifier = Modifier.clickable {
@@ -257,7 +253,7 @@ private fun NetworkInterfacesCard(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = stringResource(Res.string.network_interfaces),
+                text = "Network Interfaces",
                 style = MaterialTheme.typography.titleMedium,
             )
             SelectionContainer {
