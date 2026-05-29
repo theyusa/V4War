@@ -269,8 +269,7 @@ jobs:
         env:
           BUILD_PLUGIN: none
         run: |
-          ./gradlew :composeApp:generateResourceAccessorsForAndroidMain :composeApp:generateResourceAccessorsForCommonMain --rerun-tasks --info 2>&1 | tail -100
-          ./gradlew clean androidApp:assembleFossRelease --stacktrace 2>&1 | tail -100
+          ./gradlew clean androidApp:assembleFossRelease --stacktrace
 
       - name: Prepare release tag
         id: release
