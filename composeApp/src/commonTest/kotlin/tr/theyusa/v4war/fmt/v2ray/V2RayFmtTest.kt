@@ -247,6 +247,50 @@ class V2RayFmtTest {
     }
 
     @Test
+    fun `buildSingBoxOutboundStandardV2RayBean should leave insecure unset when allow insecure is false`() {
+        DataStore.globalAllowInsecure = false
+        try {
+            val bean = VLESSBean().apply {
+                serverAddress = "example.com"
+                serverPort = 443
+                uuid = "test-uuid"
+                security = "tls"
+                allowInsecure = false
+            }
+
+            val outbound = buildSingBoxOutboundStandardV2RayBean(bean)
+
+            val vless = assertIs<SingBoxOptions.Outbound_VLESSOptions>(outbound)
+            val tls = assertNotNull(vless.tls)
+            assertNull(tls.insecure)
+        } finally {
+            DataStore.globalAllowInsecure = false
+        }
+    }
+
+    @Test
+    fun `buildSingBoxOutboundStandardV2RayBean should honor profile allow insecure`() {
+        DataStore.globalAllowInsecure = false
+        try {
+            val bean = VLESSBean().apply {
+                serverAddress = "example.com"
+                serverPort = 443
+                uuid = "test-uuid"
+                security = "tls"
+                allowInsecure = true
+            }
+
+            val outbound = buildSingBoxOutboundStandardV2RayBean(bean)
+
+            val vless = assertIs<SingBoxOptions.Outbound_VLESSOptions>(outbound)
+            val tls = assertNotNull(vless.tls)
+            assertEquals(true, tls.insecure)
+        } finally {
+            DataStore.globalAllowInsecure = false
+        }
+    }
+
+    @Test
     fun `parseStandardV2RayOutbound should parse vmess`() {
         val json: JSONMap = mutableMapOf(
             "type" to "vmess",

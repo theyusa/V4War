@@ -306,6 +306,23 @@ class ConfigBuilderTest {
         assertEquals(null, disabledTunInbound["auto_redirect"])
     }
 
+    @Test
+    fun `buildConfig should emit clash api in experimental block`() = runBlocking {
+        val group = ProxyGroup(name = "group").applyDefaultValues()
+        group.id = SagerDatabase.groupDao.createGroup(group)
+
+        val proxy = createSocksProxy(
+            groupId = group.id,
+            order = 1,
+            name = "main",
+            host = "1.1.1.1",
+            port = 1080,
+        )
+
+        val root = Json.parseToJsonElement(buildConfig(proxy).config).jsonObject
+        assertTrue(root["experimental"]?.jsonObject?.containsKey("clash_api") == true)
+    }
+
     private fun parseOutbounds(result: ConfigBuildResult) =
         Json.parseToJsonElement(result.config).jsonObject["outbounds"]!!
             .jsonArray
