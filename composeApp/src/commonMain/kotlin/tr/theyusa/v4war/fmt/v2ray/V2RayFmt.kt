@@ -31,6 +31,8 @@ import tr.theyusa.v4war.fmt.listable
 import tr.theyusa.v4war.fmt.parseBoxOutbound
 import tr.theyusa.v4war.fmt.parseBoxTLS
 import tr.theyusa.v4war.fmt.parseHeader
+import tr.theyusa.v4war.fmt.toECHOneLine
+import tr.theyusa.v4war.fmt.toECHPem
 import tr.theyusa.v4war.fmt.trojan.TrojanBean
 import tr.theyusa.v4war.ktx.JSONMap
 import tr.theyusa.v4war.ktx.Logs
@@ -40,13 +42,29 @@ import tr.theyusa.v4war.ktx.blankAsNull
 import tr.theyusa.v4war.ktx.toJsonObjectKxs
 import tr.theyusa.v4war.ktx.listByLineOrComma
 import tr.theyusa.v4war.ktx.queryParameterNotBlank
-import tr.theyusa.v4war.ktx.queryParameterUnescapeNotBlank
 import tr.theyusa.v4war.ktx.readableMessage
 import tr.theyusa.v4war.ktx.kxs
 import tr.theyusa.v4war.libcore.Libcore
 import tr.theyusa.v4war.libcore.URL
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonPrimitive
+
+private const val DEFAULT_WS_MAX_EARLY_DATA = 2048
+private const val DEFAULT_WS_EARLY_DATA_HEADER = "Sec-WebSocket-Protocol"
+
+private fun removeQueryParameters(raw: String, vararg keys: String): String {
+    val queryIndex = raw.indexOf('?')
+    if (queryIndex < 0) return raw
+    val excluded = keys.toSet()
+    val base = raw.substring(0, queryIndex)
+    val kept = raw.substring(queryIndex + 1)
+        .split('&')
+        .filterNot { part ->
+            val key = part.substringBefore('=', "")
+            key.isNotEmpty() && key in excluded
+        }
+    return if (kept.isEmpty()) base else "$base?${kept.joinToString("&")}"
+}
 
 /**
  * A legacy but still be used widely and be updated continually format.
@@ -104,8 +122,25 @@ fun parseV2Ray(rawUrl: String): StandardV2RayBean {
     return bean
 }
 
-const val BEGIN_ECH = "-----BEGIN ECH CONFIG-----"
-const val END_ECH = "-----END ECH CONFIG-----"
+private fun StandardV2RayBean.parseDuckSoftTlsQueries(url: URL) {
+    sni = url.queryParameterNotBlank("sni") ?: url.queryParameterNotBlank("host") ?: ""
+    alpn = url.queryParameter("alpn")
+    certificates = url.queryParameter("cert")
+    realityPublicKey = url.queryParameter("pbk")
+    realityShortID = url.queryParameter("sid")
+
+    url.queryParameterNotBlank("ech")?.let {
+        ech = true
+
+        if (it.contains("://")) {
+            echQueryServerName = it.substringBefore("://", "").substringBefore("+", "")
+        } else runCatching {
+            if (it.b64Decode().isNotEmpty()) {
+                echConfig = it.toECHPem()
+            }
+        }
+    }
+}
 
 // https://github.com/XTLS/Xray-core/discussions/716
 fun StandardV2RayBean.parseDuckSoft(url: URL) {
@@ -128,27 +163,7 @@ fun StandardV2RayBean.parseDuckSoft(url: URL) {
     when (security) {
         "tls", "reality" -> {
             security = "tls"
-            sni = url.queryParameterNotBlank("sni") ?: url.queryParameterNotBlank("host") ?: ""
-            alpn = url.queryParameter("alpn")
-            certificates = url.queryParameter("cert")
-            realityPublicKey = url.queryParameter("pbk")
-            realityShortID = url.queryParameter("sid")
-
-            // Is DNS address: enable ECH and get config from DNS
-            // Is base64: use it directly
-            url.queryParameterUnescapeNotBlank("ech")?.let {
-                ech = true
-
-                val isEchConfig = try {
-                    it.b64Decode().isNotEmpty()
-                } catch (_: Exception) {
-                    // Invalid or DNS address
-                    false
-                }
-                if (isEchConfig) {
-                    echConfig = "$BEGIN_ECH\n$it\n$END_ECH"
-                }
-            }
+            parseDuckSoftTlsQueries(url)
         }
 
         "" -> if (this is TrojanBean) {
@@ -157,6 +172,7 @@ fun StandardV2RayBean.parseDuckSoft(url: URL) {
             // And this standard force trojan's link to use TLS.
             // https://github.com/p4gefau1t/trojan-go/issues/132
             security = "tls"
+            parseDuckSoftTlsQueries(url)
         }
     }
 
@@ -172,8 +188,9 @@ fun StandardV2RayBean.parseDuckSoft(url: URL) {
             host = url.queryParameter("host")
             path = url.queryParameter("path")
             url.queryParameterNotBlank("ed")?.let { ed ->
-                wsMaxEarlyData = ed.toIntOrNull() ?: 2048
-                earlyDataHeaderName = url.queryParameterNotBlank("eh") ?: "Sec-WebSocket-Protocol"
+                wsMaxEarlyData = ed.toIntOrNull() ?: DEFAULT_WS_MAX_EARLY_DATA
+                earlyDataHeaderName = url.queryParameterNotBlank("eh")
+                    ?: DEFAULT_WS_EARLY_DATA_HEADER
             }
         }
 
@@ -394,8 +411,7 @@ fun StandardV2RayBean.toUriVMessVLESSTrojan(): String {
                 // Xray requires a DNS server in ECH field, which is coupling.
                 // We don't set a hard-coded DNS server here. 😅
                 if (ech) echConfig.blankAsNull()?.let {
-                    val config = it.removeSuffix("$BEGIN_ECH\n").removeSuffix("\n$END_ECH")
-                    builder.setQueryParameter("ech", config)
+                    builder.setQueryParameter("ech", it.toECHOneLine())
                 }
             }
         }
@@ -424,11 +440,18 @@ fun buildSingBoxOutboundStreamSettings(bean: StandardV2RayBean): V2RayTransportO
                     headers!!["Host"] = bean.host.listByLineOrComma().toMutableList()
                 }
 
-                if (bean.path.contains("?ed=")) {
-                    path = bean.path.substringBefore("?ed=")
-                    max_early_data = bean.path.substringAfter("?ed=").toIntOrNull() ?: 2048
-                    early_data_header_name = "Sec-WebSocket-Protocol"
-                } else {
+                runCatching {
+                    Libcore.parseURL(bean.path)
+                }.onSuccess { pathURL ->
+                    pathURL.queryParameterNotBlank("ed")?.toIntOrNull()?.let { maxEarlyData ->
+                        max_early_data = maxEarlyData
+                    }
+                    pathURL.queryParameterNotBlank("eh")?.let { headerName ->
+                        early_data_header_name = headerName
+                    }
+                    path = removeQueryParameters(bean.path, "ed", "eh")
+                        .takeIf { it.isNotBlank() } ?: "/"
+                }.onFailure {
                     path = bean.path.takeIf { it.isNotBlank() } ?: "/"
                 }
 

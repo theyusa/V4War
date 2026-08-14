@@ -46,6 +46,8 @@ import tr.theyusa.v4war.fmt.v2ray.VMessBean
 import tr.theyusa.v4war.fmt.v2ray.buildSingBoxOutboundStandardV2RayBean
 import tr.theyusa.v4war.fmt.v2ray.parseStandardV2RayOutbound
 import tr.theyusa.v4war.ktx.JSONMap
+import tr.theyusa.v4war.ktx.b64Decode
+import tr.theyusa.v4war.ktx.b64EncodeOneLine
 import tr.theyusa.v4war.ktx.getBool
 import tr.theyusa.v4war.ktx.getIntOrNull
 import tr.theyusa.v4war.ktx.getObject
@@ -109,6 +111,24 @@ fun buildSingBoxMux(bean: AbstractBean): OutboundMultiplexOptions? {
             MuxStrategy.MAX_STREAMS -> max_streams = bean.serverMuxNumber
             else -> throw IllegalStateException("unknown mux strategy: ${bean.serverMuxStrategy}")
         }
+    }
+}
+
+const val ECH_CONFIGS_PEM_HEADER = "-----BEGIN ECH CONFIGS-----"
+const val ECH_CONFIGS_PEM_FOOTER = "-----END ECH CONFIGS-----"
+
+fun String.toECHOneLine(): String {
+    val base64 = lineSequence()
+        .filterNot { it == ECH_CONFIGS_PEM_HEADER || it == ECH_CONFIGS_PEM_FOOTER }
+        .joinToString(separator = "")
+    return base64.b64Decode().b64EncodeOneLine()
+}
+
+fun String.toECHPem(): String {
+    return buildString {
+        appendLine(ECH_CONFIGS_PEM_HEADER)
+        appendLine(b64Decode().b64EncodeOneLine())
+        append(ECH_CONFIGS_PEM_FOOTER)
     }
 }
 

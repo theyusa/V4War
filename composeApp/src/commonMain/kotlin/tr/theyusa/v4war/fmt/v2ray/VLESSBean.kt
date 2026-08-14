@@ -23,6 +23,7 @@ class VLESSBean : StandardV2RayBean() {
     var flow: String = ""
 
     override fun applyFeatureSettings(other: AbstractBean) {
+        super.applyFeatureSettings(other)
         if (other !is VLESSBean) return
         other.flow = flow
     }
