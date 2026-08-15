@@ -21,6 +21,7 @@ import tr.theyusa.v4war.ktx.SubscriptionFoundException
 import tr.theyusa.v4war.ktx.onIoDispatcher
 import tr.theyusa.v4war.ktx.readableMessage
 import tr.theyusa.v4war.ktx.runOnIoDispatcher
+import tr.theyusa.v4war.ktx.urlTestOptions
 import tr.theyusa.v4war.repository.Repository
 import tr.theyusa.v4war.repository.resolveRepository
 import tr.theyusa.v4war.utils.LibcoreClientManager
@@ -166,6 +167,7 @@ class MainViewModel(
                     selectedTag,
                     DataStore.connectionTestURL,
                     DataStore.connectionTestTimeout,
+                    urlTestOptions,
                 )
             }
             _urlTestStatus.update { URLTestStatus.Success(result) }

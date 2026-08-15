@@ -124,6 +124,8 @@ import tr.theyusa.v4war.resources.certificate_authority
 import tr.theyusa.v4war.resources.check
 import tr.theyusa.v4war.resources.color_lens
 import tr.theyusa.v4war.resources.connection_test_url
+import tr.theyusa.v4war.resources.connection_test_unified_delay
+import tr.theyusa.v4war.resources.connection_test_ignore_handshake_time
 import tr.theyusa.v4war.resources.construction
 import tr.theyusa.v4war.resources.custom_rule_provider
 import tr.theyusa.v4war.resources.description
@@ -1488,6 +1490,39 @@ item(Key.OPTIMISTIC_DNS_CACHE, PreferenceType.SWITCH) {
                                 )
                             },
                             valueText = { Text(previewValue.toInt().toString()) },
+                        )
+                    }
+
+                    item(Key.CONNECTION_TEST_UNIFIED_DELAY, PreferenceType.SWITCH) {
+                        val value by DataStore.configurationStore
+                            .booleanFlow(Key.CONNECTION_TEST_UNIFIED_DELAY, false)
+                            .collectAsStateWithLifecycle(false)
+                        SwitchPreference(
+                            value = value,
+                            onValueChange = { DataStore.connectionTestUnifiedDelay = it },
+                            title = { Text(stringResource(Res.string.connection_test_unified_delay)) },
+                            icon = {
+                                Icon(
+                                    vectorResource(Res.drawable.timer),
+                                    null,
+                                )
+                            },
+                        )
+                    }
+                    item(Key.CONNECTION_TEST_IGNORE_HANDSHAKE_TIME, PreferenceType.SWITCH) {
+                        val value by DataStore.configurationStore
+                            .booleanFlow(Key.CONNECTION_TEST_IGNORE_HANDSHAKE_TIME, false)
+                            .collectAsStateWithLifecycle(false)
+                        SwitchPreference(
+                            value = value,
+                            onValueChange = { DataStore.connectionTestIgnoreHandshakeTime = it },
+                            title = { Text(stringResource(Res.string.connection_test_ignore_handshake_time)) },
+                            icon = {
+                                Icon(
+                                    vectorResource(Res.drawable.question_mark),
+                                    null,
+                                )
+                            },
                         )
                     }
                     platformMiscOptions { needReload() }

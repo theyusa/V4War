@@ -17,6 +17,7 @@ import tr.theyusa.v4war.ktx.onIoDispatcher
 import tr.theyusa.v4war.ktx.runOnDefaultDispatcher
 import tr.theyusa.v4war.ktx.runOnIoDispatcher
 import tr.theyusa.v4war.ktx.toList
+import tr.theyusa.v4war.ktx.urlTestOptions
 import tr.theyusa.v4war.libcore.Client
 import tr.theyusa.v4war.libcore.ConnectionEvent
 import tr.theyusa.v4war.libcore.GroupItemIterator
@@ -614,7 +615,7 @@ class DashboardViewModel(
     fun urlTestForSingle(tag: String) = viewModelScope.launch(Dispatchers.IO) {
         try {
             client.withClient { client ->
-                client.urlTest(tag, DataStore.connectionTestURL, DataStore.connectionTestTimeout)
+                client.urlTest(tag, DataStore.connectionTestURL, DataStore.connectionTestTimeout, urlTestOptions)
             }
         } catch (e: Exception) {
             Logs.w(e)

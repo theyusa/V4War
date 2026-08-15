@@ -66,6 +66,7 @@ import tr.theyusa.v4war.ktx.reverse
 import tr.theyusa.v4war.ktx.showToast
 import tr.theyusa.v4war.ktx.toJsonElementKxs
 import tr.theyusa.v4war.ktx.toJsonMapKxs
+import tr.theyusa.v4war.ktx.serverAddressDomainStrategy
 import tr.theyusa.v4war.ktx.toJsonStringKxs
 import tr.theyusa.v4war.libcore.Libcore
 import tr.theyusa.v4war.logLevelString
@@ -287,6 +288,7 @@ fun buildConfig(
     val networkInterfaceStrategy = DataStore.networkInterfaceType
     val networkPreferredInterfaces = DataStore.networkPreferredInterfaces.toList()
     val defaultStrategy = DataStore.networkStrategy.blankAsNull()
+    val serverDomainStrategy = serverAddressDomainStrategy()
     lateinit var mainTag: String
 
     val readableNames = mutableSetOf(TAG_DIRECT, TAG_BLOCK)
@@ -597,13 +599,14 @@ fun buildConfig(
                         this["udp_over_tcp"] = true
                     }
 
-                    if (!forTest && bean !is ProxySetBean) {
+                    if (bean !is ProxySetBean && (!forTest || serverDomainStrategy != null)) {
                         this["domain_resolver"] = DomainResolveOptions().apply {
-                            server = TAG_DNS_DIRECT
-                            strategy = defaultOr(
-                                DataStore.domainStrategyForServer.replace("auto", "").blankAsNull(),
-                                { defaultStrategy },
-                            )
+                            server = if (forTest) {
+                                TAG_DNS_LOCAL
+                            } else {
+                                TAG_DNS_DIRECT
+                            }
+                            strategy = serverDomainStrategy
                         }.asKxsMap()
                     }
 

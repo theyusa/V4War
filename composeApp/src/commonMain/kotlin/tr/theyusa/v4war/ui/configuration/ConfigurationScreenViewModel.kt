@@ -33,6 +33,7 @@ import tr.theyusa.v4war.ktx.removeFirstMatched
 import tr.theyusa.v4war.ktx.runOnIoDispatcher
 import tr.theyusa.v4war.ktx.selectByNetworkStrategy
 import tr.theyusa.v4war.ktx.serverAddressDomainStrategy
+import tr.theyusa.v4war.ktx.urlTestOptions
 import tr.theyusa.v4war.libcore.Client
 import tr.theyusa.v4war.libcore.Libcore
 import tr.theyusa.v4war.plugin.PluginNotFoundException
@@ -365,6 +366,7 @@ class ConfigurationScreenViewModel : ViewModel() {
     private suspend fun urlTest(profile: ProxyEntity): TestResult {
         val testURL = DataStore.connectionTestURL
         val testTimeout = DataStore.connectionTestTimeout
+        val testOptions = urlTestOptions
         var client: Client? = null
         var processes: GuardedProcessPool? = null
         val cacheFiles = ArrayList<File>()
@@ -380,7 +382,7 @@ class ConfigurationScreenViewModel : ViewModel() {
                 delay(500L)
             }
 
-            val result = client.newInstanceURLTest(config.config, config.mainTag, testURL, testTimeout)
+            val result = client.newInstanceURLTest(config.config, "", testURL, testTimeout, testOptions)
             TestResult.Success(result)
         } catch (e: PluginNotFoundException) {
             TestResult.Failure(FailureReason.PluginNotFound(e.plugin))

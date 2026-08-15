@@ -118,6 +118,8 @@
     <string name="port_local_dns">Yerel DNS portu</string>
     <string name="dns_only">Yalnızca DNS</string>
     <string name="connection_test_url">Bağlantı testi URL'si</string>
+    <string name="connection_test_unified_delay">Bağlantı testi birleşik gecikme</string>
+    <string name="connection_test_ignore_handshake_time">Bağlantı testinde el sıkışma süresini yoksay</string>
     <string name="profile_name">Profil adı</string>
     <string name="server_address">Sunucu</string>
     <string name="server_port">Uzak port</string>
