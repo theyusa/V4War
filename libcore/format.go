@@ -34,9 +34,9 @@ func baseContext(platformInterface PlatformInterface) context.Context {
 		distro.InboundRegistry(),
 		distro.OutboundRegistry(),
 		distro.EndpointRegistry(),
+		distro.ProviderRegistry(),
 		dnsRegistry,
 		distro.ServiceRegistry(),
-		distro.CertificateProviderRegistry(),
 	)
 }
 

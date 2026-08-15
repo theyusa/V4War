@@ -17,12 +17,14 @@ import tr.theyusa.v4war.fmt.SingBoxOptions.TRANSPORT_HTTP
 import tr.theyusa.v4war.fmt.SingBoxOptions.TRANSPORT_HTTPUPGRADE
 import tr.theyusa.v4war.fmt.SingBoxOptions.TRANSPORT_QUIC
 import tr.theyusa.v4war.fmt.SingBoxOptions.TRANSPORT_WS
+import tr.theyusa.v4war.fmt.SingBoxOptions.TRANSPORT_XHTTP
 import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayGRPCOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayHTTPOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayHTTPUpgradeOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayQUICOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayWebsocketOptions
+import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayXHTTPOptions
 import tr.theyusa.v4war.fmt.buildHeader
 import tr.theyusa.v4war.fmt.buildSingBoxMux
 import tr.theyusa.v4war.fmt.effectiveAllowInsecure
@@ -96,7 +98,7 @@ fun StandardV2RayBean.setTLS(boolean: Boolean) {
 
 fun StandardV2RayBean.shouldMux(): Boolean = serverMux && when (v2rayTransport) {
     "http" -> isTLS
-    "quic", "grpc" -> false
+    "quic", "grpc", "xhttp" -> false
     else -> true
 }
 
@@ -201,6 +203,12 @@ fun StandardV2RayBean.parseDuckSoft(url: URL) {
         "httpupgrade" -> {
             host = url.queryParameter("host")
             path = url.queryParameter("path")
+        }
+
+        "xhttp" -> {
+            host = url.queryParameter("host")
+            path = url.queryParameter("path")
+            mode = url.queryParameter("mode").orEmpty()
         }
     }
 
@@ -382,6 +390,18 @@ fun StandardV2RayBean.toUriVMessVLESSTrojan(): String {
                 builder.setQueryParameter("serviceName", path)
             }
         }
+
+        "xhttp" -> {
+            if (host.isNotBlank()) {
+                builder.addQueryParameter("host", host)
+            }
+            if (path.isNotBlank()) {
+                builder.addQueryParameter("path", path)
+            }
+            if (mode.isNotBlank()) {
+                builder.addQueryParameter("mode", mode)
+            }
+        }
     }
 
     if (security.isNotBlank() && security != "none") {
@@ -498,6 +518,22 @@ fun buildSingBoxOutboundStreamSettings(bean: StandardV2RayBean): V2RayTransportO
                 path = bean.path
 
                 headers = bean.headers.blankAsNull()?.let(::buildHeader)?.toMutableMap()
+            }
+        }
+
+        "xhttp" -> {
+            return V2RayTransportOptions_V2RayXHTTPOptions().apply {
+                type = TRANSPORT_XHTTP
+                host = bean.host.listByLineOrComma().firstOrNull()
+                path = bean.path.takeIf { it.isNotBlank() } ?: "/"
+                mode = bean.mode.takeIf { it.isNotBlank() } ?: "auto"
+
+                headers = bean.headers.blankAsNull()?.let { raw ->
+                    raw.lines().mapNotNull { line ->
+                        val pair = line.split(":", limit = 2)
+                        if (pair.size == 2) pair[0].trim() to pair[1].trim() else null
+                    }.toMap().toMutableMap()
+                }
             }
         }
     }
@@ -685,6 +721,14 @@ fun parseStandardV2RayOutbound(json: JSONMap): StandardV2RayBean {
                             }.joinToString("\n")
                         }.orEmpty()
                     }
+
+                    is V2RayTransportOptions_V2RayXHTTPOptions -> {
+                        bean.host = transport.host.orEmpty()
+                        bean.path = transport.path.orEmpty()
+                        bean.mode = transport.mode.orEmpty()
+                        bean.headers = transport.headers?.map { (k, v) -> "$k:$v" }
+                            ?.joinToString("\n").orEmpty()
+                    }
                 }
             }
 
@@ -757,6 +801,16 @@ fun parseTransport(json: JSONMap): V2RayTransportOptions? = when (json["type"]?.
         headers = (json["headers"] as? JSONMap)?.let {
             parseHeader(it).toMutableMap()
         } ?: mutableMapOf()
+    }
+
+    TRANSPORT_XHTTP -> V2RayTransportOptions_V2RayXHTTPOptions().apply {
+        type = TRANSPORT_XHTTP
+        host = json["host"]?.toString()
+        path = json["path"]?.toString()
+        mode = json["mode"]?.toString()
+        headers = (json["headers"] as? JSONMap)?.let {
+            it.mapValues { (_, v) -> v.toString() }.toMutableMap()
+        }
     }
 
     else -> null

@@ -225,6 +225,39 @@ class V2RayFmtTest {
         assertEquals("secret", trojan.password)
     }
 
+
+    @Test
+    fun `buildSingBoxOutboundStandardV2RayBean should build xhttp transport`() {
+        val bean = VLESSBean().apply {
+            serverAddress = "example.com"
+            serverPort = 443
+            uuid = "test-uuid"
+            v2rayTransport = "xhttp"
+            host = "host.example.com"
+            path = "/xhttp"
+            mode = "packet-up"
+        }
+
+        val outboundMap = buildSingBoxOutboundStandardV2RayBean(bean).asKxsMap()
+        val transport = assertIs<Map<*, *>>(outboundMap["transport"])
+        assertEquals("xhttp", transport["type"])
+        assertEquals("host.example.com", transport["host"])
+        assertEquals("/xhttp", transport["path"])
+        assertEquals("packet-up", transport["mode"])
+    }
+
+    @Test
+    fun `parseV2Ray should parse xhttp ducksoft url`() {
+        val bean = parseV2Ray(
+            "vless://test-uuid@example.com:443?type=xhttp&mode=stream-one&host=host.example.com&path=/xhttp&security=tls#xhttp-node",
+        )
+
+        assertIs<VLESSBean>(bean)
+        assertEquals("xhttp", bean.v2rayTransport)
+        assertEquals("stream-one", bean.mode)
+        assertEquals("host.example.com", bean.host)
+        assertEquals("/xhttp", bean.path)
+    }
     @Test
     fun `buildSingBoxOutboundStandardV2RayBean should honor global allow insecure`() {
         DataStore.globalAllowInsecure = true

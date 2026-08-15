@@ -131,13 +131,13 @@ func writeActionFields(builder *bytes.Buffer, seen map[string]struct{}, actionTy
 }
 
 const (
-	kotlinBoolean = "Boolean"
-	kotlinInteger = "Int"
-	kotlinLong    = "Long"
-	kotlinString  = "String"
+	kotlinBoolean     = "Boolean"
+	kotlinInteger     = "Int"
+	kotlinLong        = "Long"
+	kotlinString      = "String"
 	kotlinJsonElement = "JsonElement"
-	kotlinList    = "MutableList<"
-	kotlinMap     = "MutableMap<"
+	kotlinList        = "MutableList<"
+	kotlinMap         = "MutableMap<"
 
 	reservedDefault = "default"
 	reservedFinal   = "final"
@@ -203,6 +203,19 @@ func className(valueType reflect.Type) string {
 			// Script
 			return kotlinString
 		default:
+			if strings.HasPrefix(valueName, "Range[") {
+				// badoption.Range[T] marshals to a single number or "min-max" string.
+				return kotlinString
+			}
+			if valueName == "V2RayXHTTPXmuxOptions" || valueName == "V2RayXHTTPDownloadOptions" {
+				// Nested XHTTP option types are emitted as raw JSON to avoid
+				// generating unused, prefix-mismatched classes.
+				return kotlinJsonElement
+			}
+			if valueName == "Provider" || valueName == "UnifiedDelayOptions" || valueName == "WireGuardAmnezia" {
+				// New option/interface types that V4War does not model; keep as raw JSON.
+				return kotlinJsonElement
+			}
 			if strings.HasPrefix(valueName, "TypedMap") {
 				// What a great foot binding cloth
 				linkedHashMap := valueType.Field(0).Type

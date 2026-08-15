@@ -95,8 +95,6 @@ var boxList = []any{
 	option.WireGuardPeer{},
 	// option.V2RayTransportOptions{},
 	option.DomainResolveOptions{},
-	option.CertificateProvider{},
-	option.CertificateProviderOptions{},
 
 	// MITM
 	// option.MITMOptions{},
@@ -129,6 +127,7 @@ var transportList = []any{
 	option.V2RayQUICOptions{},
 	option.V2RayGRPCOptions{},
 	option.V2RayHTTPUpgradeOptions{},
+	option.V2RayXHTTPOptions{},
 }
 
 var inboundList = []any{

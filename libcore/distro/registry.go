@@ -1,10 +1,10 @@
 package distro
 
 import (
-	"github.com/sagernet/sing-box/adapter/certificate"
 	"github.com/sagernet/sing-box/adapter/endpoint"
 	"github.com/sagernet/sing-box/adapter/inbound"
 	"github.com/sagernet/sing-box/adapter/outbound"
+	"github.com/sagernet/sing-box/adapter/provider"
 	"github.com/sagernet/sing-box/adapter/service"
 	"github.com/sagernet/sing-box/dns"
 	"github.com/sagernet/sing-box/dns/transport"
@@ -26,6 +26,8 @@ import (
 	"github.com/sagernet/sing-box/protocol/tun"
 	"github.com/sagernet/sing-box/protocol/vmess"
 
+	localProvider "github.com/sagernet/sing-box/provider/local"
+	remoteProvider "github.com/sagernet/sing-box/provider/remote"
 	_ "github.com/sagernet/sing-box/transport/v2rayquic"
 )
 
@@ -107,8 +109,12 @@ func ServiceRegistry() *service.Registry {
 	return registry
 }
 
-func CertificateProviderRegistry() *certificate.Registry {
-	registry := certificate.NewRegistry()
+func ProviderRegistry() *provider.Registry {
+	registry := provider.NewRegistry()
+
+	localProvider.RegisterProviderInline(registry)
+	localProvider.RegisterProviderLocal(registry)
+	remoteProvider.RegisterProvider(registry)
 
 	return registry
 }

@@ -28,6 +28,10 @@ func (p platformInterfaceStub) AutoDetectInterfaceControl(_ int) error {
 	return nil
 }
 
+func (p platformInterfaceStub) BindInterfaceControl(_ int, _ string) error {
+	return os.ErrInvalid
+}
+
 func (p platformInterfaceStub) UsePlatformInterface() bool {
 	return false
 }
@@ -102,8 +106,8 @@ type interfaceMonitorStub struct{}
 func (i interfaceMonitorStub) RegisterMyInterface(_ string) {
 }
 
-func (i interfaceMonitorStub) MyInterface() string {
-	return ""
+func (i interfaceMonitorStub) MyInterfaces() []string {
+	return nil
 }
 
 func (i interfaceMonitorStub) Start() error {
@@ -131,18 +135,6 @@ func (i interfaceMonitorStub) RegisterCallback(_ tun.DefaultInterfaceUpdateCallb
 }
 
 func (i interfaceMonitorStub) UnregisterCallback(_ *list.Element[tun.DefaultInterfaceUpdateCallback]) {
-}
-
-func (p platformInterfaceStub) UsePlatformNeighborResolver() bool {
-	return false
-}
-
-func (p platformInterfaceStub) StartNeighborMonitor(_ adapter.NeighborUpdateListener) error {
-	return os.ErrInvalid
-}
-
-func (p platformInterfaceStub) CloseNeighborMonitor(_ adapter.NeighborUpdateListener) error {
-	return os.ErrInvalid
 }
 
 func (p platformInterfaceStub) MyInterfaceAddress() []netip.Addr {

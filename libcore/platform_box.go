@@ -60,6 +60,10 @@ func (w *boxPlatformInterfaceWrapper) AutoDetectInterfaceControl(fd int) error {
 	return nil
 }
 
+func (w *boxPlatformInterfaceWrapper) BindInterfaceControl(fd int, interfaceName string) error {
+	return os.ErrInvalid
+}
+
 func (w *boxPlatformInterfaceWrapper) UsePlatformInterface() bool {
 	return true
 }
@@ -240,19 +244,6 @@ func (w *boxPlatformInterfaceWrapper) SendNotification(_ *adapter.Notification) 
 func (w *boxPlatformInterfaceWrapper) SystemCertificates() []string {
 	// Already set in certs.go
 	return nil
-}
-
-func (w *boxPlatformInterfaceWrapper) UsePlatformNeighborResolver() bool {
-	// Require root in Android
-	return false
-}
-
-func (w *boxPlatformInterfaceWrapper) StartNeighborMonitor(listener adapter.NeighborUpdateListener) error {
-	return os.ErrInvalid
-}
-
-func (w *boxPlatformInterfaceWrapper) CloseNeighborMonitor(listener adapter.NeighborUpdateListener) error {
-	return os.ErrInvalid
 }
 
 func (w *boxPlatformInterfaceWrapper) MyInterfaceAddress() []netip.Addr {

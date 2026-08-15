@@ -17,10 +17,11 @@ abstract class StandardV2RayBean : AbstractBean() {
     var uuid: String = ""
     var encryption: String = ""
 
-    // "V2Ray Transport" tcp/http/ws/quic/grpc/httpupgrade
+    // "V2Ray Transport" tcp/http/ws/quic/grpc/httpupgrade/xhttp
     var v2rayTransport: String = ""
     var host: String = ""
     var path: String = ""
+    var mode: String = ""
     var headers: String = ""
     var security: String = ""
     var sni: String = ""
@@ -53,9 +54,8 @@ abstract class StandardV2RayBean : AbstractBean() {
 
         if (fragmentFallbackDelay.isEmpty()) fragmentFallbackDelay = "500ms"
     }
-
     override fun serialize(output: ByteBufferOutput) {
-        output.writeInt(11)
+        output.writeInt(12)
         super.serialize(output)
 
         output.writeString(uuid)
@@ -89,10 +89,16 @@ abstract class StandardV2RayBean : AbstractBean() {
                 output.writeString(path)
                 output.writeString(headers)
             }
-
             "httpupgrade" -> {
                 output.writeString(host)
                 output.writeString(path)
+                output.writeString(headers)
+            }
+
+            "xhttp" -> {
+                output.writeString(host)
+                output.writeString(path)
+                output.writeString(mode)
                 output.writeString(headers)
             }
         }
@@ -171,6 +177,13 @@ abstract class StandardV2RayBean : AbstractBean() {
             "httpupgrade" -> {
                 host = input.readString()
                 path = input.readString()
+                if (version >= 5) headers = input.readString()
+            }
+
+            "xhttp" -> {
+                host = input.readString()
+                path = input.readString()
+                if (version >= 12) mode = input.readString()
                 if (version >= 5) headers = input.readString()
             }
         }
