@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"flag"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -186,6 +187,10 @@ func fetch(repo, tag, name string) ([]byte, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("fetch %s: unexpected status %s", link, resp.Status)
+	}
 
 	return io.ReadAll(resp.Body)
 }
