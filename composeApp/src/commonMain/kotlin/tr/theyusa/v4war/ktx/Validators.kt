@@ -10,6 +10,7 @@ import tr.theyusa.v4war.fmt.v2ray.VLESSBean
 import tr.theyusa.v4war.fmt.v2ray.VMessBean
 import tr.theyusa.v4war.resources.Res
 import tr.theyusa.v4war.resources.warn_hysteria_legacy
+import tr.theyusa.v4war.resources.warn_insecure
 import tr.theyusa.v4war.resources.warn_not_encrypted
 import tr.theyusa.v4war.resources.warn_quic_0_rtt
 import tr.theyusa.v4war.resources.warn_shadowsocks_stream_cipher
@@ -46,16 +47,19 @@ fun AbstractBean.isInsecure(): ValidateResult {
             if (encryption in arrayOf("none", "zero")) {
                 if (!isTLS) return ValidateResult.Insecure(Res.string.warn_not_encrypted)
             }
+            if (allowInsecure) return ValidateResult.Insecure(Res.string.warn_insecure)
         }
 
         is VLESSBean -> {
             if (encryption in arrayOf("", "none")) {
                 if (!isTLS) return ValidateResult.Insecure(Res.string.warn_not_encrypted)
+                if (allowInsecure) return ValidateResult.Insecure(Res.string.warn_insecure)
             }
         }
 
         is TrojanBean -> {
             if (!isTLS) return ValidateResult.Insecure(Res.string.warn_not_encrypted)
+            if (allowInsecure) return ValidateResult.Insecure(Res.string.warn_insecure)
         }
 
         is HysteriaBean -> {

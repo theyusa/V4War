@@ -366,9 +366,9 @@ fun StandardV2RayBean.toUriVMessVLESSTrojan(): String {
             }
             if (v2rayTransport == "ws") {
                 if (wsMaxEarlyData > 0) {
-                    builder.addQueryParameter("ed", "$wsMaxEarlyData")
+                    builder.setQueryParameter("ed", "$wsMaxEarlyData")
                     if (earlyDataHeaderName.isNotBlank()) {
-                        builder.addQueryParameter("eh", earlyDataHeaderName)
+                        builder.setQueryParameter("eh", earlyDataHeaderName)
                     }
                 }
             } else if (v2rayTransport == "http" && !isTLS) {

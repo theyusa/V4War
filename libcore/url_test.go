@@ -146,3 +146,45 @@ func Test_ParseUrl(t *testing.T) {
 		})
 	}
 }
+
+func Test_SetHostAndPorts(t *testing.T) {
+	// SetHost must not add a trailing colon when the URL has no port.
+	u, err := ParseURL("https://example.com/path")
+	if err != nil {
+		t.Fatal(err)
+	}
+	u.SetHost("new.example.com")
+	if got := u.GetFullHost(); got != "new.example.com" {
+		t.Errorf("SetHost(no port) = %q, want %q", got, "new.example.com")
+	}
+
+	// SetHost must preserve an existing port.
+	u2, err := ParseURL("https://example.com:443/path")
+	if err != nil {
+		t.Fatal(err)
+	}
+	u2.SetHost("new.example.com")
+	if got := u2.GetFullHost(); got != "new.example.com:443" {
+		t.Errorf("SetHost(with port) = %q, want %q", got, "new.example.com:443")
+	}
+
+	// SetPorts must not produce a leading colon when the URL has no port.
+	u3, err := ParseURL("https://example.com/path")
+	if err != nil {
+		t.Fatal(err)
+	}
+	u3.SetPorts("8443")
+	if got := u3.GetFullHost(); got != "example.com:8443" {
+		t.Errorf("SetPorts(no port) = %q, want %q", got, "example.com:8443")
+	}
+
+	// SetPorts must replace an existing port.
+	u4, err := ParseURL("https://example.com:443/path")
+	if err != nil {
+		t.Fatal(err)
+	}
+	u4.SetPorts("8443")
+	if got := u4.GetFullHost(); got != "example.com:8443" {
+		t.Errorf("SetPorts(with port) = %q, want %q", got, "example.com:8443")
+	}
+}

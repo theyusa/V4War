@@ -22,8 +22,9 @@ fun parseUniversal(link: String): AbstractBean {
 }
 
 fun AbstractBean.toUniversalLink(): String {
+    val type = ProxyEntity().putBean(this).type
     var link = "v4war://"
-    link += TypeMap.reversed[ProxyEntity().putBean(this).type]
+    link += TypeMap.reversed[type] ?: error("Type $type not found")
     link += "?"
     link += KryoConverters.serialize(this).zlibCompress(9).b64EncodeUrlSafe()
     return link

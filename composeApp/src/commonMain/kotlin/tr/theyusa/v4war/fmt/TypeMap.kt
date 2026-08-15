@@ -8,6 +8,7 @@ object TypeMap : HashMap<String, Int>() {
         this["socks"] = ProxyEntity.TYPE_SOCKS
         this["ss"] = ProxyEntity.TYPE_SS
         this["vmess"] = ProxyEntity.TYPE_VMESS
+        this["vless"] = ProxyEntity.TYPE_VLESS
         this["trojan"] = ProxyEntity.TYPE_TROJAN
         this["hysteria"] = ProxyEntity.TYPE_HYSTERIA
         this["ssh"] = ProxyEntity.TYPE_SSH
