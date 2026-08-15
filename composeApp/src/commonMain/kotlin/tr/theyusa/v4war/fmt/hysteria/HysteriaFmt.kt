@@ -402,10 +402,7 @@ fun buildSingBoxOutboundHysteriaBean(bean: HysteriaBean): SingBoxOptions.Outboun
                     bean.hopInterval.blankAsNull()?.let {
                         when (val splitResult = SplitResult.splitDash(it)) {
                             is SplitResult.Single -> hop_interval = splitResult.value
-                            is SplitResult.Range -> {
-                                hop_interval = splitResult.start
-                                hop_interval_max = splitResult.end
-                            }
+                            is SplitResult.Range -> hop_interval = splitResult.start
                         }
                     }
                     server_ports = hopPort.singStyle().toMutableList()

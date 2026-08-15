@@ -8,7 +8,6 @@ import tr.theyusa.v4war.fmt.SingBoxOptions.OutboundECHOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.OutboundRealityOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.OutboundTLSOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.OutboundUTLSOptions
-import tr.theyusa.v4war.fmt.SingBoxOptions.Outbound_HTTPOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.Outbound_TrojanOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.Outbound_VLESSOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.Outbound_VMessOptions
