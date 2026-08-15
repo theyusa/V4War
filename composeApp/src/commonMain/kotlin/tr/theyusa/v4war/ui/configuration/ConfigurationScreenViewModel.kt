@@ -31,6 +31,8 @@ import tr.theyusa.v4war.ktx.onIoDispatcher
 import tr.theyusa.v4war.ktx.readableMessage
 import tr.theyusa.v4war.ktx.removeFirstMatched
 import tr.theyusa.v4war.ktx.runOnIoDispatcher
+import tr.theyusa.v4war.ktx.selectByNetworkStrategy
+import tr.theyusa.v4war.ktx.serverAddressDomainStrategy
 import tr.theyusa.v4war.libcore.Client
 import tr.theyusa.v4war.libcore.Libcore
 import tr.theyusa.v4war.plugin.PluginNotFoundException
@@ -58,10 +60,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
-import tr.theyusa.v4war.bg.NetworkSocketFactory
 import java.net.InetAddress
-import java.net.InetSocketAddress
-import java.net.Socket
 import java.net.UnknownHostException
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.name
@@ -305,16 +304,8 @@ class ConfigurationScreenViewModel : ViewModel() {
         val bean = profile.requireBean()
         if (!bean.canICMPing) return TestResult.Failure(FailureReason.IcmpUnavailable)
 
-        var address = bean.serverAddress
-        if (!address.isIpAddress()) try {
-            InetAddress.getAllByName(address)[0]?.let {
-                address = it.hostAddress!!
-            }
-        } catch (_: UnknownHostException) {
-        }
-        if (!address.isIpAddress()) {
-            return TestResult.Failure(FailureReason.DomainNotFound)
-        }
+        val address = resolvePingAddress(bean.serverAddress)
+            ?: return TestResult.Failure(FailureReason.DomainNotFound)
 
         return try {
             val result = Libcore.icmpPing(address, 5000)
@@ -329,49 +320,45 @@ class ConfigurationScreenViewModel : ViewModel() {
         val bean = profile.requireBean()
         if (!bean.canTCPing) return TestResult.Failure(FailureReason.TcpUnavailable)
 
-        var address = bean.serverAddress
-        if (!address.isIpAddress()) {
-            try {
-                InetAddress.getAllByName(address)[0]?.let {
-                    address = it.hostAddress!!
-                }
-            } catch (_: UnknownHostException) {
-            }
-        }
-        if (!address.isIpAddress()) {
-            return TestResult.Failure(FailureReason.DomainNotFound)
-        }
+        val address = resolvePingAddress(bean.serverAddress)
+            ?: return TestResult.Failure(FailureReason.DomainNotFound)
 
         return try {
-            val socket = NetworkSocketFactory.createSocket() ?: Socket()
-            try {
-                socket.soTimeout = 3000
-                socket.bind(InetSocketAddress(0))
-                val start = System.currentTimeMillis()
-                socket.connect(InetSocketAddress(address, bean.serverPort), 3000)
-                val ping = (System.currentTimeMillis() - start).toInt()
-                TestResult.Success(ping)
-            } finally {
-                socket.close()
-            }
+            val result = Libcore.tcpPing(address, bean.serverPort.toString(), 3000)
+            TestResult.Success(result)
         } catch (e: Exception) {
             Logs.e(e)
             val message = e.readableMessage
             when {
-                message.contains("ECONNREFUSED") || message.contains("Connection refused") -> {
+                message.contains("ECONNREFUSED") || message.contains("connection refused", ignoreCase = true) -> {
                     TestResult.Failure(FailureReason.ConnectionRefused)
                 }
 
-                message.contains("ENETUNREACH") || message.contains("Network unreachable") -> {
+                message.contains("ENETUNREACH") || message.contains("unreachable", ignoreCase = true) -> {
                     TestResult.Failure(FailureReason.NetworkUnreachable)
                 }
 
-                message.contains("timeout") || message.contains("Timeout") -> {
+                message.contains("i/o timeout", ignoreCase = true)
+                        || message.contains("timeout", ignoreCase = true)
+                        || message.contains("deadline", ignoreCase = true) -> {
                     TestResult.Failure(FailureReason.Timeout)
                 }
 
                 else -> TestResult.Failure(FailureReason.Generic(e.readableMessage))
             }
+        }
+    }
+
+    private fun resolvePingAddress(serverAddress: String): String? {
+        if (serverAddress.isIpAddress()) return serverAddress
+
+        return try {
+            InetAddress.getAllByName(serverAddress)
+                .filterNotNull()
+                .selectByNetworkStrategy(serverAddressDomainStrategy().orEmpty())
+                ?.hostAddress
+        } catch (_: UnknownHostException) {
+            null
         }
     }
 

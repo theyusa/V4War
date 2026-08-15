@@ -4,8 +4,11 @@ import fr.v4war.BuildConfig
 import tr.theyusa.v4war.database.DataStore
 import tr.theyusa.v4war.fmt.AbstractBean
 import tr.theyusa.v4war.fmt.LOCALHOST4
+import tr.theyusa.v4war.fmt.SingBoxOptions
 import tr.theyusa.v4war.libcore.Libcore
 import tr.theyusa.v4war.libcore.URL
+import java.net.Inet4Address
+import java.net.InetAddress
 import java.net.Inet6Address
 import java.net.InetSocketAddress
 import java.net.InterfaceAddress
@@ -54,6 +57,33 @@ fun currentSocks5(): URL? = if (!DataStore.serviceState.started) {
 
 fun String.isIpAddress(): Boolean {
     return isIPv4() || isIPv6()
+}
+
+fun serverAddressDomainStrategy(): String? {
+    return defaultOr(
+        DataStore.domainStrategyForServer.replace("auto", "").blankAsNull(),
+        { DataStore.networkStrategy.blankAsNull() },
+    )
+}
+
+fun List<InetAddress>.selectByNetworkStrategy(networkStrategy: String): InetAddress? {
+    val candidates = when (networkStrategy) {
+        SingBoxOptions.STRATEGY_IPV4_ONLY -> filterIsInstance<Inet4Address>()
+        SingBoxOptions.STRATEGY_IPV6_ONLY -> filterIsInstance<Inet6Address>()
+        else -> this
+    }
+
+    return when (networkStrategy) {
+        SingBoxOptions.STRATEGY_PREFER_IPV4 -> {
+            candidates.firstOrNull { it is Inet4Address } ?: candidates.firstOrNull()
+        }
+
+        SingBoxOptions.STRATEGY_PREFER_IPV6 -> {
+            candidates.firstOrNull { it is Inet6Address } ?: candidates.firstOrNull()
+        }
+
+        else -> candidates.firstOrNull()
+    }
 }
 
 fun String.isIPv4(): Boolean {
