@@ -1503,7 +1503,7 @@ item(Key.OPTIMISTIC_DNS_CACHE, PreferenceType.SWITCH) {
                             title = { Text(stringResource(Res.string.connection_test_unified_delay)) },
                             icon = {
                                 Icon(
-                                    vectorResource(Res.drawable.timer),
+                                    vectorResource(Res.drawable.shutter_speed),
                                     null,
                                 )
                             },
@@ -1519,7 +1519,7 @@ item(Key.OPTIMISTIC_DNS_CACHE, PreferenceType.SWITCH) {
                             title = { Text(stringResource(Res.string.connection_test_ignore_handshake_time)) },
                             icon = {
                                 Icon(
-                                    vectorResource(Res.drawable.question_mark),
+                                    vectorResource(Res.drawable.speed),
                                     null,
                                 )
                             },
