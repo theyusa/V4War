@@ -12,8 +12,13 @@ import tr.theyusa.v4war.utils.PackageCache
 class AppChangeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         Logs.d("onReceive: ${intent.action}")
+        val pendingResult = goAsync()
         runOnIoDispatcher {
-            checkUpdate(intent)
+            try {
+                checkUpdate(intent)
+            } finally {
+                pendingResult.finish()
+            }
         }
     }
 

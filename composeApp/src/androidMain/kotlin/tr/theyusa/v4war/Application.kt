@@ -100,6 +100,7 @@ class Application : Application(),
         }
 
         if (isBgProcess) {
+            runBlocking { DefaultNetworkMonitor.start() }
             repository.boxService?.start()
         }
 
