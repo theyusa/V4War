@@ -42,6 +42,7 @@ abstract class StandardV2RayBean : AbstractBean() {
     var echQueryServerName: String = ""
     var wsMaxEarlyData: Int = 0
     var earlyDataHeaderName: String = ""
+    var xhttpMode: String = ""
     var packetEncoding: Int = PACKET_ENCODING_NONE
 
     override fun initializeDefaultValues() {
@@ -89,11 +90,17 @@ abstract class StandardV2RayBean : AbstractBean() {
                 output.writeString(path)
                 output.writeString(headers)
             }
-
             "httpupgrade" -> {
                 output.writeString(host)
                 output.writeString(path)
                 output.writeString(headers)
+            }
+
+            "xhttp" -> {
+                output.writeString(host)
+                output.writeString(path)
+                output.writeString(headers)
+                output.writeString(xhttpMode)
             }
         }
 
@@ -172,6 +179,13 @@ abstract class StandardV2RayBean : AbstractBean() {
                 host = input.readString()
                 path = input.readString()
                 if (version >= 5) headers = input.readString()
+            }
+
+            "xhttp" -> {
+                host = input.readString()
+                path = input.readString()
+                if (version >= 5) headers = input.readString()
+                xhttpMode = input.readString()
             }
         }
 

@@ -319,4 +319,95 @@ class V2RayFmtTest {
         assertEquals("test-uuid", bean.uuid)
         assertEquals("xtls-rprx-vision", bean.flow)
     }
+
+    @Test
+    fun `buildSingBoxOutboundStandardV2RayBean should parse ws early data from path query`() {
+        val bean = VMessBean().apply {
+            serverAddress = "example.com"
+            serverPort = 10086
+            uuid = "test-uuid"
+            v2rayTransport = "ws"
+            host = "host.example.com"
+            path = "/ws?ed=2048&eh=Sec-WebSocket-Protocol"
+        }
+
+        val outboundMap = buildSingBoxOutboundStandardV2RayBean(bean).asKxsMap()
+        val transport = assertIs<Map<*, *>>(outboundMap["transport"])
+        assertEquals("ws", transport["type"])
+        assertEquals("/ws", transport["path"])
+        assertEquals(2048L, transport["max_early_data"])
+        assertEquals("Sec-WebSocket-Protocol", transport["early_data_header_name"])
+    }
+
+    @Test
+    fun `buildSingBoxOutboundStandardV2RayBean should build httpupgrade transport`() {
+        val bean = VMessBean().apply {
+            serverAddress = "example.com"
+            serverPort = 10086
+            uuid = "test-uuid"
+            v2rayTransport = "httpupgrade"
+            host = "host.example.com"
+            path = "/upgrade"
+        }
+
+        val outboundMap = buildSingBoxOutboundStandardV2RayBean(bean).asKxsMap()
+        val transport = assertIs<Map<*, *>>(outboundMap["transport"])
+        assertEquals("httpupgrade", transport["type"])
+        assertEquals("/upgrade", transport["path"])
+        assertEquals("host.example.com", transport["host"])
+    }
+
+    @Test
+    fun `buildSingBoxOutboundStandardV2RayBean should build xhttp transport`() {
+        val bean = VLESSBean().apply {
+            serverAddress = "example.com"
+            serverPort = 443
+            uuid = "test-uuid"
+            v2rayTransport = "xhttp"
+            host = "host.example.com"
+            path = "/xhttp"
+            xhttpMode = "auto"
+        }
+
+        val outboundMap = buildSingBoxOutboundStandardV2RayBean(bean).asKxsMap()
+        val transport = assertIs<Map<*, *>>(outboundMap["transport"])
+        assertEquals("xhttp", transport["type"])
+        assertEquals("/xhttp", transport["path"])
+        assertEquals("host.example.com", transport["host"])
+        assertEquals("auto", transport["mode"])
+    }
+
+    @Test
+    fun `parseV2Ray should parse xhttp ducksoft url with mode`() {
+        val bean = parseV2Ray(
+            "vless://test-uuid@example.com:443?type=xhttp&host=host.example.com" +
+                "&path=%2Fxhttp&mode=packet-up&security=tls#XHTTP",
+        )
+
+        assertIs<VLESSBean>(bean)
+        assertEquals("xhttp", bean.v2rayTransport)
+        assertEquals("host.example.com", bean.host)
+        assertEquals("/xhttp", bean.path)
+        assertEquals("packet-up", bean.xhttpMode)
+    }
+
+    @Test
+    fun `toUriVMessVLESSTrojan should round-trip xhttp transport`() {
+        val bean = VLESSBean().apply {
+            serverAddress = "example.com"
+            serverPort = 443
+            uuid = "test-uuid"
+            v2rayTransport = "xhttp"
+            host = "host.example.com"
+            path = "/xhttp"
+            xhttpMode = "stream-up"
+            security = "tls"
+            sni = "sni.example.com"
+        }
+
+        val uri = bean.toUriVMessVLESSTrojan()
+        assertTrue(uri.contains("type=xhttp"))
+        assertTrue(uri.contains("mode=stream-up"))
+        assertTrue(uri.contains("host=host.example.com"))
+    }
 }

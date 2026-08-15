@@ -11,7 +11,6 @@ import (
 	"libcore/vario"
 
 	"github.com/sagernet/sing-box/adapter"
-	"github.com/sagernet/sing-box/common/urltest"
 	"github.com/sagernet/sing-box/log"
 	"github.com/sagernet/sing-box/protocol/group"
 	"github.com/sagernet/sing/common"
@@ -83,7 +82,7 @@ func (b *boxInstance) urlTest(tag, link string, timeout int32) (latency int32, e
 	chLatency := make(chan uint16, 1)
 	go func() {
 		var t uint16
-		t, err = urltest.URLTest(ctx, link, detour)
+		t, err = runURLTest(ctx, link, detour, urlTestUnifiedDelay)
 		if err != nil {
 			close(chLatency)
 			return
@@ -206,7 +205,7 @@ func (s *Service) handleGroupTest(conn io.ReadWriter, instance *boxInstance) err
 				continue
 			}
 			errGroup.Go(func() error {
-				t, err := urltest.URLTest(ctx, link, p)
+				t, err := runURLTest(ctx, link, p, urlTestUnifiedDelay)
 				if err != nil {
 					log.DebugContext(ctx, "outbound ", tag, " unavailable: ", err)
 				} else {

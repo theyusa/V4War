@@ -185,6 +185,12 @@ fun StandardV2RayBean.parseDuckSoft(url: URL) {
             host = url.queryParameter("host")
             path = url.queryParameter("path")
         }
+
+        "xhttp" -> {
+            host = url.queryParameter("host")
+            path = url.queryParameter("path")
+            xhttpMode = url.queryParameterNotBlank("mode") ?: "auto"
+        }
     }
 
     when (this) {
@@ -365,6 +371,18 @@ fun StandardV2RayBean.toUriVMessVLESSTrojan(): String {
                 builder.setQueryParameter("serviceName", path)
             }
         }
+
+        "xhttp" -> {
+            if (host.isNotBlank()) {
+                builder.addQueryParameter("host", host)
+            }
+            if (path.isNotBlank()) {
+                builder.addQueryParameter("path", path)
+            }
+            if (xhttpMode.isNotBlank()) {
+                builder.addQueryParameter("mode", xhttpMode)
+            }
+        }
     }
 
     if (security.isNotBlank() && security != "none") {
@@ -424,11 +442,19 @@ fun buildSingBoxOutboundStreamSettings(bean: StandardV2RayBean): V2RayTransportO
                     headers!!["Host"] = bean.host.listByLineOrComma().toMutableList()
                 }
 
-                if (bean.path.contains("?ed=")) {
-                    path = bean.path.substringBefore("?ed=")
-                    max_early_data = bean.path.substringAfter("?ed=").toIntOrNull() ?: 2048
-                    early_data_header_name = "Sec-WebSocket-Protocol"
-                } else {
+                runCatching {
+                    Libcore.parseURL(bean.path)
+                }.onSuccess { pathURL ->
+                    pathURL.queryParameterNotBlank("ed")?.toIntOrNull()?.let { maxEarlyData ->
+                        max_early_data = maxEarlyData
+                        pathURL.removeQueryParameter("ed")
+                    }
+                    pathURL.queryParameterNotBlank("eh")?.let { headerName ->
+                        early_data_header_name = headerName
+                        pathURL.removeQueryParameter("eh")
+                    }
+                    path = pathURL.string.takeIf { it.isNotBlank() } ?: "/"
+                }.onFailure {
                     path = bean.path.takeIf { it.isNotBlank() } ?: "/"
                 }
 
@@ -473,6 +499,17 @@ fun buildSingBoxOutboundStreamSettings(bean: StandardV2RayBean): V2RayTransportO
                 type = TRANSPORT_HTTPUPGRADE
                 host = bean.host.listByLineOrComma().firstOrNull()
                 path = bean.path
+
+                headers = bean.headers.blankAsNull()?.let(::buildHeader)?.toMutableMap()
+            }
+        }
+
+        "xhttp" -> {
+            return V2RayTransportOptions_V2RayXHTTPOptions().apply {
+                type = TRANSPORT_XHTTP
+                host = bean.host.listByLineOrComma().firstOrNull()
+                path = bean.path
+                mode = bean.xhttpMode.blankAsNull() ?: "auto"
 
                 headers = bean.headers.blankAsNull()?.let(::buildHeader)?.toMutableMap()
             }
@@ -662,6 +699,17 @@ fun parseStandardV2RayOutbound(json: JSONMap): StandardV2RayBean {
                             }.joinToString("\n")
                         }.orEmpty()
                     }
+
+                    is V2RayTransportOptions_V2RayXHTTPOptions -> {
+                        bean.host = transport.host.orEmpty()
+                        bean.path = transport.path.orEmpty()
+                        bean.xhttpMode = transport.mode.orEmpty()
+                        bean.headers = transport.headers?.let {
+                            parseHeader(it).map { entry ->
+                                entry.key + ":" + entry.value.joinToString(",")
+                            }.joinToString("\n")
+                        }.orEmpty()
+                    }
                 }
             }
 
@@ -731,6 +779,16 @@ fun parseTransport(json: JSONMap): V2RayTransportOptions? = when (json["type"]?.
         type = TRANSPORT_HTTPUPGRADE
         host = json["host"]?.toString()
         path = json["path"]?.toString()
+        headers = (json["headers"] as? JSONMap)?.let {
+            parseHeader(it).toMutableMap()
+        } ?: mutableMapOf()
+    }
+
+    TRANSPORT_XHTTP -> V2RayTransportOptions_V2RayXHTTPOptions().apply {
+        type = TRANSPORT_XHTTP
+        host = json["host"]?.toString()
+        path = json["path"]?.toString()
+        mode = json["mode"]?.toString()
         headers = (json["headers"] as? JSONMap)?.let {
             parseHeader(it).toMutableMap()
         } ?: mutableMapOf()

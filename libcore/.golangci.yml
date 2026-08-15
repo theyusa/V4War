@@ -12,6 +12,7 @@ run:
     - "with_utls"
     - "with_clash_api"
     - "with_ech"
+    - "with_xhttp"
   go: "1.20"
 
 issues:

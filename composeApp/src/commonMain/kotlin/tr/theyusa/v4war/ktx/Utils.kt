@@ -173,12 +173,38 @@ suspend fun SnackbarHostState.showAndDismissOld(
 fun readableUrlTestError(error: String?): StringResource? {
     val lowercase = error?.lowercase() ?: return null
     return when {
-        lowercase.contains("timeout") || lowercase.contains("deadline") -> {
+        lowercase.contains("connection refused") || lowercase.contains("connect: refused") -> {
+            Res.string.connection_test_refused
+        }
+
+        lowercase.contains("no such host") || lowercase.contains("no such hostname") ||
+            lowercase.contains("lookup ") || lowercase.contains("name resolution") -> {
+            Res.string.connection_test_domain_not_found
+        }
+
+        lowercase.contains("network is unreachable") || lowercase.contains("no route to host") ||
+            lowercase.contains("network is down") -> {
+            Res.string.connection_test_unreachable
+        }
+
+        lowercase.contains("timeout") || lowercase.contains("deadline") ||
+            lowercase.contains("timed out") -> {
             Res.string.connection_test_timeout
         }
 
-        lowercase.contains("refused") || lowercase.contains("closed pipe") || lowercase.contains("reset") -> {
-            Res.string.connection_test_refused
+        lowercase.contains("unknown transport") || lowercase.contains("unsupported transport") -> {
+            Res.string.connection_test_unsupported
+        }
+
+        lowercase.contains("tls:") || lowercase.contains("x509:") ||
+            lowercase.contains("certificate") || lowercase.contains("handshake failed") ||
+            lowercase.contains("first record does not look") -> {
+            Res.string.connection_test_tls_failure
+        }
+
+        lowercase.contains("status code") || lowercase.contains("unexpected status") ||
+            lowercase.contains("bad response") -> {
+            Res.string.connection_test_http_failure
         }
 
         lowercase.contains("via clientconn.close") -> {

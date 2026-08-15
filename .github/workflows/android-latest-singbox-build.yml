@@ -54,10 +54,19 @@ jobs:
           latest=$(go list -m -versions github.com/sagernet/sing-box | awk '{print $NF}')
           target="$latest"
 
-          if [ "$target" = "$current" ]; then
+          # sing-box is pinned to an in-tree patched copy (XHTTP support via the
+          # `with_xhttp` build tag), so auto-upgrading would be silently ignored
+          # by the replace directive. Treat a pinned checkout as "no upgrade".
+          if grep -q '^replace github.com/sagernet/sing-box ' go.mod; then
+            target="$current"
             needs_upgrade=false
+            echo "pinned=true" >> "$GITHUB_OUTPUT"
+          elif [ "$target" = "$current" ]; then
+            needs_upgrade=false
+            echo "pinned=false" >> "$GITHUB_OUTPUT"
           else
             needs_upgrade=true
+            echo "pinned=false" >> "$GITHUB_OUTPUT"
           fi
 
           echo "current=$current" >> "$GITHUB_OUTPUT"

@@ -8,6 +8,7 @@ TAGS=(
     "with_quic"
     "with_utls"
     "with_clash_api"
+    "with_xhttp"
 )
 
 IFS="," BUILD_TAGS="${TAGS[*]}"

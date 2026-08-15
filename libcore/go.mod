@@ -25,7 +25,10 @@ tool (
 	github.com/xchacha20-poly1305/anja/cmd/anjb
 )
 
-// replace github.com/sagernet/sing-box => ../../sing-box
+// XHTTP transport (type "xhttp") is not in upstream sing-box; use the in-tree
+// patched copy (upstream v1.14.0-alpha.18 + the sing-box-lx XHTTP client
+// transport, gated by the `with_xhttp` build tag).
+replace github.com/sagernet/sing-box => ../third_party/sing-box
 
 // replace github.com/sagernet/sing-vmess => github.com/xchacha20-poly1305/sing-vmess v0.2.7-0.20260305142916-7ad18fe0e78b
 

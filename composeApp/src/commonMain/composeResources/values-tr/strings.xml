@@ -335,6 +335,9 @@
     <string name="connection_test_refused">Bağlantı reddedildi</string>
     <string name="connection_test_unreachable">Ulaşılamıyor</string>
     <string name="connection_test_timeout">Zaman aşımı</string>
+    <string name="connection_test_tls_failure">TLS hatası</string>
+    <string name="connection_test_http_failure">HTTP hatası</string>
+    <string name="connection_test_unsupported">Desteklenmeyen taşıma</string>
     <string name="append_http_proxy">VPN'e HTTP proxy ekle</string>
     <string name="append_http_proxy_sum">HTTP proxy, sanal NIC cihazından geçmeden doğrudan (tarayıcı / desteklenen bazı uygulamalar) tarafından kullanılacaktır (Android 10+).</string>
     <string name="protocol_settings">Protokol ayarları</string>

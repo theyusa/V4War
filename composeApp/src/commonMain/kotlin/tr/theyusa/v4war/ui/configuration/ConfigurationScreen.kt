@@ -1046,6 +1046,22 @@ private fun ConfigurationDialogs(
                                             stringResource(Res.string.connection_test_timeout)
                                         }
 
+                                        FailureReason.DnsFailure -> {
+                                            stringResource(Res.string.connection_test_domain_not_found)
+                                        }
+
+                                        FailureReason.TlsFailure -> {
+                                            stringResource(Res.string.connection_test_tls_failure)
+                                        }
+
+                                        FailureReason.HttpFailure -> {
+                                            stringResource(Res.string.connection_test_http_failure)
+                                        }
+
+                                        FailureReason.Unsupported -> {
+                                            stringResource(Res.string.connection_test_unsupported)
+                                        }
+
                                         is FailureReason.Generic -> reason.message ?: "Unknown"
 
                                         is FailureReason.PluginNotFound -> {

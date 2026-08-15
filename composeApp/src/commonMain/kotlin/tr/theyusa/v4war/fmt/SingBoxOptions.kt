@@ -48,6 +48,7 @@ object SingBoxOptions {
     const val TRANSPORT_HTTP = "http"
     const val TRANSPORT_QUIC = "quic"
     const val TRANSPORT_GRPC = "grpc"
+    const val TRANSPORT_XHTTP = "xhttp"
 
     const val TYPE_LOGICAL = "logical"
 
@@ -1920,6 +1921,23 @@ object SingBoxOptions {
 
         @JvmField
         var path: String? = null
+
+        @JvmField
+        var headers: MutableMap<String, MutableList<String>>? = null
+
+    }
+
+    @KxsSerializable
+    open class V2RayTransportOptions_V2RayXHTTPOptions : V2RayTransportOptions() {
+
+        @JvmField
+        var host: String? = null
+
+        @JvmField
+        var path: String? = null
+
+        @JvmField
+        var mode: String? = null
 
         @JvmField
         var headers: MutableMap<String, MutableList<String>>? = null

@@ -26,6 +26,8 @@ import tr.theyusa.v4war.group.RawUpdater
 import tr.theyusa.v4war.ktx.Logs
 import tr.theyusa.v4war.ktx.SubscriptionFoundException
 import tr.theyusa.v4war.ktx.isIpAddress
+import tr.theyusa.v4war.ktx.selectByNetworkStrategy
+import tr.theyusa.v4war.ktx.serverAddressDomainStrategy
 import tr.theyusa.v4war.ktx.onDefaultDispatcher
 import tr.theyusa.v4war.ktx.onIoDispatcher
 import tr.theyusa.v4war.ktx.readableMessage
@@ -99,18 +101,22 @@ data class ProfileTestResult(
 @Stable
 sealed interface TestResult {
     data class Success(val ping: Int) : TestResult
-    data class Failure(val reason: FailureReason) : TestResult
+    data class Failure(val reason: FailureReason, val message: String? = null) : TestResult
 }
 
 @Stable
 sealed interface FailureReason {
     object InvalidConfig : FailureReason
     object DomainNotFound : FailureReason
+    object DnsFailure : FailureReason
     object IcmpUnavailable : FailureReason
     object TcpUnavailable : FailureReason
     object ConnectionRefused : FailureReason
     object NetworkUnreachable : FailureReason
     object Timeout : FailureReason
+    object TlsFailure : FailureReason
+    object HttpFailure : FailureReason
+    object Unsupported : FailureReason
     data class Generic(val message: String?) : FailureReason
     data class PluginNotFound(val plugin: String) : FailureReason
 }
@@ -120,6 +126,45 @@ enum class TestType {
     ICMPPing,
     TCPPing,
     URLTest,
+}
+
+/**
+ * Maps a sing-box/libcore error message to the most specific [FailureReason].
+ *
+ * The Go core returns plain `err.Error()` strings through the RPC layer, so the
+ * URL-test path must classify them here. Order matters: more specific patterns
+ * (refused, DNS) are checked before the broad "timeout"/"unreachable" buckets.
+ */
+internal fun classifyConnectionError(message: String?): FailureReason {
+    val m = message?.lowercase() ?: return FailureReason.Generic(message)
+    return when {
+        m.contains("connection refused") || m.contains("connect: refused") ->
+            FailureReason.ConnectionRefused
+
+        m.contains("no such host") || m.contains("no such hostname") ||
+            m.contains("lookup ") || m.contains("name resolution") ->
+            FailureReason.DnsFailure
+
+        m.contains("network is unreachable") || m.contains("no route to host") ||
+            m.contains("network is down") ->
+            FailureReason.NetworkUnreachable
+
+        m.contains("timeout") || m.contains("deadline") || m.contains("timed out") ->
+            FailureReason.Timeout
+
+        m.contains("unknown transport") || m.contains("unsupported transport") ->
+            FailureReason.Unsupported
+
+        m.contains("tls:") || m.contains("x509:") || m.contains("certificate") ||
+            m.contains("handshake failed") || m.contains("first record does not look") ->
+            FailureReason.TlsFailure
+
+        m.contains("status code") || m.contains("unexpected status") ||
+            m.contains("bad response") ->
+            FailureReason.HttpFailure
+
+        else -> FailureReason.Generic(message)
+    }
 }
 
 @Stable
@@ -261,23 +306,24 @@ class ConfigurationScreenViewModel : ViewModel() {
                             it.profile.status = when (result.reason) {
                                 FailureReason.ConnectionRefused, FailureReason.IcmpUnavailable,
                                 FailureReason.NetworkUnreachable, FailureReason.Timeout,
+                                FailureReason.DnsFailure,
                                     -> ProxyEntity.STATUS_UNREACHABLE
 
                                 is FailureReason.PluginNotFound, FailureReason.DomainNotFound,
-                                FailureReason.InvalidConfig,
+                                FailureReason.InvalidConfig, FailureReason.Unsupported,
                                     -> ProxyEntity.STATUS_INVALID
 
-                                is FailureReason.Generic, FailureReason.TcpUnavailable -> ProxyEntity.STATUS_UNAVAILABLE
+                                is FailureReason.Generic, FailureReason.TcpUnavailable,
+                                FailureReason.TlsFailure, FailureReason.HttpFailure,
+                                    -> ProxyEntity.STATUS_UNAVAILABLE
                             }
 
                             val displayedError = displayedErrors[it.profile.id]
+                            // Prefer the raw error message so readableUrlTestError can
+                            // classify it; fall back to the localized live-UI text.
                             it.profile.error = when (result.reason) {
-                                is FailureReason.Generic -> displayedError ?: result.reason.message
-                                is FailureReason.PluginNotFound -> {
-                                    displayedError ?: result.reason.plugin
-                                }
-
-                                else -> displayedError
+                                is FailureReason.PluginNotFound -> displayedError ?: result.reason.plugin
+                                else -> result.message ?: displayedError
                             }
                         }
                     }
@@ -305,23 +351,25 @@ class ConfigurationScreenViewModel : ViewModel() {
         val bean = profile.requireBean()
         if (!bean.canICMPing) return TestResult.Failure(FailureReason.IcmpUnavailable)
 
-        var address = bean.serverAddress
-        if (!address.isIpAddress()) try {
-            InetAddress.getAllByName(address)[0]?.let {
-                address = it.hostAddress!!
-            }
-        } catch (_: UnknownHostException) {
-        }
-        if (!address.isIpAddress()) {
-            return TestResult.Failure(FailureReason.DomainNotFound)
-        }
+        val address = resolvePingAddress(bean.serverAddress)
+            ?: return TestResult.Failure(FailureReason.DomainNotFound)
 
         return try {
             val result = Libcore.icmpPing(address, 5000)
             TestResult.Success(result)
         } catch (e: Exception) {
             Logs.e(e)
-            TestResult.Failure(FailureReason.Generic(e.readableMessage))
+            val message = e.readableMessage
+            val reason = if (
+                message.contains("permission denied") ||
+                message.contains("operation not permitted") ||
+                message.contains("create socket")
+            ) {
+                FailureReason.IcmpUnavailable
+            } else {
+                classifyConnectionError(message)
+            }
+            TestResult.Failure(reason, message)
         }
     }
 
@@ -329,18 +377,8 @@ class ConfigurationScreenViewModel : ViewModel() {
         val bean = profile.requireBean()
         if (!bean.canTCPing) return TestResult.Failure(FailureReason.TcpUnavailable)
 
-        var address = bean.serverAddress
-        if (!address.isIpAddress()) {
-            try {
-                InetAddress.getAllByName(address)[0]?.let {
-                    address = it.hostAddress!!
-                }
-            } catch (_: UnknownHostException) {
-            }
-        }
-        if (!address.isIpAddress()) {
-            return TestResult.Failure(FailureReason.DomainNotFound)
-        }
+        val address = resolvePingAddress(bean.serverAddress)
+            ?: return TestResult.Failure(FailureReason.DomainNotFound)
 
         return try {
             val socket = NetworkSocketFactory.createSocket() ?: Socket()
@@ -357,21 +395,20 @@ class ConfigurationScreenViewModel : ViewModel() {
         } catch (e: Exception) {
             Logs.e(e)
             val message = e.readableMessage
-            when {
-                message.contains("ECONNREFUSED") || message.contains("Connection refused") -> {
-                    TestResult.Failure(FailureReason.ConnectionRefused)
-                }
+            TestResult.Failure(classifyConnectionError(message), message)
+        }
+    }
 
-                message.contains("ENETUNREACH") || message.contains("Network unreachable") -> {
-                    TestResult.Failure(FailureReason.NetworkUnreachable)
-                }
+    private fun resolvePingAddress(serverAddress: String): String? {
+        if (serverAddress.isIpAddress()) return serverAddress
 
-                message.contains("timeout") || message.contains("Timeout") -> {
-                    TestResult.Failure(FailureReason.Timeout)
-                }
-
-                else -> TestResult.Failure(FailureReason.Generic(e.readableMessage))
-            }
+        return try {
+            InetAddress.getAllByName(serverAddress)
+                .filterNotNull()
+                .selectByNetworkStrategy(serverAddressDomainStrategy().orEmpty())
+                ?.hostAddress
+        } catch (_: UnknownHostException) {
+            null
         }
     }
 
@@ -384,7 +421,12 @@ class ConfigurationScreenViewModel : ViewModel() {
 
         return try {
             client = Libcore.newClient(null)
-            val config = buildConfig(profile, forTest = true)
+            val config = try {
+                buildConfig(profile, forTest = true)
+            } catch (e: Exception) {
+                Logs.e(e)
+                return TestResult.Failure(FailureReason.InvalidConfig)
+            }
 
             if (config.externalIndex.any { it.chain.isNotEmpty() }) {
                 val pluginConfigs = initPlugins(config, false, cacheFiles)
@@ -396,9 +438,10 @@ class ConfigurationScreenViewModel : ViewModel() {
             val result = client.newInstanceURLTest(config.config, config.mainTag, testURL, testTimeout)
             TestResult.Success(result)
         } catch (e: PluginNotFoundException) {
-            TestResult.Failure(FailureReason.PluginNotFound(e.plugin))
+            TestResult.Failure(FailureReason.PluginNotFound(e.plugin), e.plugin)
         } catch (e: Exception) {
-            TestResult.Failure(FailureReason.Generic(e.readableMessage))
+            Logs.e(e)
+            TestResult.Failure(classifyConnectionError(e.readableMessage), e.readableMessage)
         } finally {
             client?.closeQuietly()
             processes?.close(viewModelScope)
