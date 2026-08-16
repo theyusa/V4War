@@ -57,12 +57,19 @@ object BackendState {
     )
     val alerts: SharedFlow<Alert> = _alerts.asSharedFlow()
 
+    private val _speedUpdates = MutableSharedFlow<SpeedStats?>(
+        extraBufferCapacity = 16,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    val speedUpdates: SharedFlow<SpeedStats?> = _speedUpdates.asSharedFlow()
+
     fun updateState(state: ServiceState, profileName: String? = null) {
         _status.value = ServiceStatus(state, profileName, _status.value.speed)
     }
 
     fun updateSpeed(speed: SpeedStats?) {
         _status.value = _status.value.copy(speed = speed)
+        _speedUpdates.tryEmit(speed)
     }
 
     fun emitAlert(type: Int, message: String) {
@@ -76,5 +83,6 @@ object BackendState {
     fun reset() {
         _connected.value = false
         _status.value = ServiceStatus()
+        _speedUpdates.tryEmit(null)
     }
 }

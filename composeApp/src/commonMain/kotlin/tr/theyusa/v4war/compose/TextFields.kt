@@ -269,43 +269,6 @@ fun HostTextField(
 }
 
 @Composable
-fun ValidatedIntegerTextField(
-    value: TextFieldValue,
-    onValueChange: (TextFieldValue) -> Unit,
-    onOk: () -> Unit,
-    minValue: Int? = null,
-    maxValue: Int? = null,
-    modifier: Modifier = Modifier,
-) {
-    fun validate(text: String): String? {
-        if (text.isBlank()) {
-            return null
-        }
-        val intValue = text.toIntOrNull() ?: return "Invalid number"
-        if (minValue != null && intValue < minValue) {
-            return "Must be >= $minValue"
-        }
-        if (maxValue != null && intValue > maxValue) {
-            return "Must be <= $maxValue"
-        }
-        return null
-    }
-
-    ValidatedTextField(
-        value = value,
-        onValueChange = { newValue ->
-            val text = newValue.text
-            if (text.isBlank() || text.toIntOrNull() != null) {
-                onValueChange(newValue)
-            }
-        },
-        onOk = onOk,
-        singleLine = true,
-        validator = ::validate,
-    )
-}
-
-@Composable
 fun MultilineTextField(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,

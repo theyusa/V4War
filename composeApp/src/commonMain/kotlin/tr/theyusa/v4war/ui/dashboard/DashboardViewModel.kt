@@ -9,7 +9,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import tr.theyusa.v4war.Key
 import tr.theyusa.v4war.TrafficSortMode
+import tr.theyusa.v4war.bg.BackendState
 import tr.theyusa.v4war.bg.DefaultNetworkListener
+import tr.theyusa.v4war.bg.SpeedStats
 import tr.theyusa.v4war.database.DataStore
 import tr.theyusa.v4war.ktx.Logs
 import tr.theyusa.v4war.ktx.emptyAsNull
@@ -53,6 +55,12 @@ data class DashboardState(
 
     val memory: Long = 0,
     val goroutines: Int = 0,
+    val txRateProxy: Long = 0,
+    val rxRateProxy: Long = 0,
+    val txRateDirect: Long = 0,
+    val rxRateDirect: Long = 0,
+    val proxySpeedHistory: List<Float> = idleSpeedHistory(),
+    val directSpeedHistory: List<Float> = idleSpeedHistory(),
     val ipv4: String? = null,
     val ipv6: String? = null,
     val selectedClashMode: String = "",
@@ -132,6 +140,15 @@ fun GroupItemIterator.toList(): List<ProxySetItem> {
     }
 }
 
+internal const val SPEED_HISTORY_SIZE = 30
+
+internal fun idleSpeedHistory(): List<Float> = List(SPEED_HISTORY_SIZE) { 0f }
+
+internal fun nextSpeedHistory(history: List<Float>, sample: Float): List<Float> {
+    val sized = if (history.size == SPEED_HISTORY_SIZE) history else idleSpeedHistory()
+    return sized.drop(1) + sample
+}
+
 @Stable
 class DashboardViewModel(
     private val loadPlatformNetworkInfo: suspend () -> Triple<List<NetworkInterfaceInfo>, String?, String?>,
@@ -190,6 +207,23 @@ class DashboardViewModel(
             }
             refreshNetworkInterfaces()
         }
+
+        viewModelScope.launch {
+            BackendState.status.collect { status ->
+                if (!status.state.connected) {
+                    resetSpeedState()
+                }
+            }
+        }
+        viewModelScope.launch {
+            BackendState.speedUpdates.collect { speed ->
+                if (!BackendState.status.value.state.connected || speed == null) {
+                    resetSpeedState()
+                    return@collect
+                }
+                appendSpeed(speed)
+            }
+        }
     }
 
     private var job: Job? = null
@@ -214,6 +248,12 @@ class DashboardViewModel(
             state.copy(
                 memory = 0,
                 goroutines = 0,
+                txRateProxy = 0,
+                rxRateProxy = 0,
+                txRateDirect = 0,
+                rxRateDirect = 0,
+                proxySpeedHistory = idleSpeedHistory(),
+                directSpeedHistory = idleSpeedHistory(),
                 connections = emptyList(),
                 filteredConnections = emptyList(),
                 proxySets = emptyList(),
@@ -380,6 +420,38 @@ class DashboardViewModel(
                 networkInterfaces = interfaces,
                 ipv4 = ipv4,
                 ipv6 = ipv6,
+            )
+        }
+    }
+
+    private fun appendSpeed(speed: SpeedStats) {
+        _uiState.update { state ->
+            state.copy(
+                txRateProxy = speed.txRateProxy,
+                rxRateProxy = speed.rxRateProxy,
+                txRateDirect = speed.txRateDirect,
+                rxRateDirect = speed.rxRateDirect,
+                proxySpeedHistory = nextSpeedHistory(
+                    state.proxySpeedHistory,
+                    (speed.txRateProxy + speed.rxRateProxy).toFloat(),
+                ),
+                directSpeedHistory = nextSpeedHistory(
+                    state.directSpeedHistory,
+                    (speed.txRateDirect + speed.rxRateDirect).toFloat(),
+                ),
+            )
+        }
+    }
+
+    private fun resetSpeedState() {
+        _uiState.update { state ->
+            state.copy(
+                txRateProxy = 0,
+                rxRateProxy = 0,
+                txRateDirect = 0,
+                rxRateDirect = 0,
+                proxySpeedHistory = idleSpeedHistory(),
+                directSpeedHistory = idleSpeedHistory(),
             )
         }
     }

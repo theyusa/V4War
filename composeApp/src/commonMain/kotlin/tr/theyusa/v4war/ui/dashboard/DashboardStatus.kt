@@ -78,6 +78,10 @@ internal fun DashboardStatusScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item {
+                    DashboardSpeedRow(uiState = uiState)
+                }
+
+                item {
                     ElevatedCard(
                         modifier = Modifier.fillMaxWidth(),
                     ) {

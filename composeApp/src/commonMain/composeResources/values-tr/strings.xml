@@ -596,6 +596,8 @@
     <string name="status_goroutines" translatable="false">Goroutines</string>
     <string name="status_memory">Bellek</string>
     <string name="status_status">Durum</string>
+    <string name="status_proxy">Proxy</string>
+    <string name="status_direct">Doğrudan</string>
     <string name="disable_post_quantum">Post-quantum anahtar anlaşmasını devre dışı bırak</string>
     <string name="mux_strategy">Mux stratejisi</string>
     <string name="mux_number">Mux sayısı</string>

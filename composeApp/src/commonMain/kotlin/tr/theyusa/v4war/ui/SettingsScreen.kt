@@ -52,7 +52,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
@@ -61,7 +60,6 @@ import tr.theyusa.v4war.CONNECTION_TEST_URL
 import tr.theyusa.v4war.CertProvider
 import tr.theyusa.v4war.Key
 import tr.theyusa.v4war.NetworkInterfaceStrategy
-import tr.theyusa.v4war.ProtocolProvider
 import tr.theyusa.v4war.TrafficSniffing
 import tr.theyusa.v4war.RuleProvider
 import tr.theyusa.v4war.TunImplementation
@@ -69,7 +67,6 @@ import tr.theyusa.v4war.bg.BackendState
 import tr.theyusa.v4war.bg.Executable
 import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
-import tr.theyusa.v4war.compose.DurationTextField
 import tr.theyusa.v4war.compose.HostTextField
 import tr.theyusa.v4war.compose.LinkOrContentTextField
 import tr.theyusa.v4war.compose.PasswordPreference
@@ -81,7 +78,6 @@ import tr.theyusa.v4war.compose.SagerFab
 import tr.theyusa.v4war.compose.SimpleTopAppBar
 import tr.theyusa.v4war.compose.StatsBar
 import tr.theyusa.v4war.compose.TextButton
-import tr.theyusa.v4war.compose.UIntegerTextField
 import tr.theyusa.v4war.compose.rememberScrollHideState
 import tr.theyusa.v4war.compose.theme.DEFAULT
 import tr.theyusa.v4war.compose.theme.themeString
@@ -135,9 +131,7 @@ import tr.theyusa.v4war.resources.dns
 import tr.theyusa.v4war.resources.dns_hosts
 import tr.theyusa.v4war.resources.domain_strategy_for_direct
 import tr.theyusa.v4war.resources.domain_strategy_for_server
-import tr.theyusa.v4war.resources.download
 import tr.theyusa.v4war.resources.enable
-import tr.theyusa.v4war.resources.enable_ntp
 import tr.theyusa.v4war.resources.fake_dns
 import tr.theyusa.v4war.resources.fake_dns_for_all
 import tr.theyusa.v4war.resources.fake_dns_for_all_sum
@@ -146,15 +140,10 @@ import tr.theyusa.v4war.resources.fake_ip_range_6
 import tr.theyusa.v4war.resources.fakedns_message
 import tr.theyusa.v4war.resources.fallback
 import tr.theyusa.v4war.resources.fast_forward
-import tr.theyusa.v4war.resources.file_upload
-import tr.theyusa.v4war.resources.flight_takeoff
 import tr.theyusa.v4war.resources.flip_camera_android
 import tr.theyusa.v4war.resources.follow_system
 import tr.theyusa.v4war.resources.general_settings
 import tr.theyusa.v4war.resources.hybrid
-import tr.theyusa.v4war.resources.hysteria2_provider
-import tr.theyusa.v4war.resources.hysteria_download_mbps
-import tr.theyusa.v4war.resources.hysteria_upload_mbps
 import tr.theyusa.v4war.resources.import_contacts
 import tr.theyusa.v4war.resources.inbound_password
 import tr.theyusa.v4war.resources.inbound_settings
@@ -164,7 +153,6 @@ import tr.theyusa.v4war.resources.ipv4_only
 import tr.theyusa.v4war.resources.ipv6_only
 import tr.theyusa.v4war.resources.keep_default
 import tr.theyusa.v4war.resources.language
-import tr.theyusa.v4war.resources.protocol_settings
 import tr.theyusa.v4war.resources.language_system_default
 import tr.theyusa.v4war.resources.lock
 import tr.theyusa.v4war.resources.log_level
@@ -181,14 +169,8 @@ import tr.theyusa.v4war.resources.network_interface_strategy
 import tr.theyusa.v4war.resources.network_strategy
 import tr.theyusa.v4war.resources.night_mode
 import tr.theyusa.v4war.resources.not_set
-import tr.theyusa.v4war.resources.ntp_category
-import tr.theyusa.v4war.resources.ntp_server_address
-import tr.theyusa.v4war.resources.ntp_server_port
-import tr.theyusa.v4war.resources.ntp_sum
-import tr.theyusa.v4war.resources.ntp_sync_interval
 import tr.theyusa.v4war.resources.ok
 import tr.theyusa.v4war.resources.person
-import tr.theyusa.v4war.resources.plugin
 import tr.theyusa.v4war.resources.port_local_dns
 import tr.theyusa.v4war.resources.port_proxy
 import tr.theyusa.v4war.resources.prefer_ipv4
@@ -217,7 +199,6 @@ import tr.theyusa.v4war.resources.test_concurrency
 import tr.theyusa.v4war.resources.test_timeout
 import tr.theyusa.v4war.resources.text_select_end
 import tr.theyusa.v4war.resources.theme
-import tr.theyusa.v4war.resources.timelapse
 import tr.theyusa.v4war.resources.traffic
 import tr.theyusa.v4war.resources.transform
 import tr.theyusa.v4war.resources.transgender
@@ -231,14 +212,6 @@ import tr.theyusa.v4war.resources.traffic_sniffing_enabled
 import tr.theyusa.v4war.resources.traffic_sniffing_route
 import tr.theyusa.v4war.resources.resolve_destination
 import tr.theyusa.v4war.resources.resolve_destination_summary
-import tr.theyusa.v4war.resources.enable_clash_api
-import tr.theyusa.v4war.resources.enable_clash_api_sum
-import tr.theyusa.v4war.resources.clash_api_port
-import tr.theyusa.v4war.resources.clash_api_port_sum
-import tr.theyusa.v4war.resources.clash_api_secret
-import tr.theyusa.v4war.resources.clash_api_secret_sum
-import tr.theyusa.v4war.resources.clash_api_panel_url
-import tr.theyusa.v4war.resources.clash_api_panel_url_sum
 
 import tr.theyusa.v4war.resources.network_change_reset_connections
 import tr.theyusa.v4war.resources.network_change_reset_connections_sum
