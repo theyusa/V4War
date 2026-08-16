@@ -137,6 +137,12 @@ func (t *TCPTransport) Close() error {
 func (t *TCPTransport) Reset() {
 }
 
+func (t *TCPTransport) ExchangeAsync(ctx context.Context, message *mDNS.Msg, callback func(response *mDNS.Msg, err error)) {
+	go func() {
+		callback(t.Exchange(ctx, message))
+	}()
+}
+
 func (t *TCPTransport) Exchange(ctx context.Context, message *mDNS.Msg) (*mDNS.Msg, error) {
 	if t.connections == nil {
 		return t.createNewConnection(ctx, message)

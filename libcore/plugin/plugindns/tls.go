@@ -132,6 +132,12 @@ func (t *TLSTransport) Close() error {
 func (t *TLSTransport) Reset() {
 }
 
+func (t *TLSTransport) ExchangeAsync(ctx context.Context, message *mDNS.Msg, callback func(response *mDNS.Msg, err error)) {
+	go func() {
+		callback(t.Exchange(ctx, message))
+	}()
+}
+
 func (t *TLSTransport) getValidConnFromPool() *reuseableDNSConn {
 	conn := t.connections.Get()
 	if conn == nil {

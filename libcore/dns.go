@@ -49,6 +49,12 @@ func newPlatformTransport(iif LocalDNSTransport, tag string, options option.Loca
 func (p *platformTransport) Reset() {
 }
 
+func (p *platformTransport) ExchangeAsync(ctx context.Context, message *mDNS.Msg, callback func(response *mDNS.Msg, err error)) {
+	go func() {
+		callback(p.Exchange(ctx, message))
+	}()
+}
+
 func (p *platformTransport) Exchange(ctx context.Context, message *mDNS.Msg) (*mDNS.Msg, error) {
 	response := &ExchangeContext{
 		context: ctx,

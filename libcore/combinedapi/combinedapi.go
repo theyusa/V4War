@@ -35,7 +35,7 @@ type CombinedAPI struct {
 	mode           string
 	modeList       []string
 	modeUpdateHook *observable.Subscriber[struct{}]
-	urlTestHistory adapter.URLTestHistoryStorage
+	urlTestHistory *urltest.HistoryStorage
 }
 
 func New(ctx context.Context, logFactory log.ObservableFactory, options option.ClashAPIOptions) (adapter.ClashServer, error) {
@@ -51,7 +51,7 @@ func New(ctx context.Context, logFactory log.ObservableFactory, options option.C
 		trafficManager: trafficcontrol.NewManager(),
 		modeList:       options.ModeList,
 	}
-	c.urlTestHistory = service.FromContext[adapter.URLTestHistoryStorage](ctx)
+	c.urlTestHistory = service.PtrFromContext[urltest.HistoryStorage](ctx)
 	if c.urlTestHistory == nil {
 		c.urlTestHistory = urltest.NewHistoryStorage()
 	}
@@ -137,7 +137,7 @@ func (c *CombinedAPI) SetMode(newMode string) {
 	c.logger.Info("updated mode: ", newMode)
 }
 
-func (c *CombinedAPI) SetModeUpdateHook(hook *observable.Subscriber[struct{}]) {
+func (c *CombinedAPI) AddModeUpdateHook(hook *observable.Subscriber[struct{}]) {
 	c.modeUpdateHook = hook
 }
 
@@ -149,7 +149,7 @@ func (c *CombinedAPI) TrafficManager() *trafficcontrol.Manager {
 	return c.trafficManager
 }
 
-func (c *CombinedAPI) HistoryStorage() adapter.URLTestHistoryStorage {
+func (c *CombinedAPI) HistoryStorage() *urltest.HistoryStorage {
 	return c.urlTestHistory
 }
 

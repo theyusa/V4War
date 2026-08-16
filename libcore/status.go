@@ -123,9 +123,9 @@ type TrackerInfo struct {
 	ClosedAtUnix  int64
 	Outbound      string
 	Chain         string
-	Protocol  string
-	processes []string
-	UID       int32
+	Protocol      string
+	processes     []string
+	UID           int32
 }
 
 func (t *TrackerInfo) GetUUID() string {
@@ -500,8 +500,8 @@ func (s *Service) handleSubscribeClashMode(conn io.ReadWriter, instance *boxInst
 	subscriber := observable.NewSubscriber[struct{}](1)
 	defer subscriber.Close()
 	api := instance.api
-	api.SetModeUpdateHook(subscriber)
-	defer api.SetModeUpdateHook(nil)
+	api.AddModeUpdateHook(subscriber)
+	defer api.AddModeUpdateHook(nil)
 	err := vario.WriteString(conn, api.Mode())
 	if err != nil {
 		return E.Cause(err, "write first mode")

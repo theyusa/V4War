@@ -102,8 +102,8 @@ type interfaceMonitorStub struct{}
 func (i interfaceMonitorStub) RegisterMyInterface(_ string) {
 }
 
-func (i interfaceMonitorStub) MyInterface() string {
-	return ""
+func (i interfaceMonitorStub) MyInterfaces() []string {
+	return nil
 }
 
 func (i interfaceMonitorStub) Start() error {
@@ -147,4 +147,44 @@ func (p platformInterfaceStub) CloseNeighborMonitor(_ adapter.NeighborUpdateList
 
 func (p platformInterfaceStub) MyInterfaceAddress() []netip.Addr {
 	return nil
+}
+
+func (p platformInterfaceStub) ProcessPlatformOptions(_ option.TunPlatformOptions) error {
+	return nil
+}
+
+func (p platformInterfaceStub) UsePlatformShell() bool {
+	return false
+}
+
+func (p platformInterfaceStub) CheckPlatformShell() error {
+	return nil
+}
+
+func (p platformInterfaceStub) OpenShellSession(_ *adapter.PlatformUser, _ string, _ []string, _ string, _ int32, _ int32) (adapter.ShellSession, error) {
+	return nil, os.ErrInvalid
+}
+
+func (p platformInterfaceStub) LookupUser(_ string) (*adapter.PlatformUser, error) {
+	return nil, os.ErrInvalid
+}
+
+func (p platformInterfaceStub) LookupSFTPServer() (string, error) {
+	return "", os.ErrInvalid
+}
+
+func (p platformInterfaceStub) ReadSystemSSHHostKey() ([]byte, error) {
+	return nil, os.ErrInvalid
+}
+
+func (p platformInterfaceStub) TailscaleHostname() string {
+	return ""
+}
+
+func (p platformInterfaceStub) UsePlatformBridge() bool {
+	return false
+}
+
+func (p platformInterfaceStub) CreateBridge(_ adapter.BridgeOptions) (adapter.BridgeSession, error) {
+	return nil, os.ErrInvalid
 }

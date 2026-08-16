@@ -7,6 +7,7 @@ import (
 
 	"github.com/sagernet/sing-box"
 	"github.com/sagernet/sing-box/adapter"
+	"github.com/sagernet/sing-box/common/urltest"
 	C "github.com/sagernet/sing-box/constant"
 	"github.com/sagernet/sing-box/experimental/deprecated"
 	"github.com/sagernet/sing-box/log"
@@ -91,24 +92,24 @@ func (w *clashServerWrapper) Mode() string {
 	return ""
 }
 
-func (w *clashServerWrapper) SetModeUpdateHook(hook *observable.Subscriber[struct{}]) {
+func (w *clashServerWrapper) AddModeUpdateHook(hook *observable.Subscriber[struct{}]) {
 	if w.ClashServer == nil {
 		return
 	}
-	type hookSetter interface {
-		SetModeUpdateHook(hook *observable.Subscriber[struct{}])
+	type hookAdder interface {
+		AddModeUpdateHook(hook *observable.Subscriber[struct{}])
 	}
-	if hs, ok := w.ClashServer.(hookSetter); ok {
-		hs.SetModeUpdateHook(hook)
+	if hs, ok := w.ClashServer.(hookAdder); ok {
+		hs.AddModeUpdateHook(hook)
 	}
 }
 
-func (w *clashServerWrapper) HistoryStorage() adapter.URLTestHistoryStorage {
+func (w *clashServerWrapper) HistoryStorage() *urltest.HistoryStorage {
 	if w.ClashServer == nil {
 		return nil
 	}
 	type historyGetter interface {
-		HistoryStorage() adapter.URLTestHistoryStorage
+		HistoryStorage() *urltest.HistoryStorage
 	}
 	if hg, ok := w.ClashServer.(historyGetter); ok {
 		return hg.HistoryStorage()
@@ -280,7 +281,7 @@ func (b *boxInstance) QueryStats(tag string, isUpload bool) int64 {
 	return b.api.QueryStats(tag, isUpload)
 }
 
-func (b *boxInstance) historyStorage() adapter.URLTestHistoryStorage {
+func (b *boxInstance) historyStorage() *urltest.HistoryStorage {
 	if b.api == nil {
 		return nil
 	}

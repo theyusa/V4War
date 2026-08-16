@@ -57,10 +57,13 @@ func (m *interfaceMonitor) RegisterMyInterface(interfaceName string) {
 	m.myInterface = interfaceName
 }
 
-func (m *interfaceMonitor) MyInterface() string {
+func (m *interfaceMonitor) MyInterfaces() []string {
 	m.defaultInterfaceAccess.Lock()
 	defer m.defaultInterfaceAccess.Unlock()
-	return m.myInterface
+	if m.myInterface == "" {
+		return nil
+	}
+	return []string{m.myInterface}
 }
 
 func (m *interfaceMonitor) Start() error {

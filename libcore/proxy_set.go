@@ -7,6 +7,7 @@ import (
 	"libcore/vario"
 
 	"github.com/sagernet/sing-box/adapter"
+	"github.com/sagernet/sing-box/common/urltest"
 	"github.com/sagernet/sing-box/protocol/group"
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
@@ -81,11 +82,10 @@ func (b *boxInstance) watchGroupChange(urlTests []*group.URLTest) {
 		return
 	}
 	hook := observable.NewSubscriber[struct{}](1)
-	historyStorage.SetHook(hook)
+	historyStorage.AddUpdateHook(hook)
 	subscription, done := hook.Subscription()
 	go func() {
 		defer hook.Close()
-		defer historyStorage.SetHook(nil)
 		for {
 			select {
 			case <-b.ctx.Done():
@@ -166,7 +166,7 @@ func (s *Service) handleQueryProxySets(conn io.ReadWriter, instance *boxInstance
 	return nil
 }
 
-func buildProxySet(outboundManager adapter.OutboundManager, outboundGroup adapter.OutboundGroup, historyStorage adapter.URLTestHistoryStorage) *ProxySet {
+func buildProxySet(outboundManager adapter.OutboundManager, outboundGroup adapter.OutboundGroup, historyStorage *urltest.HistoryStorage) *ProxySet {
 	_, isSelector := outboundGroup.(*group.Selector)
 	return &ProxySet{
 		Tag:        outboundGroup.Tag(),
@@ -192,7 +192,7 @@ type GroupItemIterator interface {
 	Length() int32
 }
 
-func buildGroupItem(outbound adapter.Outbound, historyStorage adapter.URLTestHistoryStorage) *GroupItem {
+func buildGroupItem(outbound adapter.Outbound, historyStorage *urltest.HistoryStorage) *GroupItem {
 	var delay int32
 	if historyStorage != nil {
 		if history := historyStorage.LoadURLTestHistory(outbound.Tag()); history != nil {
