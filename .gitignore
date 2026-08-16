@@ -1,32 +1,61 @@
-*.iml
-.gradle
-.kotlin
-.idea
-.vscode
-.DS_Store
+# --- Gradle ---
+.gradle/
 build/
-/captures
-.externalNativeBuild
-.cxx
+/captures/
+.externalNativeBuild/
+.cxx/
+.kotlin/
 local.properties
-/composeApp/libs/
-/service_account_credentials.json
+
+# --- IDE / editor ---
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+.DS_Store
+
+# --- AI agent artifacts & prompts ---
+/promt/
+.codegraph/
+.claude/
+.gemini/
+.codex/
+
+# --- Submodules ---
+/external/
+
+# --- Native / build outputs ---
 jniLibs/
-go.work*
+/composeApp/libs/
+
+# --- Bundled geo/data assets ---
 *.srs
 *.zip
 *.tgz
 *.zst
-*.tar.*
 *.tar
-*.swp
+*.tar.*
+
+# --- Secrets & credentials ---
+/service_account_credentials.json
+.env
+.env.*
+!.env.example
+secrets.properties
+*.pem
+*.key
+*.jks
+*.p12
+
+# --- Logs & temp ---
+*.log
+*.tmp
+*.bak
+*.orig
+
+# --- Go workspace ---
+go.work
+go.work.sum
 .gradle-home/
-
-# Vibe coding
-.claude
-.gemini
-.codex
-
-# submodules
-/external
-/prompt
