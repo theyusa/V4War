@@ -22,6 +22,7 @@ import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayGRPCOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayHTTPOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayHTTPUpgradeOptions
+import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayQUICOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayWebsocketOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayXHTTPOptions
 import tr.theyusa.v4war.fmt.buildHeader
