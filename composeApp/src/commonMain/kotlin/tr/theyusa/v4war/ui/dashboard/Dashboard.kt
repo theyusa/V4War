@@ -353,7 +353,7 @@ fun DashboardScreen(
                     )
                 } else {
                     TopAppBar(
-                        title = {},
+                        title = { Text(stringResource(Res.string.menu_dashboard)) },
                         navigationIcon = {
                             PlatformMenuIcon(
                                 imageVector = vectorResource(Res.drawable.menu),

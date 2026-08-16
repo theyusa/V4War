@@ -175,3 +175,13 @@ fun colorForUrlTestDelay(urlTestDelay: Int): Color {
         base
     }
 }
+
+@Composable
+fun connectionStatusColor(isClosed: Boolean): Color {
+    return if (isClosed) {
+        MaterialTheme.colorScheme.error
+    } else {
+        val green = Color(0xFF2E7D32) // Material Green 800
+        if (LocalAppDarkMode.current) green.copy(alpha = 0.9f) else green
+    }
+}

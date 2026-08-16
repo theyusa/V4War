@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.theme.LogColors
+import tr.theyusa.v4war.compose.connectionStatusColor
 import tr.theyusa.v4war.libcore.Libcore
 import tr.theyusa.v4war.resources.Res
 import tr.theyusa.v4war.resources.connection_status_active
@@ -221,11 +222,7 @@ private fun ConnectionCard(
                         },
                     ),
                     fontSize = 14.sp,
-                    color = if (connection.isClosed) {
-                        Color.Red
-                    } else {
-                        Color.Green
-                    },
+                    color = connectionStatusColor(connection.isClosed),
                 )
             }
             processInfo?.icon?.let { icon ->
