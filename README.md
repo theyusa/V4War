@@ -99,10 +99,6 @@ androidApp/build/outputs/apk
 - Developer: `TheYusa`
 - Name and trademark rights: `TheYusa`
 
-## Contributing
-
-Read: **[CONTRIBUTING.md](./CONTRIBUTING.md)**
-
 ## License
 
 `GPL-3.0-or-later`

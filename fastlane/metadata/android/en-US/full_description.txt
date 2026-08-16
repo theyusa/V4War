@@ -1,1 +1,0 @@
-V4War is a non-professional and recreational proxy tool integration, aiming at promoting proxy customization.

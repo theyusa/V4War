@@ -99,10 +99,6 @@ androidApp/build/outputs/apk
 - Gelistirici: `TheYusa`
 - Isim ve marka haklari: `TheYusa`
 
-## Katki
-
-Oku: **[CONTRIBUTING.md](./CONTRIBUTING.md)**
-
 ## Lisans
 
 `GPL-3.0-or-later`
