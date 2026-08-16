@@ -23,6 +23,7 @@ import tr.theyusa.v4war.libcore.GroupItemIterator
 import tr.theyusa.v4war.libcore.Libcore
 import tr.theyusa.v4war.utils.LibcoreClientManager
 import tr.theyusa.v4war.utils.PackageResolver
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -208,10 +209,14 @@ class DashboardViewModel(
         client.close()
         urlTestClient.close()
         connections.clear()
+        proxySetsByTag.clear()
         _uiState.update { state ->
             state.copy(
+                memory = 0,
+                goroutines = 0,
                 connections = emptyList(),
                 filteredConnections = emptyList(),
+                proxySets = emptyList(),
                 selectedClashMode = "",
                 clashModes = emptyList(),
             )
@@ -256,7 +261,7 @@ class DashboardViewModel(
 
         job = viewModelScope.launch {
             while (isActive) {
-                if (!refreshStatus()) break
+                refreshStatus()
                 delay(LOOP_INTERVAL)
             }
         }
@@ -379,11 +384,8 @@ class DashboardViewModel(
         }
     }
 
-    /**
-     * @return true to continue polling, false to stop.
-     */
-    private suspend fun refreshStatus(): Boolean {
-        return try {
+    private suspend fun refreshStatus() {
+        try {
             client.withClient { client ->
                 _uiState.update { state ->
                     state.copy(
@@ -394,10 +396,10 @@ class DashboardViewModel(
                     )
                 }
             }
-            true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            Logs.w(e)
-            false
+            Logs.w("refresh status", e)
         }
     }
 
