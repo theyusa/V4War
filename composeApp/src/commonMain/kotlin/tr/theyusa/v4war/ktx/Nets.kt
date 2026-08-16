@@ -6,6 +6,7 @@ import tr.theyusa.v4war.fmt.AbstractBean
 import tr.theyusa.v4war.fmt.LOCALHOST4
 import tr.theyusa.v4war.fmt.SingBoxOptions
 import tr.theyusa.v4war.libcore.Libcore
+import tr.theyusa.v4war.libcore.URL
 import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
@@ -71,6 +72,8 @@ fun String.isIPv6(): Boolean {
     }
     val regV6 =
         Regex("^((?:[0-9A-Fa-f]{1,4}))?((?::[0-9A-Fa-f]{1,4}))*::((?:[0-9A-Fa-f]{1,4}))?((?::[0-9A-Fa-f]{1,4}))*|((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4})){7}$")
+    return regV6.matches(addr)
+}
 
 fun serverAddressDomainStrategy(): String? {
     return defaultOr(
@@ -97,7 +100,6 @@ fun List<InetAddress>.selectByNetworkStrategy(networkStrategy: String): InetAddr
 
         else -> candidates.firstOrNull()
     }
-}
 }
 
 // [2001:4860:4860::8888] -> 2001:4860:4860::8888

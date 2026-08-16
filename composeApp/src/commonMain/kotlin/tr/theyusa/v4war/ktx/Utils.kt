@@ -9,6 +9,11 @@ import tr.theyusa.v4war.resources.Res
 import tr.theyusa.v4war.resources.connection_test_mux
 import tr.theyusa.v4war.resources.connection_test_refused
 import tr.theyusa.v4war.resources.connection_test_timeout
+import tr.theyusa.v4war.resources.connection_test_domain_not_found
+import tr.theyusa.v4war.resources.connection_test_unreachable
+import tr.theyusa.v4war.resources.connection_test_unsupported
+import tr.theyusa.v4war.resources.connection_test_tls_failure
+import tr.theyusa.v4war.resources.connection_test_http_failure
 import tr.theyusa.v4war.resources.not_set
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource

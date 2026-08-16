@@ -17,12 +17,13 @@ import tr.theyusa.v4war.fmt.SingBoxOptions.TRANSPORT_HTTP
 import tr.theyusa.v4war.fmt.SingBoxOptions.TRANSPORT_HTTPUPGRADE
 import tr.theyusa.v4war.fmt.SingBoxOptions.TRANSPORT_QUIC
 import tr.theyusa.v4war.fmt.SingBoxOptions.TRANSPORT_WS
+import tr.theyusa.v4war.fmt.SingBoxOptions.TRANSPORT_XHTTP
 import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayGRPCOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayHTTPOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayHTTPUpgradeOptions
-import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayQUICOptions
 import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayWebsocketOptions
+import tr.theyusa.v4war.fmt.SingBoxOptions.V2RayTransportOptions_V2RayXHTTPOptions
 import tr.theyusa.v4war.fmt.buildHeader
 import tr.theyusa.v4war.fmt.buildSingBoxMux
 import tr.theyusa.v4war.fmt.effectiveAllowInsecure
