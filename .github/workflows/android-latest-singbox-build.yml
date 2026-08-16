@@ -12,6 +12,7 @@ jobs:
   detect-singbox:
     name: Detect sing-box version
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       current: ${{ steps.detect.outputs.current }}
       latest: ${{ steps.detect.outputs.latest }}
@@ -89,6 +90,7 @@ jobs:
   build-android:
     name: Build APK with target sing-box
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: detect-singbox
     if: needs.detect-singbox.outputs.needs_upgrade == 'true'
     env:
@@ -203,8 +205,6 @@ jobs:
           ./gradlew :composeApp:exportLibraryDefinitions
 
       - name: Build signed FOSS APK
-        env:
-          BUILD_PLUGIN: none
         run: |
           ./gradlew clean androidApp:assembleFossRelease --stacktrace
 
@@ -240,6 +240,7 @@ jobs:
   no-upgrade:
     name: No sing-box upgrade needed
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: detect-singbox
     if: needs.detect-singbox.outputs.needs_upgrade != 'true'
     steps:

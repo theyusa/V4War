@@ -10,6 +10,7 @@ jobs:
   libcore:
     name: Native Build (LibCore)
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - name: Checkout selected ref
         uses: actions/checkout@v4
@@ -141,6 +142,7 @@ jobs:
   build-android:
     name: Build signed FOSS APK
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: libcore
     env:
       KEYSTORE_PASS: android
@@ -266,8 +268,6 @@ jobs:
           ./gradlew :composeApp:exportLibraryDefinitions
 
       - name: Build signed V4War APK
-        env:
-          BUILD_PLUGIN: none
         run: |
           ./gradlew clean androidApp:assembleFossRelease --stacktrace
 
