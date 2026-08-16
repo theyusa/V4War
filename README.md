@@ -40,7 +40,6 @@ This combines broad profile compatibility with modern routing behavior.
 - Subscription update workflows
 - Protocol family support including VLESS, VMess, Trojan, Shadowsocks, and related formats
 - Logging and diagnostics for troubleshooting
-- Plugin-based extension flow for supported plugin targets
 
 ## Build Guide (Android)
 
@@ -92,20 +91,6 @@ APK output directory:
 ```text
 androidApp/build/outputs/apk
 ```
-
-## Plugin Build
-
-```sh
-make plugin PLUGIN=<plugin-name>
-```
-
-Known plugin targets:
-
-- `hysteria2`
-- `juicity`
-- `naive`
-- `mieru`
-- `shadowquic`
 
 ## Project Identity
 

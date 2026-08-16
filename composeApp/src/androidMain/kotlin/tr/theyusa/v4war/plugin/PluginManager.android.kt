@@ -57,10 +57,6 @@ actual object PluginManager {
         return when (pluginId) {
             "hysteria-plugin" -> soIfExist("libhysteria.so")
             "hysteria2-plugin" -> soIfExist("libhysteria2.so")
-            "juicity-plugin" -> soIfExist("libjuicity.so")
-            "naive-plugin" -> soIfExist("libnaive.so")
-            "mieru-plugin" -> soIfExist("libmieru.so")
-            "shadowquic-plugin" -> soIfExist("libshadowquic.so")
             else -> null
         }
     }

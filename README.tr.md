@@ -40,7 +40,6 @@ Bu yapi, genis profil uyumlulugunu modern routing davranisi ile birlestirir.
 - Subscription guncelleme akislari
 - VLESS, VMess, Trojan, Shadowsocks ve benzeri protokol aileleri
 - Sorun tespiti icin loglama ve tanilama araclari
-- Desteklenen hedefler icin plugin tabanli genisleme
 
 ## Derleme Rehberi (Android)
 
@@ -92,20 +91,6 @@ APK cikti dizini:
 ```text
 androidApp/build/outputs/apk
 ```
-
-## Plugin Derleme
-
-```sh
-make plugin PLUGIN=<plugin-name>
-```
-
-Bilinen plugin hedefleri:
-
-- `hysteria2`
-- `juicity`
-- `naive`
-- `mieru`
-- `shadowquic`
 
 ## Proje Kimligi
 

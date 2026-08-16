@@ -4,7 +4,6 @@ import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.impl.VariantOutputImpl
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
-import org.gradle.api.tasks.Exec
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.register
 import java.io.File
@@ -245,101 +244,6 @@ fun Project.setupApp() {
             jniLibs.directories.add(rootProject.file("composeApp/executableSo").toString())
         }
     }
-}
-
-fun Project.setupPlugin(projectName: String) {
-    val propPrefix = projectName.uppercase(Locale.ROOT)
-    val projName = projectName.lowercase(Locale.ROOT)
-    val verName = requireMetadata().getProperty("${propPrefix}_VERSION_NAME").trim()
-    val verCode = requireMetadata().getProperty("${propPrefix}_VERSION").trim().toInt()
-
-    androidApp.apply {
-        defaultConfig {
-            versionName = verName
-            versionCode = verCode
-        }
-    }
-
-    setupAppCommon()
-
-    val targetAbi = requireTargetAbi()
-
-    androidApp.apply {
-        buildTypes {
-            getByName("release") {
-                proguardFiles(
-                    getDefaultProguardFile("proguard-android-optimize.txt"),
-                    project(":plugin:api").file("proguard-rules.pro"),
-                )
-            }
-        }
-
-        splits.abi {
-            isEnable = true
-            isUniversalApk = false
-
-            if (targetAbi.isNotBlank()) {
-                reset()
-                include(targetAbi)
-            } else {
-                reset()
-                include("x86", "x86_64", "armeabi-v7a", "arm64-v8a")
-            }
-        }
-
-        flavorDimensions.add("vendor")
-        productFlavors {
-            create("foss")
-        }
-
-        if (System.getenv("SKIP_BUILD") != "on" && System.getProperty("SKIP_BUILD_$propPrefix") != "on") {
-            if (targetAbi.isBlank()) {
-                tasks.register<Exec>("externalBuild") {
-                    executable(rootProject.file("run"))
-                    args("plugin", projName)
-                    workingDir(rootProject.projectDir)
-                }
-
-                tasks.configureEach {
-                    if (name.startsWith("merge") && name.endsWith("JniLibFolders")) {
-                        dependsOn("externalBuild")
-                    }
-                }
-            } else {
-                tasks.register<Exec>("externalBuildInit") {
-                    executable(rootProject.file("run"))
-                    args("plugin", projName, "init")
-                    workingDir(rootProject.projectDir)
-                }
-                tasks.register<Exec>("externalBuild") {
-                    executable(rootProject.file("run"))
-                    args("plugin", projName, targetAbi)
-                    workingDir(rootProject.projectDir)
-                    dependsOn("externalBuildInit")
-                }
-                tasks.register<Exec>("externalBuildEnd") {
-                    executable(rootProject.file("run"))
-                    args("plugin", projName, "end")
-                    workingDir(rootProject.projectDir)
-                    dependsOn("externalBuild")
-                }
-                tasks.configureEach {
-                    if (name.startsWith("merge") && name.endsWith("JniLibFolders")) {
-                        dependsOn("externalBuildEnd")
-                    }
-                }
-            }
-        }
-
-        registerApkRenamer(
-            replaceFrom = project.name,
-            replaceToTemplate = "${project.name}-plugin-%VERSION_NAME%",
-            stripTokens = listOf("-release", "-foss"),
-        )
-    }
-
-    dependencies.add("implementation", project(":plugin:api"))
-
 }
 
 private fun String.cap(): String = replaceFirstChar {

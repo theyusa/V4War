@@ -6,7 +6,7 @@ CLIP = sh -c 'if [ -n "$$WAYLAND_DISPLAY" ]; then exec wl-copy; \
               else echo "No display detected (WAYLAND_DISPLAY/DISPLAY missing)"; exit 1; fi'
 HOST_OS = $(shell uname -s)
 
-.PHONY: update libcore_android apk apk_debug assets lint_go test_go plugin generate_option
+.PHONY: update libcore_android apk apk_debug assets lint_go test_go generate_option
 
 build: libcore_android assets apk
 
@@ -14,10 +14,10 @@ libcore_android:
 	./run lib core --android
 
 apk:
-	BUILD_PLUGIN=none ./gradlew androidApp:assembleFossRelease
+	./gradlew androidApp:assembleFossRelease
 
 apk_debug:
-	BUILD_PLUGIN=none ./gradlew androidApp:assembleFossDebug
+	./gradlew androidApp:assembleFossDebug
 
 assets:
 	./run lib assets
@@ -47,9 +47,6 @@ test_gradle:
 
 test_go:
 	cd libcore/ && go test -v -count=1 ./...
-
-plugin:
-	BUILD_PLUGIN=$(PLUGIN) ./gradlew :plugin:$(PLUGIN):assembleFossRelease --configuration-cache
 
 generate_option:
 	cd ./libcore/cmd/boxoption && go run . | $(CLIP)
