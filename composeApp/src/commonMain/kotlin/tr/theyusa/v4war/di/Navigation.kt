@@ -21,6 +21,7 @@ import tr.theyusa.v4war.ui.ProfilePickerController
 import tr.theyusa.v4war.ui.RouteScreen
 import tr.theyusa.v4war.ui.RouteSettingsScreen
 import tr.theyusa.v4war.ui.SettingsScreen
+import tr.theyusa.v4war.ui.settings.SettingsPageScreen
 import tr.theyusa.v4war.ui.configuration.ConfigurationScreen
 import tr.theyusa.v4war.ui.dashboard.ConnectionDetailScreen
 import tr.theyusa.v4war.ui.dashboard.DashboardScreen
