@@ -62,3 +62,11 @@ class SagerDatabase_Migration_12_13 : AutoMigrationSpec
     ),
 )
 class SagerDatabase_Migration_14_15 : AutoMigrationSpec
+
+@DeleteColumn.Entries(
+    DeleteColumn(
+        tableName = "proxy_entities",
+        columnName = "wgBean",
+    ),
+)
+class SagerDatabase_Migration_17_18 : AutoMigrationSpec
