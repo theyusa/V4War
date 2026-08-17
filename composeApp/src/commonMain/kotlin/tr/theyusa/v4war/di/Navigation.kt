@@ -96,6 +96,20 @@ internal val commonNavigationModule = module {
             SettingsScreen(
                 mainViewModel = viewModel,
                 onDrawerClick = drawerController::toggle,
+                openSettingsPage = { kind ->
+                    navigator.navigateTo(NavRoutes.SettingsPage(kind = kind))
+                },
+                openTools = { navigator.navigateTo(NavRoutes.Tools) },
+                openPlugin = { navigator.navigateTo(NavRoutes.Plugin) },
+                openAbout = { navigator.navigateTo(NavRoutes.About) },
+            )
+        }
+
+        navigation<NavRoutes.SettingsPage> { route ->
+            val navigator = get<Navigator>()
+            SettingsPageScreen(
+                kind = route.kind,
+                onBackPress = { navigator.popBackStack() },
                 openAppManager = {
                     navigator.navigateTo(NavRoutes.AppManager)
                 },

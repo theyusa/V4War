@@ -18,6 +18,7 @@ sealed class NavRoutes : NavKey {
                         subclass(Groups::class, Groups.serializer())
                         subclass(Route::class, Route.serializer())
                         subclass(Settings::class, Settings.serializer())
+                        subclass(SettingsPage::class, SettingsPage.serializer())
                         subclass(Plugin::class, Plugin.serializer())
                         subclass(Log::class, Log.serializer())
                         subclass(Dashboard::class, Dashboard.serializer())
@@ -54,6 +55,20 @@ sealed class NavRoutes : NavKey {
 
     @Serializable
     data object Settings : NavRoutes()
+
+    @Serializable
+    data class SettingsPage(val kind: Kind) : NavRoutes() {
+        @Serializable
+        enum class Kind {
+            General,
+            Route,
+            Protocol,
+            Dns,
+            Inbound,
+            Misc,
+            Ntp,
+        }
+    }
 
     @Serializable
     data object Plugin : NavRoutes()

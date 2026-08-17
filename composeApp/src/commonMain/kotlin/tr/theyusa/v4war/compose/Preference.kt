@@ -3,6 +3,7 @@ package tr.theyusa.v4war.compose
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,15 +12,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -289,6 +296,29 @@ private fun PreviewCustomPreference() {
     }
 }
 
+@Composable
+fun PreferenceDivider() {
+    HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
+}
+
+fun LazyListScope.preferenceGroup(
+    key: Any? = null,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    item(key = key) {
+        ElevatedCard(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
+        ) {
+            Column(content = content)
+        }
+    }
+}
+
 /** Inspired by Android system preference. */
 object IconMaskColors {
     // network
@@ -367,4 +397,15 @@ fun MaskedIcon(
             modifier = Modifier.size(22.dp),
         )
     }
+}
+
+object IconMaskShapes {
+    @Composable
+    fun risk(): Shape = MaterialShapes.SoftBurst.toShape()
+
+    @Composable
+    fun credential(): Shape = MaterialShapes.Slanted.toShape()
+
+    @Composable
+    fun route(): Shape = MaterialShapes.Triangle.toShape()
 }

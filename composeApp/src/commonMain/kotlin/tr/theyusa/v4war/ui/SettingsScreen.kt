@@ -2,250 +2,90 @@
 
 package tr.theyusa.v4war.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import tr.theyusa.v4war.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
-import tr.theyusa.v4war.compose.material3.Surface
-import tr.theyusa.v4war.compose.material3.Text
-import androidx.compose.material3.TooltipAnchorPosition
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import tr.theyusa.v4war.CONNECTION_TEST_URL
-import tr.theyusa.v4war.CertProvider
-import tr.theyusa.v4war.Key
-import tr.theyusa.v4war.NetworkInterfaceStrategy
-import tr.theyusa.v4war.TrafficSniffing
-import tr.theyusa.v4war.RuleProvider
-import tr.theyusa.v4war.TunImplementation
+import io.github.oikvpqya.compose.fastscroller.material3.defaultMaterialScrollbarStyle
+import io.github.oikvpqya.compose.fastscroller.rememberScrollbarAdapter
+import kotlinx.coroutines.launch
+import me.zhanghai.compose.preference.Preference
+import me.zhanghai.compose.preference.ProvidePreferenceLocals
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import tr.theyusa.v4war.bg.BackendState
-import tr.theyusa.v4war.bg.Executable
 import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.CapsuleTopBar
-import tr.theyusa.v4war.compose.HostTextField
-import tr.theyusa.v4war.compose.LinkOrContentTextField
-import tr.theyusa.v4war.compose.PasswordPreference
+import tr.theyusa.v4war.compose.IconMaskColors
+import tr.theyusa.v4war.compose.MaskedIcon
 import tr.theyusa.v4war.compose.PlatformMenuIcon
-import tr.theyusa.v4war.compose.PortTextField
 import tr.theyusa.v4war.compose.PreferenceCategory
-import tr.theyusa.v4war.compose.PreferenceType
+import tr.theyusa.v4war.compose.PreferenceDivider
 import tr.theyusa.v4war.compose.SagerFab
 import tr.theyusa.v4war.compose.StatsBar
-import tr.theyusa.v4war.compose.TextButton
+import tr.theyusa.v4war.compose.fadingEdge
+import tr.theyusa.v4war.compose.material3.Text
+import tr.theyusa.v4war.compose.preferenceGroup
+import tr.theyusa.v4war.compose.rememberHapticClick
 import tr.theyusa.v4war.compose.rememberScrollHideState
-import tr.theyusa.v4war.compose.theme.DEFAULT
-import tr.theyusa.v4war.compose.theme.themeString
-import tr.theyusa.v4war.compose.theme.themes
 import tr.theyusa.v4war.compose.withNavigation
-import tr.theyusa.v4war.database.DataStore
-import tr.theyusa.v4war.database.SagerDatabase
-import tr.theyusa.v4war.ktx.contentOrUnset
-import tr.theyusa.v4war.ktx.intListN
-import tr.theyusa.v4war.ktx.onIoDispatcher
-import tr.theyusa.v4war.ktx.restartApplication
-import tr.theyusa.v4war.ktx.runOnDefaultDispatcher
-import tr.theyusa.v4war.ktx.showAndDismissOld
-import tr.theyusa.v4war.logLevelString
-import tr.theyusa.v4war.platform.PlatformInfo
 import tr.theyusa.v4war.repository.resolveRepository
 import tr.theyusa.v4war.resources.Res
-import tr.theyusa.v4war.resources.allow_access
-import tr.theyusa.v4war.resources.allow_access_sum
-import tr.theyusa.v4war.resources.allow_insecure
-import tr.theyusa.v4war.resources.allow_insecure_sum
-import tr.theyusa.v4war.resources.always_show_address
-import tr.theyusa.v4war.resources.always_show_address_sum
-import tr.theyusa.v4war.resources.app_registration
-import tr.theyusa.v4war.resources.append_http_proxy
-import tr.theyusa.v4war.resources.append_http_proxy_sum
-import tr.theyusa.v4war.resources.apply
-import tr.theyusa.v4war.resources.apps
-import tr.theyusa.v4war.resources.auto
-import tr.theyusa.v4war.resources.blurred_address
-import tr.theyusa.v4war.resources.bug_report
-import tr.theyusa.v4war.resources.cag_route
 import tr.theyusa.v4war.resources.cag_dns
 import tr.theyusa.v4war.resources.cag_misc
-import tr.theyusa.v4war.resources.cancel
 import tr.theyusa.v4war.resources.cast_connected
-import tr.theyusa.v4war.resources.center_focus_weak
-import tr.theyusa.v4war.resources.cert_chrome
-import tr.theyusa.v4war.resources.certificate_authority
-import tr.theyusa.v4war.resources.check
-import tr.theyusa.v4war.resources.color_lens
-import tr.theyusa.v4war.resources.connection_test_url
-import tr.theyusa.v4war.resources.construction
-import tr.theyusa.v4war.resources.custom_rule_provider
-import tr.theyusa.v4war.resources.description
-import tr.theyusa.v4war.resources.developer_mode
-import tr.theyusa.v4war.resources.direct_dns
-import tr.theyusa.v4war.resources.directions_boat
-import tr.theyusa.v4war.resources.disable
 import tr.theyusa.v4war.resources.dns
-import tr.theyusa.v4war.resources.dns_hosts
-import tr.theyusa.v4war.resources.domain_strategy_for_direct
-import tr.theyusa.v4war.resources.domain_strategy_for_server
-import tr.theyusa.v4war.resources.enable
-import tr.theyusa.v4war.resources.fake_dns
-import tr.theyusa.v4war.resources.fake_dns_for_all
-import tr.theyusa.v4war.resources.fake_dns_for_all_sum
-import tr.theyusa.v4war.resources.fake_ip_range_4
-import tr.theyusa.v4war.resources.fake_ip_range_6
-import tr.theyusa.v4war.resources.fakedns_message
-import tr.theyusa.v4war.resources.fallback
-import tr.theyusa.v4war.resources.fast_forward
-import tr.theyusa.v4war.resources.flip_camera_android
-import tr.theyusa.v4war.resources.follow_system
+import tr.theyusa.v4war.resources.flight_takeoff
 import tr.theyusa.v4war.resources.general_settings
-import tr.theyusa.v4war.resources.hybrid
-import tr.theyusa.v4war.resources.import_contacts
-import tr.theyusa.v4war.resources.inbound_password
 import tr.theyusa.v4war.resources.inbound_settings
-import tr.theyusa.v4war.resources.inbound_username
-import tr.theyusa.v4war.resources.insecure_warn
-import tr.theyusa.v4war.resources.ipv4_only
-import tr.theyusa.v4war.resources.ipv6_only
-import tr.theyusa.v4war.resources.keep_default
-import tr.theyusa.v4war.resources.language
-import tr.theyusa.v4war.resources.language_system_default
-import tr.theyusa.v4war.resources.lock
-import tr.theyusa.v4war.resources.log_level
-import tr.theyusa.v4war.resources.long_click_to_see_name
-import tr.theyusa.v4war.resources.max_log_line
+import tr.theyusa.v4war.resources.info
 import tr.theyusa.v4war.resources.menu
-import tr.theyusa.v4war.resources.mozilla
-import tr.theyusa.v4war.resources.mtu
+import tr.theyusa.v4war.resources.menu_about
+import tr.theyusa.v4war.resources.more
 import tr.theyusa.v4war.resources.nat
-import tr.theyusa.v4war.resources.need_reload
-import tr.theyusa.v4war.resources.need_restart
-import tr.theyusa.v4war.resources.network_interface_preference
-import tr.theyusa.v4war.resources.network_interface_strategy
-import tr.theyusa.v4war.resources.network_strategy
-import tr.theyusa.v4war.resources.night_mode
-import tr.theyusa.v4war.resources.not_set
+import tr.theyusa.v4war.resources.nfc
+import tr.theyusa.v4war.resources.ntp_category
 import tr.theyusa.v4war.resources.ok
-import tr.theyusa.v4war.resources.person
-import tr.theyusa.v4war.resources.port_local_dns
-import tr.theyusa.v4war.resources.port_proxy
-import tr.theyusa.v4war.resources.prefer_ipv4
-import tr.theyusa.v4war.resources.prefer_ipv6
-import tr.theyusa.v4war.resources.profile_traffic_statistics
-import tr.theyusa.v4war.resources.profile_traffic_statistics_summary
-import tr.theyusa.v4war.resources.public_icon
-import tr.theyusa.v4war.resources.push_pin
-import tr.theyusa.v4war.resources.remote_dns
-import tr.theyusa.v4war.resources.route_rules_official
-import tr.theyusa.v4war.resources.route_rules_provider
+import tr.theyusa.v4war.resources.plugin
+import tr.theyusa.v4war.resources.protocol_settings
+import tr.theyusa.v4war.resources.route_options
 import tr.theyusa.v4war.resources.router
-import tr.theyusa.v4war.resources.rule_folder
-import tr.theyusa.v4war.resources.security
-import tr.theyusa.v4war.resources.service_mode
-import tr.theyusa.v4war.resources.service_mode_proxy
-import tr.theyusa.v4war.resources.service_mode_vpn
 import tr.theyusa.v4war.resources.settings
-import tr.theyusa.v4war.resources.show_direct_speed
-import tr.theyusa.v4war.resources.show_direct_speed_sum
-import tr.theyusa.v4war.resources.shutter_speed
-import tr.theyusa.v4war.resources.speed
-import tr.theyusa.v4war.resources.speed_interval
-import tr.theyusa.v4war.resources.system_and_user
-import tr.theyusa.v4war.resources.test_concurrency
-import tr.theyusa.v4war.resources.test_timeout
-import tr.theyusa.v4war.resources.text_select_end
-import tr.theyusa.v4war.resources.theme
-import tr.theyusa.v4war.resources.traffic
-import tr.theyusa.v4war.resources.transform
-import tr.theyusa.v4war.resources.transgender
-import tr.theyusa.v4war.resources.translate
-import tr.theyusa.v4war.resources.tun_implementation
-import tr.theyusa.v4war.resources.wb_sunny
+import tr.theyusa.v4war.resources.timelapse
+import tr.theyusa.v4war.resources.tools_network
 import tr.theyusa.v4war.resources.wifi
-import tr.theyusa.v4war.resources.traffic_sniffing
-import tr.theyusa.v4war.resources.traffic_sniffing_disabled
-import tr.theyusa.v4war.resources.traffic_sniffing_enabled
-import tr.theyusa.v4war.resources.traffic_sniffing_route
-import tr.theyusa.v4war.resources.resolve_destination
-import tr.theyusa.v4war.resources.resolve_destination_summary
-
-import tr.theyusa.v4war.resources.network_change_reset_connections
-import tr.theyusa.v4war.resources.network_change_reset_connections_sum
-import tr.theyusa.v4war.resources.wake_reset_connections
-import tr.theyusa.v4war.resources.wake_reset_connections_sum
-import tr.theyusa.v4war.resources.optimistic_dns_cache
-import tr.theyusa.v4war.resources.optimistic_dns_cache_sum
-import tr.theyusa.v4war.resources.hijack_dns
-import tr.theyusa.v4war.resources.hijack_dns_sum
-import tr.theyusa.v4war.resources.allow_insecure_on_request
-import tr.theyusa.v4war.resources.allow_insecure_on_request_sum
-import io.github.oikvpqya.compose.fastscroller.material3.defaultMaterialScrollbarStyle
-import io.github.oikvpqya.compose.fastscroller.rememberScrollbarAdapter
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import me.zhanghai.compose.preference.ListPreference
-import me.zhanghai.compose.preference.ListPreferenceType
-import me.zhanghai.compose.preference.MultiSelectListPreference
-import me.zhanghai.compose.preference.Preference
-import me.zhanghai.compose.preference.ProvidePreferenceLocals
-import me.zhanghai.compose.preference.SliderPreference
-import me.zhanghai.compose.preference.SwitchPreference
-import me.zhanghai.compose.preference.TextFieldPreference
-import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.resources.vectorResource
 
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     mainViewModel: MainViewModel,
     onDrawerClick: () -> Unit,
-    openAppManager: () -> Unit,
+    openSettingsPage: (NavRoutes.SettingsPage.Kind) -> Unit,
+    openTools: () -> Unit,
+    openPlugin: () -> Unit,
+    openAbout: () -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val windowInsets = WindowInsets.safeDrawing
@@ -253,64 +93,7 @@ fun SettingsScreen(
     val snackbarState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
     val scrollHideVisible by rememberScrollHideState(listState)
-    val applyNightMode = rememberApplyNightMode()
-
-    LaunchedEffect(Unit) {
-        onIoDispatcher {
-            DataStore.initGlobal()
-        }
-    }
-
-    fun needReload() = scope.launch {
-        if (!DataStore.serviceState.started) return@launch
-        val result = snackbarState.showAndDismissOld(
-            message = resolveRepository().getString(Res.string.need_reload),
-            actionLabel = resolveRepository().getString(Res.string.apply),
-            duration = SnackbarDuration.Short,
-        )
-        if (result == SnackbarResult.Dismissed) return@launch
-        resolveRepository().reloadService()
-    }
-
-    fun needRestart() = scope.launch {
-        val result = snackbarState.showAndDismissOld(
-            message = resolveRepository().getString(Res.string.need_restart),
-            actionLabel = resolveRepository().getString(Res.string.apply),
-            duration = SnackbarDuration.Short,
-        )
-        if (result == SnackbarResult.Dismissed) return@launch
-        resolveRepository().stopService()
-        runOnDefaultDispatcher {
-            delay(500)
-            SagerDatabase.instance.close()
-            Executable.killAll(true)
-            restartApplication()
-        }
-    }
-
-    // Dependency states for enable/visibility linking
-    val isExpertState by DataStore.configurationStore
-        .booleanFlow(Key.APP_EXPERT, false)
-        .collectAsStateWithLifecycle(false)
-    val speedIntervalState by DataStore.configurationStore
-        .intFlow(Key.SPEED_INTERVAL, 1000)
-        .collectAsStateWithLifecycle(1000)
-    val alwaysShowAddressState by DataStore.configurationStore
-        .booleanFlow(Key.ALWAYS_SHOW_ADDRESS, false)
-        .collectAsStateWithLifecycle(false)
-    val appendHttpProxyState by DataStore.configurationStore
-        .booleanFlow(Key.APPEND_HTTP_PROXY, false)
-        .collectAsStateWithLifecycle(false)
-    val rulesProviderState by DataStore.configurationStore
-        .intFlow(Key.RULES_PROVIDER, RuleProvider.OFFICIAL)
-        .collectAsStateWithLifecycle(RuleProvider.OFFICIAL)
-    val fakeDNSState by DataStore.configurationStore
-        .booleanFlow(Key.ENABLE_FAKE_DNS, false)
-        .collectAsStateWithLifecycle(false)
-    val serviceModeState by DataStore.configurationStore
-        .stringFlow(Key.SERVICE_MODE, Key.MODE_VPN)
-        .collectAsStateWithLifecycle(Key.MODE_VPN)
-
+    val hapticClick = rememberHapticClick()
     val serviceStatus by BackendState.status.collectAsStateWithLifecycle()
 
     Scaffold(
@@ -364,1202 +147,155 @@ fun SettingsScreen(
                     state = listState,
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxHeight(),
+                        .fillMaxHeight()
+                        .fadingEdge(listState),
                     contentPadding = contentPadding,
                 ) {
-                    item(Key.GENERAL_SETTINGS, PreferenceType.CATEGORY) {
-                        PreferenceCategory(text = { Text(stringResource(Res.string.general_settings)) })
-                    }
-                    autoConnect()
-                    colorPickerPreference(
-                        key = Key.APP_THEME,
-                        title = { Text(stringResource(Res.string.theme)) },
-                    )
-                    item(Key.NIGHT_THEME, PreferenceType.LIST) {
-                        fun nightString(index: Int): StringResource = when (index) {
-                            0 -> Res.string.follow_system
-                            1 -> Res.string.enable
-                            2 -> Res.string.disable
-                            3 -> Res.string.auto
-                            else -> Res.string.follow_system
-                        }
-
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.NIGHT_THEME, 0)
-                            .collectAsStateWithLifecycle(0)
-                        ListPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.nightTheme = it
-                                applyNightMode(it)
-                            },
-                            values = intListN(4),
-                            title = { Text(stringResource(Res.string.night_mode)) },
+                    preferenceGroup {
+                        Preference(
+                            title = { Text(stringResource(Res.string.general_settings)) },
                             icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.wb_sunny),
-                                    null,
+                                MaskedIcon(
+                                    Res.drawable.settings,
+                                    color = IconMaskColors.IconLightBlue,
                                 )
                             },
-                            summary = { Text(stringResource(nightString(value))) },
-                            type = ListPreferenceType.DROPDOWN_MENU,
-                            valueToText = { AnnotatedString(stringResource(nightString(it))) },
-                        )
-                    }
-                    item(Key.APP_LANGUAGE, PreferenceType.LIST) {
-                        fun getLanguageDisplayName(tag: String): String =
-                            AppLanguage.fromTag(tag)?.displayName ?: runBlocking {
-                                resolveRepository().getString(Res.string.language_system_default)
-                            }
-
-                        val values = AppLanguage.entries.map { it.tag }
-                        val languageController = rememberAppLanguageController(defaultTag = "")
-                        val appLanguage by languageController.flow
-                            .collectAsStateWithLifecycle(languageController.value)
-                        val selectedValue = if (appLanguage in values) {
-                            appLanguage
-                        } else {
-                            ""
-                        }
-
-                        ListPreference(
-                            value = selectedValue,
-                            onValueChange = { newValue ->
-                                languageController.value = newValue
+                            onClick = {
+                                hapticClick()
+                                openSettingsPage(NavRoutes.SettingsPage.Kind.General)
                             },
-                            values = values,
-                            title = { Text(stringResource(Res.string.language)) },
+                        )
+                        PreferenceDivider()
+                        Preference(
+                            title = { Text(stringResource(Res.string.route_options)) },
                             icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.translate),
-                                    null,
+                                MaskedIcon(
+                                    Res.drawable.router,
+                                    color = IconMaskColors.IconLightGreen,
                                 )
                             },
-                            summary = { Text(getLanguageDisplayName(selectedValue)) },
-                            type = ListPreferenceType.DROPDOWN_MENU,
-                            valueToText = { AnnotatedString(getLanguageDisplayName(it)) },
+                            onClick = {
+                                hapticClick()
+                                openSettingsPage(NavRoutes.SettingsPage.Kind.Route)
+                            },
                         )
-                    }
-                    item(Key.SERVICE_MODE, PreferenceType.LIST) {
-                        fun serviceModeText(mode: String): StringResource = when (mode) {
-                            Key.MODE_VPN -> Res.string.service_mode_vpn
-                            Key.MODE_PROXY -> Res.string.service_mode_proxy
-                            else -> Res.string.service_mode_vpn
-                        }
-
-                        val values = listOf(Key.MODE_VPN, Key.MODE_PROXY)
-                        val stored by DataStore.configurationStore
-                            .stringFlow(Key.SERVICE_MODE, Key.MODE_VPN)
-                            .collectAsStateWithLifecycle(Key.MODE_VPN)
-
-                        ListPreference(
-                            value = stored,
-                            onValueChange = { DataStore.serviceMode = it },
-                            values = values,
-                            title = { Text(stringResource(Res.string.service_mode)) },
+                        PreferenceDivider()
+                        Preference(
+                            title = { Text(stringResource(Res.string.protocol_settings)) },
                             icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.developer_mode),
-                                    null,
+                                MaskedIcon(
+                                    Res.drawable.flight_takeoff,
+                                    color = IconMaskColors.IconLightYellow,
                                 )
                             },
-                            summary = { Text(stringResource(serviceModeText(stored))) },
-                            type = ListPreferenceType.DROPDOWN_MENU,
-                            valueToText = { AnnotatedString(stringResource(serviceModeText(it))) },
-                        )
-                    }
-                    item(Key.TUN_IMPLEMENTATION, PreferenceType.LIST) {
-                        fun tunImplText(value: Int): String = when (value) {
-                            TunImplementation.GVISOR -> "gVisor"
-                            TunImplementation.SYSTEM -> "System"
-                            TunImplementation.MIXED -> "Mixed"
-                            else -> error("impossible")
-                        }
-
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.TUN_IMPLEMENTATION, TunImplementation.MIXED)
-                            .collectAsStateWithLifecycle(TunImplementation.MIXED)
-
-                        ListPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.tunImplementation = it
-                                needReload()
+                            onClick = {
+                                hapticClick()
+                                openSettingsPage(NavRoutes.SettingsPage.Kind.Protocol)
                             },
-                            values = listOf(
-                                TunImplementation.GVISOR,
-                                TunImplementation.SYSTEM,
-                                TunImplementation.MIXED,
-                            ),
-                            title = { Text(stringResource(Res.string.tun_implementation)) },
+                        )
+                        PreferenceDivider()
+                        Preference(
+                            title = { Text(stringResource(Res.string.cag_dns)) },
                             icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.flip_camera_android),
-                                    null,
+                                MaskedIcon(
+                                    Res.drawable.dns,
+                                    color = IconMaskColors.IconCyan,
                                 )
                             },
-                            summary = { Text(tunImplText(value)) },
-                            type = ListPreferenceType.DROPDOWN_MENU,
-                            valueToText = { AnnotatedString(tunImplText(it)) },
-                        )
-                    }
-                    item(Key.MTU, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.MTU, 9000)
-                            .collectAsStateWithLifecycle(9000)
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.mtu = it
-                                needReload()
+                            onClick = {
+                                hapticClick()
+                                openSettingsPage(NavRoutes.SettingsPage.Kind.Dns)
                             },
-                            title = { Text(stringResource(Res.string.mtu)) },
-                            textToValue = { it.toIntOrNull() ?: 9000 },
+                        )
+                        PreferenceDivider()
+                        Preference(
+                            title = { Text(stringResource(Res.string.inbound_settings)) },
                             icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.public_icon),
-                                    null,
+                                MaskedIcon(
+                                    Res.drawable.nat,
+                                    color = IconMaskColors.IconCoral,
                                 )
                             },
-                            summary = { Text(value.toString()) },
-                            valueToText = { it.toString() },
+                            onClick = {
+                                hapticClick()
+                                openSettingsPage(NavRoutes.SettingsPage.Kind.Inbound)
+                            },
                         )
-                    }
-                    platformGeneralOptions { needReload() }
-                    item(Key.SPEED_INTERVAL, PreferenceType.LIST) {
-                        fun speedIntervalText(ms: Int): StringOrRes = when (ms) {
-                            0 -> StringOrRes.Res(Res.string.disable)
-                            500 -> StringOrRes.Direct("500ms")
-                            1000 -> StringOrRes.Direct("1s")
-                            3000 -> StringOrRes.Direct("3s")
-                            10000 -> StringOrRes.Direct("10s")
-                            else -> StringOrRes.Direct("1s")
-                        }
-
-                        val values = listOf(0, 500, 1000, 3000, 10000)
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.SPEED_INTERVAL, 1000)
-                            .collectAsStateWithLifecycle(1000)
-
-                        ListPreference(
-                            value = value,
-                            onValueChange = { DataStore.speedInterval = it },
-                            values = values,
-                            title = { Text(stringResource(Res.string.speed_interval)) },
+                        PreferenceDivider()
+                        Preference(
+                            title = { Text(stringResource(Res.string.cag_misc)) },
                             icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.shutter_speed),
-                                    null,
+                                MaskedIcon(
+                                    Res.drawable.cast_connected,
+                                    color = IconMaskColors.IconWarmGray,
                                 )
                             },
-                            summary = { Text(stringOrRes(speedIntervalText(value))) },
-                            type = ListPreferenceType.DROPDOWN_MENU,
-                            valueToText = {
-                                val text = runBlocking { getStringOrRes(speedIntervalText(it)) }
-                                AnnotatedString(text)
+                            onClick = {
+                                hapticClick()
+                                openSettingsPage(NavRoutes.SettingsPage.Kind.Misc)
                             },
                         )
-                    }
-                    item(Key.PROFILE_TRAFFIC_STATISTICS, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.PROFILE_TRAFFIC_STATISTICS, true)
-                            .collectAsStateWithLifecycle(true)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = { DataStore.profileTrafficStatistics = it },
-                            title = { Text(stringResource(Res.string.profile_traffic_statistics)) },
-                            icon = { Icon(vectorResource(Res.drawable.traffic), null) },
-                            summary = { Text(stringResource(Res.string.profile_traffic_statistics_summary)) },
-                            enabled = speedIntervalState != 0,
-                        )
-                    }
-                    item(Key.SHOW_DIRECT_SPEED, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.SHOW_DIRECT_SPEED, true)
-                            .collectAsStateWithLifecycle(true)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = { DataStore.showDirectSpeed = it },
-                            title = { Text(stringResource(Res.string.show_direct_speed)) },
+                        PreferenceDivider()
+                        Preference(
+                            title = { Text(stringResource(Res.string.ntp_category)) },
                             icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.speed),
-                                    null,
+                                MaskedIcon(
+                                    Res.drawable.timelapse,
+                                    color = IconMaskColors.IconLightPink,
                                 )
                             },
-                            summary = { Text(stringResource(Res.string.show_direct_speed_sum)) },
-                            enabled = speedIntervalState != 0,
-                        )
-                    }
-                    item(Key.ALWAYS_SHOW_ADDRESS, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.ALWAYS_SHOW_ADDRESS, false)
-                            .collectAsStateWithLifecycle(false)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = { DataStore.alwaysShowAddress = it },
-                            title = { Text(stringResource(Res.string.always_show_address)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.center_focus_weak),
-                                    null,
-                                )
+                            onClick = {
+                                hapticClick()
+                                openSettingsPage(NavRoutes.SettingsPage.Kind.Ntp)
                             },
-                            summary = { Text(stringResource(Res.string.always_show_address_sum)) },
-                        )
-                    }
-                    item(Key.BLURRED_ADDRESS, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.BLURRED_ADDRESS, false)
-                            .collectAsStateWithLifecycle(false)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = { DataStore.blurredAddress = it },
-                            title = { Text(stringResource(Res.string.blurred_address)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.transgender),
-                                    null,
-                                )
-                            },
-                            enabled = alwaysShowAddressState,
-                        )
-                    }
-                    item(Key.SECURITY_ADVISORY, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.SECURITY_ADVISORY, true)
-                            .collectAsStateWithLifecycle(true)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = { DataStore.securityAdvisory = it },
-                            title = { Text(stringResource(Res.string.insecure_warn)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.security),
-                                    null,
-                                )
-                            },
-                        )
-                    }
-                    item(Key.GLOBAL_ALLOW_INSECURE, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.GLOBAL_ALLOW_INSECURE, false)
-                            .collectAsStateWithLifecycle(false)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = { DataStore.globalAllowInsecure = it },
-                            title = { Text(stringResource(Res.string.allow_insecure)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.security),
-                                    null,
-                                )
-                            },
-                            summary = { Text(stringResource(Res.string.allow_insecure_sum)) },
-                        )
-                    }
-                    platformSecurityOptions()
-                    meteredNetworkSetting { needReload() }
-                    item(Key.LOG_LEVEL, PreferenceType.LIST) {
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.LOG_LEVEL, 3)
-                            .collectAsStateWithLifecycle(3)
-                        ListPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.logLevel = it
-                                needRestart()
-                            },
-                            values = intListN(7),
-                            title = { Text(stringResource(Res.string.log_level)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.bug_report),
-                                    null,
-                                )
-                            },
-                            summary = { Text(logLevelString(value)) },
-                            type = ListPreferenceType.DROPDOWN_MENU,
-                            valueToText = { AnnotatedString(logLevelString(it)) },
-                        )
-                    }
-                    item(Key.LOG_MAX_LINE, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.LOG_MAX_LINE, 1024)
-                            .collectAsStateWithLifecycle(1024)
-                        var previewValue by remember { mutableFloatStateOf(value.toFloat()) }
-                        SliderPreference(
-                            value = value.toFloat(),
-                            onValueChange = { DataStore.logMaxLine = it.toInt() },
-                            sliderValue = previewValue,
-                            onSliderValueChange = { previewValue = it },
-                            title = { Text(stringResource(Res.string.max_log_line)) },
-                            valueRange = 1024f..1024f * 64f,
-                            valueSteps = 128,
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.description),
-                                    null,
-                                )
-                            },
-                            valueText = { Text(previewValue.toInt().toString()) },
                         )
                     }
 
-                    item(Key.ROUTE_SETTINGS, PreferenceType.CATEGORY) {
-                        PreferenceCategory(text = { Text(stringResource(Res.string.cag_route)) })
-                    }
-                    item(Key.TRAFFIC_SNIFFING, PreferenceType.LIST) {
-                        fun sniffingTextRes(value: Int): StringResource = when (value) {
-                            TrafficSniffing.DISABLED -> Res.string.traffic_sniffing_disabled
-                            TrafficSniffing.ENABLED -> Res.string.traffic_sniffing_enabled
-                            TrafficSniffing.ROUTE -> Res.string.traffic_sniffing_route
-                            else -> Res.string.traffic_sniffing_disabled
-                        }
-
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.TRAFFIC_SNIFFING, 1)
-                            .collectAsStateWithLifecycle(1)
-
-                        ListPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.trafficSniffing = it
-                                needReload()
-                            },
-                            values = listOf(
-                                TrafficSniffing.DISABLED,
-                                TrafficSniffing.ENABLED,
-                                TrafficSniffing.ROUTE,
-                            ),
-                            title = { Text(stringResource(Res.string.traffic_sniffing)) },
+                    item { PreferenceCategory(text = { Text(stringResource(Res.string.more)) }) }
+                    preferenceGroup {
+                        Preference(
+                            title = { Text(stringResource(Res.string.tools_network)) },
                             icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.router),
-                                    null,
+                                MaskedIcon(
+                                    Res.drawable.wifi,
+                                    color = IconMaskColors.IconLightBlue,
                                 )
                             },
-                            summary = { Text(stringResource(sniffingTextRes(value))) },
-                            type = ListPreferenceType.DROPDOWN_MENU,
-                            valueToText = { AnnotatedString(stringResource(sniffingTextRes(it))) },
-                        )
-                    }
-                    item(Key.RESOLVE_DESTINATION, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.RESOLVE_DESTINATION, false)
-                            .collectAsStateWithLifecycle(false)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.resolveDestination = it
-                                needReload()
+                            onClick = {
+                                hapticClick()
+                                openTools()
                             },
-                            title = { Text(stringResource(Res.string.resolve_destination)) },
+                        )
+                        PreferenceDivider()
+                        Preference(
+                            title = { Text(stringResource(Res.string.plugin)) },
                             icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.dns),
-                                    null,
+                                MaskedIcon(
+                                    Res.drawable.nfc,
+                                    color = IconMaskColors.IconCyan,
                                 )
                             },
-                            summary = { Text(stringResource(Res.string.resolve_destination_summary)) },
-                        )
-                    }
-                    proxyAppsPreferences(openAppManager)
-                    platformRouteOptions(
-                        needReload = { needReload() },
-                        isVpnMode = serviceModeState == Key.MODE_VPN,
-                    )
-                    item(Key.NETWORK_STRATEGY, PreferenceType.LIST) {
-                        val values =
-                            listOf("", "prefer_ipv6", "prefer_ipv4", "ipv4_only", "ipv6_only")
-
-                        fun networkStrategyTextRes(value: String): StringResource = when (value) {
-                            "" -> Res.string.auto
-                            "prefer_ipv6" -> Res.string.prefer_ipv6
-                            "prefer_ipv4" -> Res.string.prefer_ipv4
-                            "ipv4_only" -> Res.string.ipv4_only
-                            "ipv6_only" -> Res.string.ipv6_only
-                            else -> Res.string.auto
-                        }
-
-                        val stored by DataStore.configurationStore
-                            .stringFlow(Key.NETWORK_STRATEGY, "")
-                            .collectAsStateWithLifecycle("")
-
-                        ListPreference(
-                            value = stored,
-                            onValueChange = {
-                                DataStore.networkStrategy = it
-                                needReload()
+                            onClick = {
+                                hapticClick()
+                                openPlugin()
                             },
-                            values = values,
-                            title = { Text(stringResource(Res.string.network_strategy)) },
+                        )
+                        PreferenceDivider()
+                        Preference(
+                            title = { Text(stringResource(Res.string.menu_about)) },
                             icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.router),
-                                    null,
+                                MaskedIcon(
+                                    Res.drawable.info,
+                                    color = IconMaskColors.IconLavender,
                                 )
                             },
-                            summary = { Text(stringResource(networkStrategyTextRes(stored))) },
-                            type = ListPreferenceType.DROPDOWN_MENU,
-                            valueToText = {
-                                AnnotatedString(stringResource(networkStrategyTextRes(it)))
+                            onClick = {
+                                hapticClick()
+                                openAbout()
                             },
                         )
                     }
-                    item(Key.NETWORK_INTERFACE_STRATEGY, PreferenceType.LIST) {
-                        fun networkInterfaceStrategyTextRes(selection: Int): StringResource =
-                            when (selection) {
-                                NetworkInterfaceStrategy.DEFAULT -> Res.string.keep_default
-                                NetworkInterfaceStrategy.HYBRID -> Res.string.hybrid
-                                NetworkInterfaceStrategy.FALLBACK -> Res.string.fallback
-                                else -> Res.string.keep_default
-                            }
-
-                        val value by DataStore.configurationStore
-                            .intFlow(
-                                Key.NETWORK_INTERFACE_STRATEGY,
-                                NetworkInterfaceStrategy.DEFAULT,
-                            )
-                            .collectAsStateWithLifecycle(NetworkInterfaceStrategy.DEFAULT)
-
-                        ListPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.networkInterfaceType = it
-                                needReload()
-                            },
-                            values = listOf(
-                                NetworkInterfaceStrategy.DEFAULT,
-                                NetworkInterfaceStrategy.HYBRID,
-                                NetworkInterfaceStrategy.FALLBACK,
-                            ),
-                            title = { Text(stringResource(Res.string.network_interface_strategy)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.construction),
-                                    null,
-                                )
-                            },
-                            summary = { Text(stringResource(networkInterfaceStrategyTextRes(value))) },
-                            type = ListPreferenceType.DROPDOWN_MENU,
-                            valueToText = {
-                                AnnotatedString(stringResource(networkInterfaceStrategyTextRes(it)))
-                            },
-                        )
-                    }
-                    item(
-                        Key.NETWORK_PREFERRED_INTERFACES,
-                        PreferenceType.MULTI_SELECT_LIST,
-                    ) {
-                        val values = listOf("wifi", "cellular", "ethernet", "other")
-                        val selected by DataStore.configurationStore
-                            .stringSetFlow(Key.NETWORK_PREFERRED_INTERFACES, emptySet())
-                            .collectAsStateWithLifecycle(emptySet())
-                        MultiSelectListPreference(
-                            value = selected,
-                            onValueChange = {
-                                DataStore.networkPreferredInterfaces = it
-                                needReload()
-                            },
-                            values = values,
-                            title = { Text(stringResource(Res.string.network_interface_preference)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.public_icon),
-                                    null,
-                                )
-                            },
-                            summary = {
-                                val text = if (selected.isEmpty()) {
-                                    stringResource(Res.string.not_set)
-                                } else selected.joinToString("\n")
-                                Text(text)
-                            },
-                            valueToText = { AnnotatedString(it) },
-                        )
-                    }
-                    /*item(Key.FORCED_SEARCH_PROCESS, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.FORCED_SEARCH_PROCESS, false)
-                            .collectAsStateWithLifecycle(false)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.forcedSearchProcess = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.forced_search_process)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.android),
-                                    null,
-                                )
-                            },
-                        )
-                    }*/
-                    item(Key.RULES_PROVIDER, PreferenceType.LIST) {
-                        fun rulesProviderText(index: Int): StringOrRes = when (index) {
-                            RuleProvider.OFFICIAL -> StringOrRes.Res(Res.string.route_rules_official)
-                            RuleProvider.LOYALSOLDIER -> {
-                                StringOrRes.Direct("Loyalsoldier (1715173329/sing-geo*)")
-                            }
-
-                            RuleProvider.CHOCOLATE4U -> {
-                                StringOrRes.Direct("Chocolate4U/Iran-sing-box-rules")
-                            }
-
-                            RuleProvider.CUSTOM -> StringOrRes.Res(Res.string.custom_rule_provider)
-                            else -> StringOrRes.Res(Res.string.route_rules_official)
-                        }
-
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.RULES_PROVIDER, RuleProvider.OFFICIAL)
-                            .collectAsStateWithLifecycle(RuleProvider.OFFICIAL)
-
-                        ListPreference(
-                            value = value,
-                            onValueChange = { DataStore.rulesProvider = it },
-                            values = listOf(
-                                RuleProvider.OFFICIAL,
-                                RuleProvider.LOYALSOLDIER,
-                                RuleProvider.CHOCOLATE4U,
-                                RuleProvider.CUSTOM,
-                            ),
-                            title = { Text(stringResource(Res.string.route_rules_provider)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.rule_folder),
-                                    null,
-                                )
-                            },
-                            summary = { Text(stringOrRes(rulesProviderText(value))) },
-                            type = ListPreferenceType.DROPDOWN_MENU,
-                            valueToText = { AnnotatedString(stringOrRes(rulesProviderText(it))) },
-                        )
-                    }
-                    if (rulesProviderState == RuleProvider.CUSTOM) item(
-                        Key.CUSTOM_RULE_PROVIDER,
-                        PreferenceType.TEXT_FIELD,
-                    ) {
-                        val defaultUrl =
-                            "https://codeload.github.com/SagerNet/sing-geosite/tar.gz/refs/heads/rule-set"
-                        val value by DataStore.configurationStore
-                            .stringFlow(Key.CUSTOM_RULE_PROVIDER, defaultUrl)
-                            .collectAsStateWithLifecycle(defaultUrl)
-
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = { DataStore.customRuleProvider = it },
-                            title = { Text(stringResource(Res.string.custom_rule_provider)) },
-                            textToValue = { it },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.import_contacts),
-                                    null,
-                                )
-                            },
-                            summary = { Text(contentOrUnset(value)) },
-                            valueToText = { it },
-                        ) { value, onValueChange, onOk ->
-                            LinkOrContentTextField(value, onValueChange, onOk)
-                        }
-                    }
-
-                    item(Key.DNS_SETTINGS, PreferenceType.CATEGORY) {
-                        PreferenceCategory(text = { Text(stringResource(Res.string.cag_dns)) })
-                    }
-                    item(Key.REMOTE_DNS, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .stringFlow(Key.REMOTE_DNS, "tcp://dns.google")
-                            .collectAsStateWithLifecycle("tcp://dns.google")
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.remoteDns = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.remote_dns)) },
-                            textToValue = { it },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.dns),
-                                    null,
-                                )
-                            },
-                            summary = { Text(contentOrUnset(value)) },
-                            valueToText = { it },
-                        )
-                    }
-                    item(Key.DIRECT_DNS, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .stringFlow(Key.DIRECT_DNS, "local")
-                            .collectAsStateWithLifecycle("local")
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.directDns = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.direct_dns)) },
-                            textToValue = { it },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.dns),
-                                    null,
-                                )
-                            },
-                            summary = { Text(contentOrUnset(value)) },
-                            valueToText = { it },
-                        )
-                    }
-                    item(Key.DOMAIN_STRATEGY_FOR_DIRECT, PreferenceType.LIST) {
-                        val value by DataStore.configurationStore
-                            .stringFlow(Key.DOMAIN_STRATEGY_FOR_DIRECT, "auto")
-                            .collectAsStateWithLifecycle("auto")
-                        val values =
-                            listOf("auto", "prefer_ipv6", "prefer_ipv4", "ipv4_only", "ipv6_only")
-                        val entries = listOf(
-                            stringResource(Res.string.auto),
-                            stringResource(Res.string.prefer_ipv6),
-                            stringResource(Res.string.prefer_ipv4),
-                            stringResource(Res.string.ipv4_only),
-                            stringResource(Res.string.ipv6_only),
-                        )
-
-                        ListPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.domainStrategyForDirect = it
-                                needReload()
-                            },
-                            values = values,
-                            title = { Text(stringResource(Res.string.domain_strategy_for_direct)) },
-                            icon = { Spacer(Modifier.size(24.dp)) },
-                            summary = {
-                                val selectedIndex =
-                                    values.indexOf(value).takeIf { index -> index >= 0 } ?: 0
-                                Text(entries[selectedIndex])
-                            },
-                            type = ListPreferenceType.DROPDOWN_MENU,
-                            valueToText = {
-                                val selectedIndex = values.indexOf(it).takeIf { index ->
-                                    index >= 0
-                                } ?: 0
-                                AnnotatedString(entries[selectedIndex])
-                            },
-                        )
-                    }
-                    item(Key.DOMAIN_STRATEGY_FOR_SERVER, PreferenceType.LIST) {
-                        val value by DataStore.configurationStore
-                            .stringFlow(Key.DOMAIN_STRATEGY_FOR_SERVER, "auto")
-                            .collectAsStateWithLifecycle("auto")
-                        val values =
-                            listOf("auto", "prefer_ipv6", "prefer_ipv4", "ipv4_only", "ipv6_only")
-                        val entries = listOf(
-                            stringResource(Res.string.auto),
-                            stringResource(Res.string.prefer_ipv6),
-                            stringResource(Res.string.prefer_ipv4),
-                            stringResource(Res.string.ipv4_only),
-                            stringResource(Res.string.ipv6_only),
-                        )
-
-                        ListPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.domainStrategyForServer = it
-                                needReload()
-                            },
-                            values = values,
-                            title = { Text(stringResource(Res.string.domain_strategy_for_server)) },
-                            icon = { Spacer(Modifier.size(24.dp)) },
-                            summary = {
-                                val selectedIndex =
-                                    values.indexOf(value).takeIf { index -> index >= 0 } ?: 0
-                                Text(entries[selectedIndex])
-                            },
-                            type = ListPreferenceType.DROPDOWN_MENU,
-                            valueToText = {
-                                val selectedIndex = values.indexOf(it).takeIf { index ->
-                                    index >= 0
-                                } ?: 0
-                                AnnotatedString(entries[selectedIndex])
-                            },
-                        )
-                    }
-                    item(Key.ENABLE_FAKE_DNS, PreferenceType.SWITCH) {
-                        SwitchPreference(
-                            value = fakeDNSState,
-                            onValueChange = {
-                                DataStore.enableFakeDns = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.fake_dns)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.lock),
-                                    null,
-                                )
-                            },
-                            summary = { Text(stringResource(Res.string.fakedns_message)) },
-                        )
-                    }
-                    item(Key.FAKE_DNS_FOR_ALL, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.FAKE_DNS_FOR_ALL, false)
-                            .collectAsStateWithLifecycle(false)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.fakeDNSForAll = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.fake_dns_for_all)) },
-                            enabled = fakeDNSState,
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.lock),
-                                    null,
-                                )
-                            },
-                            summary = { Text(stringResource(Res.string.fake_dns_for_all_sum)) },
-                        )
-                    }
-                    item(Key.FAKE_DNS_RANGE_4, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .stringFlow(Key.FAKE_DNS_RANGE_4, "198.51.100.0/24")
-                            .collectAsStateWithLifecycle("198.51.100.0/24")
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.fakeDNSRange4 = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.fake_ip_range_4)) },
-                            textToValue = { it },
-                            enabled = fakeDNSState,
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.text_select_end),
-                                    null,
-                                )
-                            },
-                            summary = { Text(contentOrUnset(value)) },
-                            valueToText = { it },
-                        )
-                    }
-                    item(Key.FAKE_DNS_RANGE_6, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .stringFlow(Key.FAKE_DNS_RANGE_6, "2001:2::/48")
-                            .collectAsStateWithLifecycle("2001:2::/48")
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.fakeDNSRange6 = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.fake_ip_range_6)) },
-                            textToValue = { it },
-                            enabled = fakeDNSState,
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.text_select_end),
-                                    null,
-                                )
-                            },
-                            summary = { Text(contentOrUnset(value)) },
-                            valueToText = { it },
-                        )
-                    }
-                    item(Key.DNS_HOSTS, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .stringFlow(Key.DNS_HOSTS, "")
-                            .collectAsStateWithLifecycle("")
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.dnsHosts = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.dns_hosts)) },
-                            textToValue = { it },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.transform),
-                                    null,
-                                )
-                            },
-                            summary = { Text(contentOrUnset(value)) },
-                            valueToText = { it },
-                        ) { value, onValueChange, onOk ->
-                            HostTextField(value, onValueChange, onOk)
-                        }
-                    }
-                    item(Key.ENABLE_DNS_ROUTING, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.ENABLE_DNS_ROUTING, true)
-                            .collectAsStateWithLifecycle(true)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.enableDnsRouting = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.hijack_dns)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.dns),
-                                    null,
-                                )
-                            },
-                            summary = { Text(stringResource(Res.string.hijack_dns_sum)) },
-                        )
-                    }
-item(Key.OPTIMISTIC_DNS_CACHE, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.OPTIMISTIC_DNS_CACHE, false)
-                            .collectAsStateWithLifecycle(false)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.optimisticDnsCache = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.optimistic_dns_cache)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.speed),
-                                    null,
-                                )
-                            },
-                            summary = { Text(stringResource(Res.string.optimistic_dns_cache_sum)) },
-                        )
-                    }
-
-                    item(Key.INBOUND_SETTINGS, PreferenceType.CATEGORY) {
-                        PreferenceCategory(text = { Text(stringResource(Res.string.inbound_settings)) })
-                    }
-                    item(Key.MIXED_PORT, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .stringFlow(Key.MIXED_PORT, "2080")
-                            .collectAsStateWithLifecycle("2080")
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.mixedPort = it.toIntOrNull() ?: 2080
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.port_proxy)) },
-                            textToValue = { it },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.directions_boat),
-                                    null,
-                                )
-                            },
-                            summary = { Text(contentOrUnset(value)) },
-                            valueToText = { it },
-                            textField = { value, onValueChange, onOk ->
-                                PortTextField(value, onValueChange, onOk)
-                            },
-                        )
-                    }
-                    item(Key.LOCAL_DNS_PORT, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .stringFlow(Key.LOCAL_DNS_PORT, "0")
-                            .collectAsStateWithLifecycle("0")
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.localDNSPort = it.toIntOrNull() ?: 0
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.port_local_dns)) },
-                            textToValue = { it },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.apps),
-                                    null,
-                                )
-                            },
-                            summary = { Text(contentOrUnset(value)) },
-                            valueToText = { it },
-                            textField = { value, onValueChange, onOk ->
-                                PortTextField(value, onValueChange, onOk)
-                            },
-                        )
-                    }
-                    item(Key.APPEND_HTTP_PROXY, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.APPEND_HTTP_PROXY, false)
-                            .collectAsStateWithLifecycle(false)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.appendHttpProxy = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.append_http_proxy)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.app_registration),
-                                    null,
-                                )
-                            },
-                            summary = {
-                                if (PlatformInfo.isAndroid) {
-                                    Text(stringResource(Res.string.append_http_proxy_sum))
-                                }
-                            },
-                        )
-                    }
-                    httpProxyBypass(appendHttpProxyState, ::needReload)
-                    item(Key.ALLOW_ACCESS, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.ALLOW_ACCESS, false)
-                            .collectAsStateWithLifecycle(false)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.allowAccess = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.allow_access)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.nat),
-                                    null,
-                                )
-                            },
-                            summary = { Text(stringResource(Res.string.allow_access_sum)) },
-                        )
-                    }
-                    item(Key.INBOUND_USERNAME, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .stringFlow(Key.INBOUND_USERNAME, "")
-                            .collectAsStateWithLifecycle("")
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.inboundUsername = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.inbound_username)) },
-                            textToValue = { it },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.person),
-                                    null,
-                                )
-                            },
-                            summary = { Text(contentOrUnset(value)) },
-                            valueToText = { it },
-                        )
-                    }
-                    item(Key.INBOUND_PASSWORD, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .stringFlow(Key.INBOUND_PASSWORD, "")
-                            .collectAsStateWithLifecycle("")
-                        PasswordPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.inboundPassword = it
-                                needReload()
-                            },
-                            title = { Text(stringResource(Res.string.inbound_password)) },
-                        )
-                    }
-                    if (isExpertState) item(
-                        Key.ANCHOR_SSID,
-                        PreferenceType.TEXT_FIELD,
-                    ) {
-                        val value by DataStore.configurationStore
-                            .stringFlow(Key.ANCHOR_SSID, "")
-                            .collectAsStateWithLifecycle("")
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.anchorSSID = it
-                                needReload()
-                            },
-                            title = { Text("Anchor SSIDs") },
-                            textToValue = { it },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.wifi),
-                                    null,
-                                )
-                            },
-                            summary = { Text(contentOrUnset(value)) },
-                            valueToText = { it },
-                        )
-                    }
-
-                    item(Key.MISC_SETTINGS, PreferenceType.CATEGORY) {
-                        PreferenceCategory(text = { Text(stringResource(Res.string.cag_misc)) })
-                    }
-                    item(Key.CONNECTION_TEST_URL, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .stringFlow(Key.CONNECTION_TEST_URL, CONNECTION_TEST_URL)
-                            .collectAsStateWithLifecycle(CONNECTION_TEST_URL)
-                        TextFieldPreference(
-                            value = value,
-                            onValueChange = { DataStore.connectionTestURL = it },
-                            title = { Text(stringResource(Res.string.connection_test_url)) },
-                            textToValue = { it },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.cast_connected),
-                                    null,
-                                )
-                            },
-                            summary = { Text(contentOrUnset(value)) },
-                            valueToText = { it },
-                        ) { value, onValueChange, onOk ->
-                            LinkOrContentTextField(value, onValueChange, onOk)
-                        }
-                    }
-                    item(Key.CONNECTION_TEST_CONCURRENT, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.CONNECTION_TEST_CONCURRENT, 5)
-                            .collectAsStateWithLifecycle(5)
-                        var previewValue by remember { mutableFloatStateOf(value.toFloat()) }
-                        SliderPreference(
-                            value = value.toFloat(),
-                            onValueChange = { DataStore.connectionTestConcurrent = it.toInt() },
-                            sliderValue = previewValue,
-                            onSliderValueChange = { previewValue = it },
-                            title = { Text(stringResource(Res.string.test_concurrency)) },
-                            valueRange = 1f..32f,
-                            valueSteps = 32,
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.fast_forward),
-                                    null,
-                                )
-                            },
-                            valueText = { Text(previewValue.toInt().toString()) },
-                        )
-                    }
-                    item(Key.CONNECTION_TEST_TIMEOUT, PreferenceType.TEXT_FIELD) {
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.CONNECTION_TEST_TIMEOUT, 3000)
-                            .collectAsStateWithLifecycle(3000)
-                        var previewValue by remember { mutableFloatStateOf(value.toFloat()) }
-                        SliderPreference(
-                            value = value.toFloat(),
-                            onValueChange = { DataStore.connectionTestTimeout = it.toInt() },
-                            sliderValue = previewValue,
-                            onSliderValueChange = { previewValue = it },
-                            title = { Text(stringResource(Res.string.test_timeout)) },
-                            valueRange = 1024f..8192f,
-                            valueSteps = 20,
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.apps),
-                                    null,
-                                )
-                            },
-                            valueText = { Text(previewValue.toInt().toString()) },
-                        )
-                    }
-                    platformMiscOptions { needReload() }
-                    item(Key.CERT_PROVIDER, PreferenceType.LIST) {
-                        fun certProviderTextRes(index: Int): StringResource = when (index) {
-                            CertProvider.SYSTEM -> Res.string.follow_system
-                            CertProvider.MOZILLA -> Res.string.mozilla
-                            CertProvider.SYSTEM_AND_USER -> Res.string.system_and_user
-                            CertProvider.CHROME -> Res.string.cert_chrome
-                            else -> Res.string.mozilla
-                        }
-
-                        val value by DataStore.configurationStore
-                            .intFlow(Key.CERT_PROVIDER, CertProvider.MOZILLA)
-                            .collectAsStateWithLifecycle(CertProvider.MOZILLA)
-
-                        ListPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.certProvider = it
-                                needRestart()
-                            },
-                            values = listOf(
-                                CertProvider.SYSTEM,
-                                CertProvider.MOZILLA,
-                                CertProvider.SYSTEM_AND_USER,
-                                CertProvider.CHROME,
-                            ),
-                            title = { Text(stringResource(Res.string.certificate_authority)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.push_pin),
-                                    null,
-                                )
-                            },
-                            summary = { Text(stringResource(certProviderTextRes(value))) },
-                            type = ListPreferenceType.DROPDOWN_MENU,
-                            valueToText = { AnnotatedString(stringResource(certProviderTextRes(it))) },
-                        )
-                    }
-                    item(Key.ALLOW_INSECURE_ON_REQUEST, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.ALLOW_INSECURE_ON_REQUEST, false)
-                            .collectAsStateWithLifecycle(false)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.allowInsecureOnRequest = it
-                            },
-                            title = { Text(stringResource(Res.string.allow_insecure_on_request)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.security),
-                                    null,
-                                )
-                            },
-                            summary = { Text(stringResource(Res.string.allow_insecure_on_request_sum)) },
-                        )
-                    }
-                    item(Key.NETWORK_CHANGE_RESET_CONNECTIONS, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.NETWORK_CHANGE_RESET_CONNECTIONS, true)
-                            .collectAsStateWithLifecycle(true)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.networkChangeResetConnections = it
-                            },
-                            title = { Text(stringResource(Res.string.network_change_reset_connections)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.traffic),
-                                    null,
-                                )
-                            },
-                            summary = { Text(stringResource(Res.string.network_change_reset_connections_sum)) },
-                        )
-                    }
-                    item(Key.WAKE_RESET_CONNECTIONS, PreferenceType.SWITCH) {
-                        val value by DataStore.configurationStore
-                            .booleanFlow(Key.WAKE_RESET_CONNECTIONS, false)
-                            .collectAsStateWithLifecycle(false)
-                        SwitchPreference(
-                            value = value,
-                            onValueChange = {
-                                DataStore.wakeResetConnections = it
-                            },
-                            title = { Text(stringResource(Res.string.wake_reset_connections)) },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.flip_camera_android),
-                                    null,
-                                )
-                            },
-                            summary = { Text(stringResource(Res.string.wake_reset_connections_sum)) },
-                        )
-                    }
-                    disableProcessText()
-                    }
+                }
 
                 BoxedVerticalScrollbar(
                     modifier = Modifier
@@ -1596,145 +332,6 @@ item(Key.OPTIMISTIC_DNS_CACHE, PreferenceType.SWITCH) {
 
                 else -> {}
             }
-        }
-    }
-}
-
-private inline fun LazyListScope.colorPickerPreference(
-    modifier: Modifier = Modifier.fillMaxWidth(),
-    key: String,
-    crossinline title: @Composable () -> Unit,
-    enabled: Boolean = true,
-) {
-    item(key, PreferenceType.COLOR_PICKER) {
-        val currentTheme by DataStore.configurationStore
-            .intFlow(key, DEFAULT)
-            .collectAsStateWithLifecycle(DEFAULT)
-        var showDialog by remember { mutableStateOf(false) }
-        val extraColors = rememberThemeExtraColors()
-        Preference(
-            title = { title() },
-            modifier = modifier,
-            enabled = enabled,
-            icon = {
-                Icon(
-                    vectorResource(Res.drawable.color_lens),
-                    null,
-                )
-            },
-            summary = { Text(stringResource(themeString(currentTheme))) },
-            widgetContainer = {
-                Box(modifier = Modifier.padding(end = 8.dp)) {
-                    Circle(
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(32.dp),
-                    )
-                }
-            },
-            onClick = { showDialog = true },
-        )
-
-        if (showDialog) {
-            val colors = themes + extraColors
-
-            BasicAlertDialog(
-                onDismissRequest = { showDialog = false },
-            ) {
-                Surface(
-                    shape = MaterialTheme.shapes.extraLarge,
-                    tonalElevation = 6.dp,
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                    ) {
-                        Text(
-                            text = stringResource(Res.string.theme),
-                            style = MaterialTheme.typography.headlineSmall,
-                        )
-                        if (PlatformInfo.isAndroid) Text(
-                            text = stringResource(Res.string.long_click_to_see_name),
-                            modifier = Modifier.padding(bottom = 16.dp),
-                            style = MaterialTheme.typography.labelSmallEmphasized,
-                        )
-
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(4),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.padding(vertical = 8.dp),
-                        ) {
-                            items(
-                                count = colors.size,
-                                key = { index -> index },
-                                contentType = { 0 },
-                            ) { index ->
-                                val theme = index + 1
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clickable {
-                                            DataStore.configurationStore.putInt(key, theme)
-                                            showDialog = false
-                                        },
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    TooltipBox(
-                                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                                            TooltipAnchorPosition.Above,
-                                        ),
-                                        tooltip = {
-                                            PlainTooltip {
-                                                Text(stringResource(themeString(theme)))
-                                            }
-                                        },
-                                        state = rememberTooltipState(),
-                                    ) {
-                                        Circle(
-                                            modifier = Modifier.size(48.dp),
-                                            color = colors[index],
-                                            selected = currentTheme == theme,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 16.dp),
-                            horizontalArrangement = Arrangement.End,
-                        ) {
-                            TextButton(stringResource(Res.string.cancel)) {
-                                showDialog = false
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun Circle(
-    modifier: Modifier = Modifier,
-    color: Color,
-    selected: Boolean = false,
-) {
-    Box(
-        modifier = modifier.background(color, CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (selected) {
-            Icon(
-                imageVector = vectorResource(Res.drawable.check),
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(24.dp),
-            )
         }
     }
 }
