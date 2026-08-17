@@ -95,6 +95,7 @@ const val LOCALHOST4 = "127.0.0.1"
 
 val FAKE_DNS_QUERY_TYPE get() = listOf("A", "AAAA")
 
+@Suppress("UNCHECKED_CAST")
 private fun JSONMap.applyForTestSandbox() {
     this["inbounds"] = emptyList<Any?>()
     val dnsOptions = (this["dns"] as? JSONMap) ?: mutableMapOf<String, Any?>().also {
