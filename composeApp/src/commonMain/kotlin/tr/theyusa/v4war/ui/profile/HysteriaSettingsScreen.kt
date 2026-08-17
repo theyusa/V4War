@@ -11,13 +11,17 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import tr.theyusa.v4war.compose.DurationTextField
+import tr.theyusa.v4war.compose.IconMaskColors
+import tr.theyusa.v4war.compose.IconMaskShapes
+import tr.theyusa.v4war.compose.MaskedIcon
 import tr.theyusa.v4war.compose.MultilineTextField
 import tr.theyusa.v4war.compose.PasswordPreference
 import tr.theyusa.v4war.compose.PreferenceCategory
+import tr.theyusa.v4war.compose.PreferenceDivider
 import tr.theyusa.v4war.compose.UIntegerTextField
 import tr.theyusa.v4war.compose.ValidatedTextField
-import tr.theyusa.v4war.compose.material3.Icon
 import tr.theyusa.v4war.compose.material3.Text
+import tr.theyusa.v4war.compose.preferenceGroup
 import tr.theyusa.v4war.fmt.hysteria.HysteriaBean
 import tr.theyusa.v4war.ktx.contentOrUnset
 import tr.theyusa.v4war.ktx.intListN
@@ -89,7 +93,6 @@ import me.zhanghai.compose.preference.SwitchPreference
 import me.zhanghai.compose.preference.TextFieldPreference
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.resources.vectorResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -120,25 +123,30 @@ private fun LazyListScope.hysteriaSettings(
     uiState: HysteriaUiState,
     viewModel: HysteriaSettingsViewModel,
 ) {
-    item("name") {
+    preferenceGroup(key = "name") {
         TextFieldPreference(
             value = uiState.name,
             onValueChange = { viewModel.setName(it) },
             title = { Text(stringResource(Res.string.profile_name)) },
             textToValue = { it },
-            icon = { Icon(vectorResource(Res.drawable.emoji_symbols), null) },
+            icon = {
+                MaskedIcon(
+                    Res.drawable.emoji_symbols,
+                    color = IconMaskColors.IconCyan,
+                )
+            },
             summary = { Text(contentOrUnset(uiState.name)) },
             valueToText = { it },
         )
-    }
-
-    item("protocol_version") {
+        PreferenceDivider()
         ListPreference(
             value = uiState.protocolVersion,
             values = listOf(HysteriaBean.PROTOCOL_VERSION_1, HysteriaBean.PROTOCOL_VERSION_2),
             onValueChange = { viewModel.setProtocolVersion(it) },
             title = { Text(stringResource(Res.string.protocol_version)) },
-            icon = { Icon(vectorResource(Res.drawable.update), null) },
+            icon = {
+                MaskedIcon(Res.drawable.update, color = IconMaskColors.IconCyan)
+            },
             summary = { Text(uiState.protocolVersion.toString()) },
             type = ListPreferenceType.DROPDOWN_MENU,
         )
@@ -147,36 +155,43 @@ private fun LazyListScope.hysteriaSettings(
     item("category_proxy") {
         PreferenceCategory(text = { Text(stringResource(Res.string.proxy_cat)) })
     }
-    item("address") {
+    preferenceGroup(key = "address") {
         TextFieldPreference(
             value = uiState.address,
             onValueChange = { viewModel.setAddress(it) },
             title = { Text(stringResource(Res.string.server_address)) },
             textToValue = { it },
-            icon = { Icon(vectorResource(Res.drawable.router), null) },
+            icon = {
+                MaskedIcon(Res.drawable.router, color = IconMaskColors.IconCyan)
+            },
             summary = { Text(contentOrUnset(uiState.address)) },
             valueToText = { it },
         )
-    }
-    item("ports") {
+        PreferenceDivider()
         TextFieldPreference(
             value = uiState.ports,
             onValueChange = { viewModel.setPorts(it) },
             title = { Text(stringResource(Res.string.server_port)) },
             textToValue = { it },
-            icon = { Icon(vectorResource(Res.drawable.directions_boat), null) },
+            icon = {
+                MaskedIcon(
+                    Res.drawable.directions_boat,
+                    color = IconMaskColors.IconCyan,
+                )
+            },
             summary = { Text(contentOrUnset(uiState.ports)) },
             valueToText = { it },
         )
-    }
-    item("hop_interval") {
+        PreferenceDivider()
         TextFieldPreference(
             value = uiState.hopInterval,
             onValueChange = { viewModel.setHopInterval(it) },
             title = { Text(stringResource(Res.string.hop_interval)) },
             textToValue = { it },
             enabled = uiState.ports.toIntOrNull() == null,
-            icon = { Icon(vectorResource(Res.drawable.timelapse), null) },
+            icon = {
+                MaskedIcon(Res.drawable.timelapse, IconMaskColors.IconLightOrange)
+            },
             summary = { Text(contentOrUnset(uiState.hopInterval)) },
             valueToText = { it },
             textField = { value, onValueChange, onOk ->
@@ -188,17 +203,17 @@ private fun LazyListScope.hysteriaSettings(
                 )
             },
         )
-    }
-    item("obfuscation") {
+        PreferenceDivider()
         PasswordPreference(
             value = uiState.obfuscation,
             onValueChange = { viewModel.setObfuscation(it) },
             title = { Text(stringResource(Res.string.hysteria_obfs)) },
-            icon = { Icon(vectorResource(Res.drawable.texture), null) },
+            icon = {
+                MaskedIcon(Res.drawable.texture, color = IconMaskColors.IconCyan)
+            },
         )
-    }
-    if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_1) {
-        item("auth_type") {
+        if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_1) {
+            PreferenceDivider()
             fun authTypeName(type: Int): StringOrRes = when (type) {
                 HysteriaBean.TYPE_NONE -> StringOrRes.Res(Res.string.plugin_disabled)
                 HysteriaBean.TYPE_STRING -> StringOrRes.Direct("STRING")
@@ -210,17 +225,21 @@ private fun LazyListScope.hysteriaSettings(
                 values = intListN(3),
                 onValueChange = { viewModel.setAuthType(it) },
                 title = { Text(stringResource(Res.string.hysteria_auth_type)) },
-                icon = { Icon(vectorResource(Res.drawable.compare_arrows), null) },
+                icon = {
+                    MaskedIcon(
+                        Res.drawable.compare_arrows,
+                        color = IconMaskColors.IconCyan,
+                    )
+                },
                 summary = { Text(stringOrRes(authTypeName(uiState.authType))) },
                 type = ListPreferenceType.DROPDOWN_MENU,
                 valueToText = { AnnotatedString(stringOrRes(authTypeName(it))) },
             )
         }
-    }
-    if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_1 && uiState.authType != HysteriaBean.TYPE_NONE ||
-        uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_2
-    ) {
-        item("auth_payload") {
+        if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_1 && uiState.authType != HysteriaBean.TYPE_NONE ||
+            uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_2
+        ) {
+            PreferenceDivider()
             val titleRes = if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_2) {
                 Res.string.password
             } else {
@@ -232,9 +251,8 @@ private fun LazyListScope.hysteriaSettings(
                 title = { Text(stringResource(titleRes)) },
             )
         }
-    }
-    if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_1) {
-        item("protocol") {
+        if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_1) {
+            PreferenceDivider()
             val protocolNames = remember {
                 listOf(
                     "UDP",
@@ -247,32 +265,39 @@ private fun LazyListScope.hysteriaSettings(
                 values = intListN(3),
                 onValueChange = { viewModel.setProtocol(it) },
                 title = { Text(stringResource(Res.string.protocol)) },
-                icon = { Icon(vectorResource(Res.drawable.layers), null) },
+                icon = {
+                    MaskedIcon(
+                        resource = Res.drawable.layers,
+                        color = IconMaskColors.IconLightGreen,
+                    )
+                },
                 summary = { Text(protocolNames[uiState.protocol]) },
                 type = ListPreferenceType.DROPDOWN_MENU,
                 valueToText = { AnnotatedString(protocolNames[it]) },
             )
         }
-    }
-    item("sni") {
+        PreferenceDivider()
         TextFieldPreference(
             value = uiState.sni,
             onValueChange = { viewModel.setSni(it) },
             title = { Text(stringResource(Res.string.sni)) },
             textToValue = { it },
-            icon = { Icon(vectorResource(Res.drawable.copyright), null) },
+            icon = {
+                MaskedIcon(Res.drawable.copyright, color = IconMaskColors.IconCyan)
+            },
             summary = { Text(contentOrUnset(uiState.sni)) },
             valueToText = { it },
         )
-    }
-    if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_1) {
-        item("alpn") {
+        if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_1) {
+            PreferenceDivider()
             TextFieldPreference(
                 value = uiState.alpn,
                 onValueChange = { viewModel.setAlpn(it) },
                 title = { Text(stringResource(Res.string.alpn)) },
                 textToValue = { it },
-                icon = { Icon(vectorResource(Res.drawable.toc), null) },
+                icon = {
+                    MaskedIcon(Res.drawable.toc, color = IconMaskColors.IconLightBlue)
+                },
                 summary = { Text(contentOrUnset(uiState.alpn)) },
                 valueToText = { it },
                 textField = { value, onValueChange, onOk ->
@@ -280,60 +305,75 @@ private fun LazyListScope.hysteriaSettings(
                 },
             )
         }
-    }
-    item("certificates") {
+        PreferenceDivider()
         TextFieldPreference(
             value = uiState.certificates,
             onValueChange = { viewModel.setCertificates(it) },
             title = { Text(stringResource(Res.string.certificates)) },
             textToValue = { it },
-            icon = { Icon(vectorResource(Res.drawable.vpn_key), null) },
+            icon = {
+                MaskedIcon(
+                    Res.drawable.vpn_key,
+                    color = IconMaskColors.IconLightOrange,
+                    shape = IconMaskShapes.credential(),
+                )
+            },
             summary = { Text(contentOrUnset(uiState.certificates)) },
             valueToText = { it },
             textField = { value, onValueChange, onOk ->
                 MultilineTextField(value, onValueChange, onOk)
             },
         )
-    }
-    item("cert_public_key_sha256") {
+        PreferenceDivider()
         TextFieldPreference(
             value = uiState.certPublicKeySha256,
             onValueChange = { viewModel.setCertPublicKeySha256(it) },
             title = { Text(stringResource(Res.string.cert_public_key_sha256)) },
             textToValue = { it },
-            icon = { Icon(vectorResource(Res.drawable.wb_sunny), null) },
+            icon = {
+                MaskedIcon(Res.drawable.wb_sunny, IconMaskColors.IconLightYellow)
+            },
             summary = { Text(contentOrUnset(uiState.certPublicKeySha256)) },
             valueToText = { it },
             textField = { value, onValueChange, onOk ->
                 MultilineTextField(value, onValueChange, onOk)
             },
         )
-    }
-    item("allow_insecure") {
+        PreferenceDivider()
         SwitchPreference(
             value = rememberEffectiveAllowInsecure(uiState.allowInsecure),
             onValueChange = { viewModel.setAllowInsecure(it) },
             title = { Text(stringResource(Res.string.allow_insecure)) },
             summary = { Text(stringResource(Res.string.allow_insecure_sum)) },
-            icon = { Icon(vectorResource(Res.drawable.enhanced_encryption), null) },
+            icon = {
+                MaskedIcon(
+                    Res.drawable.enhanced_encryption,
+                    color = IconMaskColors.IconCoral,
+                    shape = IconMaskShapes.risk(),
+                )
+            },
         )
-    }
-    item("disable_sni") {
+        PreferenceDivider()
         SwitchPreference(
             value = uiState.disableSNI,
             onValueChange = { viewModel.setDisableSNI(it) },
             title = { Text(stringResource(Res.string.tuic_disable_sni)) },
-            icon = { Icon(vectorResource(Res.drawable.block), null) },
+            icon = {
+                MaskedIcon(Res.drawable.block, IconMaskColors.IconWarmGray)
+            },
         )
     }
+
     if (uiState.protocolVersion == HysteriaBean.PROTOCOL_VERSION_1) {
-        item("stream_receive_window") {
+        preferenceGroup(key = "stream_receive_window") {
             TextFieldPreference(
                 value = uiState.streamReceiveWindow,
                 onValueChange = { viewModel.setStreamReceiveWindow(it) },
                 title = { Text(stringResource(Res.string.hysteria_stream_receive_window)) },
                 textToValue = { it.toIntOrNull() ?: 0 },
-                icon = { Icon(vectorResource(Res.drawable.texture), null) },
+                icon = {
+                    MaskedIcon(Res.drawable.texture, IconMaskColors.IconWarmGray)
+                },
                 summary = {
                     val text = if (uiState.streamReceiveWindow == 0) {
                         stringResource(Res.string.not_set)
@@ -347,14 +387,15 @@ private fun LazyListScope.hysteriaSettings(
                     UIntegerTextField(value, onValueChange, onOk)
                 },
             )
-        }
-        item("connection_receive_window") {
+            PreferenceDivider()
             TextFieldPreference(
                 value = uiState.connectionReceiveWindow,
                 onValueChange = { viewModel.setConnectionReceiveWindow(it) },
                 title = { Text(stringResource(Res.string.hysteria_connection_receive_window)) },
                 textToValue = { it.toIntOrNull() ?: 0 },
-                icon = { Icon(vectorResource(Res.drawable.transform), null) },
+                icon = {
+                    MaskedIcon(Res.drawable.transform, IconMaskColors.IconWarmGray)
+                },
                 summary = {
                     val text = if (uiState.connectionReceiveWindow == 0) {
                         stringResource(Res.string.not_set)
@@ -368,13 +409,18 @@ private fun LazyListScope.hysteriaSettings(
                     UIntegerTextField(value, onValueChange, onOk)
                 },
             )
-        }
-        item("disable_mtu_discovery") {
+            PreferenceDivider()
             SwitchPreference(
                 value = uiState.disableMtuDiscovery,
                 onValueChange = { viewModel.setDisableMtuDiscovery(it) },
                 title = { Text(stringResource(Res.string.hysteria_disable_mtu_discovery)) },
-                icon = { Icon(vectorResource(Res.drawable.multiple_stop), null) },
+                icon = {
+                    MaskedIcon(
+                        resource = Res.drawable.multiple_stop,
+                        color = IconMaskColors.IconLightYellow,
+                        shape = IconMaskShapes.route(),
+                    )
+                },
             )
         }
     }
@@ -383,35 +429,45 @@ private fun LazyListScope.hysteriaSettings(
         item("category_mtls") {
             PreferenceCategory(text = { Text(stringResource(Res.string.mutual_tls)) })
         }
-        item("mtls_cert") {
+        preferenceGroup(key = "mtls_cert") {
             TextFieldPreference(
                 value = uiState.clientCert,
                 onValueChange = { viewModel.setClientCert(it) },
                 title = { Text(stringResource(Res.string.certificates)) },
                 textToValue = { it },
-                icon = { Icon(vectorResource(Res.drawable.lock), null) },
+                icon = {
+                    MaskedIcon(
+                        Res.drawable.lock,
+                        color = IconMaskColors.IconCyan,
+                        shape = IconMaskShapes.credential(),
+                    )
+                },
                 summary = { Text(contentOrUnset(uiState.clientCert)) },
                 valueToText = { it },
                 textField = { value, onValueChange, onOk ->
                     MultilineTextField(value, onValueChange, onOk)
                 },
             )
-        }
-        item("mtls_key") {
+            PreferenceDivider()
             TextFieldPreference(
                 value = uiState.clientKey,
                 onValueChange = { viewModel.setClientKey(it) },
                 title = { Text(stringResource(Res.string.ssh_private_key)) },
                 textToValue = { it },
-                icon = { Icon(vectorResource(Res.drawable.vpn_key), null) },
+                icon = {
+                    MaskedIcon(
+                        Res.drawable.vpn_key,
+                        color = IconMaskColors.IconCyan,
+                        shape = IconMaskShapes.credential(),
+                    )
+                },
                 summary = { Text(contentOrUnset(uiState.clientKey)) },
                 valueToText = { it },
                 textField = { value, onValueChange, onOk ->
                     MultilineTextField(value, onValueChange, onOk)
                 },
             )
-        }
-        item("congestion_control") {
+            PreferenceDivider()
             val hysteriaCongestionControls = remember {
                 listOf(
                     HysteriaBean.CONGESTION_CONTROL_BBR,
@@ -429,26 +485,36 @@ private fun LazyListScope.hysteriaSettings(
                 values = hysteriaCongestionControls,
                 onValueChange = { viewModel.setCongestionControl(it) },
                 title = { Text(stringResource(Res.string.tuic_congestion_controller)) },
-                icon = { Icon(vectorResource(Res.drawable.compare_arrows), null) },
+                icon = {
+                    MaskedIcon(
+                        resource = Res.drawable.compare_arrows,
+                        color = IconMaskColors.IconLightGreen,
+                    )
+                },
                 summary = { Text(congestionControlName(uiState.congestionControl)) },
                 type = ListPreferenceType.DROPDOWN_MENU,
                 valueToText = { AnnotatedString(congestionControlName(it)) },
             )
-        }
-        if (uiState.congestionControl == HysteriaBean.CONGESTION_CONTROL_BBR) {
-            fun bbrProfileName(profile: Int): StringResource = when (profile) {
-                HysteriaBean.BBR_PROFILE_CONSERVATIVE -> Res.string.hysteria_bbr_profile_conservative
-                HysteriaBean.BBR_PROFILE_STANDARD -> Res.string.hysteria_bbr_profile_standard
-                HysteriaBean.BBR_PROFILE_AGGRESSIVE -> Res.string.hysteria_bbr_profile_aggressive
-                else -> error("impossible")
-            }
-            item("bbr_profile") {
+
+            if (uiState.congestionControl == HysteriaBean.CONGESTION_CONTROL_BBR) {
+                PreferenceDivider()
+                fun bbrProfileName(profile: Int): StringResource = when (profile) {
+                    HysteriaBean.BBR_PROFILE_CONSERVATIVE -> Res.string.hysteria_bbr_profile_conservative
+                    HysteriaBean.BBR_PROFILE_STANDARD -> Res.string.hysteria_bbr_profile_standard
+                    HysteriaBean.BBR_PROFILE_AGGRESSIVE -> Res.string.hysteria_bbr_profile_aggressive
+                    else -> error("impossible")
+                }
                 ListPreference(
                     value = uiState.bbrProfile,
                     values = intListN(3),
                     onValueChange = { viewModel.setBBRProfile(it) },
                     title = { Text(stringResource(Res.string.hysteria_bbr_profile)) },
-                    icon = { Icon(vectorResource(Res.drawable.transform), null) },
+                    icon = {
+                        MaskedIcon(
+                            resource = Res.drawable.transform,
+                            color = IconMaskColors.IconLavender,
+                        )
+                    },
                     summary = { Text(stringResource(bbrProfileName(uiState.bbrProfile))) },
                     type = ListPreferenceType.DROPDOWN_MENU,
                     valueToText = { AnnotatedString(stringResource(bbrProfileName(it))) },
@@ -460,21 +526,24 @@ private fun LazyListScope.hysteriaSettings(
     item("category_ech") {
         PreferenceCategory(text = { Text(stringResource(Res.string.ech)) })
     }
-    item("ech") {
+    preferenceGroup(key = "ech") {
         SwitchPreference(
             value = uiState.ech,
             onValueChange = { viewModel.setEch(it) },
             title = { Text(stringResource(Res.string.enable)) },
-            icon = { Icon(vectorResource(Res.drawable.security), null) },
+            icon = {
+                MaskedIcon(Res.drawable.security, IconMaskColors.IconCoral, IconMaskShapes.risk())
+            },
         )
-    }
-    item("ech_config") {
+        PreferenceDivider()
         TextFieldPreference(
             value = uiState.echConfig,
             onValueChange = { viewModel.setEchConfig(it) },
             title = { Text(stringResource(Res.string.ech_config)) },
             textToValue = { it },
-            icon = { Icon(vectorResource(Res.drawable.nfc), null) },
+            icon = {
+                MaskedIcon(Res.drawable.nfc, IconMaskColors.IconCyan, IconMaskShapes.credential())
+            },
             enabled = uiState.ech,
             summary = { Text(contentOrUnset(uiState.echConfig)) },
             valueToText = { it },
@@ -482,14 +551,15 @@ private fun LazyListScope.hysteriaSettings(
                 MultilineTextField(value, onValueChange, onOk)
             },
         )
-    }
-    item("ech_query_server_name") {
+        PreferenceDivider()
         TextFieldPreference(
             value = uiState.echQueryServerName,
             onValueChange = { viewModel.setEchQueryServerName(it) },
             title = { Text(stringResource(Res.string.ech_query_server_name)) },
             textToValue = { it },
-            icon = { Icon(vectorResource(Res.drawable.search), null) },
+            icon = {
+                MaskedIcon(Res.drawable.search, color = IconMaskColors.IconCyan)
+            },
             enabled = uiState.ech,
             summary = { Text(contentOrUnset(uiState.echQueryServerName)) },
             valueToText = { it },

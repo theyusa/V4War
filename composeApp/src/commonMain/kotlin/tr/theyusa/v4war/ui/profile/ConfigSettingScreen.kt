@@ -15,9 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import tr.theyusa.v4war.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import tr.theyusa.v4war.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,8 +29,15 @@ import tr.theyusa.v4war.compose.BackHandler
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.CapsuleActionButton
 import tr.theyusa.v4war.compose.CapsuleTopBar
+import tr.theyusa.v4war.compose.IconMaskColors
+import tr.theyusa.v4war.compose.IconMaskShapes
+import tr.theyusa.v4war.compose.MaskedIcon
+import tr.theyusa.v4war.compose.PreferenceDivider
 import tr.theyusa.v4war.compose.SimpleIconButton
 import tr.theyusa.v4war.compose.TextButton
+import tr.theyusa.v4war.compose.material3.Icon
+import tr.theyusa.v4war.compose.material3.Text
+import tr.theyusa.v4war.compose.preferenceGroup
 import tr.theyusa.v4war.fmt.config.ConfigBean
 import tr.theyusa.v4war.ktx.contentOrUnset
 import tr.theyusa.v4war.resources.Res
@@ -76,21 +81,17 @@ fun ConfigSettingScreen(
     onResult: (updated: Boolean) -> Unit,
     onOpenConfigEditor: (NavRoutes.ConfigEditor) -> Unit,
 ) {
-    val viewModel: ConfigSettingsViewModel = profileEditorViewModel(
-        profileId = profileId,
-        isSubscription = isSubscription,
-    ) {
-        ConfigSettingsViewModel()
-    }
+    val viewModel: ConfigSettingsViewModel =
+        profileEditorViewModel(profileId = profileId, isSubscription = isSubscription) {
+            ConfigSettingsViewModel()
+        }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDirty by viewModel.isDirty.collectAsStateWithLifecycle()
 
     var showBackAlert by remember { mutableStateOf(false) }
     var showDeleteAlert by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = isDirty) {
-        showBackAlert = true
-    }
+    BackHandler(enabled = isDirty) { showBackAlert = true }
 
     val resultKeyNumber = rememberSaveable {
         viewModel.editingId.takeIf { it >= 0L } ?: Random.nextLong()
@@ -101,18 +102,18 @@ fun ConfigSettingScreen(
         viewModel.setConfigForResult(result)
     }
 
-    val config = when (uiState.type) {
-        ConfigBean.TYPE_CONFIG -> uiState.customConfig
-        ConfigBean.TYPE_OUTBOUND -> uiState.customOutbound
-        else -> error("impossible")
-    }
+    val config =
+        when (uiState.type) {
+            ConfigBean.TYPE_CONFIG -> uiState.customConfig
+            ConfigBean.TYPE_OUTBOUND -> uiState.customOutbound
+            else -> error("impossible")
+        }
 
     val windowInsets = WindowInsets.safeDrawing
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             CapsuleTopBar(
-                title = { Text(stringResource(Res.string.custom_config)) },
                 navigationIcon = {
                     SimpleIconButton(
                         imageVector = vectorResource(Res.drawable.close),
@@ -125,6 +126,7 @@ fun ConfigSettingScreen(
                         }
                     }
                 },
+                title = { Text(stringResource(Res.string.custom_config)) },
                 actions = {
                     if (!viewModel.isNew) {
                         CapsuleActionButton {
@@ -145,7 +147,8 @@ fun ConfigSettingScreen(
                         }
                     }
                 },
-                windowInsets = windowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+                windowInsets =
+                    windowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
             )
         },
     ) { innerPadding ->
@@ -154,23 +157,24 @@ fun ConfigSettingScreen(
             Row(modifier = Modifier.fillMaxSize()) {
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .padding(innerPadding),
+                    modifier = Modifier.weight(1f).fillMaxHeight().padding(innerPadding),
                 ) {
-                    item("name") {
+                    preferenceGroup(key = "settings") {
                         TextFieldPreference(
                             value = uiState.name,
                             onValueChange = { viewModel.setName(it) },
                             title = { Text(stringResource(Res.string.profile_name)) },
                             textToValue = { it },
-                            icon = { Icon(vectorResource(Res.drawable.emoji_symbols), null) },
+                            icon = {
+                                MaskedIcon(
+                                    Res.drawable.emoji_symbols,
+                                    color = IconMaskColors.IconCyan,
+                                )
+                            },
                             summary = { Text(contentOrUnset(uiState.name)) },
                             valueToText = { it },
                         )
-                    }
-                    item("outbound_only") {
+                        PreferenceDivider()
                         SwitchPreference(
                             value = uiState.type == ConfigBean.TYPE_OUTBOUND,
                             onValueChange = {
@@ -183,20 +187,31 @@ fun ConfigSettingScreen(
                                 )
                             },
                             title = { Text(stringResource(Res.string.is_outbound_only)) },
-                            icon = { Icon(vectorResource(Res.drawable.outbond), null) },
+                            icon = {
+                                MaskedIcon(
+                                    resource = Res.drawable.outbond,
+                                    color = IconMaskColors.IconLightOrange,
+                                    shape = IconMaskShapes.credential(),
+                                )
+                            },
                         )
-                    }
-                    item("config") {
+                        PreferenceDivider()
                         Preference(
                             title = { Text(stringResource(Res.string.custom_config)) },
-                            icon = { Icon(vectorResource(Res.drawable.layers), null) },
+                            icon = {
+                                MaskedIcon(
+                                    resource = Res.drawable.layers,
+                                    color = IconMaskColors.IconLightYellow,
+                                )
+                            },
                             summary = {
-                                val text = if (config.isBlank()) {
-                                    stringResource(Res.string.not_set)
-                                } else {
-                                    val count = config.count { it == '\n' } + 1
-                                    pluralStringResource(Res.plurals.lines, count, count)
-                                }
+                                val text =
+                                    if (config.isBlank()) {
+                                        stringResource(Res.string.not_set)
+                                    } else {
+                                        val count = config.count { it == '\n' } + 1
+                                        pluralStringResource(Res.plurals.lines, count, count)
+                                    }
                                 Text(text)
                             },
                             onClick = {
@@ -210,16 +225,17 @@ fun ConfigSettingScreen(
                         )
                     }
                     item("bottom_padding") {
-                        Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+                        Spacer(
+                            modifier =
+                                Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars),
+                        )
                     }
                 }
 
                 BoxedVerticalScrollbar(
                     modifier = Modifier.fillMaxHeight(),
                     adapter = rememberScrollbarAdapter(scrollState = listState),
-                    style = defaultMaterialScrollbarStyle().copy(
-                        thickness = 12.dp,
-                    ),
+                    style = defaultMaterialScrollbarStyle().copy(thickness = 12.dp),
                 )
             }
         }
@@ -234,11 +250,7 @@ fun ConfigSettingScreen(
                     onResult(true)
                 }
             },
-            dismissButton = {
-                TextButton(stringResource(Res.string.no)) {
-                    onResult(false)
-                }
-            },
+            dismissButton = { TextButton(stringResource(Res.string.no)) { onResult(false) } },
             icon = { Icon(vectorResource(Res.drawable.question_mark), null) },
             title = { Text(stringResource(Res.string.unsaved_changes_prompt)) },
         )
@@ -254,9 +266,7 @@ fun ConfigSettingScreen(
                 }
             },
             dismissButton = {
-                TextButton(stringResource(Res.string.cancel)) {
-                    showDeleteAlert = false
-                }
+                TextButton(stringResource(Res.string.cancel)) { showDeleteAlert = false }
             },
             icon = { Icon(vectorResource(Res.drawable.warning), null) },
             title = { Text(stringResource(Res.string.delete_confirm_prompt)) },

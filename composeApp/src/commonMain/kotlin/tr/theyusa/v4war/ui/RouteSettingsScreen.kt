@@ -23,6 +23,8 @@ import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import tr.theyusa.v4war.compose.material3.Icon
+import tr.theyusa.v4war.compose.IconMaskColors
+import tr.theyusa.v4war.compose.MaskedIcon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Scaffold
@@ -442,7 +444,7 @@ private fun RouteSettings(
                     onValueChange = { viewModel.setName(it) },
                     title = { Text(stringResource(Res.string.route_name)) },
                     textToValue = { it },
-                    icon = { Icon(vectorResource(Res.drawable.emoji_symbols), null) },
+                    icon = { MaskedIcon(Res.drawable.emoji_symbols, color = IconMaskColors.IconLightYellow) },
                     summary = { Text(contentOrUnset(uiState.name)) },
                     valueToText = { it },
                 )
@@ -454,7 +456,7 @@ private fun RouteSettings(
                     onValueChange = { viewModel.setNetworkType(it) },
                     values = networkTypes,
                     title = { Text(stringResource(Res.string.network_type)) },
-                    icon = { Icon(vectorResource(Res.drawable.public_icon), null) },
+                    icon = { MaskedIcon(Res.drawable.public_icon, color = IconMaskColors.IconLightBlue) },
                     summary = {
                         val text = if (uiState.networkType.isEmpty()) {
                             stringResource(Res.string.not_set)
@@ -479,7 +481,7 @@ private fun RouteSettings(
                         SingBoxOptions.ACTION_REJECT,
                     ),
                     title = { Text(stringResource(Res.string.route_action)) },
-                    icon = { Icon(vectorResource(Res.drawable.shuffle), null) },
+                    icon = { MaskedIcon(Res.drawable.shuffle, color = IconMaskColors.IconLavender) },
                     summary = { Text(contentOrUnset(uiState.action)) },
                     type = ListPreferenceType.DROPDOWN_MENU,
                     valueToText = { AnnotatedString(it) },
@@ -495,7 +497,7 @@ private fun RouteSettings(
                     onValueChange = { viewModel.setDomains(it) },
                     title = { Text("domain") },
                     textToValue = { it },
-                    icon = { Icon(vectorResource(Res.drawable.domain), null) },
+                    icon = { MaskedIcon(Res.drawable.domain, color = IconMaskColors.IconCyan) },
                     summary = { Text(contentOrUnset(uiState.domains)) },
                     valueToText = { it },
                     textField = { value, onValueChange, onOk ->
@@ -514,7 +516,7 @@ private fun RouteSettings(
                     onValueChange = { viewModel.setIp(it) },
                     title = { Text("ip") },
                     textToValue = { it },
-                    icon = { Icon(vectorResource(Res.drawable.add_road), null) },
+                    icon = { MaskedIcon(Res.drawable.add_road, color = IconMaskColors.IconLightBlue) },
                     summary = { Text(contentOrUnset(uiState.ip)) },
                     valueToText = { it },
                     textField = { value, onValueChange, onOk ->
@@ -533,7 +535,7 @@ private fun RouteSettings(
                     onValueChange = { viewModel.setPort(it) },
                     title = { Text("port") },
                     textToValue = { it },
-                    icon = { Icon(vectorResource(Res.drawable.directions_boat), null) },
+                    icon = { MaskedIcon(Res.drawable.directions_boat, color = IconMaskColors.IconLightOrange) },
                     summary = { Text(contentOrUnset(uiState.port)) },
                     valueToText = { it },
                     textField = { value, onValueChange, onOk ->
@@ -547,7 +549,7 @@ private fun RouteSettings(
                     onValueChange = { viewModel.setSourcePort(it) },
                     title = { Text("sourcePort") },
                     textToValue = { it },
-                    icon = { Icon(vectorResource(Res.drawable.home), null) },
+                    icon = { MaskedIcon(Res.drawable.home, color = IconMaskColors.IconLavender) },
                     summary = { Text(contentOrUnset(uiState.sourcePort)) },
                     valueToText = { it },
                     textField = { value, onValueChange, onOk ->
@@ -565,7 +567,7 @@ private fun RouteSettings(
                         SingBoxOptions.NetworkICMP,
                     ),
                     title = { Text("network") },
-                    icon = { Icon(vectorResource(Res.drawable.compare_arrows), null) },
+                    icon = { MaskedIcon(Res.drawable.compare_arrows, color = IconMaskColors.IconLightGreen) },
                     summary = {
                         val text = if (uiState.network.isEmpty()) {
                             stringResource(Res.string.not_set)
@@ -583,7 +585,7 @@ private fun RouteSettings(
                     onValueChange = { viewModel.setSource(it) },
                     title = { Text("source") },
                     textToValue = { it },
-                    icon = { Icon(vectorResource(Res.drawable.local_bar), null) },
+                    icon = { MaskedIcon(Res.drawable.local_bar, color = IconMaskColors.IconCoral) },
                     summary = { Text(contentOrUnset(uiState.source)) },
                     valueToText = { it },
                     textField = { value, onValueChange, onOk ->
@@ -597,7 +599,7 @@ private fun RouteSettings(
                     onValueChange = { viewModel.setProtocol(it) },
                     values = sniffers,
                     title = { Text("protocol") },
-                    icon = { Icon(vectorResource(Res.drawable.layers), null) },
+                    icon = { MaskedIcon(Res.drawable.layers, color = IconMaskColors.IconLavender) },
                     summary = {
                         val text = if (uiState.protocol.isEmpty()) {
                             stringResource(Res.string.not_set)
@@ -615,7 +617,7 @@ private fun RouteSettings(
                     onValueChange = { viewModel.setClient(it) },
                     title = { Text("client") },
                     textToValue = { it },
-                    icon = { Icon(vectorResource(Res.drawable.fingerprint), null) },
+                    icon = { MaskedIcon(Res.drawable.fingerprint, color = IconMaskColors.IconLightPink) },
                     summary = { Text(contentOrUnset(uiState.client)) },
                     valueToText = { it },
                     textField = { value, onValueChange, onOk ->
@@ -633,7 +635,7 @@ private fun RouteSettings(
                         onValueChange = { viewModel.setSsid(it) },
                         title = { Text("SSID") },
                         textToValue = { it },
-                        icon = { Icon(vectorResource(Res.drawable.wifi), null) },
+                        icon = { MaskedIcon(Res.drawable.wifi, color = IconMaskColors.IconLightBlue) },
                         summary = { Text(contentOrUnset(uiState.ssid)) },
                         valueToText = { it },
                         textField = { value, onValueChange, onOk ->
@@ -647,7 +649,7 @@ private fun RouteSettings(
                         onValueChange = { viewModel.setBssid(it) },
                         title = { Text("BSSID") },
                         textToValue = { it },
-                        icon = { Icon(vectorResource(Res.drawable.wifi_find), null) },
+                        icon = { MaskedIcon(Res.drawable.wifi_find, color = IconMaskColors.IconCyan) },
                         summary = { Text(contentOrUnset(uiState.bssid)) },
                         valueToText = { it },
                         textField = { value, onValueChange, onOk ->
@@ -663,7 +665,7 @@ private fun RouteSettings(
                     onValueChange = { viewModel.setClashMode(it) },
                     title = { Text(stringResource(Res.string.clash_mode)) },
                     textToValue = { it },
-                    icon = { Icon(vectorResource(Res.drawable.category), null) },
+                    icon = { MaskedIcon(Res.drawable.category, color = IconMaskColors.IconLightYellow) },
                     summary = { Text(contentOrUnset(uiState.clashMode)) },
                     valueToText = { it },
                     textField = { value, onValueChange, onOk ->
@@ -676,7 +678,7 @@ private fun RouteSettings(
                     value = uiState.networkIsExpensive,
                     onValueChange = { viewModel.setNetworkIsExpensive(it) },
                     title = { Text(stringResource(Res.string.network_expensive)) },
-                    icon = { Icon(vectorResource(Res.drawable.monetization_on), null) },
+                    icon = { MaskedIcon(Res.drawable.monetization_on, color = IconMaskColors.IconCoral) },
                 )
             }
             item("network_interface_address") {
@@ -688,7 +690,7 @@ private fun RouteSettings(
                     valueToText = { it },
                     textToValue = { it },
                     title = { Text("networkInterfaceAddress") },
-                    icon = { Icon(vectorResource(Res.drawable.local_airport), null) },
+                    icon = { MaskedIcon(Res.drawable.local_airport, color = IconMaskColors.IconLightGreen) },
                     summary = { Text(uiState.networkInterfaceAddress.toString()) },
                 )
             }
@@ -718,7 +720,7 @@ private fun RouteSettings(
                                 -4L, // Custom
                             ),
                             title = { Text(stringResource(Res.string.outbound)) },
-                            icon = { Icon(vectorResource(Res.drawable.router), null) },
+                            icon = { MaskedIcon(Res.drawable.router, color = IconMaskColors.IconLightBlue) },
                             summary = {
                                 val text = when (uiState.outbound) {
                                     RuleEntity.OUTBOUND_PROXY -> stringResource(Res.string.route_proxy)
@@ -770,7 +772,7 @@ private fun RouteSettings(
                             onValueChange = { viewModel.setOverridePort(it) },
                             title = { Text(stringResource(Res.string.override_port)) },
                             textToValue = { it.toIntOrNull() ?: 0 },
-                            icon = { Icon(vectorResource(Res.drawable.pin_drop), null) },
+                            icon = { MaskedIcon(Res.drawable.pin_drop, color = IconMaskColors.IconLightOrange) },
                             summary = { Text(contentOrUnset(uiState.overridePort)) },
                             textField = { value, onValueChange, onOk ->
                                 UIntegerTextField(value, onValueChange, onOk)
@@ -782,7 +784,7 @@ private fun RouteSettings(
                             value = uiState.tlsFragment,
                             onValueChange = { viewModel.setTlsFragment(it) },
                             title = { Text(stringResource(Res.string.tls_fragment)) },
-                            icon = { Icon(vectorResource(Res.drawable.segment), null) },
+                            icon = { MaskedIcon(Res.drawable.segment, color = IconMaskColors.IconLightYellow) },
                         )
                     }
                     item("tls_fragment_fallback_delay") {
@@ -835,7 +837,7 @@ private fun RouteSettings(
                                 SingBoxOptions.STRATEGY_IPV6_ONLY,
                             ),
                             title = { Text("Resolve Strategy") },
-                            icon = { Icon(vectorResource(Res.drawable.dns), null) },
+                            icon = { MaskedIcon(Res.drawable.dns, color = IconMaskColors.IconLightBlue) },
                             summary = {
                                 val text = uiState.resolveStrategy.blankAsNull()
                                     ?: stringResource(Res.string.auto)
@@ -850,7 +852,7 @@ private fun RouteSettings(
                             value = uiState.resolveDisableCache,
                             onValueChange = { viewModel.setResolveDisableCache(it) },
                             title = { Text("Disable Cache") },
-                            icon = { Icon(vectorResource(Res.drawable.cached), null) },
+                            icon = { MaskedIcon(Res.drawable.cached, color = IconMaskColors.IconWarmGray) },
                         )
                     }
                     item("rewrite_ttl") {
@@ -859,7 +861,7 @@ private fun RouteSettings(
                             onValueChange = { viewModel.setResolveRewriteTTL(it) },
                             title = { Text("Rewrite TTL") },
                             textToValue = { it.toIntOrNull() ?: 0 },
-                            icon = { Icon(vectorResource(Res.drawable.timer), null) },
+                            icon = { MaskedIcon(Res.drawable.timer, color = IconMaskColors.IconLightOrange) },
                             summary = {
                                 val text =
                                     uiState.resolveRewriteTTL.takeIf { it > 0 }?.toString()
@@ -877,7 +879,7 @@ private fun RouteSettings(
                             onValueChange = { viewModel.setResolveClientSubnet(it) },
                             title = { Text("Client Subnet") },
                             textToValue = { it },
-                            icon = { Icon(vectorResource(Res.drawable.push_pin), null) },
+                            icon = { MaskedIcon(Res.drawable.push_pin, color = IconMaskColors.IconCoral) },
                             summary = { Text(contentOrUnset(uiState.resolveClientSubnet)) },
                             valueToText = { it },
                         )
@@ -894,7 +896,7 @@ private fun RouteSettings(
                             onValueChange = { viewModel.setSniffTimeout(it) },
                             title = { Text(stringResource(Res.string.sniff_timeout)) },
                             textToValue = { it },
-                            icon = { Icon(vectorResource(Res.drawable.timelapse), null) },
+                            icon = { MaskedIcon(Res.drawable.timelapse, color = IconMaskColors.IconLightBlue) },
                             summary = { Text(contentOrUnset(uiState.sniffTimeout)) },
                             textField = { value, onValueChange, onOk ->
                                 DurationTextField(value, onValueChange, onOk)
@@ -907,7 +909,7 @@ private fun RouteSettings(
                             onValueChange = { viewModel.setSniffers(it) },
                             values = sniffers,
                             title = { Text("Sniffers") },
-                            icon = { Icon(vectorResource(Res.drawable.layers), null) },
+                            icon = { MaskedIcon(Res.drawable.layers, color = IconMaskColors.IconLavender) },
                             summary = {
                                 val text = if (uiState.sniffers.isEmpty()) {
                                     stringResource(Res.string.not_set)

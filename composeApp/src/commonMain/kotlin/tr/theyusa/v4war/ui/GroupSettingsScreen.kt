@@ -12,13 +12,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AppBarRow
 import tr.theyusa.v4war.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import tr.theyusa.v4war.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,21 +33,26 @@ import tr.theyusa.v4war.GroupType
 import tr.theyusa.v4war.SubscriptionType
 import tr.theyusa.v4war.compose.BackHandler
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
+import tr.theyusa.v4war.compose.CapsuleActionButton
 import tr.theyusa.v4war.compose.CapsuleTopBar
+import tr.theyusa.v4war.compose.IconMaskColors
+import tr.theyusa.v4war.compose.IconMaskShapes
 import tr.theyusa.v4war.compose.LinkOrContentTextField
-import tr.theyusa.v4war.compose.MoreOverIcon
+import tr.theyusa.v4war.compose.MaskedIcon
 import tr.theyusa.v4war.compose.PreferenceCategory
+import tr.theyusa.v4war.compose.PreferenceDivider
 import tr.theyusa.v4war.compose.PreferenceType
 import tr.theyusa.v4war.compose.SimpleIconButton
 import tr.theyusa.v4war.compose.TextButton
 import tr.theyusa.v4war.compose.UIntegerTextField
+import tr.theyusa.v4war.compose.fadingEdge
+import tr.theyusa.v4war.compose.preferenceGroup
 import tr.theyusa.v4war.compose.withNavigation
 import tr.theyusa.v4war.database.SagerDatabase
 import tr.theyusa.v4war.ktx.USER_AGENT
 import tr.theyusa.v4war.ktx.blankAsNull
 import tr.theyusa.v4war.ktx.contentOrUnset
 import tr.theyusa.v4war.ktx.intListN
-import tr.theyusa.v4war.repository.resolveRepository
 import tr.theyusa.v4war.resources.Res
 import tr.theyusa.v4war.resources.apply
 import tr.theyusa.v4war.resources.auto_update
@@ -151,7 +154,6 @@ internal fun GroupSettingsScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             CapsuleTopBar(
-                title = { Text(stringResource(Res.string.group_settings)) },
                 navigationIcon = {
                     SimpleIconButton(
                         imageVector = vectorResource(Res.drawable.close),
@@ -160,33 +162,27 @@ internal fun GroupSettingsScreen(
                         onBackPress()
                     }
                 },
+                title = { Text(stringResource(Res.string.group_settings)) },
                 actions = {
-                    AppBarRow(
-                        overflowIndicator = ::MoreOverIcon,
-                    ) {
-                        clickableItem(
-                            onClick = {
-                                if (viewModel.isNew) {
-                                    onBackPress()
-                                } else {
-                                    showDeleteAlert = true
-                                }
-                            },
-                            icon = {
-                                Icon(
-                                    vectorResource(Res.drawable.delete),
-                                    null,
-                                )
-                            },
-                            label = runBlocking { resolveRepository().getString(Res.string.delete) },
-                        )
-                        clickableItem(
-                            onClick = ::saveAndExit,
-                            icon = {
-                                Icon(vectorResource(Res.drawable.done), null)
-                            },
-                            label = runBlocking { resolveRepository().getString(Res.string.apply) },
-                        )
+                    CapsuleActionButton {
+                        SimpleIconButton(
+                            imageVector = vectorResource(Res.drawable.delete),
+                            contentDescription = stringResource(Res.string.delete),
+                        ) {
+                            if (viewModel.isNew) {
+                                onBackPress()
+                            } else {
+                                showDeleteAlert = true
+                            }
+                        }
+                    }
+                    CapsuleActionButton {
+                        SimpleIconButton(
+                            imageVector = vectorResource(Res.drawable.done),
+                            contentDescription = stringResource(Res.string.apply),
+                        ) {
+                            saveAndExit()
+                        }
                     }
                 },
                 windowInsets = windowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
@@ -203,7 +199,12 @@ internal fun GroupSettingsScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .nestedScroll(scrollBehavior.nestedScrollConnection),
+                        .nestedScroll(scrollBehavior.nestedScrollConnection)
+                        .fadingEdge(
+                            scrollableState = listState,
+                            fadeStart = true,
+                            fadeEnd = true,
+                        ),
                     contentPadding = contentPadding,
                 ) {
                     groupSettings(
@@ -279,34 +280,10 @@ private fun LazyListScope.groupSettings(
     selectFrontProxy: () -> Unit,
     selectLandingProxy: () -> Unit,
 ) {
-    item("name", PreferenceType.TEXT_FIELD) {
-        TextFieldPreference(
-            value = uiState.name,
-            onValueChange = { viewModel.setName(it) },
-            title = { Text(stringResource(Res.string.group_name)) },
-            textToValue = { it },
-            icon = { Icon(vectorResource(Res.drawable.emoji_symbols), null) },
-            summary = { Text(contentOrUnset(uiState.name)) },
-            valueToText = { it },
-        )
-    }
-
     fun groupType(type: Int) = when (type) {
         GroupType.BASIC -> Res.string.group_basic
         GroupType.SUBSCRIPTION -> Res.string.subscription
         else -> error("impossible")
-    }
-    item("type", PreferenceType.LIST) {
-        ListPreference(
-            value = uiState.type,
-            onValueChange = { viewModel.setType(it) },
-            values = intListN(2),
-            title = { Text(stringResource(Res.string.group_type)) },
-            icon = { Icon(vectorResource(Res.drawable.layers), null) },
-            summary = { Text(stringResource(groupType(uiState.type))) },
-            type = ListPreferenceType.DROPDOWN_MENU,
-            valueToText = { AnnotatedString(stringResource(groupType(it))) },
-        )
     }
 
     fun groupOrder(order: Int) = when (order) {
@@ -315,13 +292,54 @@ private fun LazyListScope.groupSettings(
         GroupOrder.BY_DELAY -> Res.string.group_order_by_delay
         else -> error("impossible")
     }
-    item("order", PreferenceType.LIST) {
+
+    fun chainName(id: Long) = runBlocking { SagerDatabase.proxyDao.getById(id) }?.displayName()
+    item("category_basic", PreferenceType.CATEGORY) {
+        PreferenceCategory(text = { Text(stringResource(Res.string.group_settings)) })
+    }
+    preferenceGroup {
+        TextFieldPreference(
+            value = uiState.name,
+            onValueChange = { viewModel.setName(it) },
+            title = { Text(stringResource(Res.string.group_name)) },
+            textToValue = { it },
+            icon = {
+                MaskedIcon(
+                    Res.drawable.emoji_symbols,
+                    color = IconMaskColors.IconCyan,
+                )
+            },
+            summary = { Text(contentOrUnset(uiState.name)) },
+            valueToText = { it },
+        )
+        PreferenceDivider()
+        ListPreference(
+            value = uiState.type,
+            onValueChange = { viewModel.setType(it) },
+            values = intListN(2),
+            title = { Text(stringResource(Res.string.group_type)) },
+            icon = {
+                MaskedIcon(
+                    Res.drawable.layers,
+                    color = IconMaskColors.IconLavender,
+                )
+            },
+            summary = { Text(stringResource(groupType(uiState.type))) },
+            type = ListPreferenceType.DROPDOWN_MENU,
+            valueToText = { AnnotatedString(stringResource(groupType(it))) },
+        )
+        PreferenceDivider()
         ListPreference(
             value = uiState.order,
             onValueChange = { viewModel.setOrder(it) },
             values = intListN(3),
             title = { Text(stringResource(Res.string.group_order)) },
-            icon = { Icon(vectorResource(Res.drawable.low_priority), null) },
+            icon = {
+                MaskedIcon(
+                    Res.drawable.low_priority,
+                    color = IconMaskColors.IconLightOrange,
+                )
+            },
             summary = { Text(stringResource(groupOrder(uiState.order))) },
             type = ListPreferenceType.DROPDOWN_MENU,
             valueToText = { AnnotatedString(stringResource(groupOrder(it))) },
@@ -331,8 +349,7 @@ private fun LazyListScope.groupSettings(
     item("category_chain", PreferenceType.CATEGORY) {
         PreferenceCategory(text = { Text(stringResource(Res.string.proxy_chain)) })
     }
-    fun chainName(id: Long) = runBlocking { SagerDatabase.proxyDao.getById(id) }?.displayName()
-    item("font", PreferenceType.LIST) {
+    preferenceGroup {
         ListPreference(
             value = uiState.frontProxy,
             onValueChange = {
@@ -344,7 +361,13 @@ private fun LazyListScope.groupSettings(
             },
             values = listOf(-1L, 0L),
             title = { Text(stringResource(Res.string.front_proxy)) },
-            icon = { Icon(vectorResource(Res.drawable.low_priority), null) },
+            icon = {
+                MaskedIcon(
+                    Res.drawable.low_priority,
+                    color = IconMaskColors.IconLightBlue,
+                    shape = IconMaskShapes.route(),
+                )
+            },
             summary = {
                 val text = chainName(uiState.frontProxy)
                     ?: stringResource(Res.string.not_set)
@@ -360,8 +383,7 @@ private fun LazyListScope.groupSettings(
                 AnnotatedString(stringResource(id))
             },
         )
-    }
-    item("landing", PreferenceType.LIST) {
+        PreferenceDivider()
         ListPreference(
             value = uiState.landingProxy,
             onValueChange = {
@@ -373,7 +395,13 @@ private fun LazyListScope.groupSettings(
             },
             values = listOf(-1L, 0L),
             title = { Text(stringResource(Res.string.landing_proxy)) },
-            icon = { Icon(vectorResource(Res.drawable.public_icon), null) },
+            icon = {
+                MaskedIcon(
+                    Res.drawable.public_icon,
+                    color = IconMaskColors.IconCyan,
+                    shape = IconMaskShapes.route(),
+                )
+            },
             summary = {
                 val text = chainName(uiState.landingProxy)
                     ?: stringResource(Res.string.not_set)
@@ -401,145 +429,190 @@ private fun LazyListScope.groupSettings(
             SubscriptionType.SIP008 -> Res.string.sip008
             else -> error("impossible")
         }
-        item("subscription_type", PreferenceType.LIST) {
+        preferenceGroup {
             ListPreference(
                 value = uiState.subscriptionType,
                 onValueChange = { viewModel.setSubscriptionType(it) },
                 values = intListN(3),
                 title = { Text(stringResource(Res.string.subscription_type)) },
-                icon = { Icon(vectorResource(Res.drawable.nfc), null) },
+                icon = {
+                    MaskedIcon(
+                        Res.drawable.nfc,
+                        color = IconMaskColors.IconLightYellow,
+                    )
+                },
                 summary = { Text(stringResource(subType(uiState.subscriptionType))) },
                 type = ListPreferenceType.DROPDOWN_MENU,
                 valueToText = { AnnotatedString(stringResource(subType(it))) },
             )
-        }
-
-        item("subscription_link", PreferenceType.TEXT_FIELD) {
+            PreferenceDivider()
             TextFieldPreference(
                 value = uiState.subscriptionLink,
                 onValueChange = { viewModel.setSubscriptionLink(it) },
                 title = { Text(stringResource(Res.string.group_subscription_link)) },
                 textToValue = { it },
-                icon = { Icon(vectorResource(Res.drawable.link), null) },
+                icon = {
+                    MaskedIcon(
+                        Res.drawable.link,
+                        color = IconMaskColors.IconLightBlue,
+                    )
+                },
                 summary = { Text(contentOrUnset(uiState.subscriptionLink)) },
                 valueToText = { it },
                 textField = { value, onValueChange, onOk ->
                     LinkOrContentTextField(value, onValueChange, onOk)
                 },
             )
-        }
-        val isOOCv1 = uiState.subscriptionType == SubscriptionType.OOCv1
-        if (isOOCv1) {
-            item("subscription_token", PreferenceType.TEXT_FIELD) {
-                TextFieldPreference(
-                    value = uiState.subscriptionToken,
-                    onValueChange = { viewModel.setSubscriptionToken(it) },
-                    title = { Text(stringResource(Res.string.ooc_subscription_token)) },
-                    textToValue = { it },
-                    icon = { Icon(vectorResource(Res.drawable.vpn_key), null) },
-                    summary = { Text(contentOrUnset(uiState.subscriptionToken)) },
-                    valueToText = { it },
-                )
-            }
-        }
-
-        item("subscription_force_resolve", PreferenceType.SWITCH) {
-            SwitchPreference(
-                value = uiState.subscriptionForceResolve,
-                onValueChange = { viewModel.setSubscriptionForceResolve(it) },
-                title = { Text(stringResource(Res.string.force_resolve)) },
-                icon = { Icon(vectorResource(Res.drawable.manage_search), null) },
-                summary = { Text(stringResource(Res.string.force_resolve_sum)) },
-            )
-        }
-        item("subscription_deduplication", PreferenceType.SWITCH) {
-            SwitchPreference(
-                value = uiState.subscriptionDeduplication,
-                onValueChange = { viewModel.setSubscriptionDeduplication(it) },
-                title = { Text(stringResource(Res.string.deduplication)) },
-                icon = { Icon(vectorResource(Res.drawable.import_contacts), null) },
-                summary = { Text(stringResource(Res.string.deduplication_sum)) },
-            )
-        }
-        item("subscription_filter_not_regex", PreferenceType.TEXT_FIELD) {
+            PreferenceDivider()
             TextFieldPreference(
                 value = uiState.subscriptionFilterNotRegex,
                 onValueChange = { viewModel.setSubscriptionFilterNotRegex(it) },
                 title = { Text(stringResource(Res.string.filter_regex)) },
                 textToValue = { it },
-                icon = { Icon(vectorResource(Res.drawable.delete_sweep), null) },
+                icon = {
+                    MaskedIcon(
+                        Res.drawable.delete_sweep,
+                        color = IconMaskColors.IconLightGreen,
+                    )
+                },
                 summary = { Text(contentOrUnset(uiState.subscriptionFilterNotRegex)) },
                 valueToText = { it },
             )
-        }
-        item("subscription_custom_sni", PreferenceType.TEXT_FIELD) {
+            PreferenceDivider()
             TextFieldPreference(
                 value = uiState.subscriptionCustomSni,
                 onValueChange = { viewModel.setSubscriptionCustomSni(it) },
                 title = { Text(stringResource(Res.string.subscription_custom_sni)) },
                 textToValue = { it },
-                icon = { Icon(vectorResource(Res.drawable.link), null) },
+                icon = {
+                    MaskedIcon(
+                        Res.drawable.link,
+                        color = IconMaskColors.IconLightBlue,
+                    )
+                },
                 summary = { Text(contentOrUnset(uiState.subscriptionCustomSni)) },
                 valueToText = { it },
             )
-        }
-        item("subscription_remove_non_tls_xtls", PreferenceType.SWITCH) {
+            PreferenceDivider()
             SwitchPreference(
                 value = uiState.subscriptionRemoveNonTlsXtls,
                 onValueChange = { viewModel.setSubscriptionRemoveNonTlsXtls(it) },
                 title = { Text(stringResource(Res.string.subscription_remove_non_tls_xtls)) },
-                icon = { Icon(vectorResource(Res.drawable.delete_sweep), null) },
+                icon = {
+                    MaskedIcon(
+                        Res.drawable.delete_sweep,
+                        color = IconMaskColors.IconCoral,
+                        shape = IconMaskShapes.risk(),
+                    )
+                },
                 summary = { Text(stringResource(Res.string.subscription_remove_non_tls_xtls_sum)) },
             )
+            PreferenceDivider()
+            SwitchPreference(
+                value = uiState.subscriptionForceResolve,
+                onValueChange = { viewModel.setSubscriptionForceResolve(it) },
+                title = { Text(stringResource(Res.string.force_resolve)) },
+                icon = {
+                    MaskedIcon(
+                        Res.drawable.manage_search,
+                        color = IconMaskColors.IconLightBlue,
+                        shape = IconMaskShapes.route(),
+                    )
+                },
+                summary = { Text(stringResource(Res.string.force_resolve_sum)) },
+            )
+            PreferenceDivider()
+            SwitchPreference(
+                value = uiState.subscriptionDeduplication,
+                onValueChange = { viewModel.setSubscriptionDeduplication(it) },
+                title = { Text(stringResource(Res.string.deduplication)) },
+                icon = {
+                    MaskedIcon(
+                        Res.drawable.import_contacts,
+                        color = IconMaskColors.IconLightYellow,
+                    )
+                },
+                summary = { Text(stringResource(Res.string.deduplication_sum)) },
+            )
         }
-
+        val isOOCv1 = uiState.subscriptionType == SubscriptionType.OOCv1
+        if (isOOCv1) {
+            preferenceGroup {
+                TextFieldPreference(
+                    value = uiState.subscriptionToken,
+                    onValueChange = { viewModel.setSubscriptionToken(it) },
+                    title = { Text(stringResource(Res.string.ooc_subscription_token)) },
+                    textToValue = { it },
+                    icon = {
+                        MaskedIcon(
+                            Res.drawable.vpn_key,
+                            color = IconMaskColors.IconLavender,
+                        )
+                    },
+                    summary = { Text(contentOrUnset(uiState.subscriptionToken)) },
+                    valueToText = { it },
+                )
+            }
+        }
         item("category_update", PreferenceType.CATEGORY) {
             PreferenceCategory(text = { Text(stringResource(Res.string.update_settings)) })
         }
-        item("subscription_update_when_connected_only", PreferenceType.SWITCH) {
+        preferenceGroup {
             SwitchPreference(
                 value = uiState.subscriptionUpdateWhenConnectedOnly,
                 onValueChange = { viewModel.setSubscriptionUpdateWhenConnectedOnly(it) },
                 title = { Text(stringResource(Res.string.update_when_connected_only)) },
-                icon = { Icon(vectorResource(Res.drawable.security), null) },
+                icon = {
+                    MaskedIcon(
+                        Res.drawable.security,
+                        color = IconMaskColors.IconLightYellow,
+                    )
+                },
                 summary = { Text(stringResource(Res.string.update_when_connected_only_sum)) },
             )
-        }
-        item("subscription_user_agent", PreferenceType.TEXT_FIELD) {
+            PreferenceDivider()
             TextFieldPreference(
                 value = uiState.subscriptionUserAgent,
                 onValueChange = { viewModel.setSubscriptionUserAgent(it) },
                 title = { Text(stringResource(Res.string.subscription_user_agent)) },
                 textToValue = { it },
-                icon = { Icon(vectorResource(Res.drawable.grid_3x3), null) },
+                icon = {
+                    MaskedIcon(
+                        Res.drawable.grid_3x3,
+                        color = IconMaskColors.IconCyan,
+                    )
+                },
                 summary = {
                     val text = uiState.subscriptionUserAgent.blankAsNull() ?: USER_AGENT
                     Text(text)
                 },
                 valueToText = { it },
             )
-        }
-        item("subscription_auto_update", PreferenceType.SWITCH) {
+            PreferenceDivider()
             SwitchPreference(
                 value = uiState.subscriptionAutoUpdate,
                 onValueChange = { viewModel.setSubscriptionAutoUpdate(it) },
                 title = { Text(stringResource(Res.string.auto_update)) },
                 icon = {
-                    Icon(
-                        vectorResource(Res.drawable.flip_camera_android),
-                        null,
+                    MaskedIcon(
+                        Res.drawable.flip_camera_android,
+                        color = IconMaskColors.IconLavender,
                     )
                 },
             )
-        }
-        item("subscription_update_delay", PreferenceType.TEXT_FIELD) {
+            PreferenceDivider()
             TextFieldPreference(
                 value = uiState.subscriptionUpdateDelay,
                 onValueChange = { viewModel.setSubscriptionUpdateDelay(it) },
                 title = { Text(stringResource(Res.string.auto_update_delay)) },
                 textToValue = { it.toIntOrNull() ?: 1440 },
                 enabled = uiState.subscriptionAutoUpdate,
-                icon = { Icon(vectorResource(Res.drawable.grid_3x3), null) },
+                icon = {
+                    MaskedIcon(
+                        Res.drawable.grid_3x3,
+                        color = IconMaskColors.IconLightOrange,
+                    )
+                },
                 summary = { Text(uiState.subscriptionUpdateDelay.toString()) },
                 textField = { value, onValueChange, onOk ->
                     UIntegerTextField(value, onValueChange, onOk)

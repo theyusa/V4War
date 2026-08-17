@@ -4,14 +4,18 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.ExperimentalMaterial3Api
-import tr.theyusa.v4war.compose.material3.Icon
-import tr.theyusa.v4war.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.AnnotatedString
 import tr.theyusa.v4war.compose.MultilineTextField
 import tr.theyusa.v4war.compose.PasswordPreference
 import tr.theyusa.v4war.compose.PreferenceCategory
+import tr.theyusa.v4war.compose.PreferenceDivider
+import tr.theyusa.v4war.compose.IconMaskColors
+import tr.theyusa.v4war.compose.IconMaskShapes
+import tr.theyusa.v4war.compose.MaskedIcon
 import tr.theyusa.v4war.compose.UIntegerTextField
+import tr.theyusa.v4war.compose.material3.Text
+import tr.theyusa.v4war.compose.preferenceGroup
 import tr.theyusa.v4war.fmt.ssh.SSHBean
 import tr.theyusa.v4war.ktx.contentOrUnset
 import tr.theyusa.v4war.resources.Res
@@ -39,7 +43,6 @@ import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.ListPreferenceType
 import me.zhanghai.compose.preference.TextFieldPreference
 import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.resources.vectorResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,12 +52,10 @@ fun SSHSettingsScreen(
     onResult: (updated: Boolean) -> Unit,
     onOpenConfigEditor: (NavRoutes.ConfigEditor) -> Unit,
 ) {
-    val viewModel: SSHSettingsViewModel = profileEditorViewModel(
-        profileId = profileId,
-        isSubscription = isSubscription,
-    ) {
-        SSHSettingsViewModel()
-    }
+    val viewModel: SSHSettingsViewModel =
+        profileEditorViewModel(profileId = profileId, isSubscription = isSubscription) {
+            SSHSettingsViewModel()
+        }
 
     ProfileSettingsScreenScaffold(
         title = Res.string.profile_config,
@@ -66,78 +67,97 @@ fun SSHSettingsScreen(
     }
 }
 
-private fun LazyListScope.sshSettings(
-    uiState: SshUiState,
-    viewModel: SSHSettingsViewModel,
-) {
-    item("name") {
+private fun LazyListScope.sshSettings(uiState: SshUiState, viewModel: SSHSettingsViewModel) {
+    item("category_proxy") {
+        PreferenceCategory(text = { Text(stringResource(Res.string.proxy_cat)) })
+    }
+    preferenceGroup {
         TextFieldPreference(
             value = uiState.name,
             onValueChange = { viewModel.setName(it) },
             title = { Text(stringResource(Res.string.profile_name)) },
             textToValue = { it },
-            icon = { Icon(vectorResource(Res.drawable.emoji_symbols), null) },
+            icon = {
+                MaskedIcon(
+                    Res.drawable.emoji_symbols,
+                    color = IconMaskColors.IconCyan,
+                )
+            },
             summary = { Text(contentOrUnset(uiState.name)) },
             valueToText = { it },
         )
-    }
-
-    item("category_proxy") {
-        PreferenceCategory(text = { Text(stringResource(Res.string.proxy_cat)) })
-    }
-    item("address") {
+        PreferenceDivider()
         TextFieldPreference(
             value = uiState.address,
             onValueChange = { viewModel.setAddress(it) },
             title = { Text(stringResource(Res.string.server_address)) },
             textToValue = { it },
-            icon = { Icon(vectorResource(Res.drawable.router), null) },
+            icon = {
+                MaskedIcon(
+                    Res.drawable.router,
+                    color = IconMaskColors.IconLightBlue,
+                )
+            },
             summary = { Text(contentOrUnset(uiState.address)) },
             valueToText = { it },
         )
-    }
-    item("port") {
+        PreferenceDivider()
         TextFieldPreference(
             value = uiState.port,
             onValueChange = { viewModel.setPort(it) },
             title = { Text(stringResource(Res.string.server_port)) },
             textToValue = { it.toIntOrNull() ?: 22 },
-            icon = { Icon(vectorResource(Res.drawable.directions_boat), null) },
+            icon = {
+                MaskedIcon(
+                    Res.drawable.directions_boat,
+                    color = IconMaskColors.IconLightOrange,
+                )
+            },
             summary = { Text(contentOrUnset(uiState.port)) },
             valueToText = { it.toString() },
             textField = { value, onValueChange, onOk ->
                 UIntegerTextField(value, onValueChange, onOk)
             },
         )
-    }
-    item("username") {
+        PreferenceDivider()
         TextFieldPreference(
             value = uiState.username,
             onValueChange = { viewModel.setUsername(it) },
             title = { Text(stringResource(Res.string.username)) },
             textToValue = { it },
-            icon = { Icon(vectorResource(Res.drawable.person), null) },
+            icon = {
+                MaskedIcon(
+                    Res.drawable.person,
+                    color = IconMaskColors.IconLavender,
+                )
+            },
             summary = { Text(contentOrUnset(uiState.username)) },
             valueToText = { it },
         )
-    }
-    item("auth_type") {
-        fun authType(type: Int) = when (type) {
-            SSHBean.AUTH_TYPE_NONE -> Res.string.ssh_auth_type_none
-            SSHBean.AUTH_TYPE_PASSWORD -> Res.string.password
-            SSHBean.AUTH_TYPE_PRIVATE_KEY -> Res.string.ssh_public_key
-            else -> error("impossible")
-        }
+        PreferenceDivider()
+        fun authType(type: Int) =
+            when (type) {
+                SSHBean.AUTH_TYPE_NONE -> Res.string.ssh_auth_type_none
+                SSHBean.AUTH_TYPE_PASSWORD -> Res.string.password
+                SSHBean.AUTH_TYPE_PRIVATE_KEY -> Res.string.ssh_public_key
+                else -> error("impossible")
+            }
         ListPreference(
             value = uiState.authType,
-            values = listOf(
-                SSHBean.AUTH_TYPE_NONE,
-                SSHBean.AUTH_TYPE_PASSWORD,
-                SSHBean.AUTH_TYPE_PRIVATE_KEY,
-            ),
+            values =
+                listOf(
+                    SSHBean.AUTH_TYPE_NONE,
+                    SSHBean.AUTH_TYPE_PASSWORD,
+                    SSHBean.AUTH_TYPE_PRIVATE_KEY,
+                ),
             onValueChange = { viewModel.setAuthType(it) },
             title = { Text(stringResource(Res.string.hysteria_auth_type)) },
-            icon = { Icon(vectorResource(Res.drawable.compare_arrows), null) },
+            icon = {
+                MaskedIcon(
+                    Res.drawable.compare_arrows,
+                    color = IconMaskColors.IconLightGreen,
+                )
+            },
             summary = {
                 val text = stringResource(authType(uiState.authType))
                 Text(text)
@@ -145,29 +165,37 @@ private fun LazyListScope.sshSettings(
             type = ListPreferenceType.DROPDOWN_MENU,
             valueToText = { AnnotatedString(stringResource(authType(it))) },
         )
-    }
-
-    item("auth_fields") {
         AnimatedVisibility(visible = uiState.authType == SSHBean.AUTH_TYPE_PASSWORD) {
-            PasswordPreference(
-                value = uiState.password,
-                onValueChange = { viewModel.setPassword(it) },
-            )
+            Column {
+                PreferenceDivider()
+                PasswordPreference(
+                    value = uiState.password,
+                    onValueChange = { viewModel.setPassword(it) },
+                )
+            }
         }
         AnimatedVisibility(visible = uiState.authType == SSHBean.AUTH_TYPE_PRIVATE_KEY) {
             Column {
+                PreferenceDivider()
                 TextFieldPreference(
                     value = uiState.privateKey,
                     onValueChange = { viewModel.setPrivateKey(it) },
                     title = { Text(stringResource(Res.string.ssh_private_key)) },
                     textToValue = { it },
-                    icon = { Icon(vectorResource(Res.drawable.vpn_key), null) },
+                    icon = {
+                        MaskedIcon(
+                            Res.drawable.vpn_key,
+                            color = IconMaskColors.IconCyan,
+                            shape = IconMaskShapes.credential(),
+                        )
+                    },
                     summary = { Text(contentOrUnset(uiState.privateKey)) },
                     valueToText = { it },
                     textField = { value, onValueChange, onOk ->
                         MultilineTextField(value, onValueChange, onOk)
                     },
                 )
+                PreferenceDivider()
                 PasswordPreference(
                     value = uiState.privateKeyPassphrase,
                     onValueChange = { viewModel.setPrivateKeyPassphrase(it) },
@@ -175,15 +203,18 @@ private fun LazyListScope.sshSettings(
                 )
             }
         }
-    }
-
-    item("public_key") {
+        PreferenceDivider()
         TextFieldPreference(
             value = uiState.publicKey,
             onValueChange = { viewModel.setPublicKey(it) },
             title = { Text(stringResource(Res.string.ssh_public_key)) },
             textToValue = { it },
-            icon = { Icon(vectorResource(Res.drawable.copyright), null) },
+            icon = {
+                MaskedIcon(
+                    Res.drawable.copyright,
+                    color = IconMaskColors.IconWarmGray,
+                )
+            },
             summary = { Text(contentOrUnset(uiState.publicKey)) },
             valueToText = { it },
             textField = { value, onValueChange, onOk ->
