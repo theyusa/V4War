@@ -38,9 +38,13 @@ import org.jetbrains.compose.resources.vectorResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tr.theyusa.v4war.Key
 import tr.theyusa.v4war.bg.BackendState
+import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.SagerFab
+import tr.theyusa.v4war.compose.StatsBar
+import tr.theyusa.v4war.compose.rememberStatsBarHazeState
+import tr.theyusa.v4war.compose.statsBarHazeSource
 import tr.theyusa.v4war.compose.paddingExceptBottom
 import tr.theyusa.v4war.database.DataStore
 import tr.theyusa.v4war.ui.MainViewModel
@@ -89,6 +93,7 @@ fun ToolsScreen(
     val windowInsets = WindowInsets.safeDrawing
 
     val serviceStatus by BackendState.status.collectAsStateWithLifecycle()
+    val statsBarHazeState = rememberStatsBarHazeState()
 
     Scaffold(
         modifier = modifier
@@ -109,6 +114,16 @@ fun ToolsScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarState) },
+        bottomBar = {
+            if (serviceStatus.state == ServiceState.Connected) {
+                StatsBar(
+                    status = serviceStatus,
+                    visible = bottomVisible,
+                    mainViewModel = mainViewModel,
+                    hazeState = statsBarHazeState,
+                )
+            }
+        },
         floatingActionButton = {
             SagerFab(
                 visible = bottomVisible,
@@ -122,13 +137,13 @@ fun ToolsScreen(
                         )
                     }
                 },
-                mainViewModel = mainViewModel,
             )
         },
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statsBarHazeSource(statsBarHazeState)
                 .paddingExceptBottom(innerPadding),
         ) {
             PrimaryTabRow(

@@ -36,6 +36,7 @@ androidxTv = "1.0.1"
 androidxSecurityCrypto = "1.1.0-alpha06"
 agp = "9.1.0"
 kotlinGradlePlugin = "2.3.20"
+haze = "1.7.2"
 
 [libraries]
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinCoroutines" }
@@ -63,6 +64,7 @@ accompanist-drawablepainter = { module = "com.google.accompanist:accompanist-dra
 compose-preference = { module = "me.zhanghai.compose.preference:preference", version.ref = "composePreference" }
 fastscroller-core = { module = "io.github.oikvpqya.compose.fastscroller:fastscroller-core", version.ref = "fastScroller" }
 fastscroller-material3 = { module = "io.github.oikvpqya.compose.fastscroller:fastscroller-material3", version.ref = "fastScroller" }
+haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 androidx-camera-core = { module = "androidx.camera:camera-core", version.ref = "androidxCamera" }
 androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "androidxCamera" }
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "androidxCamera" }

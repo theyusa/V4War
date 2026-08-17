@@ -45,8 +45,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fr.v4war.BuildConfig
 import tr.theyusa.v4war.bg.BackendState
+import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.SagerFab
+import tr.theyusa.v4war.compose.StatsBar
+import tr.theyusa.v4war.compose.rememberStatsBarHazeState
+import tr.theyusa.v4war.compose.statsBarHazeSource
 import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.rememberScrollHideState
@@ -89,6 +93,7 @@ fun AboutScreen(
     val requestIgnoreBatteryOptimizations = rememberRequestIgnoreBatteryOptimizations()
 
     val serviceStatus by BackendState.status.collectAsStateWithLifecycle()
+    val statsBarHazeState = rememberStatsBarHazeState()
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -107,6 +112,16 @@ fun AboutScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarState) },
+        bottomBar = {
+            if (serviceStatus.state == ServiceState.Connected) {
+                StatsBar(
+                    status = serviceStatus,
+                    visible = scrollHideVisible,
+                    mainViewModel = mainViewModel,
+                    hazeState = statsBarHazeState,
+                )
+            }
+        },
         floatingActionButton = {
             SagerFab(
                 visible = scrollHideVisible,
@@ -120,14 +135,13 @@ fun AboutScreen(
                         )
                     }
                 },
-                mainViewModel = mainViewModel,
             )
         },
     ) { innerPadding ->
         val uriHandler = LocalUriHandler.current
         val contentPadding = innerPadding.withNavigation()
 
-        Row(modifier = Modifier.fillMaxSize()) {
+        Row(modifier = Modifier.fillMaxSize().statsBarHazeSource(statsBarHazeState)) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier

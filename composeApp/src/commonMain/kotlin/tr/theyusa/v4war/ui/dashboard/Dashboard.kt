@@ -70,6 +70,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import tr.theyusa.v4war.TrafficSortMode
 import tr.theyusa.v4war.bg.BackendState
+import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.CapsuleActionButton
 import tr.theyusa.v4war.compose.CapsuleSearchInputField
 import tr.theyusa.v4war.compose.CapsuleSearchTopBar
@@ -77,6 +78,9 @@ import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.DropdownMenuSectionHeader
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.SagerFab
+import tr.theyusa.v4war.compose.StatsBar
+import tr.theyusa.v4war.compose.rememberStatsBarHazeState
+import tr.theyusa.v4war.compose.statsBarHazeSource
 import tr.theyusa.v4war.compose.SimpleIconButton
 import tr.theyusa.v4war.compose.TextButton
 import tr.theyusa.v4war.compose.paddingExceptBottom
@@ -160,6 +164,7 @@ fun DashboardScreen(
     val windowInsets = WindowInsets.safeDrawing
 
     val serviceStatus by BackendState.status.collectAsStateWithLifecycle()
+    val statsBarHazeState = rememberStatsBarHazeState()
     LaunchedEffect(serviceStatus.state.connected) {
         dashboardViewModel.initialize(serviceStatus.state.connected)
     }
@@ -359,6 +364,16 @@ fun DashboardScreen(
             }
         },
         snackbarHost = { SnackbarHost(snackbarState) },
+        bottomBar = {
+            if (serviceStatus.state == ServiceState.Connected) {
+                StatsBar(
+                    status = serviceStatus,
+                    visible = bottomVisible,
+                    mainViewModel = mainViewModel,
+                    hazeState = statsBarHazeState,
+                )
+            }
+        },
         floatingActionButton = {
             Box(
                 modifier = Modifier
@@ -379,7 +394,6 @@ fun DashboardScreen(
                             )
                         }
                     },
-                    mainViewModel = mainViewModel,
                 )
             }
         },
@@ -409,6 +423,7 @@ fun DashboardScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statsBarHazeSource(statsBarHazeState)
                 .onSizeChanged { scaffoldHeightPx = it.height }
                 .paddingExceptBottom(innerPadding),
         ) {

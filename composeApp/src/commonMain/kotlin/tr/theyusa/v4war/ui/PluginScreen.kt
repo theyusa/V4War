@@ -43,9 +43,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tr.theyusa.v4war.Key
 import tr.theyusa.v4war.bg.BackendState
+import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.SagerFab
+import tr.theyusa.v4war.compose.StatsBar
+import tr.theyusa.v4war.compose.rememberStatsBarHazeState
+import tr.theyusa.v4war.compose.statsBarHazeSource
 import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.material3.Icon
 import tr.theyusa.v4war.compose.material3.Text
@@ -78,6 +82,7 @@ fun PluginScreen(
 ) {
     val plugins by platformPluginsFlow().collectAsStateWithLifecycle(emptyList())
     val serviceStatus by BackendState.status.collectAsStateWithLifecycle()
+    val statsBarHazeState = rememberStatsBarHazeState()
 
     val windowInsets = WindowInsets.safeDrawing
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -124,6 +129,16 @@ fun PluginScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarState) },
+        bottomBar = {
+            if (serviceStatus.state == ServiceState.Connected) {
+                StatsBar(
+                    status = serviceStatus,
+                    visible = scrollHideVisible,
+                    mainViewModel = mainViewModel,
+                    hazeState = statsBarHazeState,
+                )
+            }
+        },
         floatingActionButton = {
             SagerFab(
                 visible = scrollHideVisible,
@@ -137,13 +152,12 @@ fun PluginScreen(
                         )
                     }
                 },
-                mainViewModel = mainViewModel,
             )
         },
     ) { innerPadding ->
         ProvidePreferenceLocals {
             val contentPadding = innerPadding.withNavigation()
-            Row(modifier = Modifier.fillMaxSize()) {
+            Row(modifier = Modifier.fillMaxSize().statsBarHazeSource(statsBarHazeState)) {
                 LazyColumn(
                     state = listState,
                     modifier = Modifier

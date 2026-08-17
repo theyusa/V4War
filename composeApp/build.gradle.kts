@@ -80,6 +80,7 @@ kotlin {
                 implementation(libs.compose.preference)
                 implementation(libs.fastscroller.core)
                 implementation(libs.fastscroller.material3)
+                implementation(libs.haze)
                 implementation(libs.filekit.core)
                 implementation(libs.filekit.dialogs.compose)
                 implementation(libs.aboutlibraries.compose.m3)

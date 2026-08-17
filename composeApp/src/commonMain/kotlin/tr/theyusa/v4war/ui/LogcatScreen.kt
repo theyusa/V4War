@@ -69,11 +69,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import tr.theyusa.v4war.bg.BackendState
+import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.CapsuleActionButton
 import tr.theyusa.v4war.compose.CapsuleSearchInputField
 import tr.theyusa.v4war.compose.CapsuleSearchTopBar
 import tr.theyusa.v4war.compose.SagerFab
+import tr.theyusa.v4war.compose.StatsBar
+import tr.theyusa.v4war.compose.rememberStatsBarHazeState
+import tr.theyusa.v4war.compose.statsBarHazeSource
 import tr.theyusa.v4war.compose.SheetActionRow
 import tr.theyusa.v4war.compose.SimpleIconButton
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
@@ -103,6 +107,7 @@ fun LogcatScreen(
     val snackbarState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
     val serviceStatus by BackendState.status.collectAsStateWithLifecycle()
+    val statsBarHazeState = rememberStatsBarHazeState()
     var autoScroll by remember { mutableStateOf(true) }
     var scaffoldHeightPx by remember { mutableIntStateOf(0) }
     var fabTopPx by remember { mutableFloatStateOf(Float.NaN) }
@@ -257,6 +262,16 @@ fun LogcatScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarState) },
+        bottomBar = {
+            if (serviceStatus.state == ServiceState.Connected) {
+                StatsBar(
+                    status = serviceStatus,
+                    visible = true,
+                    mainViewModel = mainViewModel,
+                    hazeState = statsBarHazeState,
+                )
+            }
+        },
         floatingActionButton = {
             Box(
                 modifier = Modifier.onGloballyPositioned { coordinates ->
@@ -278,7 +293,6 @@ fun LogcatScreen(
                                     )
                                 }
                             },
-                            mainViewModel = mainViewModel,
                         )
                     },
                 ) {
@@ -324,6 +338,7 @@ fun LogcatScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .statsBarHazeSource(statsBarHazeState)
                 .onSizeChanged { scaffoldHeightPx = it.height },
         ) {
             Row(modifier = Modifier.fillMaxSize()) {

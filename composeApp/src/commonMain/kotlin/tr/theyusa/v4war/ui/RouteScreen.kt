@@ -63,6 +63,7 @@ import com.ernestoyaquello.dragdropswipelazycolumn.DraggableSwipeableItemScope
 import com.ernestoyaquello.dragdropswipelazycolumn.config.DraggableSwipeableItemColors
 import com.ernestoyaquello.dragdropswipelazycolumn.state.rememberDragDropSwipeLazyColumnState
 import tr.theyusa.v4war.bg.BackendState
+import tr.theyusa.v4war.bg.ServiceState
 import androidx.compose.foundation.layout.fillMaxHeight
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.CapsuleActionButton
@@ -70,6 +71,9 @@ import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import io.github.oikvpqya.compose.fastscroller.rememberScrollbarAdapter
 import tr.theyusa.v4war.compose.SagerFab
+import tr.theyusa.v4war.compose.StatsBar
+import tr.theyusa.v4war.compose.rememberStatsBarHazeState
+import tr.theyusa.v4war.compose.statsBarHazeSource
 import tr.theyusa.v4war.compose.SimpleIconButton
 import tr.theyusa.v4war.compose.TextButton
 import tr.theyusa.v4war.compose.navigationBarsAlwaysInsets
@@ -181,6 +185,7 @@ fun RouteScreen(
     val windowInsets = WindowInsets.safeDrawing
 
     val serviceStatus by BackendState.status.collectAsStateWithLifecycle()
+    val statsBarHazeState = rememberStatsBarHazeState()
 
     Scaffold(
         modifier = modifier
@@ -248,6 +253,16 @@ fun RouteScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarState) },
+        bottomBar = {
+            if (serviceStatus.state == ServiceState.Connected) {
+                StatsBar(
+                    status = serviceStatus,
+                    visible = scrollHideVisible,
+                    mainViewModel = mainViewModel,
+                    hazeState = statsBarHazeState,
+                )
+            }
+        },
         floatingActionButton = {
             SagerFab(
                 visible = scrollHideVisible,
@@ -261,12 +276,11 @@ fun RouteScreen(
                         )
                     }
                 },
-                mainViewModel = mainViewModel,
             )
         },
     ) { innerPadding ->
         Row(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().statsBarHazeSource(statsBarHazeState),
         ) {
             Column(
                 modifier = Modifier
