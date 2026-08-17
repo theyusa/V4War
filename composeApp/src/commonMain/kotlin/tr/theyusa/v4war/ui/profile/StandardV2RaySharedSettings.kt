@@ -146,7 +146,6 @@ internal fun LazyListScope.headSettings(
                 )
             },
             summary = { Text(contentOrUnset(state.port)) },
-            valueToText = { it },
             textField = { value, onValueChange, onOk -> PortTextField(value, onValueChange, onOk) },
         )
     }

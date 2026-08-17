@@ -2,14 +2,11 @@ package tr.theyusa.v4war.ui.profile
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
@@ -20,7 +17,6 @@ import tr.theyusa.v4war.compose.MultilineTextField
 import tr.theyusa.v4war.compose.PasswordPreference
 import tr.theyusa.v4war.compose.PreferenceCategory
 import tr.theyusa.v4war.compose.PreferenceDivider
-import tr.theyusa.v4war.compose.SimpleIconButton
 import tr.theyusa.v4war.compose.UIntegerTextField
 import tr.theyusa.v4war.compose.material3.Text
 import tr.theyusa.v4war.compose.preferenceGroup
@@ -31,7 +27,6 @@ import tr.theyusa.v4war.resources.bolt
 import tr.theyusa.v4war.resources.border_inner
 import tr.theyusa.v4war.resources.build
 import tr.theyusa.v4war.resources.directions_boat
-import tr.theyusa.v4war.resources.edit
 import tr.theyusa.v4war.resources.emoji_symbols
 import tr.theyusa.v4war.resources.enable_brutal
 import tr.theyusa.v4war.resources.enable_mux
@@ -58,15 +53,12 @@ import tr.theyusa.v4war.resources.settings
 import tr.theyusa.v4war.resources.type_specimen
 import tr.theyusa.v4war.resources.udp_over_tcp
 import tr.theyusa.v4war.resources.view_in_ar
-import tr.theyusa.v4war.results.ResultEffect
 import tr.theyusa.v4war.ui.NavRoutes
 import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.ListPreferenceType
 import me.zhanghai.compose.preference.SwitchPreference
 import me.zhanghai.compose.preference.TextFieldPreference
 import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.resources.vectorResource
-import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,7 +67,6 @@ fun ShadowsocksSettingsScreen(
     isSubscription: Boolean,
     onResult: (updated: Boolean) -> Unit,
     onOpenConfigEditor: (NavRoutes.ConfigEditor) -> Unit,
-    onOpenSIP003Editor: (NavRoutes.SIP003Editor) -> Unit,
 ) {
     val viewModel: ShadowsocksSettingsViewModel = profileEditorViewModel(
         profileId = profileId,
@@ -84,14 +75,6 @@ fun ShadowsocksSettingsScreen(
         ShadowsocksSettingsViewModel()
     }
 
-    val sip003ResultKey = rememberSaveable {
-        val number = viewModel.editingId.takeIf { it >= 0 } ?: Random.nextLong()
-        "sip003-editor-$number"
-    }
-    ResultEffect<String?>(resultKey = sip003ResultKey) { result ->
-        if (result == null) return@ResultEffect
-        viewModel.setPluginConfig(result)
-    }
 
     ProfileSettingsScreenScaffold(
         title = Res.string.profile_config,
@@ -103,8 +86,6 @@ fun ShadowsocksSettingsScreen(
             uiState as ShadowsocksUiState,
             viewModel,
             scrollTo,
-            sip003ResultKey,
-            onOpenSIP003Editor,
         )
     }
 }
@@ -113,8 +94,6 @@ private fun LazyListScope.shadowsocksSettings(
     uiState: ShadowsocksUiState,
     viewModel: ShadowsocksSettingsViewModel,
     scrollTo: (key: String) -> Unit,
-    sip003ResultKey: String,
-    onOpenSIP003Editor: (NavRoutes.SIP003Editor) -> Unit,
 ) {
     val encryptionMethods = listOf(
         "2022-blake3-aes-128-gcm",
@@ -342,29 +321,7 @@ private fun LazyListScope.shadowsocksSettings(
             summary = { Text(contentOrUnset(uiState.pluginConfig)) },
             valueToText = { it },
             textField = { value, onValueChange, onOk ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    MultilineTextField(
-                        value = value,
-                        onValueChange = onValueChange,
-                        onOk = onOk,
-                        modifier = Modifier.weight(1f),
-                    )
-                    SimpleIconButton(
-                        imageVector = vectorResource(Res.drawable.edit),
-                        contentDescription = stringResource(Res.string.edit),
-                        onClick = {
-                            onOpenSIP003Editor(
-                                NavRoutes.SIP003Editor(
-                                    pluginName = uiState.pluginName,
-                                    initialOpts = value.text,
-                                    resultKey = sip003ResultKey,
-                                ),
-                            )
-                        },
-                    )
-                }
+                MultilineTextField(value, onValueChange, onOk)
             },
         )
     }
