@@ -32,7 +32,7 @@ import com.mikepenz.aboutlibraries.ui.compose.util.strippedLicenseContent
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.ScrollableDialog
 import tr.theyusa.v4war.compose.SimpleIconButton
-import tr.theyusa.v4war.compose.SimpleTopAppBar
+import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.TextButton
 import tr.theyusa.v4war.compose.withNavigation
 import tr.theyusa.v4war.ktx.emptyAsNull
@@ -64,7 +64,7 @@ fun LibrariesScreen(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            SimpleTopAppBar(
+            CapsuleTopBar(
                 title = { Text(stringResource(Res.string.oss_licenses)) },
                 navigationIcon = {
                     SimpleIconButton(

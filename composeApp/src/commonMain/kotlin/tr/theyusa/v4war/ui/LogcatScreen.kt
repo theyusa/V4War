@@ -1,10 +1,7 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 
 package tr.theyusa.v4war.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,27 +20,26 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.DockedSearchBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButtonMenu
 import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.material3.HorizontalDivider
 import tr.theyusa.v4war.compose.material3.Icon
-import tr.theyusa.v4war.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.ModalBottomSheet
 import tr.theyusa.v4war.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.material3.SearchBarValue
+import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import tr.theyusa.v4war.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -57,7 +53,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -76,13 +71,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import tr.theyusa.v4war.bg.BackendState
 import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.PlatformMenuIcon
+import tr.theyusa.v4war.compose.CapsuleActionButton
+import tr.theyusa.v4war.compose.CapsuleSearchInputField
+import tr.theyusa.v4war.compose.CapsuleSearchTopBar
 import tr.theyusa.v4war.compose.SagerFab
 import tr.theyusa.v4war.compose.SheetActionRow
 import tr.theyusa.v4war.compose.SimpleIconButton
 import tr.theyusa.v4war.compose.StatsBar
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.ansiEscape
-import tr.theyusa.v4war.compose.rememberScrollHideState
 import tr.theyusa.v4war.compose.setPlainText
 import tr.theyusa.v4war.ktx.readableMessage
 import tr.theyusa.v4war.ktx.showAndDismissOld
@@ -107,13 +104,7 @@ fun LogcatScreen(
 
     val snackbarState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
-    val scrollHideVisible by rememberScrollHideState(listState)
     val serviceStatus by BackendState.status.collectAsStateWithLifecycle()
-    val canScroll by remember {
-        derivedStateOf {
-            listState.canScrollForward || listState.canScrollBackward
-        }
-    }
     var autoScroll by remember { mutableStateOf(true) }
     var scaffoldHeightPx by remember { mutableIntStateOf(0) }
     var fabTopPx by remember { mutableFloatStateOf(Float.NaN) }
@@ -122,8 +113,6 @@ fun LogcatScreen(
             !listState.canScrollForward
         }
     }
-    val searchBarVisible =
-        scrollHideVisible && (canScroll || viewModel.searchTextFieldState.text.isNotEmpty())
 
     var expandMenu by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -163,13 +152,39 @@ fun LogcatScreen(
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val windowInsets = WindowInsets.safeDrawing
 
+    val searchBarState = rememberSearchBarState()
+    val searchTextFieldState = viewModel.searchTextFieldState
+    val searchInputField: @Composable () -> Unit = {
+        CapsuleSearchInputField(
+            textFieldState = searchTextFieldState,
+            searchBarState = searchBarState,
+            onSearch = { focusManager.clearFocus() },
+            placeholder = { Text(stringResource(Res.string.search_go)) },
+            leadingIcon = {
+                Icon(vectorResource(Res.drawable.search), null)
+            },
+            trailingIcon = if (searchBarState.currentValue == SearchBarValue.Expanded) {
+                {
+                    SimpleIconButton(
+                        imageVector = vectorResource(Res.drawable.close),
+                        contentDescription = stringResource(Res.string.cancel),
+                        onClick = {
+                            viewModel.clearSearchQuery()
+                            scope.launch { searchBarState.animateToCollapsed() }
+                        },
+                    )
+                }
+            } else {
+                null
+            },
+        )
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(stringResource(Res.string.menu_log))
-                },
+            CapsuleSearchTopBar(
+                inputField = searchInputField,
                 navigationIcon = {
                     PlatformMenuIcon(
                         imageVector = vectorResource(Res.drawable.menu),
@@ -178,57 +193,63 @@ fun LogcatScreen(
                     )
                 },
                 actions = {
-                    SimpleIconButton(
-                        imageVector = vectorResource(
-                            if (uiState.pause) {
-                                Res.drawable.play_arrow
-                            } else {
-                                Res.drawable.pause
-                            },
-                        ),
-                        contentDescription = stringResource(Res.string.pause),
-                        onClick = viewModel::togglePause,
-                    )
-                    SimpleIconButton(
-                        imageVector = vectorResource(Res.drawable.share),
-                        contentDescription = stringResource(Res.string.logcat),
-                        onClick = { showBottomSheet = true },
-                    )
-                    Box {
+                    CapsuleActionButton {
                         SimpleIconButton(
-                            imageVector = vectorResource(Res.drawable.more_vert),
-                            contentDescription = stringResource(Res.string.more),
-                            onClick = { expandMenu = true },
-                        )
-                        DropdownMenu(
-                            expanded = expandMenu,
-                            onDismissRequest = { expandMenu = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.clear_logcat)) },
-                                onClick = viewModel::clearLog,
-                                leadingIcon = {
-                                    Icon(vectorResource(Res.drawable.delete_sweep), null)
+                            imageVector = vectorResource(
+                                if (uiState.pause) {
+                                    Res.drawable.play_arrow
+                                } else {
+                                    Res.drawable.pause
                                 },
-                                colors = MenuDefaults.itemColors().copy(
-                                    leadingIconColor = MaterialTheme.colorScheme.error,
-                                ),
+                            ),
+                            contentDescription = stringResource(Res.string.pause),
+                            onClick = viewModel::togglePause,
+                        )
+                    }
+                    CapsuleActionButton {
+                        SimpleIconButton(
+                            imageVector = vectorResource(Res.drawable.share),
+                            contentDescription = stringResource(Res.string.logcat),
+                            onClick = { showBottomSheet = true },
+                        )
+                    }
+                    CapsuleActionButton {
+                        Box {
+                            SimpleIconButton(
+                                imageVector = vectorResource(Res.drawable.more_vert),
+                                contentDescription = stringResource(Res.string.more),
+                                onClick = { expandMenu = true },
                             )
-                            HorizontalDivider()
-                            LogLevel.entries.forEach { level ->
+                            DropdownMenu(
+                                expanded = expandMenu,
+                                onDismissRequest = { expandMenu = false },
+                            ) {
                                 DropdownMenuItem(
-                                    text = { Text(level.name) },
-                                    onClick = {
-                                        viewModel.setLogLevel(level)
-                                        expandMenu = false
+                                    text = { Text(stringResource(Res.string.clear_logcat)) },
+                                    onClick = viewModel::clearLog,
+                                    leadingIcon = {
+                                        Icon(vectorResource(Res.drawable.delete_sweep), null)
                                     },
-                                    trailingIcon = {
-                                        RadioButton(
-                                            selected = uiState.logLevel == level,
-                                            onClick = null,
-                                        )
-                                    },
+                                    colors = MenuDefaults.itemColors().copy(
+                                        leadingIconColor = MaterialTheme.colorScheme.error,
+                                    ),
                                 )
+                                HorizontalDivider()
+                                LogLevel.entries.forEach { level ->
+                                    DropdownMenuItem(
+                                        text = { Text(level.name) },
+                                        onClick = {
+                                            viewModel.setLogLevel(level)
+                                            expandMenu = false
+                                        },
+                                        trailingIcon = {
+                                            RadioButton(
+                                                selected = uiState.logLevel == level,
+                                                onClick = null,
+                                            )
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
@@ -348,52 +369,6 @@ fun LogcatScreen(
                     style = defaultMaterialScrollbarStyle().copy(
                         thickness = 12.dp,
                     ),
-                )
-            }
-
-            AnimatedVisibility(
-                visible = searchBarVisible,
-                enter = slideInVertically { -it },
-                exit = slideOutVertically { -it },
-                modifier = Modifier.align(Alignment.TopCenter),
-            ) {
-                DockedSearchBar(
-                    inputField = {
-                        SearchBarDefaults.InputField(
-                            state = viewModel.searchTextFieldState,
-                            onSearch = { focusManager.clearFocus() },
-                            expanded = false,
-                            onExpandedChange = {},
-                            leadingIcon = {
-                                Icon(vectorResource(Res.drawable.search), null)
-                            },
-                            trailingIcon = if (viewModel.searchTextFieldState.text.isNotEmpty()) {
-                                {
-                                    IconButton(
-                                        onClick = viewModel::clearSearchQuery,
-                                    ) {
-                                        Icon(
-                                            imageVector = vectorResource(Res.drawable.close),
-                                            contentDescription = stringResource(Res.string.cancel),
-                                        )
-                                    }
-                                }
-                            } else {
-                                null
-                            },
-                        )
-                    },
-                    expanded = false,
-                    onExpandedChange = {},
-                    modifier = Modifier.padding(
-                        top = innerPadding.calculateTopPadding() + 24.dp,
-                    ),
-                    colors = SearchBarDefaults.colors().run {
-                        copy(
-                            containerColor = containerColor.copy(alpha = 0.8f),
-                        )
-                    },
-                    content = {},
                 )
             }
         }

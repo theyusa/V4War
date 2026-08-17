@@ -38,7 +38,6 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import tr.theyusa.v4war.compose.material3.Switch
 import tr.theyusa.v4war.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -67,6 +66,8 @@ import tr.theyusa.v4war.bg.BackendState
 import tr.theyusa.v4war.bg.ServiceState
 import androidx.compose.foundation.layout.fillMaxHeight
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
+import tr.theyusa.v4war.compose.CapsuleActionButton
+import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import io.github.oikvpqya.compose.fastscroller.rememberScrollbarAdapter
 import tr.theyusa.v4war.compose.SagerFab
@@ -188,7 +189,7 @@ fun RouteScreen(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
+            CapsuleTopBar(
                 title = { Text(stringResource(Res.string.menu_route)) },
                 navigationIcon = {
                     PlatformMenuIcon(
@@ -198,43 +199,49 @@ fun RouteScreen(
                     )
                 },
                 actions = {
-                    SimpleIconButton(
-                        imageVector = vectorResource(Res.drawable.add_road),
-                        contentDescription = stringResource(Res.string.route_add),
-                        onClick = {
-                            openRouteSettings(-1L)
-                        },
-                    )
-                    SimpleIconButton(
-                        imageVector = vectorResource(Res.drawable.replay),
-                        contentDescription = stringResource(Res.string.route_reset),
-                        onClick = { showResetAlert = true },
-                    )
-                    Box {
+                    CapsuleActionButton {
                         SimpleIconButton(
-                            imageVector = vectorResource(Res.drawable.more_vert),
-                            contentDescription = stringResource(Res.string.more),
-                            onClick = { showMoreAction = true },
+                            imageVector = vectorResource(Res.drawable.add_road),
+                            contentDescription = stringResource(Res.string.route_add),
+                            onClick = {
+                                openRouteSettings(-1L)
+                            },
                         )
-                        DropdownMenu(
-                            expanded = showMoreAction,
-                            onDismissRequest = { showMoreAction = false },
-                            shape = MenuDefaults.standaloneGroupShape,
-                            containerColor = MenuDefaults.groupStandardContainerColor,
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.route_manage_assets)) },
-                                onClick = {
-                                    showMoreAction = false
-                                    openAssets()
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = vectorResource(Res.drawable.layers),
-                                        contentDescription = null,
-                                    )
-                                },
+                    }
+                    CapsuleActionButton {
+                        SimpleIconButton(
+                            imageVector = vectorResource(Res.drawable.replay),
+                            contentDescription = stringResource(Res.string.route_reset),
+                            onClick = { showResetAlert = true },
+                        )
+                    }
+                    CapsuleActionButton {
+                        Box {
+                            SimpleIconButton(
+                                imageVector = vectorResource(Res.drawable.more_vert),
+                                contentDescription = stringResource(Res.string.more),
+                                onClick = { showMoreAction = true },
                             )
+                            DropdownMenu(
+                                expanded = showMoreAction,
+                                onDismissRequest = { showMoreAction = false },
+                                shape = MenuDefaults.standaloneGroupShape,
+                                containerColor = MenuDefaults.groupStandardContainerColor,
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(Res.string.route_manage_assets)) },
+                                    onClick = {
+                                        showMoreAction = false
+                                        openAssets()
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = vectorResource(Res.drawable.layers),
+                                            contentDescription = null,
+                                        )
+                                    },
+                                )
+                            }
                         }
                     }
                 },

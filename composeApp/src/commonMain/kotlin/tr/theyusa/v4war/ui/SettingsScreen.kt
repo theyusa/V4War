@@ -67,6 +67,7 @@ import tr.theyusa.v4war.bg.BackendState
 import tr.theyusa.v4war.bg.Executable
 import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
+import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.HostTextField
 import tr.theyusa.v4war.compose.LinkOrContentTextField
 import tr.theyusa.v4war.compose.PasswordPreference
@@ -75,7 +76,6 @@ import tr.theyusa.v4war.compose.PortTextField
 import tr.theyusa.v4war.compose.PreferenceCategory
 import tr.theyusa.v4war.compose.PreferenceType
 import tr.theyusa.v4war.compose.SagerFab
-import tr.theyusa.v4war.compose.SimpleTopAppBar
 import tr.theyusa.v4war.compose.StatsBar
 import tr.theyusa.v4war.compose.TextButton
 import tr.theyusa.v4war.compose.rememberScrollHideState
@@ -318,7 +318,7 @@ fun SettingsScreen(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            SimpleTopAppBar(
+            CapsuleTopBar(
                 title = { Text(stringResource(Res.string.settings)) },
                 navigationIcon = {
                     PlatformMenuIcon(

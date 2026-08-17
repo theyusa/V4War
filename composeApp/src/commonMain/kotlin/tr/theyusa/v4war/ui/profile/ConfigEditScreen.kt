@@ -47,7 +47,6 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import tr.theyusa.v4war.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -92,6 +91,7 @@ import com.wakaztahir.codeeditor.theme.SyntaxColors
 import com.wakaztahir.codeeditor.utils.parseCodeAsAnnotatedString
 import tr.theyusa.v4war.compose.BackHandler
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
+import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.MoreOverIcon
 import tr.theyusa.v4war.compose.SimpleIconButton
 import tr.theyusa.v4war.compose.TextButton
@@ -292,7 +292,7 @@ private fun ConfigEditScreenContent(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
+            CapsuleTopBar(
                 title = { Text(stringResource(Res.string.edit_config)) },
                 navigationIcon = {
                     SimpleIconButton(

@@ -33,7 +33,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Scaffold
 import tr.theyusa.v4war.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,6 +50,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tr.theyusa.v4war.GroupType
 import tr.theyusa.v4war.compose.BackHandler
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
+import tr.theyusa.v4war.compose.CapsuleActionButton
+import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.SimpleIconButton
 import tr.theyusa.v4war.compose.TextButton
 import tr.theyusa.v4war.compose.paddingExceptBottom
@@ -233,7 +234,7 @@ internal fun <T : AbstractBean> ProfileSettingsScreenScaffold(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
+            CapsuleTopBar(
                 title = { Text(stringResource(title)) },
                 navigationIcon = {
                     SimpleIconButton(
@@ -248,102 +249,110 @@ internal fun <T : AbstractBean> ProfileSettingsScreenScaffold(
                     }
                 },
                 actions = {
-                    if (!viewModel.isNew) SimpleIconButton(
-                        imageVector = vectorResource(Res.drawable.delete),
-                        contentDescription = stringResource(Res.string.delete),
-                        onClick = { showDeleteAlert = true },
-                    )
-                    SimpleIconButton(
-                        imageVector = vectorResource(Res.drawable.done),
-                        contentDescription = stringResource(Res.string.apply),
-                        onClick = {
-                            viewModel.save()
-                            onResult(true)
-                        },
-                    )
-
-                    Box {
-                        SimpleIconButton(
-                            imageVector = vectorResource(Res.drawable.more_vert),
-                            contentDescription = stringResource(Res.string.more),
-                        ) {
-                            showExtendMenu = true
+                    if (!viewModel.isNew) {
+                        CapsuleActionButton {
+                            SimpleIconButton(
+                                imageVector = vectorResource(Res.drawable.delete),
+                                contentDescription = stringResource(Res.string.delete),
+                                onClick = { showDeleteAlert = true },
+                            )
                         }
-                        DropdownMenuPopup(
-                            expanded = showExtendMenu,
-                            onDismissRequest = { showExtendMenu = false },
-                        ) {
-                            val showCreateShortCut =
-                                platformSupportShortcut()
-                                        && !viewModel.isNew
-                                        && !viewModel.isSubscription
-                            val showMove = !viewModel.isNew && runBlocking {
-                                SagerDatabase.groupDao.allGroups().first().filter {
-                                    it.type == GroupType.BASIC
-                                }.size > 1
-                            }
-                            val hasFirstGroup = showCreateShortCut || showMove
-                            if (hasFirstGroup) {
-                                DropdownMenuGroup(
-                                    shapes = MenuDefaults.groupShape(0, 2),
-                                ) {
-                                    if (showCreateShortCut) {
-                                        ShortcutMenuItem(viewModel.proxyEntity) {
-                                            showExtendMenu = false
-                                        }
-                                    }
-                                    if (showMove) {
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(Res.string.move)) },
-                                            onClick = { showMoveDialog = true },
-                                        )
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(MenuDefaults.GroupSpacing))
-                            }
+                    }
+                    CapsuleActionButton {
+                        SimpleIconButton(
+                            imageVector = vectorResource(Res.drawable.done),
+                            contentDescription = stringResource(Res.string.apply),
+                            onClick = {
+                                viewModel.save()
+                                onResult(true)
+                            },
+                        )
+                    }
 
-                            DropdownMenuGroup(
-                                shapes = if (hasFirstGroup) {
-                                    MenuDefaults.groupShape(1, 2)
-                                } else {
-                                    MenuDefaults.groupShapes()
-                                },
+                    CapsuleActionButton {
+                        Box {
+                            SimpleIconButton(
+                                imageVector = vectorResource(Res.drawable.more_vert),
+                                contentDescription = stringResource(Res.string.more),
                             ) {
-                                DropdownMenuItem(
-                                    text = {
-                                        MenuDefaults.Label {
-                                            Text(
-                                                text = stringResource(Res.string.custom_config),
-                                                style = MaterialTheme.typography.titleSmall,
+                                showExtendMenu = true
+                            }
+                            DropdownMenuPopup(
+                                expanded = showExtendMenu,
+                                onDismissRequest = { showExtendMenu = false },
+                            ) {
+                                val showCreateShortCut =
+                                    platformSupportShortcut()
+                                            && !viewModel.isNew
+                                            && !viewModel.isSubscription
+                                val showMove = !viewModel.isNew && runBlocking {
+                                    SagerDatabase.groupDao.allGroups().first().filter {
+                                        it.type == GroupType.BASIC
+                                    }.size > 1
+                                }
+                                val hasFirstGroup = showCreateShortCut || showMove
+                                if (hasFirstGroup) {
+                                    DropdownMenuGroup(
+                                        shapes = MenuDefaults.groupShape(0, 2),
+                                    ) {
+                                        if (showCreateShortCut) {
+                                            ShortcutMenuItem(viewModel.proxyEntity) {
+                                                showExtendMenu = false
+                                            }
+                                        }
+                                        if (showMove) {
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(Res.string.move)) },
+                                                onClick = { showMoveDialog = true },
                                             )
                                         }
+                                    }
+                                    Spacer(modifier = Modifier.height(MenuDefaults.GroupSpacing))
+                                }
+
+                                DropdownMenuGroup(
+                                    shapes = if (hasFirstGroup) {
+                                        MenuDefaults.groupShape(1, 2)
+                                    } else {
+                                        MenuDefaults.groupShapes()
                                     },
-                                    onClick = {},
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.outbound)) },
-                                    onClick = {
-                                        showExtendMenu = false
-                                        onOpenConfigEditor(
-                                            NavRoutes.ConfigEditor(
-                                                initialText = viewModel.uiState.value.customOutbound,
-                                                resultKey = outboundConfigResultKey,
-                                            ),
-                                        )
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.full)) },
-                                    onClick = {
-                                        showExtendMenu = false
-                                        onOpenConfigEditor(
-                                            NavRoutes.ConfigEditor(
-                                                initialText = viewModel.uiState.value.customConfig,
-                                                resultKey = configResultKey,
-                                            ),
-                                        )
-                                    },
-                                )
+                                ) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            MenuDefaults.Label {
+                                                Text(
+                                                    text = stringResource(Res.string.custom_config),
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                )
+                                            }
+                                        },
+                                        onClick = {},
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(Res.string.outbound)) },
+                                        onClick = {
+                                            showExtendMenu = false
+                                            onOpenConfigEditor(
+                                                NavRoutes.ConfigEditor(
+                                                    initialText = viewModel.uiState.value.customOutbound,
+                                                    resultKey = outboundConfigResultKey,
+                                                ),
+                                            )
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(Res.string.full)) },
+                                        onClick = {
+                                            showExtendMenu = false
+                                            onOpenConfigEditor(
+                                                NavRoutes.ConfigEditor(
+                                                    initialText = viewModel.uiState.value.customConfig,
+                                                    resultKey = configResultKey,
+                                                ),
+                                            )
+                                        },
+                                    )
+                                }
                             }
                         }
                     }

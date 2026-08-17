@@ -40,7 +40,6 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import tr.theyusa.v4war.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -62,6 +61,7 @@ import tr.theyusa.v4war.Key
 import tr.theyusa.v4war.RuleProvider
 import tr.theyusa.v4war.compose.MoreOverIcon
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
+import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.SimpleIconButton
 import tr.theyusa.v4war.compose.withNavigation
 import tr.theyusa.v4war.database.DataStore
@@ -233,7 +233,7 @@ internal fun AssetsScreen(
             Box(
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                TopAppBar(
+                CapsuleTopBar(
                     title = { Text(stringResource(Res.string.route_assets)) },
                     navigationIcon = {
                         SimpleIconButton(

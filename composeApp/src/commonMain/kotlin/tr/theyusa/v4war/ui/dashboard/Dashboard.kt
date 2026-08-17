@@ -9,7 +9,6 @@ package tr.theyusa.v4war.ui.dashboard
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -24,8 +23,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AppBarWithSearch
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import tr.theyusa.v4war.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuGroup
@@ -35,15 +32,14 @@ import androidx.compose.material3.ExpandedFullScreenSearchBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import tr.theyusa.v4war.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import tr.theyusa.v4war.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SearchBarValue
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import tr.theyusa.v4war.compose.material3.Tab
 import tr.theyusa.v4war.compose.material3.Text
 import androidx.compose.material3.rememberSearchBarState
@@ -58,7 +54,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -76,6 +71,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import tr.theyusa.v4war.TrafficSortMode
 import tr.theyusa.v4war.bg.BackendState
 import tr.theyusa.v4war.bg.ServiceState
+import tr.theyusa.v4war.compose.CapsuleActionButton
+import tr.theyusa.v4war.compose.CapsuleSearchInputField
+import tr.theyusa.v4war.compose.CapsuleSearchTopBar
+import tr.theyusa.v4war.compose.CapsuleTopBar
+import tr.theyusa.v4war.compose.DropdownMenuSectionHeader
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.SagerFab
 import tr.theyusa.v4war.compose.SimpleIconButton
@@ -124,7 +124,7 @@ fun DashboardScreen(
     val searchBarState = rememberSearchBarState()
     val searchTextFieldState = dashboardViewModel.searchTextFieldState
     val searchInputField: @Composable () -> Unit = {
-        SearchBarDefaults.InputField(
+        CapsuleSearchInputField(
             textFieldState = searchTextFieldState,
             searchBarState = searchBarState,
             onSearch = { focusManager.clearFocus() },
@@ -148,27 +148,13 @@ fun DashboardScreen(
             },
         )
     }
-    val scrollBehavior = SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()
-    val appBarWithSearchColors = SearchBarDefaults.appBarWithSearchColors()
-    val overlappedFraction by remember(scrollBehavior) {
-        derivedStateOf {
-            if (scrollBehavior.scrollOffsetLimit != 0f) {
-                1 -
-                        ((scrollBehavior.scrollOffsetLimit - scrollBehavior.contentOffset)
-                            .fastCoerceIn(
-                                scrollBehavior.scrollOffsetLimit,
-                                0f,
-                            ) / scrollBehavior.scrollOffsetLimit)
-            } else {
-                0f
-            }
-        }
-    }
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val topAppBarColors = TopAppBarDefaults.topAppBarColors()
     val appBarContainerColor by animateColorAsState(
         targetValue = lerp(
-            appBarWithSearchColors.appBarContainerColor,
-            appBarWithSearchColors.scrolledAppBarContainerColor,
-            overlappedFraction.fastCoerceIn(0f, 1f),
+            topAppBarColors.containerColor,
+            topAppBarColors.scrolledContainerColor,
+            scrollBehavior.state.overlappedFraction.fastCoerceIn(0f, 1f),
         ),
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "appBarContainerColor",
@@ -185,14 +171,12 @@ fun DashboardScreen(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
+            Surface(color = appBarContainerColor) {
             Column(
-                modifier = Modifier
-                    .background(appBarContainerColor)
-                    .windowInsetsPadding(windowInsets.only(WindowInsetsSides.Top)),
+                modifier = Modifier.windowInsetsPadding(windowInsets.only(WindowInsetsSides.Top)),
             ) {
                 if (isConnectionsPage) {
-                    AppBarWithSearch(
-                        state = searchBarState,
+                    CapsuleSearchTopBar(
                         inputField = searchInputField,
                         navigationIcon = {
                             PlatformMenuIcon(
@@ -202,158 +186,132 @@ fun DashboardScreen(
                             )
                         },
                         actions = {
-                            SimpleIconButton(
-                                imageVector = if (uiState.isPause) {
-                                    vectorResource(Res.drawable.play_arrow)
-                                } else {
-                                    vectorResource(Res.drawable.pause)
-                                },
-                                contentDescription = stringResource(Res.string.pause),
-                                onClick = { dashboardViewModel.togglePause() },
-                            )
-                            SimpleIconButton(
-                                imageVector = vectorResource(Res.drawable.cleaning_services),
-                                contentDescription = stringResource(Res.string.reset_connections),
-                                onClick = { showResetAlert = true },
-                            )
-
-                            Box {
+                            CapsuleActionButton {
                                 SimpleIconButton(
-                                    imageVector = vectorResource(Res.drawable.more_vert),
-                                    contentDescription = stringResource(Res.string.more),
-                                    onClick = { isOverflowMenuExpanded = true },
+                                    imageVector = if (uiState.isPause) {
+                                        vectorResource(Res.drawable.play_arrow)
+                                    } else {
+                                        vectorResource(Res.drawable.pause)
+                                    },
+                                    contentDescription = stringResource(Res.string.pause),
+                                    onClick = { dashboardViewModel.togglePause() },
                                 )
+                            }
+                            CapsuleActionButton {
+                                SimpleIconButton(
+                                    imageVector = vectorResource(Res.drawable.cleaning_services),
+                                    contentDescription = stringResource(Res.string.reset_connections),
+                                    onClick = { showResetAlert = true },
+                                )
+                            }
 
-                                DropdownMenuPopup(
-                                    expanded = isOverflowMenuExpanded,
-                                    onDismissRequest = { isOverflowMenuExpanded = false },
-                                ) {
-                                    DropdownMenuGroup(
-                                        shapes = MenuDefaults.groupShape(0, 3),
+                            CapsuleActionButton {
+                                Box {
+                                    SimpleIconButton(
+                                        imageVector = vectorResource(Res.drawable.more_vert),
+                                        contentDescription = stringResource(Res.string.more),
+                                        onClick = { isOverflowMenuExpanded = true },
+                                    )
+
+                                    DropdownMenuPopup(
+                                        expanded = isOverflowMenuExpanded,
+                                        onDismissRequest = { isOverflowMenuExpanded = false },
                                     ) {
-                                        DropdownMenuItem(
-                                            text = {
-                                                MenuDefaults.Label {
-                                                    Text(
-                                                        text = stringResource(Res.string.sort),
-                                                        style = MaterialTheme.typography.titleSmall,
-                                                    )
-                                                }
-                                            },
-                                            onClick = {},
-                                        )
-                                        DropdownMenuItem(
-                                            selected = !uiState.isDescending,
-                                            onClick = {
-                                                dashboardViewModel.setSortDescending(false)
-                                                isOverflowMenuExpanded = false
-                                            },
-                                            text = { Text(stringResource(Res.string.ascending)) },
-                                            shapes = MenuDefaults.itemShape(0, 2),
-                                        )
-                                        DropdownMenuItem(
-                                            selected = uiState.isDescending,
-                                            onClick = {
-                                                dashboardViewModel.setSortDescending(true)
-                                                isOverflowMenuExpanded = false
-                                            },
-                                            text = { Text(stringResource(Res.string.descending)) },
-                                            shapes = MenuDefaults.itemShape(1, 2),
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.height(MenuDefaults.GroupSpacing))
-
-                                    DropdownMenuGroup(
-                                        shapes = MenuDefaults.groupShape(1, 3),
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = {
-                                                MenuDefaults.Label {
-                                                    Text(
-                                                        text = stringResource(Res.string.sort_mode),
-                                                        style = MaterialTheme.typography.titleSmall,
-                                                    )
-                                                }
-                                            },
-                                            onClick = {},
-                                        )
-                                        val sortModes = TrafficSortMode.values
-                                        for ((i, sortMode) in sortModes.withIndex()) {
-                                            val text = when (sortMode) {
-                                                TrafficSortMode.START -> Res.string.by_time
-                                                TrafficSortMode.INBOUND -> Res.string.by_inbound
-                                                TrafficSortMode.UPLOAD -> Res.string.by_upload
-                                                TrafficSortMode.DOWNLOAD -> Res.string.by_download
-                                                TrafficSortMode.SRC -> Res.string.by_source
-                                                TrafficSortMode.DST -> Res.string.by_destination
-                                                TrafficSortMode.MATCHED_RULE -> Res.string.by_matched_rule
-                                                else -> throw IllegalArgumentException("$sortMode impossible")
-                                            }
+                                        DropdownMenuGroup(
+                                            shapes = MenuDefaults.groupShape(0, 3),
+                                        ) {
+                                            DropdownMenuSectionHeader(stringResource(Res.string.sort))
                                             DropdownMenuItem(
-                                                checked = sortMode == uiState.sortMode,
-                                                onCheckedChange = {
-                                                    if (!it) return@DropdownMenuItem
+                                                selected = !uiState.isDescending,
+                                                onClick = {
+                                                    dashboardViewModel.setSortDescending(false)
                                                     isOverflowMenuExpanded = false
-                                                    dashboardViewModel.setSortMode(sortMode)
                                                 },
-                                                text = { Text(stringResource(text)) },
-                                                shapes = MenuDefaults.itemShape(i, sortModes.size),
+                                                text = { Text(stringResource(Res.string.ascending)) },
+                                                shapes = MenuDefaults.itemShape(0, 2),
+                                            )
+                                            DropdownMenuItem(
+                                                selected = uiState.isDescending,
+                                                onClick = {
+                                                    dashboardViewModel.setSortDescending(true)
+                                                    isOverflowMenuExpanded = false
+                                                },
+                                                text = { Text(stringResource(Res.string.descending)) },
+                                                shapes = MenuDefaults.itemShape(1, 2),
                                             )
                                         }
-                                    }
 
-                                    Spacer(modifier = Modifier.height(MenuDefaults.GroupSpacing))
+                                        Spacer(modifier = Modifier.height(MenuDefaults.GroupSpacing))
 
-                                    DropdownMenuGroup(
-                                        shapes = MenuDefaults.groupShape(2, 3),
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = {
-                                                MenuDefaults.Label {
-                                                    Text(
-                                                        text = stringResource(Res.string.connection_status),
-                                                        style = MaterialTheme.typography.titleSmall,
-                                                    )
+                                        DropdownMenuGroup(
+                                            shapes = MenuDefaults.groupShape(1, 3),
+                                        ) {
+                                            DropdownMenuSectionHeader(stringResource(Res.string.sort_mode))
+                                            val sortModes = TrafficSortMode.values
+                                            for ((i, sortMode) in sortModes.withIndex()) {
+                                                val text = when (sortMode) {
+                                                    TrafficSortMode.START -> Res.string.by_time
+                                                    TrafficSortMode.INBOUND -> Res.string.by_inbound
+                                                    TrafficSortMode.UPLOAD -> Res.string.by_upload
+                                                    TrafficSortMode.DOWNLOAD -> Res.string.by_download
+                                                    TrafficSortMode.SRC -> Res.string.by_source
+                                                    TrafficSortMode.DST -> Res.string.by_destination
+                                                    TrafficSortMode.MATCHED_RULE -> Res.string.by_matched_rule
+                                                    else -> throw IllegalArgumentException("$sortMode impossible")
                                                 }
-                                            },
-                                            onClick = {},
-                                        )
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(Res.string.connection_status_active)) },
-                                            onClick = {
-                                                dashboardViewModel.setQueryActivate(!uiState.showActivate)
-                                            },
-                                            leadingIcon = {
-                                                Checkbox(
-                                                    checked = uiState.showActivate,
-                                                    onCheckedChange = null,
+                                                DropdownMenuItem(
+                                                    checked = sortMode == uiState.sortMode,
+                                                    onCheckedChange = {
+                                                        if (!it) return@DropdownMenuItem
+                                                        isOverflowMenuExpanded = false
+                                                        dashboardViewModel.setSortMode(sortMode)
+                                                    },
+                                                    text = { Text(stringResource(text)) },
+                                                    shapes = MenuDefaults.itemShape(i, sortModes.size),
                                                 )
-                                            },
-                                        )
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(Res.string.connection_status_closed)) },
-                                            onClick = {
-                                                dashboardViewModel.setQueryClosed(!uiState.showClosed)
-                                            },
-                                            leadingIcon = {
-                                                Checkbox(
-                                                    checked = uiState.showClosed,
-                                                    onCheckedChange = null,
-                                                )
-                                            },
-                                        )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(MenuDefaults.GroupSpacing))
+
+                                        DropdownMenuGroup(
+                                            shapes = MenuDefaults.groupShape(2, 3),
+                                        ) {
+                                            DropdownMenuSectionHeader(stringResource(Res.string.connection_status))
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(Res.string.connection_status_active)) },
+                                                onClick = {
+                                                    dashboardViewModel.setQueryActivate(!uiState.showActivate)
+                                                },
+                                                leadingIcon = {
+                                                    Checkbox(
+                                                        checked = uiState.showActivate,
+                                                        onCheckedChange = null,
+                                                    )
+                                                },
+                                            )
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(Res.string.connection_status_closed)) },
+                                                onClick = {
+                                                    dashboardViewModel.setQueryClosed(!uiState.showClosed)
+                                                },
+                                                leadingIcon = {
+                                                    Checkbox(
+                                                        checked = uiState.showClosed,
+                                                        onCheckedChange = null,
+                                                    )
+                                                },
+                                            )
+                                        }
                                     }
                                 }
                             }
                         },
-                        colors = appBarWithSearchColors,
                         scrollBehavior = scrollBehavior,
                         windowInsets = windowInsets.only(WindowInsetsSides.Horizontal),
                     )
                 } else {
-                    TopAppBar(
-                        title = { Text(stringResource(Res.string.menu_dashboard)) },
+                    CapsuleTopBar(
                         navigationIcon = {
                             PlatformMenuIcon(
                                 imageVector = vectorResource(Res.drawable.menu),
@@ -361,11 +319,9 @@ fun DashboardScreen(
                                 onClick = onDrawerClick,
                             )
                         },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent,
-                            scrolledContainerColor = Color.Transparent,
-                        ),
+                        title = { Text(stringResource(Res.string.menu_dashboard)) },
                         windowInsets = windowInsets.only(WindowInsetsSides.Horizontal),
+                        scrollBehavior = scrollBehavior,
                     )
                 }
 
@@ -401,6 +357,7 @@ fun DashboardScreen(
                         },
                     )
                 }
+            }
             }
         },
         snackbarHost = { SnackbarHost(snackbarState) },

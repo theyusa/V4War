@@ -16,7 +16,6 @@ import androidx.compose.material3.AppBarRow
 import tr.theyusa.v4war.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import tr.theyusa.v4war.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import tr.theyusa.v4war.compose.BackHandler
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
+import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.LinkOrContentTextField
 import tr.theyusa.v4war.compose.MoreOverIcon
 import tr.theyusa.v4war.compose.PreferenceType
@@ -141,7 +141,7 @@ internal fun AssetEditScreen(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
+            CapsuleTopBar(
                 title = { Text(stringResource(Res.string.assets_settings)) },
                 navigationIcon = {
                     SimpleIconButton(

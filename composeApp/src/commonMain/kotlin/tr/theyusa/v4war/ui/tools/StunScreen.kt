@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import tr.theyusa.v4war.compose.SimpleIconButton
-import tr.theyusa.v4war.compose.SimpleTopAppBar
+import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.paddingExceptBottom
 import tr.theyusa.v4war.repository.FakeRepository
 import tr.theyusa.v4war.repository.resolveRepository
@@ -66,7 +66,7 @@ internal fun StunScreen(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            SimpleTopAppBar(
+            CapsuleTopBar(
                 title = { Text(stringResource(Res.string.stun_test)) },
                 navigationIcon = {
                     SimpleIconButton(

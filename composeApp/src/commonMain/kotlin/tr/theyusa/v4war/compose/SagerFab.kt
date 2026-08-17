@@ -36,6 +36,7 @@ fun SagerFab(
     val connector = rememberVpnServiceLauncher {
         showSnackbar(StringOrRes.Res(Res.string.vpn_permission_denied))
     }
+    val hapticClick = rememberHapticClick()
 
     AnimatedVisibility(
         visible = visible,
@@ -45,6 +46,7 @@ fun SagerFab(
     ) {
         FloatingActionButton(
             onClick = {
+                hapticClick()
                 if (state.canStop) {
                     resolveRepository().stopService()
                 } else {

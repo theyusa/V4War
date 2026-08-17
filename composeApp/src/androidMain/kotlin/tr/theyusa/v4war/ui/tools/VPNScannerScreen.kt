@@ -30,7 +30,6 @@ import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import tr.theyusa.v4war.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,6 +46,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
+import tr.theyusa.v4war.compose.CapsuleActionButton
+import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.SimpleIconButton
 import tr.theyusa.v4war.compose.paddingExceptBottom
 import tr.theyusa.v4war.ktx.blankAsNull
@@ -88,7 +89,7 @@ internal actual fun VPNScannerScreen(
             Box(
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                TopAppBar(
+                CapsuleTopBar(
                     title = { Text(stringResource(Res.string.scan_vpn_app)) },
                     navigationIcon = {
                         SimpleIconButton(
@@ -98,12 +99,14 @@ internal actual fun VPNScannerScreen(
                         )
                     },
                     actions = {
-                        SimpleIconButton(
-                            imageVector = vectorResource(Res.drawable.cached),
-                            contentDescription = stringResource(Res.string.refresh),
-                            enabled = !isScanning,
-                            onClick = { viewModel.scanVPN(context.packageManager) },
-                        )
+                        CapsuleActionButton {
+                            SimpleIconButton(
+                                imageVector = vectorResource(Res.drawable.cached),
+                                contentDescription = stringResource(Res.string.refresh),
+                                enabled = !isScanning,
+                                onClick = { viewModel.scanVPN(context.packageManager) },
+                            )
+                        }
                     },
                     windowInsets = windowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
                     scrollBehavior = scrollBehavior,

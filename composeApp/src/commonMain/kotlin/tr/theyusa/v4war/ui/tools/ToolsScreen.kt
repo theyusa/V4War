@@ -21,7 +21,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import tr.theyusa.v4war.compose.material3.Tab
 import tr.theyusa.v4war.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tr.theyusa.v4war.Key
 import tr.theyusa.v4war.bg.BackendState
 import tr.theyusa.v4war.bg.ServiceState
+import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.SagerFab
 import tr.theyusa.v4war.compose.StatsBar
@@ -97,7 +97,7 @@ fun ToolsScreen(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
+            CapsuleTopBar(
                 title = { Text(stringResource(Res.string.menu_tools)) },
                 navigationIcon = {
                     PlatformMenuIcon(
@@ -106,10 +106,6 @@ fun ToolsScreen(
                         onClick = onDrawerClick,
                     )
                 },
-                colors = topAppBarColors.copy(
-                    containerColor = appBarContainerColor,
-                    scrolledContainerColor = appBarContainerColor,
-                ),
                 windowInsets = windowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
                 scrollBehavior = scrollBehavior,
             )

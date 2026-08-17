@@ -47,7 +47,7 @@ import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.SagerFab
-import tr.theyusa.v4war.compose.SimpleTopAppBar
+import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.StatsBar
 import tr.theyusa.v4war.compose.material3.Icon
 import tr.theyusa.v4war.compose.material3.Text
@@ -112,7 +112,7 @@ fun PluginScreen(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            SimpleTopAppBar(
+            CapsuleTopBar(
                 title = { Text(stringResource(Res.string.plugin)) },
                 navigationIcon = {
                     PlatformMenuIcon(

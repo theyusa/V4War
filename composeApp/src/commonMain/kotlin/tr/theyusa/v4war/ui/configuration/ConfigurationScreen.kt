@@ -5,7 +5,6 @@ package tr.theyusa.v4war.ui.configuration
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -23,7 +22,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AppBarWithSearch
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -33,18 +31,18 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SearchBarValue
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -82,6 +80,9 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.compose.viewModel
 import tr.theyusa.v4war.bg.BackendState
 import tr.theyusa.v4war.bg.ServiceState
+import tr.theyusa.v4war.compose.CapsuleActionButton
+import tr.theyusa.v4war.compose.CapsuleSearchInputField
+import tr.theyusa.v4war.compose.CapsuleSearchTopBar
 import tr.theyusa.v4war.compose.ExpandableDropdownMenuItem
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.QRCodeDialog
@@ -98,9 +99,11 @@ import tr.theyusa.v4war.compose.material3.Tab
 import tr.theyusa.v4war.compose.material3.Text
 import tr.theyusa.v4war.compose.paddingExceptBottom
 import tr.theyusa.v4war.database.DataStore
+import tr.theyusa.v4war.database.ProfileManager
 import tr.theyusa.v4war.database.ProxyEntity
 import tr.theyusa.v4war.database.displayType
 import tr.theyusa.v4war.keyevent.isTypeControlPressed
+import tr.theyusa.v4war.ktx.onIoDispatcher
 import tr.theyusa.v4war.ktx.runOnIoDispatcher
 import tr.theyusa.v4war.ktx.showAndDismissOld
 import tr.theyusa.v4war.repository.resolveRepository
@@ -270,9 +273,8 @@ fun ConfigurationScreen(
     var showOrderMenu by remember { mutableStateOf(false) }
     val searchBarState = rememberSearchBarState()
     val searchTextFieldState = vm.searchTextFieldState
-    val appBarWithSearchColors = SearchBarDefaults.appBarWithSearchColors()
     val searchInputField: @Composable () -> Unit = {
-        SearchBarDefaults.InputField(
+        CapsuleSearchInputField(
             textFieldState = searchTextFieldState,
             searchBarState = searchBarState,
             onSearch = { focusManager.clearFocus() },
@@ -294,7 +296,6 @@ fun ConfigurationScreen(
             } else {
                 null
             },
-            colors = appBarWithSearchColors.searchBarColors.inputFieldColors,
         )
     }
 
@@ -305,26 +306,13 @@ fun ConfigurationScreen(
             0
         }
 
-    val scrollBehavior = SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()
-    val overlappedFraction by remember(scrollBehavior) {
-        derivedStateOf {
-            if (scrollBehavior.scrollOffsetLimit != 0f) {
-                1 -
-                        ((scrollBehavior.scrollOffsetLimit - scrollBehavior.contentOffset)
-                            .fastCoerceIn(
-                                scrollBehavior.scrollOffsetLimit,
-                                0f,
-                            ) / scrollBehavior.scrollOffsetLimit)
-            } else {
-                0f
-            }
-        }
-    }
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val topAppBarColors = TopAppBarDefaults.topAppBarColors()
     val appBarContainerColor by animateColorAsState(
         targetValue = lerp(
-            appBarWithSearchColors.appBarContainerColor,
-            appBarWithSearchColors.scrolledAppBarContainerColor,
-            overlappedFraction.fastCoerceIn(0f, 1f),
+            topAppBarColors.containerColor,
+            topAppBarColors.scrolledContainerColor,
+            scrollBehavior.state.overlappedFraction.fastCoerceIn(0f, 1f),
         ),
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "appBarContainerColor",
@@ -371,6 +359,23 @@ fun ConfigurationScreen(
         }
     }
 
+    fun scrollToSelectedProxyAcrossGroups() {
+        focusManager.clearFocus()
+        scope.launch {
+            searchBarState.animateToCollapsed()
+            val proxyId = DataStore.selectedProxy
+            val groupId = onIoDispatcher {
+                ProfileManager.getProfile(proxyId)?.groupId
+            } ?: return@launch
+            val page = uiState.groups.indexOfFirst { it.id == groupId }
+            if (page < 0) return@launch
+            if (pagerState.currentPage != page) {
+                pagerState.animateScrollToPage(page)
+            }
+            vm.scrollToProxy(groupId, proxyId, fallbackToTop = true)
+        }
+    }
+
     Scaffold(
         modifier = modifier
             .fillMaxSize()
@@ -386,208 +391,215 @@ fun ConfigurationScreen(
             }
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            Column(
-                modifier = Modifier
-                    .background(appBarContainerColor)
-                    .windowInsetsPadding(windowInsets.only(WindowInsetsSides.Top)),
-            ) {
-                AppBarWithSearch(
-                    state = searchBarState,
-                    inputField = searchInputField,
-                    navigationIcon = {
-                        PlatformMenuIcon(
-                            imageVector = vectorResource(Res.drawable.menu),
-                            contentDescription = stringResource(Res.string.menu),
-                            onClick = onNavigationClick,
-                        )
-                    },
-                    actions = {
-                        Box {
-                            SimpleIconButton(
-                                imageVector = vectorResource(Res.drawable.note_add),
-                                contentDescription = stringResource(Res.string.add_profile),
-                                onClick = { showAddMenu = true },
-                            )
-                            DropdownMenu(
-                                expanded = showAddMenu,
-                                onDismissRequest = { showAddMenu = false },
-                                containerColor = MenuDefaults.groupStandardContainerColor,
-                                shape = MenuDefaults.standaloneGroupShape,
-                            ) {
-                                ScannerDropdownMenuItem()
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.action_import)) },
-                                    onClick = {
-                                        showAddMenu = false
-                                        importFromClipboard()
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.action_import_file)) },
-                                    onClick = {
-                                        showAddMenu = false
-                                        importFile.launch()
-                                    },
-                                )
-                                ExpandableDropdownMenuItem(
-                                    text = stringResource(Res.string.add_profile_methods_manual_settings),
-                                    onClick = {
-                                        showAddMenu = false
-                                        showAddManualMenu = true
-                                    },
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = showAddManualMenu,
-                                onDismissRequest = { showAddManualMenu = false },
-                                containerColor = MenuDefaults.groupStandardContainerColor,
-                                shape = MenuDefaults.standaloneGroupShape,
-                            ) {
-                                manualProfileEntries.forEach { (title, type) ->
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(title)) },
-                                        onClick = {
-                                            openProfileEditor(type)
-                                        },
-                                    )
-                                }
-                            }
-                        }
-
-                        Box {
-                            SimpleIconButton(
-                                imageVector = vectorResource(Res.drawable.more_vert),
-                                contentDescription = stringResource(Res.string.more),
-                                onClick = { showOverflowMenu = true },
-                            )
-                            DropdownMenu(
-                                expanded = showOverflowMenu,
-                                onDismissRequest = { showOverflowMenu = false },
-                                containerColor = MenuDefaults.groupStandardContainerColor,
-                                shape = MenuDefaults.standaloneGroupShape,
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.clear_traffic_statistics)) },
-                                    onClick = {
-                                        showOverflowMenu = false
-                                        vm.clearTrafficStatistics(DataStore.selectedGroup)
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.remove_duplicate)) },
-                                    onClick = {
-                                        showOverflowMenu = false
-                                        vm.removeDuplicate(DataStore.selectedGroup)
-                                    },
-                                )
-                                ExpandableDropdownMenuItem(stringResource(Res.string.connection_test)) {
-                                    showOverflowMenu = false
-                                    showConnectionTestMenu = true
-                                }
-                                ExpandableDropdownMenuItem(stringResource(Res.string.sort_mode)) {
-                                    showOverflowMenu = false
-                                    showOrderMenu = true
-                                }
-                            }
-                            DropdownMenu(
-                                expanded = showConnectionTestMenu,
-                                onDismissRequest = { showConnectionTestMenu = false },
-                                containerColor = MenuDefaults.groupStandardContainerColor,
-                                shape = MenuDefaults.standaloneGroupShape,
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.connection_test_icmp_ping)) },
-                                    onClick = {
-                                        showConnectionTestMenu = false
-                                        vm.doTest(
-                                            DataStore.currentGroupId(),
-                                            TestType.ICMPPing,
-                                        )
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.connection_test_tcp_ping)) },
-                                    onClick = {
-                                        showConnectionTestMenu = false
-                                        vm.doTest(
-                                            DataStore.currentGroupId(),
-                                            TestType.TCPPing,
-                                        )
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.connection_test_url_test)) },
-                                    onClick = {
-                                        showConnectionTestMenu = false
-                                        vm.doTest(
-                                            DataStore.currentGroupId(),
-                                            TestType.URLTest,
-                                        )
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.connection_test_delete_unavailable)) },
-                                    onClick = {
-                                        showConnectionTestMenu = false
-                                        vm.deleteUnavailable(DataStore.selectedGroup)
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.connection_test_clear_results)) },
-                                    onClick = {
-                                        showConnectionTestMenu = false
-                                        vm.clearResults(DataStore.selectedGroup)
-                                    },
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = showOrderMenu,
-                                onDismissRequest = { showOrderMenu = false },
-                                containerColor = MenuDefaults.groupStandardContainerColor,
-                                shape = MenuDefaults.standaloneGroupShape,
-                            ) {
-                                val orders = listOf(
-                                    stringResource(Res.string.group_order_origin),
-                                    stringResource(Res.string.group_order_by_name),
-                                    stringResource(Res.string.group_order_by_delay),
-                                )
-                                orders.forEachIndexed { i, option ->
-                                    DropdownMenuItem(
-                                        selected = currentOrder == i,
-                                        onClick = {
-                                            showOrderMenu = false
-                                            vm.updateOrder(DataStore.selectedGroup, i)
-                                        },
-                                        text = { Text(text = option) },
-                                        shapes = MenuDefaults.itemShape(i, orders.size),
-                                    )
-                                }
-                            }
-                        }
-                    },
-                    colors = appBarWithSearchColors,
-                    scrollBehavior = scrollBehavior,
-                    windowInsets = windowInsets.only(WindowInsetsSides.Horizontal),
-                )
-
-                if (hasGroups && uiState.groups.size > 1) PrimaryScrollableTabRow(
-                    selectedTabIndex = pagerState.currentPage.fastCoerceIn(
-                        0,
-                        uiState.groups.size - 1,
-                    ),
-                    edgePadding = 0.dp,
-                    containerColor = appBarContainerColor,
+            Surface(color = appBarContainerColor) {
+                Column(
+                    modifier = Modifier
+                        .windowInsetsPadding(windowInsets.only(WindowInsetsSides.Top)),
                 ) {
-                    uiState.groups.forEachIndexed { index, group ->
-                        Tab(
-                            text = { Text(group.displayName()) },
-                            selected = pagerState.currentPage == index,
-                            onClick = {
-                                scope.launch {
-                                    pagerState.animateScrollToPage(index)
+                    CapsuleSearchTopBar(
+                        inputField = searchInputField,
+                        navigationIcon = {
+                            PlatformMenuIcon(
+                                imageVector = vectorResource(Res.drawable.menu),
+                                contentDescription = stringResource(Res.string.menu),
+                                onClick = onNavigationClick,
+                            )
+                        },
+                        onSearchPillClick = {
+                            scope.launch { searchBarState.animateToExpanded() }
+                        },
+                        onSearchPillLongPress = ::scrollToSelectedProxyAcrossGroups,
+                        actions = {
+                            CapsuleActionButton {
+                                Box {
+                                    SimpleIconButton(
+                                        imageVector = vectorResource(Res.drawable.note_add),
+                                        contentDescription = stringResource(Res.string.add_profile),
+                                        onClick = { showAddMenu = true },
+                                    )
+                                    DropdownMenu(
+                                        expanded = showAddMenu,
+                                        onDismissRequest = { showAddMenu = false },
+                                        containerColor = MenuDefaults.groupStandardContainerColor,
+                                        shape = MenuDefaults.standaloneGroupShape,
+                                    ) {
+                                        ScannerDropdownMenuItem()
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(Res.string.action_import)) },
+                                            onClick = {
+                                                showAddMenu = false
+                                                importFromClipboard()
+                                            },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(Res.string.action_import_file)) },
+                                            onClick = {
+                                                showAddMenu = false
+                                                importFile.launch()
+                                            },
+                                        )
+                                        ExpandableDropdownMenuItem(
+                                            text = stringResource(Res.string.add_profile_methods_manual_settings),
+                                            onClick = {
+                                                showAddMenu = false
+                                                showAddManualMenu = true
+                                            },
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = showAddManualMenu,
+                                        onDismissRequest = { showAddManualMenu = false },
+                                        containerColor = MenuDefaults.groupStandardContainerColor,
+                                        shape = MenuDefaults.standaloneGroupShape,
+                                    ) {
+                                        manualProfileEntries.forEach { (title, type) ->
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(title)) },
+                                                onClick = {
+                                                    openProfileEditor(type)
+                                                },
+                                            )
+                                        }
+                                    }
                                 }
-                            },
-                        )
+                            }
+
+                            CapsuleActionButton {
+                                Box {
+                                    SimpleIconButton(
+                                        imageVector = vectorResource(Res.drawable.more_vert),
+                                        contentDescription = stringResource(Res.string.more),
+                                        onClick = { showOverflowMenu = true },
+                                    )
+                                    DropdownMenu(
+                                        expanded = showOverflowMenu,
+                                        onDismissRequest = { showOverflowMenu = false },
+                                        containerColor = MenuDefaults.groupStandardContainerColor,
+                                        shape = MenuDefaults.standaloneGroupShape,
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(Res.string.clear_traffic_statistics)) },
+                                            onClick = {
+                                                showOverflowMenu = false
+                                                vm.clearTrafficStatistics(DataStore.selectedGroup)
+                                            },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(Res.string.remove_duplicate)) },
+                                            onClick = {
+                                                showOverflowMenu = false
+                                                vm.removeDuplicate(DataStore.selectedGroup)
+                                            },
+                                        )
+                                        ExpandableDropdownMenuItem(stringResource(Res.string.connection_test)) {
+                                            showOverflowMenu = false
+                                            showConnectionTestMenu = true
+                                        }
+                                        ExpandableDropdownMenuItem(stringResource(Res.string.sort_mode)) {
+                                            showOverflowMenu = false
+                                            showOrderMenu = true
+                                        }
+                                    }
+                                    DropdownMenu(
+                                        expanded = showConnectionTestMenu,
+                                        onDismissRequest = { showConnectionTestMenu = false },
+                                        containerColor = MenuDefaults.groupStandardContainerColor,
+                                        shape = MenuDefaults.standaloneGroupShape,
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(Res.string.connection_test_icmp_ping)) },
+                                            onClick = {
+                                                showConnectionTestMenu = false
+                                                vm.doTest(
+                                                    DataStore.currentGroupId(),
+                                                    TestType.ICMPPing,
+                                                )
+                                            },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(Res.string.connection_test_tcp_ping)) },
+                                            onClick = {
+                                                showConnectionTestMenu = false
+                                                vm.doTest(
+                                                    DataStore.currentGroupId(),
+                                                    TestType.TCPPing,
+                                                )
+                                            },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(Res.string.connection_test_url_test)) },
+                                            onClick = {
+                                                showConnectionTestMenu = false
+                                                vm.doTest(
+                                                    DataStore.currentGroupId(),
+                                                    TestType.URLTest,
+                                                )
+                                            },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(Res.string.connection_test_delete_unavailable)) },
+                                            onClick = {
+                                                showConnectionTestMenu = false
+                                                vm.deleteUnavailable(DataStore.selectedGroup)
+                                            },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(Res.string.connection_test_clear_results)) },
+                                            onClick = {
+                                                showConnectionTestMenu = false
+                                                vm.clearResults(DataStore.selectedGroup)
+                                            },
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = showOrderMenu,
+                                        onDismissRequest = { showOrderMenu = false },
+                                        containerColor = MenuDefaults.groupStandardContainerColor,
+                                        shape = MenuDefaults.standaloneGroupShape,
+                                    ) {
+                                        val orders = listOf(
+                                            stringResource(Res.string.group_order_origin),
+                                            stringResource(Res.string.group_order_by_name),
+                                            stringResource(Res.string.group_order_by_delay),
+                                        )
+                                        orders.forEachIndexed { i, option ->
+                                            DropdownMenuItem(
+                                                selected = currentOrder == i,
+                                                onClick = {
+                                                    showOrderMenu = false
+                                                    vm.updateOrder(DataStore.selectedGroup, i)
+                                                },
+                                                text = { Text(text = option) },
+                                                shapes = MenuDefaults.itemShape(i, orders.size),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        windowInsets = windowInsets.only(WindowInsetsSides.Horizontal),
+                        scrollBehavior = scrollBehavior,
+                    )
+
+                    if (hasGroups && uiState.groups.size > 1) PrimaryScrollableTabRow(
+                        selectedTabIndex = pagerState.currentPage.fastCoerceIn(
+                            0,
+                            uiState.groups.size - 1,
+                        ),
+                        edgePadding = 0.dp,
+                        containerColor = appBarContainerColor,
+                    ) {
+                        uiState.groups.forEachIndexed { index, group ->
+                            Tab(
+                                text = { Text(group.displayName()) },
+                                selected = pagerState.currentPage == index,
+                                onClick = {
+                                    scope.launch {
+                                        pagerState.animateScrollToPage(index)
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
             }

@@ -30,7 +30,6 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import tr.theyusa.v4war.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -60,6 +59,8 @@ import tr.theyusa.v4war.GroupType
 import tr.theyusa.v4war.bg.BackendState
 import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
+import tr.theyusa.v4war.compose.CapsuleActionButton
+import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.QRCodeDialog
 import tr.theyusa.v4war.compose.SagerFab
@@ -220,7 +221,7 @@ fun GroupScreen(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
+            CapsuleTopBar(
                 title = { Text(stringResource(Res.string.menu_group)) },
                 navigationIcon = {
                     PlatformMenuIcon(
@@ -230,18 +231,22 @@ fun GroupScreen(
                     )
                 },
                 actions = {
-                    SimpleIconButton(
-                        imageVector = vectorResource(Res.drawable.update),
-                        contentDescription = stringResource(Res.string.update_all_subscription),
-                        onClick = { showUpdateAll = true },
-                    )
-                    SimpleIconButton(
-                        imageVector = vectorResource(Res.drawable.playlist_add),
-                        contentDescription = stringResource(Res.string.group_create),
-                        onClick = {
-                            openGroupSettings(0L)
-                        },
-                    )
+                    CapsuleActionButton {
+                        SimpleIconButton(
+                            imageVector = vectorResource(Res.drawable.update),
+                            contentDescription = stringResource(Res.string.update_all_subscription),
+                            onClick = { showUpdateAll = true },
+                        )
+                    }
+                    CapsuleActionButton {
+                        SimpleIconButton(
+                            imageVector = vectorResource(Res.drawable.playlist_add),
+                            contentDescription = stringResource(Res.string.group_create),
+                            onClick = {
+                                openGroupSettings(0L)
+                            },
+                        )
+                    }
                 },
                 windowInsets = windowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
                 scrollBehavior = scrollBehavior,

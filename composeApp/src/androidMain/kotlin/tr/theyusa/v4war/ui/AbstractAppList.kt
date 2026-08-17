@@ -45,7 +45,6 @@ import androidx.compose.material3.SnackbarHostState
 import tr.theyusa.v4war.compose.material3.Surface
 import tr.theyusa.v4war.compose.material3.Switch
 import tr.theyusa.v4war.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.Composable
@@ -60,13 +59,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
+import tr.theyusa.v4war.compose.CapsuleActionButton
+import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.SimpleIconButton
 import tr.theyusa.v4war.compose.extraBottomPadding
 import tr.theyusa.v4war.compose.paddingExceptBottom
@@ -379,7 +379,7 @@ internal fun AppListScaffold(
                 color = containerColor,
             ) {
                 Column {
-                    TopAppBar(
+                    CapsuleTopBar(
                         title = title,
                         navigationIcon = {
                             SimpleIconButton(
@@ -389,55 +389,57 @@ internal fun AppListScaffold(
                             )
                         },
                         actions = {
-                            SimpleIconButton(
-                                imageVector = vectorResource(Res.drawable.copy_all),
-                                contentDescription = stringResource(Res.string.action_copy),
-                                onClick = {
-                                    val toExport = viewModel.export()
-                                    scope.launch {
-                                        clipboard.setPlainText(toExport)
-                                        snackbarHostState.showSnackbar(
-                                            message = resolveRepository().getString(Res.string.copy_success),
-                                            actionLabel = resolveRepository().getString(Res.string.ok),
-                                            duration = SnackbarDuration.Short,
-                                        )
-                                    }
-                                },
-                            )
-                            SimpleIconButton(
-                                imageVector = vectorResource(Res.drawable.content_paste),
-                                contentDescription = stringResource(Res.string.action_import),
-                                onClick = {
-                                    scope.launch {
-                                        val text = clipboard.getClipEntry()?.clipData
-                                            ?.getItemAt(0)?.text
-                                            ?.toString()
-                                        viewModel.import(text)
-                                    }
-                                },
-                            )
-                            Box {
+                            CapsuleActionButton {
                                 SimpleIconButton(
-                                    imageVector = vectorResource(Res.drawable.more_vert),
-                                    contentDescription = stringResource(Res.string.more),
-                                    onClick = { showMoreActions = true },
+                                    imageVector = vectorResource(Res.drawable.copy_all),
+                                    contentDescription = stringResource(Res.string.action_copy),
+                                    onClick = {
+                                        val toExport = viewModel.export()
+                                        scope.launch {
+                                            clipboard.setPlainText(toExport)
+                                            snackbarHostState.showSnackbar(
+                                                message = resolveRepository().getString(Res.string.copy_success),
+                                                actionLabel = resolveRepository().getString(Res.string.ok),
+                                                duration = SnackbarDuration.Short,
+                                            )
+                                        }
+                                    },
                                 )
+                            }
+                            CapsuleActionButton {
+                                SimpleIconButton(
+                                    imageVector = vectorResource(Res.drawable.content_paste),
+                                    contentDescription = stringResource(Res.string.action_import),
+                                    onClick = {
+                                        scope.launch {
+                                            val text = clipboard.getClipEntry()?.clipData
+                                                ?.getItemAt(0)?.text
+                                                ?.toString()
+                                            viewModel.import(text)
+                                        }
+                                    },
+                                )
+                            }
+                            CapsuleActionButton {
+                                Box {
+                                    SimpleIconButton(
+                                        imageVector = vectorResource(Res.drawable.more_vert),
+                                        contentDescription = stringResource(Res.string.more),
+                                        onClick = { showMoreActions = true },
+                                    )
 
-                                DropdownMenu(
-                                    expanded = showMoreActions,
-                                    onDismissRequest = { showMoreActions = false },
-                                    shape = MenuDefaults.standaloneGroupShape,
-                                    containerColor = MenuDefaults.groupStandardContainerColor,
-                                ) {
-                                    dropdownMenuItems { showMoreActions = false }
+                                    DropdownMenu(
+                                        expanded = showMoreActions,
+                                        onDismissRequest = { showMoreActions = false },
+                                        shape = MenuDefaults.standaloneGroupShape,
+                                        containerColor = MenuDefaults.groupStandardContainerColor,
+                                    ) {
+                                        dropdownMenuItems { showMoreActions = false }
+                                    }
                                 }
                             }
                         },
                         windowInsets = windowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent,
-                            scrolledContainerColor = Color.Transparent,
-                        ),
                         scrollBehavior = scrollBehavior,
                     )
 

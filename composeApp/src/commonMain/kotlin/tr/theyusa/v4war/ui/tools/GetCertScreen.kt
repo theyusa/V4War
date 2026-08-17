@@ -61,7 +61,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import tr.theyusa.v4war.compose.DropDownSelector
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.SimpleIconButton
-import tr.theyusa.v4war.compose.SimpleTopAppBar
+import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.TooltipIconButton
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.paddingExceptBottom
@@ -94,7 +94,7 @@ internal fun GetCertScreen(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            SimpleTopAppBar(
+            CapsuleTopBar(
                 title = { Text(stringResource(Res.string.get_cert)) },
                 navigationIcon = {
                     SimpleIconButton(

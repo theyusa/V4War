@@ -27,7 +27,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Scaffold
 import tr.theyusa.v4war.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +48,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import tr.theyusa.v4war.compose.AutoCompleteTextField
 import tr.theyusa.v4war.compose.BackHandler
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
+import tr.theyusa.v4war.compose.CapsuleActionButton
+import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.DurationTextField
 import tr.theyusa.v4war.compose.MapPreference
 import tr.theyusa.v4war.compose.MultilineTextField
@@ -212,7 +213,7 @@ internal fun RouteSettingsScreen(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
+            CapsuleTopBar(
                 title = { Text(stringResource(Res.string.menu_route)) },
                 navigationIcon = {
                     SimpleIconButton(
@@ -227,87 +228,93 @@ internal fun RouteSettingsScreen(
                     }
                 },
                 actions = {
-                    SimpleIconButton(
-                        imageVector = vectorResource(Res.drawable.delete),
-                        contentDescription = stringResource(Res.string.delete),
-                        onClick = { showDeleteConfirm = true },
-                    )
-                    SimpleIconButton(
-                        imageVector = vectorResource(Res.drawable.done),
-                        contentDescription = stringResource(Res.string.apply),
-                    ) {
-                        if (uiState.needsRules()) {
-                            showEmptyRouteAlert = true
-                        } else if (isDirty) {
-                            saveAndExit()
-                        } else {
-                            showNoChangesAlert = true
+                    CapsuleActionButton {
+                        SimpleIconButton(
+                            imageVector = vectorResource(Res.drawable.delete),
+                            contentDescription = stringResource(Res.string.delete),
+                            onClick = { showDeleteConfirm = true },
+                        )
+                    }
+                    CapsuleActionButton {
+                        SimpleIconButton(
+                            imageVector = vectorResource(Res.drawable.done),
+                            contentDescription = stringResource(Res.string.apply),
+                        ) {
+                            if (uiState.needsRules()) {
+                                showEmptyRouteAlert = true
+                            } else if (isDirty) {
+                                saveAndExit()
+                            } else {
+                                showNoChangesAlert = true
+                            }
                         }
                     }
 
-                    Box {
-                        SimpleIconButton(
-                            imageVector = vectorResource(Res.drawable.more_vert),
-                            contentDescription = stringResource(Res.string.more),
-                        ) {
-                            showExpandedMenu = true
-                        }
-                        DropdownMenuPopup(
-                            expanded = showExpandedMenu,
-                            onDismissRequest = { showExpandedMenu = false },
-                        ) {
-                            DropdownMenuGroup(
-                                shapes = MenuDefaults.groupShape(0, 2),
+                    CapsuleActionButton {
+                        Box {
+                            SimpleIconButton(
+                                imageVector = vectorResource(Res.drawable.more_vert),
+                                contentDescription = stringResource(Res.string.more),
                             ) {
-                                DropdownMenuItem(
-                                    text = {
-                                        MenuDefaults.Label {
-                                            Text(
-                                                text = stringResource(Res.string.custom_config),
-                                                style = MaterialTheme.typography.titleSmall,
-                                            )
-                                        }
-                                    },
-                                    onClick = {},
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.menu_route)) },
-                                    onClick = {
-                                        showExpandedMenu = false
-                                        onOpenConfigEditor(
-                                            NavRoutes.ConfigEditor(
-                                                initialText = uiState.customConfig,
-                                                resultKey = configEditResultKey,
-                                            ),
-                                        )
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.cag_dns)) },
-                                    onClick = {
-                                        showExpandedMenu = false
-                                        onOpenConfigEditor(
-                                            NavRoutes.ConfigEditor(
-                                                initialText = uiState.customDnsConfig,
-                                                resultKey = dnsConfigEditResultKey,
-                                            ),
-                                        )
-                                    },
-                                )
+                                showExpandedMenu = true
                             }
-                            Spacer(Modifier.height(MenuDefaults.GroupSpacing))
-                            DropdownMenuGroup(
-                                shapes = MenuDefaults.groupShape(1, 2),
+                            DropdownMenuPopup(
+                                expanded = showExpandedMenu,
+                                onDismissRequest = { showExpandedMenu = false },
                             ) {
-                                DropdownMenuItem(
-                                    selected = uiState.dnsOnly,
-                                    onClick = {
-                                        showExpandedMenu = false
-                                        viewModel.setDnsOnly(!uiState.dnsOnly)
-                                    },
-                                    text = { Text(stringResource(Res.string.dns_only)) },
-                                    shapes = MenuDefaults.itemShape(0, 1),
-                                )
+                                DropdownMenuGroup(
+                                    shapes = MenuDefaults.groupShape(0, 2),
+                                ) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            MenuDefaults.Label {
+                                                Text(
+                                                    text = stringResource(Res.string.custom_config),
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                )
+                                            }
+                                        },
+                                        onClick = {},
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(Res.string.menu_route)) },
+                                        onClick = {
+                                            showExpandedMenu = false
+                                            onOpenConfigEditor(
+                                                NavRoutes.ConfigEditor(
+                                                    initialText = uiState.customConfig,
+                                                    resultKey = configEditResultKey,
+                                                ),
+                                            )
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(Res.string.cag_dns)) },
+                                        onClick = {
+                                            showExpandedMenu = false
+                                            onOpenConfigEditor(
+                                                NavRoutes.ConfigEditor(
+                                                    initialText = uiState.customDnsConfig,
+                                                    resultKey = dnsConfigEditResultKey,
+                                                ),
+                                            )
+                                        },
+                                    )
+                                }
+                                Spacer(Modifier.height(MenuDefaults.GroupSpacing))
+                                DropdownMenuGroup(
+                                    shapes = MenuDefaults.groupShape(1, 2),
+                                ) {
+                                    DropdownMenuItem(
+                                        selected = uiState.dnsOnly,
+                                        onClick = {
+                                            showExpandedMenu = false
+                                            viewModel.setDnsOnly(!uiState.dnsOnly)
+                                        },
+                                        text = { Text(stringResource(Res.string.dns_only)) },
+                                        shapes = MenuDefaults.itemShape(0, 1),
+                                    )
+                                }
                             }
                         }
                     }

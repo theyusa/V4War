@@ -48,7 +48,7 @@ import tr.theyusa.v4war.bg.BackendState
 import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.SagerFab
-import tr.theyusa.v4war.compose.SimpleTopAppBar
+import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.StatsBar
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.rememberScrollHideState
@@ -95,7 +95,7 @@ fun AboutScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            SimpleTopAppBar(
+            CapsuleTopBar(
                 title = { Text(stringResource(Res.string.menu_about)) },
                 navigationIcon = {
                     PlatformMenuIcon(

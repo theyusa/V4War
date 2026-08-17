@@ -1,7 +1,5 @@
 package tr.theyusa.v4war.compose
 
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.IconButtonDefaults
 import tr.theyusa.v4war.compose.material3.Icon
@@ -12,19 +10,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.tooling.preview.Preview
-import tr.theyusa.v4war.resources.Res
-import tr.theyusa.v4war.resources.app_name
-import tr.theyusa.v4war.resources.menu
-import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.resources.vectorResource
 
 @Composable
 fun SimpleIconButton(
@@ -53,6 +42,7 @@ fun TooltipIconButton(
     colors: IconButtonColors = IconButtonDefaults.iconButtonColors(),
 ) {
     val tooltipState = rememberTooltipState()
+    val hapticClick = rememberHapticClick()
 
     TooltipBox(
         positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
@@ -64,7 +54,10 @@ fun TooltipIconButton(
         state = tooltipState,
     ) {
         IconButton(
-            onClick = onClick,
+            onClick = {
+                hapticClick()
+                onClick()
+            },
             modifier = modifier,
             enabled = enabled,
             colors = colors,
@@ -83,37 +76,4 @@ fun TextButton(text: String, onClick: () -> Unit) {
     TextButton(onClick = onClick) {
         Text(text)
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SimpleTopAppBar(
-    title: @Composable () -> Unit,
-    navigationIcon: @Composable () -> Unit,
-    windowInsets: WindowInsets = TopAppBarDefaults.windowInsets,
-    scrollBehavior: TopAppBarScrollBehavior? = null,
-) {
-    TopAppBar(
-        title = title,
-        navigationIcon = navigationIcon,
-        windowInsets = windowInsets,
-        scrollBehavior = scrollBehavior,
-    )
-}
-
-@Preview
-@Composable
-private fun PreviewSimpleTopAppBar() {
-    SimpleTopAppBar(
-        title = {
-            stringResource(Res.string.app_name)
-        },
-        navigationIcon = {
-            SimpleIconButton(
-                imageVector = vectorResource(Res.drawable.menu),
-                contentDescription = stringResource(Res.string.menu),
-                onClick = { },
-            )
-        },
-    )
 }
