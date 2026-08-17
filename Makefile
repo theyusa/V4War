@@ -6,7 +6,7 @@ CLIP = sh -c 'if [ -n "$$WAYLAND_DISPLAY" ]; then exec wl-copy; \
               else echo "No display detected (WAYLAND_DISPLAY/DISPLAY missing)"; exit 1; fi'
 HOST_OS = $(shell uname -s)
 
-.PHONY: update libcore_android apk apk_debug assets lint_go test_go generate_option
+.PHONY: libcore_android apk apk_debug assets lint_go test_go generate_option
 
 build: libcore_android assets apk
 
@@ -21,9 +21,6 @@ apk_debug:
 
 assets:
 	./run lib assets
-
-update:
-	./run lib update
 
 lint_go:
 	cd libcore/ && GOOS=android golangci-lint run ./...

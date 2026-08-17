@@ -8,12 +8,10 @@ run:
   build-tags:
     - "with_gvisor"
     - "with_quic"
-    - "with_wireguard"
     - "with_utls"
     - "with_clash_api"
-    - "with_ech"
     - "with_xhttp"
-  go: "1.20"
+  go: "1.26"
 
 issues:
   exclude-dirs:

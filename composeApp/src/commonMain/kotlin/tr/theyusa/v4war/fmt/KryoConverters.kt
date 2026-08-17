@@ -23,7 +23,6 @@ import tr.theyusa.v4war.fmt.trusttunnel.TrustTunnelBean
 import tr.theyusa.v4war.fmt.tuic.TuicBean
 import tr.theyusa.v4war.fmt.v2ray.VLESSBean
 import tr.theyusa.v4war.fmt.v2ray.VMessBean
-import tr.theyusa.v4war.fmt.wireguard.WireGuardBean
 import tr.theyusa.v4war.ktx.Logs
 import tr.theyusa.v4war.ktx.byteBuffer
 import java.io.ByteArrayInputStream
@@ -138,13 +137,6 @@ class KryoConverters {
         fun sshDeserialize(bytes: ByteArray?): SSHBean? {
             if (bytes?.isNotEmpty() != true) return null
             return deserialize(SSHBean(), bytes)
-        }
-
-        @TypeConverter
-        @JvmStatic
-        fun wireguardDeserialize(bytes: ByteArray?): WireGuardBean? {
-            if (bytes?.isNotEmpty() != true) return null
-            return deserialize(WireGuardBean(), bytes)
         }
 
         @TypeConverter

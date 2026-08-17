@@ -231,7 +231,6 @@
     <string name="action_hysteria" translatable="false">Hysteria</string>
     <string name="action_hysteria2" translatable="false">Hysteria 2</string>
     <string name="action_ssh" translatable="false">SSH</string>
-    <string name="action_wireguard" translatable="false">WireGuard</string>
     <string name="action_tuic" translatable="false">TUIC</string>
     <string name="action_juicity" translatable="false">Juicity</string>
     <string name="action_direct" translatable="false">Direct</string>
@@ -459,9 +458,6 @@
     <string name="menu_tools">Tools</string>
     <string name="menu_log">Logs</string>
     <string name="clear_logcat">Clear Logcat</string>
-    <string name="wireguard_local_address">Local Address</string>
-    <string name="wireguard_public_key">Peer Public Key</string>
-    <string name="wireguard_psk">Peer Pre-Shared Key</string>
     <string name="tun_implementation">TUN Implementation</string>
     <string name="resolve_destination">Resolve Destination</string>
     <string name="resolve_destination_summary">If the destination address is a domain, it is then passed out based on the IPv6 strategy (conflicts with FakeDNS)</string>

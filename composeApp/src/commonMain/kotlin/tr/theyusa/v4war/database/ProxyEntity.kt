@@ -45,7 +45,6 @@ import tr.theyusa.v4war.fmt.tuic.toUri
 import tr.theyusa.v4war.fmt.v2ray.VLESSBean
 import tr.theyusa.v4war.fmt.v2ray.VMessBean
 import tr.theyusa.v4war.fmt.v2ray.toUriVMessVLESSTrojan
-import tr.theyusa.v4war.fmt.wireguard.WireGuardBean
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.runBlocking
@@ -75,7 +74,6 @@ data class ProxyEntity(
     var tuicBean: TuicBean? = null,
     var juicityBean: JuicityBean? = null,
     var sshBean: SSHBean? = null,
-    var wgBean: WireGuardBean? = null,
     var shadowTLSBean: ShadowTLSBean? = null,
     var directBean: DirectBean? = null,
     var anyTLSBean: AnyTLSBean? = null,
@@ -98,7 +96,6 @@ data class ProxyEntity(
         const val TYPE_NAIVE = 9
         const val TYPE_HYSTERIA = 15
         const val TYPE_SSH = 17
-        const val TYPE_WG = 18
         const val TYPE_SHADOWTLS = 19
         const val TYPE_TUIC = 20
         const val TYPE_MIERU = 21
