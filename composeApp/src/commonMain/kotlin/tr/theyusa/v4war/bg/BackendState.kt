@@ -37,6 +37,8 @@ data class ServiceStatus(
     val state: ServiceState = ServiceState.Idle,
     val profileName: String? = null,
     val speed: SpeedStats? = null,
+    // Epoch millis when the current connect session started (0 when not started).
+    val startedAt: Long = 0L,
 )
 
 data class Alert(
@@ -64,7 +66,13 @@ object BackendState {
     val speedUpdates: SharedFlow<SpeedStats?> = _speedUpdates.asSharedFlow()
 
     fun updateState(state: ServiceState, profileName: String? = null) {
-        _status.value = ServiceStatus(state, profileName, _status.value.speed)
+        val previous = _status.value
+        val startedAt = when {
+            !state.started -> 0L
+            previous.startedAt > 0L -> previous.startedAt
+            else -> System.currentTimeMillis()
+        }
+        _status.value = ServiceStatus(state, profileName, previous.speed, startedAt)
     }
 
     fun updateSpeed(speed: SpeedStats?) {

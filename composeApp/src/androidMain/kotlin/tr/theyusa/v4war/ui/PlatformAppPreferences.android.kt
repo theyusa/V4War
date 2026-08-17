@@ -8,7 +8,6 @@ import tr.theyusa.v4war.Key
 import tr.theyusa.v4war.compose.IconMaskColors
 import tr.theyusa.v4war.compose.MaskedIcon
 import tr.theyusa.v4war.compose.PreferenceDivider
-import tr.theyusa.v4war.compose.material3.Icon
 import tr.theyusa.v4war.compose.material3.Text
 import tr.theyusa.v4war.database.DataStore
 import tr.theyusa.v4war.resources.Res
@@ -25,7 +24,6 @@ import me.zhanghai.compose.preference.SwitchPreference
 import me.zhanghai.compose.preference.TwoTargetSwitchPreference
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.resources.vectorResource
 
 internal actual fun LazyListScope.appSelectPreference(
     packages: Set<String>,
@@ -34,7 +32,12 @@ internal actual fun LazyListScope.appSelectPreference(
     item("apps") {
         Preference(
             title = { Text(stringResource(Res.string.apps)) },
-            icon = { Icon(vectorResource(Res.drawable.legend_toggle), null) },
+            icon = {
+                MaskedIcon(
+                    resource = Res.drawable.legend_toggle,
+                    color = IconMaskColors.IconLavender,
+                )
+            },
             summary = {
                 val text = when (val size = packages.size) {
                     0 -> stringResource(Res.string.not_set)

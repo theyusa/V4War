@@ -69,7 +69,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import tr.theyusa.v4war.bg.BackendState
-import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.CapsuleActionButton
 import tr.theyusa.v4war.compose.CapsuleSearchInputField
@@ -77,7 +76,6 @@ import tr.theyusa.v4war.compose.CapsuleSearchTopBar
 import tr.theyusa.v4war.compose.SagerFab
 import tr.theyusa.v4war.compose.SheetActionRow
 import tr.theyusa.v4war.compose.SimpleIconButton
-import tr.theyusa.v4war.compose.StatsBar
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.ansiEscape
 import tr.theyusa.v4war.compose.setPlainText
@@ -270,7 +268,7 @@ fun LogcatScreen(
                     button = {
                         SagerFab(
                             visible = true,
-                            state = serviceStatus.state,
+                            status = serviceStatus,
                             showSnackbar = { message ->
                                 scope.launch {
                                     snackbarState.showSnackbar(
@@ -280,6 +278,7 @@ fun LogcatScreen(
                                     )
                                 }
                             },
+                            mainViewModel = mainViewModel,
                         )
                     },
                 ) {
@@ -301,15 +300,7 @@ fun LogcatScreen(
                 }
             }
         },
-        bottomBar = {
-            if (serviceStatus.state == ServiceState.Connected) {
-                StatsBar(
-                    status = serviceStatus,
-                    visible = true,
-                    mainViewModel = mainViewModel,
-                )
-            }
-        },
+
     ) { innerPadding ->
         val density = LocalDensity.current
         val layoutDirection = LocalLayoutDirection.current

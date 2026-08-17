@@ -105,6 +105,8 @@
     <string name="speed_detail">Proxy： %1$s↑ %2$s↓\nDirect： %3$s↑ %4$s↓</string>
     <string name="speed">%1$s/s</string>
     <string name="connection_test_testing">Testing…</string>
+    <string name="connected_time">Connected · %1$s</string>
+    <string name="connected_time_latency">Connected · %1$s · %2$dms</string>
     <string name="connection_test_available">Success: HTTPS handshake took %1$dms</string>
     <string name="connection_test_available_http">Success: HTTP handshake took %1$dms</string>
     <string name="connection_test_error">Failed: %1$s</string>

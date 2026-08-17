@@ -38,11 +38,9 @@ import org.jetbrains.compose.resources.vectorResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tr.theyusa.v4war.Key
 import tr.theyusa.v4war.bg.BackendState
-import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.SagerFab
-import tr.theyusa.v4war.compose.StatsBar
 import tr.theyusa.v4war.compose.paddingExceptBottom
 import tr.theyusa.v4war.database.DataStore
 import tr.theyusa.v4war.ui.MainViewModel
@@ -114,7 +112,7 @@ fun ToolsScreen(
         floatingActionButton = {
             SagerFab(
                 visible = bottomVisible,
-                state = serviceStatus.state,
+                status = serviceStatus,
                 showSnackbar = { message ->
                     scope.launch {
                         snackbarState.showSnackbar(
@@ -124,16 +122,8 @@ fun ToolsScreen(
                         )
                     }
                 },
+                mainViewModel = mainViewModel,
             )
-        },
-        bottomBar = {
-            if (serviceStatus.state == ServiceState.Connected) {
-                StatsBar(
-                    status = serviceStatus,
-                    visible = bottomVisible,
-                    mainViewModel = mainViewModel,
-                )
-            }
         },
     ) { innerPadding ->
         Column(

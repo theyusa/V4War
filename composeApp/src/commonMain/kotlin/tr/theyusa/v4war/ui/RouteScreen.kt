@@ -63,7 +63,6 @@ import com.ernestoyaquello.dragdropswipelazycolumn.DraggableSwipeableItemScope
 import com.ernestoyaquello.dragdropswipelazycolumn.config.DraggableSwipeableItemColors
 import com.ernestoyaquello.dragdropswipelazycolumn.state.rememberDragDropSwipeLazyColumnState
 import tr.theyusa.v4war.bg.BackendState
-import tr.theyusa.v4war.bg.ServiceState
 import androidx.compose.foundation.layout.fillMaxHeight
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.CapsuleActionButton
@@ -72,7 +71,6 @@ import tr.theyusa.v4war.compose.PlatformMenuIcon
 import io.github.oikvpqya.compose.fastscroller.rememberScrollbarAdapter
 import tr.theyusa.v4war.compose.SagerFab
 import tr.theyusa.v4war.compose.SimpleIconButton
-import tr.theyusa.v4war.compose.StatsBar
 import tr.theyusa.v4war.compose.TextButton
 import tr.theyusa.v4war.compose.navigationBarsAlwaysInsets
 import tr.theyusa.v4war.compose.paddingExceptBottom
@@ -253,7 +251,7 @@ fun RouteScreen(
         floatingActionButton = {
             SagerFab(
                 visible = scrollHideVisible,
-                state = serviceStatus.state,
+                status = serviceStatus,
                 showSnackbar = { message ->
                     scope.launch {
                         snackbarState.showSnackbar(
@@ -263,16 +261,8 @@ fun RouteScreen(
                         )
                     }
                 },
+                mainViewModel = mainViewModel,
             )
-        },
-        bottomBar = {
-            if (serviceStatus.state == ServiceState.Connected) {
-                StatsBar(
-                    status = serviceStatus,
-                    visible = scrollHideVisible,
-                    mainViewModel = mainViewModel,
-                )
-            }
         },
     ) { innerPadding ->
         Row(

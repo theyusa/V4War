@@ -12,13 +12,10 @@ import tr.theyusa.v4war.bg.DeepLinkDispatcher
 import tr.theyusa.v4war.database.DataStore
 import tr.theyusa.v4war.database.GroupManager
 import tr.theyusa.v4war.database.ProxyGroup
-import tr.theyusa.v4war.database.SagerDatabase
 import tr.theyusa.v4war.fmt.AbstractBean
-import tr.theyusa.v4war.fmt.buildConfig
 import tr.theyusa.v4war.group.RawUpdater
 import tr.theyusa.v4war.ktx.Logs
 import tr.theyusa.v4war.ktx.SubscriptionFoundException
-import tr.theyusa.v4war.ktx.onIoDispatcher
 import tr.theyusa.v4war.ktx.readableMessage
 import tr.theyusa.v4war.ktx.runOnIoDispatcher
 import tr.theyusa.v4war.repository.Repository
@@ -151,19 +148,15 @@ class MainViewModel(
             return@launch
         }
         try {
-            var result = -1
-            val selectedTag = runCatching {
-                val profile = onIoDispatcher {
-                    SagerDatabase.proxyDao.getById(DataStore.selectedProxy)
-                } ?: return@runCatching ""
-                buildConfig(profile, forTest = true).mainTag
-            }.getOrElse {
-                Logs.w(it)
-                ""
-            }
-            urlTestClient.withClient { client ->
-                result = client.urlTest(
-                    selectedTag,
+            // Probe the default outbound of the running instance (empty tag), the
+            // same approach Husi uses. Resolving a tag from the currently selected
+            // profile is fragile: when the selected profile differs from the one
+            // actually running in the service, the tag is not found and the test
+            // fails even though the connection is fine. The default outbound
+            // always exists, and its latency covers DNS + TCP + handshake + HTTP.
+            val result = urlTestClient.withClient { client ->
+                client.urlTest(
+                    "",
                     DataStore.connectionTestURL,
                     DataStore.connectionTestTimeout,
                 )

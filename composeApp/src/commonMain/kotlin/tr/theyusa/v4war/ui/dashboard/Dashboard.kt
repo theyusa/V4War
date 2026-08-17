@@ -70,7 +70,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import tr.theyusa.v4war.TrafficSortMode
 import tr.theyusa.v4war.bg.BackendState
-import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.CapsuleActionButton
 import tr.theyusa.v4war.compose.CapsuleSearchInputField
 import tr.theyusa.v4war.compose.CapsuleSearchTopBar
@@ -79,7 +78,6 @@ import tr.theyusa.v4war.compose.DropdownMenuSectionHeader
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.SagerFab
 import tr.theyusa.v4war.compose.SimpleIconButton
-import tr.theyusa.v4war.compose.StatsBar
 import tr.theyusa.v4war.compose.TextButton
 import tr.theyusa.v4war.compose.paddingExceptBottom
 import tr.theyusa.v4war.ui.MainViewModel
@@ -371,7 +369,7 @@ fun DashboardScreen(
             ) {
                 SagerFab(
                     visible = bottomVisible,
-                    state = serviceStatus.state,
+                    status = serviceStatus,
                     showSnackbar = { message ->
                         scope.launch {
                             snackbarState.showSnackbar(
@@ -381,14 +379,6 @@ fun DashboardScreen(
                             )
                         }
                     },
-                )
-            }
-        },
-        bottomBar = {
-            if (serviceStatus.state == ServiceState.Connected) {
-                StatsBar(
-                    status = serviceStatus,
-                    visible = bottomVisible,
                     mainViewModel = mainViewModel,
                 )
             }

@@ -43,12 +43,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tr.theyusa.v4war.Key
 import tr.theyusa.v4war.bg.BackendState
-import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.SagerFab
 import tr.theyusa.v4war.compose.CapsuleTopBar
-import tr.theyusa.v4war.compose.StatsBar
 import tr.theyusa.v4war.compose.material3.Icon
 import tr.theyusa.v4war.compose.material3.Text
 import tr.theyusa.v4war.compose.rememberScrollHideState
@@ -129,7 +127,7 @@ fun PluginScreen(
         floatingActionButton = {
             SagerFab(
                 visible = scrollHideVisible,
-                state = serviceStatus.state,
+                status = serviceStatus,
                 showSnackbar = { message ->
                     scope.launch {
                         snackbarState.showSnackbar(
@@ -139,16 +137,8 @@ fun PluginScreen(
                         )
                     }
                 },
+                mainViewModel = mainViewModel,
             )
-        },
-        bottomBar = {
-            if (serviceStatus.state == ServiceState.Connected) {
-                StatsBar(
-                    status = serviceStatus,
-                    visible = scrollHideVisible,
-                    mainViewModel = mainViewModel,
-                )
-            }
         },
     ) { innerPadding ->
         ProvidePreferenceLocals {

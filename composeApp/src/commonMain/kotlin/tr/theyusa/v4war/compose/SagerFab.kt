@@ -3,6 +3,8 @@ package tr.theyusa.v4war.compose
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.FloatingActionButton
 import tr.theyusa.v4war.compose.material3.Icon
@@ -14,74 +16,96 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import tr.theyusa.v4war.bg.ServiceState
+import tr.theyusa.v4war.bg.ServiceStatus
 import tr.theyusa.v4war.repository.resolveRepository
 import tr.theyusa.v4war.resources.*
+import tr.theyusa.v4war.ui.MainViewModel
 import tr.theyusa.v4war.ui.StringOrRes
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
+
+private val FabSize = 56.dp
+
+// The gap kept between the FAB and the connection time/status pill below it.
+private val FabStatusSpacing = 8.dp
 
 @Composable
 fun SagerFab(
     modifier: Modifier = Modifier,
     visible: Boolean = true,
-    state: ServiceState,
+    status: ServiceStatus,
     showSnackbar: (message: StringOrRes) -> Unit,
     onSizeChanged: ((Int) -> Unit)? = null,
+    mainViewModel: MainViewModel? = null,
 ) {
     val connector = rememberVpnServiceLauncher {
         showSnackbar(StringOrRes.Res(Res.string.vpn_permission_denied))
     }
     val hapticClick = rememberHapticClick()
 
-    AnimatedVisibility(
-        visible = visible,
-        enter = scaleIn(),
-        exit = scaleOut(),
-        modifier = Modifier.onSizeChanged { onSizeChanged?.invoke(it.height) },
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(FabStatusSpacing),
     ) {
-        FloatingActionButton(
-            onClick = {
-                hapticClick()
-                if (state.canStop) {
-                    resolveRepository().stopService()
-                } else {
-                    connector()
-                }
-            },
-            modifier = modifier.size(56.dp),
+        AnimatedVisibility(
+            visible = visible,
+            enter = scaleIn(),
+            exit = scaleOut(),
+            modifier = Modifier.onSizeChanged { onSizeChanged?.invoke(it.height) },
         ) {
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                    TooltipAnchorPosition.Above,
-                ),
-                tooltip = {
-                    PlainTooltip {
-                        Text(stringResource(Res.string.connect))
+            FloatingActionButton(
+                onClick = {
+                    hapticClick()
+                    if (status.state.canStop) {
+                        resolveRepository().stopService()
+                    } else {
+                        connector()
                     }
                 },
-                state = rememberTooltipState(),
+                modifier = Modifier.size(FabSize),
             ) {
-                if (state == ServiceState.Connected) {
-                    Icon(
-                        rememberVectorPainter(vectorResource(Res.drawable.ic_service_busy)),
-                        stringResource(Res.string.connect),
-                    )
-                } else {
-                    val animKey = when (state) {
-                        ServiceState.Connecting -> 0
-                        ServiceState.Stopping -> 1
-                        else -> 2
-                    }
-                    key(animKey) {
-                        AnimatedServiceIcon(state, stringResource(Res.string.connect))
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                        TooltipAnchorPosition.Above,
+                    ),
+                    tooltip = {
+                        PlainTooltip {
+                            Text(stringResource(Res.string.connect))
+                        }
+                    },
+                    state = rememberTooltipState(),
+                ) {
+                    if (status.state == ServiceState.Connected) {
+                        Icon(
+                            rememberVectorPainter(vectorResource(Res.drawable.ic_service_busy)),
+                            stringResource(Res.string.connect),
+                        )
+                    } else {
+                        val animKey = when (status.state) {
+                            ServiceState.Connecting -> 0
+                            ServiceState.Stopping -> 1
+                            else -> 2
+                        }
+                        key(animKey) {
+                            AnimatedServiceIcon(status.state, stringResource(Res.string.connect))
+                        }
                     }
                 }
             }
         }
+
+        ConnectionTimeBar(
+            state = status.state,
+            startedAt = status.startedAt,
+            visible = visible,
+            mainViewModel = mainViewModel,
+        )
     }
 }

@@ -103,6 +103,8 @@
     <string name="speed_detail">Proxy： %1$s↑ %2$s↓\nDirect： %3$s↑ %4$s↓</string>
     <string name="speed">%1$s/s</string>
     <string name="connection_test_testing">Test ediliyor…</string>
+    <string name="connected_time">Bağlandı · %1$s</string>
+    <string name="connected_time_latency">Bağlandı · %1$s · %2$dms</string>
     <string name="connection_test_available">Başarılı: HTTPS el sıkışması %1$d ms sürdü</string>
     <string name="connection_test_available_http">Başarılı: HTTP el sıkışması %1$d ms sürdü</string>
     <string name="connection_test_error">Başarısız: %1$s</string>

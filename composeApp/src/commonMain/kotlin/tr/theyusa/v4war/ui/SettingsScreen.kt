@@ -35,7 +35,6 @@ import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import tr.theyusa.v4war.bg.BackendState
-import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.BoxedVerticalScrollbar
 import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.IconMaskColors
@@ -44,7 +43,6 @@ import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.PreferenceCategory
 import tr.theyusa.v4war.compose.PreferenceDivider
 import tr.theyusa.v4war.compose.SagerFab
-import tr.theyusa.v4war.compose.StatsBar
 import tr.theyusa.v4war.compose.fadingEdge
 import tr.theyusa.v4war.compose.material3.Text
 import tr.theyusa.v4war.compose.preferenceGroup
@@ -118,7 +116,7 @@ fun SettingsScreen(
         floatingActionButton = {
             SagerFab(
                 visible = scrollHideVisible,
-                state = serviceStatus.state,
+                status = serviceStatus,
                 showSnackbar = { message ->
                     scope.launch {
                         snackbarState.showSnackbar(
@@ -128,16 +126,8 @@ fun SettingsScreen(
                         )
                     }
                 },
+                mainViewModel = mainViewModel,
             )
-        },
-        bottomBar = {
-            if (serviceStatus.state == ServiceState.Connected) {
-                StatsBar(
-                    status = serviceStatus,
-                    visible = scrollHideVisible,
-                    mainViewModel = mainViewModel,
-                )
-            }
         },
     ) { innerPadding ->
         ProvidePreferenceLocals {

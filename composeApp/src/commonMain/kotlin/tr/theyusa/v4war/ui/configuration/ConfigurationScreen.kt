@@ -79,7 +79,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.compose.viewModel
 import tr.theyusa.v4war.bg.BackendState
-import tr.theyusa.v4war.bg.ServiceState
 import tr.theyusa.v4war.compose.CapsuleActionButton
 import tr.theyusa.v4war.compose.CapsuleSearchInputField
 import tr.theyusa.v4war.compose.CapsuleSearchTopBar
@@ -89,7 +88,6 @@ import tr.theyusa.v4war.compose.QRCodeDialog
 import tr.theyusa.v4war.compose.SagerFab
 import tr.theyusa.v4war.compose.ScrollableDialog
 import tr.theyusa.v4war.compose.SimpleIconButton
-import tr.theyusa.v4war.compose.StatsBar
 import tr.theyusa.v4war.compose.TextButton
 import tr.theyusa.v4war.compose.colorForUrlTestDelay
 import tr.theyusa.v4war.compose.getPlainText
@@ -608,7 +606,7 @@ fun ConfigurationScreen(
         floatingActionButton = {
             SagerFab(
                 visible = scrollHideVisible,
-                state = serviceStatus.state,
+                status = serviceStatus,
                 showSnackbar = { message ->
                     scope.launch {
                         snackbarState.showSnackbar(
@@ -618,17 +616,9 @@ fun ConfigurationScreen(
                         )
                     }
                 },
+                mainViewModel = mainViewModel,
                 onSizeChanged = { fabHeight = it },
             )
-        },
-        bottomBar = {
-            if (serviceStatus.state == ServiceState.Connected) {
-                StatsBar(
-                    status = serviceStatus,
-                    visible = scrollHideVisible,
-                    mainViewModel = mainViewModel,
-                )
-            }
         },
     ) { innerPadding ->
         val density = LocalDensity.current
