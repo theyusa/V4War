@@ -11,6 +11,7 @@ import tr.theyusa.v4war.fmt.ConfigBuildResult
 import tr.theyusa.v4war.fmt.TAG_DIRECT
 import tr.theyusa.v4war.ktx.Logs
 import tr.theyusa.v4war.libcore.Service
+import tr.theyusa.v4war.utils.LibcoreClientManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -30,10 +31,14 @@ class TrafficLooper(
 ) {
 
     private var job: Job? = null
+    private val aggregator = OutboundTrafficAggregator()
+    private val clientManager = LibcoreClientManager()
     private val idMap = mutableMapOf<Long, TrafficUpdater.TrafficLooperData>() // id to 1 data
     private val tagMap = mutableMapOf<String, TrafficUpdater.TrafficLooperData>() // tag to 1 data
+    private var connectionSubscriptionJob: Job? = null
 
     suspend fun stop() {
+        connectionSubscriptionJob?.cancel()
         job?.cancel()
         if (!DataStore.profileTrafficStatistics) return
         updateDb()
@@ -109,8 +114,14 @@ class TrafficLooper(
             }
         }
         val trafficUpdater = TrafficUpdater(
-            box = box, items = idMap.values.toList(),
+            aggregator = aggregator, items = idMap.values.toList(),
         )
+
+        // Subscribe to connection events to feed the aggregator
+        connectionSubscriptionJob = clientManager.subscribeConnectionEvents(scope) { event ->
+            aggregator.onEvent(event)
+        }
+
         box.initializeProxySet()
 
         while (scope.isActive) {
