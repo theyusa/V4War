@@ -368,7 +368,7 @@ func (s *Service) handleSubscribeConnections(conn io.ReadWriter, instance *boxIn
 	subscriber := observable.NewSubscriber[trafficcontrol.ConnectionEvent](256)
 	defer subscriber.Close()
 	trafficManager.SetEventHook(subscriber)
-	defer trafficManager.SetEventHook(nil)
+	defer trafficManager.UnsetEventHook(subscriber)
 	subscription, done := subscriber.Subscription()
 	for {
 		select {
