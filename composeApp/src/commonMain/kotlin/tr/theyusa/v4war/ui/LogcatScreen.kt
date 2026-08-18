@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLayoutDirection
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import androidx.compose.ui.unit.dp
@@ -83,7 +84,6 @@ import tr.theyusa.v4war.utils.SendLog
 import io.github.oikvpqya.compose.fastscroller.material3.defaultMaterialScrollbarStyle
 import io.github.oikvpqya.compose.fastscroller.rememberScrollbarAdapter
 import kotlinx.coroutines.launch
-import kotlin.math.max
 import tr.theyusa.v4war.resources.*
 
 @Composable
@@ -301,7 +301,7 @@ fun LogcatScreen(
         },
 
     ) { innerPadding ->
-        val bottomPadding = max(innerPadding.calculateBottomPadding(), SagerFabClearance)
+        val bottomPadding = innerPadding.calculateBottomPadding().coerceAtLeast(SagerFabClearance)
         val contentPadding = PaddingValues(
             start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
             top = innerPadding.calculateTopPadding(),

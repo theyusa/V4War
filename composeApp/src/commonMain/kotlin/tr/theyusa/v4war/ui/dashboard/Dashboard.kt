@@ -81,7 +81,6 @@ import tr.theyusa.v4war.ui.MainViewModel
 import tr.theyusa.v4war.ui.MainViewModelUiEvent
 import tr.theyusa.v4war.ui.getStringOrRes
 import kotlinx.coroutines.launch
-import kotlin.math.max
 import tr.theyusa.v4war.resources.*
 import tr.theyusa.v4war.repository.resolveRepository
 
@@ -380,7 +379,7 @@ fun DashboardScreen(
             )
         },
     ) { innerPadding ->
-        val bottomPadding = max(innerPadding.calculateBottomPadding(), SagerFabClearance)
+        val bottomPadding = innerPadding.calculateBottomPadding().coerceAtLeast(SagerFabClearance)
         Column(
             modifier = Modifier
                 .fillMaxSize()

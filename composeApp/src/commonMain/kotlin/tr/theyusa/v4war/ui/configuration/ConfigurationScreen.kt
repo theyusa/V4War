@@ -634,7 +634,7 @@ fun ConfigurationScreen(
             )
         },
     ) { innerPadding ->
-        val bottomPadding = max(innerPadding.calculateBottomPadding(), SagerFabClearance)
+        val bottomPadding = innerPadding.calculateBottomPadding().coerceAtLeast(SagerFabClearance)
         ConfigurationContent(
             modifier = Modifier
                 .fillMaxSize()
