@@ -1,9 +1,7 @@
 package tr.theyusa.v4war.bg.proto
 
-import tr.theyusa.v4war.libcore.Service
-
 class TrafficUpdater(
-    private val box: Service,
+    private val aggregator: OutboundTrafficAggregator,
     val items: List<TrafficLooperData>, // contain "direct"
 ) {
 
@@ -31,8 +29,8 @@ class TrafficUpdater(
         }
 
         // query
-        val tx = box.queryStats(item.tag, true)
-        val rx = box.queryStats(item.tag, false)
+        val tx = aggregator.drain(item.tag, true)
+        val rx = aggregator.drain(item.tag, false)
 
         // add diff
         item.rx += rx
