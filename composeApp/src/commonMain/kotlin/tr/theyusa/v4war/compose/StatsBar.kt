@@ -4,8 +4,10 @@ import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
@@ -24,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.chrisbanes.haze.HazeState
@@ -46,6 +49,8 @@ import tr.theyusa.v4war.resources.connection_test_available_http
 import tr.theyusa.v4war.resources.connection_test_error
 import tr.theyusa.v4war.resources.connection_test_testing
 import tr.theyusa.v4war.resources.speed
+import tr.theyusa.v4war.resources.status_direct
+import tr.theyusa.v4war.resources.status_proxy
 import tr.theyusa.v4war.resources.vpn_connected
 import tr.theyusa.v4war.ui.MainViewModel
 import tr.theyusa.v4war.ui.URLTestStatus
@@ -53,9 +58,10 @@ import tr.theyusa.v4war.ui.URLTestStatus
 /**
  * Connection stats bar rendered at the bottom of the screen, below the connection
  * FAB. It appears while the service is connected and shows the current proxy
- * upload/download speeds plus the connection status. Tapping it while visible
- * runs the URL test, and the bar reflects the test state (testing / latency /
- * error). It slides out of view when [visible] becomes false (e.g. on scroll).
+ * and direct upload/download speeds plus the connection status. Tapping it while
+ * visible runs the URL test, and the bar reflects the test state (testing /
+ * latency / error). It slides out of view when [visible] becomes false
+ * (e.g. on scroll).
  */
 @Composable
 fun rememberStatsBarHazeState(): HazeState = rememberHazeState()
@@ -142,18 +148,67 @@ fun StatsBar(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = "▲ " + stringResource(
-                        Res.string.speed,
-                        Libcore.formatBytes(status.speed?.txRateProxy ?: 0L),
-                    ),
-                )
-                Text(
-                    text = "▼ " + stringResource(
-                        Res.string.speed,
-                        Libcore.formatBytes(status.speed?.rxRateProxy ?: 0L),
-                    ),
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    // Proxy speed
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.status_proxy),
+                            style = MaterialTheme.typography.titleSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = "▲ " + stringResource(
+                                Res.string.speed,
+                                Libcore.formatBytes(status.speed?.txRateProxy ?: 0L),
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = "▼ " + stringResource(
+                                Res.string.speed,
+                                Libcore.formatBytes(status.speed?.rxRateProxy ?: 0L),
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    // Direct speed
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.status_direct),
+                            style = MaterialTheme.typography.titleSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = "▲ " + stringResource(
+                                Res.string.speed,
+                                Libcore.formatBytes(status.speed?.txRateDirect ?: 0L),
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = "▼ " + stringResource(
+                                Res.string.speed,
+                                Libcore.formatBytes(status.speed?.rxRateDirect ?: 0L),
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(4.dp))
                 val text = when (val status = urlTestStatus) {
                     URLTestStatus.Initial -> stringResource(Res.string.vpn_connected)
