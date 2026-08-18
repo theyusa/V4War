@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.calculateBottomPadding
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -156,7 +155,7 @@ fun StatsBar(
                     ),
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                val text = when (urlTestStatus) {
+                val text = when (val status = urlTestStatus) {
                     URLTestStatus.Initial -> stringResource(Res.string.vpn_connected)
                     URLTestStatus.Testing -> stringResource(Res.string.connection_test_testing)
 
@@ -166,11 +165,11 @@ fun StatsBar(
                         } else {
                             Res.string.connection_test_available_http
                         },
-                        urlTestStatus.legacy,
+                        status.legacy,
                     )
 
                     is URLTestStatus.Exception -> {
-                        val exception = urlTestStatus.exception
+                        val exception = status.exception
                         stringResource(
                             Res.string.connection_test_error,
                             readableUrlTestError(exception)?.let {

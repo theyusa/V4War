@@ -28,6 +28,12 @@ import org.jetbrains.compose.resources.vectorResource
 
 private val FabSize = 56.dp
 
+// The margin Scaffold keeps between the floating action button and the content edge.
+private val FabMargin = 16.dp
+
+/** Bottom content padding that keeps list ends reachable above [SagerFab]. */
+val SagerFabClearance = FabSize + FabMargin
+
 @Composable
 fun SagerFab(
     modifier: Modifier = Modifier,

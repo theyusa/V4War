@@ -87,6 +87,7 @@ import tr.theyusa.v4war.compose.ExpandableDropdownMenuItem
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.QRCodeDialog
 import tr.theyusa.v4war.compose.SagerFab
+import tr.theyusa.v4war.compose.SagerFabClearance
 import tr.theyusa.v4war.compose.StatsBar
 import tr.theyusa.v4war.compose.rememberStatsBarHazeState
 import tr.theyusa.v4war.compose.statsBarHazeSource
@@ -190,7 +191,6 @@ fun ConfigurationScreen(
     val scope = rememberCoroutineScope()
     val snackbarState = remember { SnackbarHostState() }
     var scrollHideVisible by remember { mutableStateOf(true) }
-    var fabHeight by remember { mutableIntStateOf(0) }
     var showAlertDialog by remember { mutableStateOf<MainViewModelUiEvent.AlertDialog?>(null) }
     val clipboard = LocalClipboard.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -631,13 +631,10 @@ fun ConfigurationScreen(
                         )
                     }
                 },
-                onSizeChanged = { fabHeight = it },
             )
         },
     ) { innerPadding ->
-        val density = LocalDensity.current
-        val bottomPadding =
-            innerPadding.calculateBottomPadding() + with(density) { fabHeight.toDp() }
+        val bottomPadding = max(innerPadding.calculateBottomPadding(), SagerFabClearance)
         ConfigurationContent(
             modifier = Modifier
                 .fillMaxSize()

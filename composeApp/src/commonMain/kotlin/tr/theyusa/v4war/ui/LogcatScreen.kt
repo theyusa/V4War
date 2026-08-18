@@ -46,8 +46,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -55,14 +53,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.util.fastCoerceAtLeast
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import androidx.compose.ui.unit.dp
@@ -75,6 +67,7 @@ import tr.theyusa.v4war.compose.CapsuleActionButton
 import tr.theyusa.v4war.compose.CapsuleSearchInputField
 import tr.theyusa.v4war.compose.CapsuleSearchTopBar
 import tr.theyusa.v4war.compose.SagerFab
+import tr.theyusa.v4war.compose.SagerFabClearance
 import tr.theyusa.v4war.compose.StatsBar
 import tr.theyusa.v4war.compose.rememberStatsBarHazeState
 import tr.theyusa.v4war.compose.statsBarHazeSource
@@ -109,8 +102,6 @@ fun LogcatScreen(
     val serviceStatus by BackendState.status.collectAsStateWithLifecycle()
     val statsBarHazeState = rememberStatsBarHazeState()
     var autoScroll by remember { mutableStateOf(true) }
-    var scaffoldHeightPx by remember { mutableIntStateOf(0) }
-    var fabTopPx by remember { mutableFloatStateOf(Float.NaN) }
     val isAtBottom by remember {
         derivedStateOf {
             !listState.canScrollForward
@@ -273,73 +264,54 @@ fun LogcatScreen(
             }
         },
         floatingActionButton = {
-            Box(
-                modifier = Modifier.onGloballyPositioned { coordinates ->
-                    fabTopPx = coordinates.positionInRoot().y
-                },
-            ) {
-                FloatingActionButtonMenu(
-                    expanded = uiState.logs.isNotEmpty(),
-                    button = {
-                        SagerFab(
-                            visible = true,
-                            status = serviceStatus,
-                            showSnackbar = { message ->
-                                scope.launch {
-                                    snackbarState.showSnackbar(
-                                        message = getStringOrRes(message),
-                                        actionLabel = resolveRepository().getString(Res.string.ok),
-                                        duration = SnackbarDuration.Short,
-                                    )
-                                }
-                            },
-                        )
-                    },
-                ) {
-                    FloatingActionButtonMenuItem(
-                        onClick = {
+            FloatingActionButtonMenu(
+                expanded = uiState.logs.isNotEmpty(),
+                button = {
+                    SagerFab(
+                        visible = true,
+                        status = serviceStatus,
+                        showSnackbar = { message ->
                             scope.launch {
-                                listState.animateScrollToItem(uiState.logs.lastIndex)
+                                snackbarState.showSnackbar(
+                                    message = getStringOrRes(message),
+                                    actionLabel = resolveRepository().getString(Res.string.ok),
+                                    duration = SnackbarDuration.Short,
+                                )
                             }
                         },
-                        text = { Text(stringResource(Res.string.scroll_to_bottom)) },
-                        icon = {
-                            Icon(
-                                imageVector = vectorResource(Res.drawable.keyboard_arrow_down),
-                                contentDescription = null,
-                            )
-                        },
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     )
-                }
+                },
+            ) {
+                FloatingActionButtonMenuItem(
+                    onClick = {
+                        scope.launch {
+                            listState.animateScrollToItem(uiState.logs.lastIndex)
+                        }
+                    },
+                    text = { Text(stringResource(Res.string.scroll_to_bottom)) },
+                    icon = {
+                        Icon(
+                            imageVector = vectorResource(Res.drawable.keyboard_arrow_down),
+                            contentDescription = null,
+                        )
+                    },
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                )
             }
         },
 
     ) { innerPadding ->
-        val density = LocalDensity.current
-        val layoutDirection = LocalLayoutDirection.current
-        val innerBottomPx = with(density) { innerPadding.calculateBottomPadding().roundToPx() }
-        val fabReservedBottomPx by remember(scaffoldHeightPx, fabTopPx) {
-            derivedStateOf {
-                if (scaffoldHeightPx <= 0 || fabTopPx.isNaN()) {
-                    0
-                } else {
-                    (scaffoldHeightPx - fabTopPx.toInt()).fastCoerceAtLeast(0)
-                }
-            }
-        }
-        val bottomPaddingPx = max(innerBottomPx, fabReservedBottomPx)
+        val bottomPadding = max(innerPadding.calculateBottomPadding(), SagerFabClearance)
         val contentPadding = PaddingValues(
-            start = innerPadding.calculateStartPadding(layoutDirection),
+            start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
             top = innerPadding.calculateTopPadding(),
-            end = innerPadding.calculateEndPadding(layoutDirection),
-            bottom = with(density) { bottomPaddingPx.toDp() },
+            end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
+            bottom = bottomPadding,
         )
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .statsBarHazeSource(statsBarHazeState)
-                .onSizeChanged { scaffoldHeightPx = it.height },
+                .statsBarHazeSource(statsBarHazeState),
         ) {
             Row(modifier = Modifier.fillMaxSize()) {
                 Box(

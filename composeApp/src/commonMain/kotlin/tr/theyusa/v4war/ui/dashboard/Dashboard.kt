@@ -45,10 +45,7 @@ import tr.theyusa.v4war.compose.material3.Text
 import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -56,13 +53,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastCoerceAtLeast
 import androidx.compose.ui.util.fastCoerceIn
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -78,6 +70,7 @@ import tr.theyusa.v4war.compose.CapsuleTopBar
 import tr.theyusa.v4war.compose.DropdownMenuSectionHeader
 import tr.theyusa.v4war.compose.PlatformMenuIcon
 import tr.theyusa.v4war.compose.SagerFab
+import tr.theyusa.v4war.compose.SagerFabClearance
 import tr.theyusa.v4war.compose.StatsBar
 import tr.theyusa.v4war.compose.rememberStatsBarHazeState
 import tr.theyusa.v4war.compose.statsBarHazeSource
@@ -117,9 +110,6 @@ fun DashboardScreen(
     var isOverflowMenuExpanded by remember { mutableStateOf(false) }
     var showResetAlert by remember { mutableStateOf(false) }
     var bottomVisible by remember { mutableStateOf(true) }
-    var scaffoldHeightPx by remember { mutableIntStateOf(0) }
-    var fabTopPx by remember { mutableFloatStateOf(Float.NaN) }
-    var fabHeightPx by remember { mutableIntStateOf(0) }
     val focusManager = LocalFocusManager.current
     val isConnectionsPage = pagerState.currentPage == PAGE_CONNECTIONS
 
@@ -375,56 +365,26 @@ fun DashboardScreen(
             }
         },
         floatingActionButton = {
-            Box(
-                modifier = Modifier
-                    .onGloballyPositioned { coordinates ->
-                        fabTopPx = coordinates.positionInRoot().y
+            SagerFab(
+                visible = bottomVisible,
+                status = serviceStatus,
+                showSnackbar = { message ->
+                    scope.launch {
+                        snackbarState.showSnackbar(
+                            message = getStringOrRes(message),
+                            actionLabel = resolveRepository().getString(Res.string.ok),
+                            duration = SnackbarDuration.Short,
+                        )
                     }
-                    .onSizeChanged { fabHeightPx = it.height },
-            ) {
-                SagerFab(
-                    visible = bottomVisible,
-                    status = serviceStatus,
-                    showSnackbar = { message ->
-                        scope.launch {
-                            snackbarState.showSnackbar(
-                                message = getStringOrRes(message),
-                                actionLabel = resolveRepository().getString(Res.string.ok),
-                                duration = SnackbarDuration.Short,
-                            )
-                        }
-                    },
-                )
-            }
+                },
+            )
         },
     ) { innerPadding ->
-        val density = LocalDensity.current
-        val innerBottomPx = with(density) { innerPadding.calculateBottomPadding().roundToPx() }
-        val fabReservedBottomPx by remember(scaffoldHeightPx, fabTopPx) {
-            derivedStateOf {
-                if (scaffoldHeightPx <= 0 || fabTopPx.isNaN()) {
-                    0
-                } else {
-                    (scaffoldHeightPx - fabTopPx.toInt()).fastCoerceAtLeast(0)
-                }
-            }
-        }
-        val effectiveFabReservedBottomPx by remember(
-            bottomVisible,
-            fabReservedBottomPx,
-            fabHeightPx,
-        ) {
-            derivedStateOf {
-                if (bottomVisible && fabHeightPx > 0) fabReservedBottomPx else 0
-            }
-        }
-        val bottomPaddingPx = max(innerBottomPx, effectiveFabReservedBottomPx)
-        val bottomPadding = with(density) { bottomPaddingPx.toDp() }
+        val bottomPadding = max(innerPadding.calculateBottomPadding(), SagerFabClearance)
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statsBarHazeSource(statsBarHazeState)
-                .onSizeChanged { scaffoldHeightPx = it.height }
                 .paddingExceptBottom(innerPadding),
         ) {
             HorizontalPager(
