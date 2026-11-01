@@ -96,6 +96,9 @@ object Action {
     /** The notification settings changed: the running notification is redrawn without a restart. */
     const val REFRESH_NOTIFICATION = "io.nekohasekai.sagernet.REFRESH_NOTIFICATION"
 
+    /** The shared Hotspot Gateway status record changed; the payload lives in the uncached settings store. */
+    const val HOTSPOT_GATEWAY_STATUS = "io.nekohasekai.sagernet.HOTSPOT_GATEWAY_STATUS"
+
     /** The auto-selector [EXTRA_PROFILE_ID] goes back to automatic in the running core. */
     const val AUTO_SELECTOR_AUTOMATIC = "io.nekohasekai.sagernet.AUTO_SELECTOR_AUTOMATIC"
     const val EXTRA_PROFILE_ID = "profileId"
