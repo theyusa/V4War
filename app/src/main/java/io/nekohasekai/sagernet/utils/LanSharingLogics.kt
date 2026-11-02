@@ -4,6 +4,7 @@ import io.nekohasekai.sagernet.database.SettingValidators
 import io.nekohasekai.sagernet.outbound.link.LinkBuilder
 import kotlin.math.abs
 import org.json.JSONObject
+import java.security.SecureRandom
 
 /**
  * One row of the LAN Sharing device list; entries are keyed by IP.
@@ -49,6 +50,7 @@ object LanSharingLogics {
     /**
      * Parses the Clash API `/connections` body: per source IP the number of open connections, summed traffic
      * and the most recent destination host. Empty, malformed or connection-less bodies yield an empty list.
+     * Local sources (loopback, the tun range and, at merge time, the phone's own addresses) are never devices.
      */
     fun parseConnections(json: String): List<LanClientDevice> {
         val root = runCatching { JSONObject().put("body", json) }.getOrNull()
@@ -66,7 +68,7 @@ object LanSharingLogics {
             val item = connections.getJSONObject(i)
             val meta = item.optJSONObject("metadata") ?: continue
             val ip = meta.optString("sourceIP")
-            if (ip.isNullOrEmpty()) continue
+            if (ip.isNullOrEmpty() || isLocalSource(ip)) continue
             val entry = acc.getOrPut(ip) { Acc(0, 0L, 0L, null) }
             entry.active += 1
             entry.up += item.optLong("upload", 0L)
@@ -80,19 +82,68 @@ object LanSharingLogics {
     }
 
     /**
+     * Sources that are not LAN clients: loopback (`127.*`, `::1`), the VPN/tun range (`172.19.*`) and,
+     * via [localIps], the phone's own hotspot / Wi-Fi addresses. Pure and unit-testable.
+     */
+    fun isLocalSource(ip: String, localIps: Set<String> = emptySet()): Boolean =
+        ip in localIps || ip.startsWith("127.") || ip == "::1" || ip.startsWith("172.19.")
+
+    /** The /24 default when the OS does not report a hotspot prefix length. */
+    private const val DEFAULT_PREFIX_BITS = 24
+
+    /**
+     * Whether both IPv4 addresses share one subnet masked to [prefixLength] bits. A null or
+     * out-of-range prefix falls back to the /24 default ([DEFAULT_PREFIX_BITS]); `0..32` is the
+     * accepted range. Anything that is not a dotted IPv4 address never shares a subnet. Pure and
+     * unit-testable.
+     */
+    fun isSameSubnet(first: String, second: String, prefixLength: Int?): Boolean {
+        val a = ipv4ToInt(first) ?: return false
+        val b = ipv4ToInt(second) ?: return false
+        if (a == 0L) return false
+        val prefix = (prefixLength ?: DEFAULT_PREFIX_BITS).coerceIn(0, 32)
+        val mask = (-1L shl (32 - prefix)) and 0xFFFF_FFFFL
+        return (a and mask) == (b and mask)
+    }
+
+    /**
+     * Whether both IPv4 addresses share the same /24 prefix. Anything that is not a dotted IPv4 address
+     * never shares a subnet. Pure and unit-testable.
+     */
+    fun isSameSubnet24(first: String, second: String): Boolean =
+        isSameSubnet(first, second, DEFAULT_PREFIX_BITS)
+
+    /** Packs a dotted-quad IPv4 string into a Long (0..255 per octet), or null when it is not an IPv4 address. */
+    private fun ipv4ToInt(ip: String): Long? {
+        val parts = ip.trim().split(".")
+        if (parts.size != 4) return null
+        var value = 0L
+        for (part in parts) {
+            val octet = part.toIntOrNull() ?: return null
+            if (octet !in 0..255) return null
+            value = value shl 8 or octet.toLong()
+        }
+        return value
+    }
+
+    /**
      * Merges a history map (rows the caller kept from earlier polls) with a fresh ARP table and fresh Clash
      * entries, deduplicating by IP with Clash winning over ARP. Rows past [IDLE_MS] are dropped; the rest are
-     * shown with active connections first and the most recently seen afterwards.
+     * shown with active connections first and the most recently seen afterwards. Local sources ([localIps]
+     * plus the static loopback and tun ranges) never become devices.
      */
     fun mergeDevices(
         history: Map<String, LanClientDevice>,
         arpIps: List<String>,
         clash: List<LanClientDevice>,
         hotspotIp: String?,
+        hotspotPrefix: Int?,
+        localIps: Set<String>,
         nowMs: Long,
     ): List<LanClientDevice> {
         val byIp = LinkedHashMap<String, LanClientDevice>()
         arpIps.forEach { ip ->
+            if (isLocalSource(ip, localIps)) return@forEach
             val historyRow = history[ip]
             byIp[ip] = LanClientDevice(
                 ip,
@@ -101,16 +152,22 @@ object LanSharingLogics {
                 0L,
                 lastHost = null,
                 lastSeenMs = historyRow?.lastSeenMs ?: nowMs,
-                isHotspot = ip == hotspotIp,
+                isHotspot = isHotspotClient(ip, hotspotIp, hotspotPrefix),
             )
         }
         history.forEach { (ip, row) ->
-            if (row.lastSeenMs >= nowMs - IDLE_MS) byIp.putIfAbsent(ip, row)
+            if (isLocalSource(ip, localIps)) return@forEach
+            if (row.lastSeenMs >= nowMs - IDLE_MS) {
+                // Idle rows are re-classified against the current hotspot subnet: the hotspot
+                // interface (and the whole subnet) changes between openings.
+                byIp.putIfAbsent(ip, row.copy(isHotspot = isHotspotClient(ip, hotspotIp, hotspotPrefix)))
+            }
         }
         clash.forEach { entry ->
+            if (isLocalSource(entry.ip, localIps)) return@forEach
             byIp[entry.ip] = entry.copy(
                 lastSeenMs = entry.lastSeenMs.takeIf { it > 0L } ?: nowMs,
-                isHotspot = entry.ip == hotspotIp,
+                isHotspot = isHotspotClient(entry.ip, hotspotIp, hotspotPrefix),
             )
         }
         return byIp.values
@@ -118,6 +175,14 @@ object LanSharingLogics {
             .sortedWith(compareByDescending<LanClientDevice> { it.activeConnections > 0 }
                 .thenByDescending { it.lastSeenMs })
     }
+
+    /**
+     * A hotspot client is any IPv4 device that shares the hotspot interface's subnet. The subnet is
+     * the interface's own reported prefix length when the OS gives one; unknown prefixes fall back
+     * to the /24 default inside [isSameSubnet].
+     */
+    private fun isHotspotClient(ip: String, hotspotIp: String?, hotspotPrefix: Int?): Boolean =
+        hotspotIp != null && isSameSubnet(ip, hotspotIp, hotspotPrefix)
 
     data class ClashApiAutoEnable(val newRawPort: Int, val changed: Boolean)
 
@@ -147,6 +212,45 @@ object LanSharingLogics {
     fun statusSummaryKind(enabled: Boolean, snapshot: HotspotGatewaySnapshot): String {
         if (!enabled) return "DISABLED"
         return snapshot.status.name
+    }
+
+    /**
+     * Pure decision: a blank Clash API secret needs a fresh one. An existing, non-blank secret is
+     * never overwritten - it is the key the running core already answers with.
+     */
+    fun clashApiSecretShouldBeGenerated(currentSecret: String): Boolean = currentSecret.isBlank()
+
+    /**
+     * Fresh 64-character lowercase hex (32 SecureRandom bytes) for the core's Clash API secret.
+     * Pure JVM (SecureRandom has no Android dependency), so the size and alphabet are unit-testable.
+     */
+    fun generateClashApiSecret(): String {
+        val bytes = ByteArray(32)
+        SecureRandom().nextBytes(bytes)
+        val sb = StringBuilder(bytes.size * 2)
+        for (b in bytes) {
+            sb.append(HEX_DIGITS[(b.toInt() shr 4) and 0xF]).append(HEX_DIGITS[b.toInt() and 0xF])
+        }
+        return sb.toString()
+    }
+
+    // The same lowercase hex alphabet the config fingerprint uses.
+    private val HEX_DIGITS = "0123456789abcdef"
+
+    /**
+     * The display form of a socks5:// link: the password half of a user:pass@ authority becomes
+     * "••••" so the screen never shows the credential. Copy and share must keep sending the full
+     * link (the [buildSocks5ShareLink] output). Links without credentials, garbage and empty input
+     * are returned unchanged. Pure and unit-testable.
+     */
+    fun maskSocks5Link(link: String): String {
+        val authorityStart = link.indexOf("://")
+        val at = link.lastIndexOf('@')
+        if (authorityStart < 0 || at < authorityStart + 3) return link
+        val auth = link.substring(authorityStart + 3, at)
+        val colon = auth.indexOf(':')
+        if (colon < 0) return link
+        return link.substring(0, authorityStart + 3) + auth.substring(0, colon) + ":\u2022\u2022\u2022\u2022" + link.substring(at)
     }
 
     /**
