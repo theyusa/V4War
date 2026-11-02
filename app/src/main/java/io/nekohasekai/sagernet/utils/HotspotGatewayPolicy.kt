@@ -22,6 +22,19 @@ object HotspotGatewayPolicy {
     /** The floor between two reloads of *different* configs; the trailing check applies the last change after it. */
     const val MIN_RELOAD_MS: Long = 5000L
 
+    // ------------------------------------------------------------------------------- start-time gateway poll
+
+    /**
+     * beforeCoreConnect gives a late Wi-Fi network a bounded chance to appear: a new [getWifiGateway] attempt
+     * every [BEFORE_CORE_CONNECT_POLL_MS], at most [BEFORE_CORE_CONNECT_MAX_WAIT_MS] after the first miss. Only
+     * the start does this - [HotspotGatewayManager.checkAndUpdate] keeps its own loss-grace semantics untouched.
+     */
+    const val BEFORE_CORE_CONNECT_POLL_MS: Long = 150L
+    const val BEFORE_CORE_CONNECT_MAX_WAIT_MS: Long = 1500L
+
+    /** Pure: whether another gateway poll may run after [waitedMs] of waiting since the first miss. */
+    fun shouldPollGateway(waitedMs: Long): Boolean = waitedMs < BEFORE_CORE_CONNECT_MAX_WAIT_MS
+
     /**
      * The wait after [attempt] (1-based), or null when the fourth attempt has just run: there is no fifth one.
      */
@@ -75,6 +88,20 @@ object HotspotGatewayPolicy {
     /** Whether this outcome may reach the managed profile (and the last-seen gateway/port). */
     fun writesProfile(result: Socks5ProbeResult, pairing: HotspotPairing?): Boolean =
         statusFor(result, pairing) == HotspotGatewayStatus.FOUND
+
+    // ------------------------------------------------------------------------------- start failure wording
+
+    /**
+     * What the core start throws for the first probe's non-FOUND status ([HotspotGatewayAuthException]):
+     * a demanded credential is worded as invalid credentials, an unsupported method keeps its own class,
+     * and everything else (no gateway, refused, not SOCKS5, `00`-with-credential, …) stays a plain
+     * NOT_FOUND. Pure and unit-testable.
+     */
+    fun startFailureFor(status: HotspotGatewayStatus): Socks5AuthFailure = when (status) {
+        HotspotGatewayStatus.AUTH_REQUIRED -> Socks5AuthFailure.INVALID_CREDENTIALS
+        HotspotGatewayStatus.UNSUPPORTED_AUTH -> Socks5AuthFailure.UNSUPPORTED_AUTH
+        else -> Socks5AuthFailure.NOT_FOUND
+    }
 
     /**
      * The status to publish when the current gateway is already the stored, verified one and no re-check was asked
@@ -212,10 +239,15 @@ object HotspotGatewayPolicy {
 
     /**
      * The fingerprint of the applied config: gateway, port, username, password and UoT, hashed so the value can be
-     * stored and compared without carrying the credential itself. Never logged with its input.
+     * stored and compared without carrying the credential itself. String fields are length-prefixed
+     * (`"${s.length}:$s|"`) so boundaries are unambiguous: `"a b"+"c"` and `"a"+"b c"` must not collapse into
+     * the same digest as they would with a flat separator. Never logged with its input.
      */
     fun configFingerprint(gateway: String, port: Int, username: String, password: String, uot: Boolean): String =
-        sha256Hex("$gateway $port $username $password $uot")
+        sha256Hex(
+            "${gateway.length}:$gateway|$port|${username.length}:$username|" +
+                "${password.length}:$password|$uot",
+        )
 
     /**
      * Whether a stored SOCKS5 profile already points at the gateway and pairing just verified: server, port, username,

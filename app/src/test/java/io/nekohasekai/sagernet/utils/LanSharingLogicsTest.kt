@@ -2,6 +2,7 @@ package io.nekohasekai.sagernet.utils
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -74,7 +75,15 @@ class LanSharingLogicsTest {
         )
         val arp = listOf("192.168.43.52", "192.168.43.54")
 
-        val merged = LanSharingLogics.mergeDevices(history, arp, clash, hotspotIp = "192.168.43.52", nowMs = now)
+        val merged = LanSharingLogics.mergeDevices(
+            history = history,
+            arpIps = arp,
+            clash = clash,
+            hotspotIp = "192.168.43.52",
+            hotspotPrefix = null,
+            localIps = emptySet(),
+            nowMs = now,
+        )
 
         val ips = merged.map { it.ip }
         // No duplicates; history entry with no fresh signal is retained once; expired entry is gone.
@@ -87,7 +96,149 @@ class LanSharingLogicsTest {
         assertEquals("192.168.43.52", merged[0].ip)
         // isHotspot comes from the hotspot ip alone.
         assertTrue(merged.first { it.ip == "192.168.43.52" }.isHotspot)
-        assertFalse(merged.first { it.ip == "192.168.43.71" }.isHotspot)
+        // Item 3: sharing the hotspot's /24 prefix makes a device a hotspot client, not only the exact interface IP.
+        assertTrue(merged.first { it.ip == "192.168.43.90" }.isHotspot)
+        assertTrue(merged.first { it.ip == "192.168.43.71" }.isHotspot)
+    }
+
+    @Test
+    fun connectionsFilterLocalSources() {
+        val json = """
+            {
+              "connections": [
+                {"metadata": {"sourceIP": "192.168.43.52", "host": "example.com:443"},
+                 "upload": 10, "download": 20},
+                {"metadata": {"sourceIP": "127.0.0.5"}, "upload": 1, "download": 1},
+                {"metadata": {"sourceIP": "::1"}, "upload": 1, "download": 1},
+                {"metadata": {"sourceIP": "172.19.0.9"}, "upload": 1, "download": 1},
+                {"metadata": {"sourceIP": ""}, "upload": 1, "download": 1}
+              ]
+            }
+        """.trimIndent()
+        val devices = LanSharingLogics.parseConnections(json)
+        assertEquals(1, devices.size)
+        assertEquals("192.168.43.52", devices[0].ip)
+    }
+
+    @Test
+    fun sameSubnet24Matches() {
+        assertTrue(LanSharingLogics.isSameSubnet24("192.168.43.1", "192.168.43.222"))
+        assertFalse(LanSharingLogics.isSameSubnet24("192.168.43.1", "192.168.9.222"))
+        assertFalse(LanSharingLogics.isSameSubnet24("::1", "192.168.43.1"))
+        assertFalse(LanSharingLogics.isSameSubnet24("not-an-ip", "192.168.43.1"))
+        assertFalse(LanSharingLogics.isSameSubnet24("0.0.0.0", "192.168.43.1"))
+    }
+
+    @Test
+    fun sameSubnetHonorsPrefixAndFallsBackTo24() {
+        // Same /30 network (10.125.69.72..75) but the /24s agree; with /30 they do not.
+        assertTrue(LanSharingLogics.isSameSubnet("10.125.69.74", "10.125.69.75", 30))
+        assertFalse(LanSharingLogics.isSameSubnet("10.125.69.74", "10.125.69.77", 30))
+        assertTrue(LanSharingLogics.isSameSubnet("10.125.69.74", "10.125.69.77", 24))
+        // A null prefix falls back to the /24 default.
+        assertTrue(LanSharingLogics.isSameSubnet("192.168.43.1", "192.168.43.222", null))
+        assertFalse(LanSharingLogics.isSameSubnet("192.168.43.1", "192.168.9.222", null))
+        // Out-of-range prefixes are clamped; /32 means exact address equality.
+        assertTrue(LanSharingLogics.isSameSubnet("10.0.0.1", "10.0.0.1", 32))
+        assertFalse(LanSharingLogics.isSameSubnet("10.0.0.1", "10.0.0.2", 32))
+        // Garbage and the all-zero address never share a subnet.
+        assertFalse(LanSharingLogics.isSameSubnet("::1", "192.168.43.1", null))
+        assertFalse(LanSharingLogics.isSameSubnet("not-an-ip", "192.168.43.1", null))
+        assertFalse(LanSharingLogics.isSameSubnet("0.0.0.0", "192.168.43.1", null))
+    }
+
+    @Test
+    fun mergeDevicesUsesReportedHotspotPrefixNotTheDefault() {
+        val now = 10_000_000L
+        val clash = listOf(
+            // Same /30 as the hotspot IP 10.125.69.74 (network .72..75).
+            LanClientDevice("10.125.69.75", 1, 1L, 1L, null, now, false),
+            // Same /24 but a different /30: only the /24 default would mark it a hotspot client.
+            LanClientDevice("10.125.69.77", 1, 2L, 2L, null, now, false),
+        )
+        val merged = LanSharingLogics.mergeDevices(
+            history = emptyMap(),
+            arpIps = emptyList(),
+            clash = clash,
+            hotspotIp = "10.125.69.74",
+            hotspotPrefix = 30,
+            localIps = emptySet(),
+            nowMs = now,
+        )
+        assertTrue(merged.first { it.ip == "10.125.69.75" }.isHotspot)
+        assertFalse(merged.first { it.ip == "10.125.69.77" }.isHotspot)
+    }
+
+    @Test
+    fun localSourcesNeverBecomeDevices() {
+        val now = 10_000_000L
+        val arp = listOf("192.168.43.52", "172.19.0.9")
+        val clash = listOf(
+            LanClientDevice("127.0.0.9", 1, 1L, 1L, "x.example.com:80", now, false),
+            LanClientDevice("192.168.43.90", 1, 1L, 2L, null, now, false),
+        )
+        val history = mapOf(
+            // The phone's own hotspot address (detectedHotspotIp) fed back through history.
+            "192.168.43.1" to LanClientDevice(
+                "192.168.43.1", 0, 0L, 0L, null, lastSeenMs = now, isHotspot = false
+            ),
+        )
+        val merged = LanSharingLogics.mergeDevices(
+            history = history,
+            arpIps = arp,
+            clash = clash,
+            hotspotIp = "192.168.43.1",
+            hotspotPrefix = null,
+            localIps = setOf("192.168.43.1", "192.168.43.7"),
+            nowMs = now,
+        )
+        val ips = merged.map { it.ip }
+        assertFalse(ips.contains("172.19.0.9"))
+        assertFalse(ips.contains("127.0.0.9"))
+        assertFalse(ips.contains("192.168.43.1"))
+        assertTrue(ips.contains("192.168.43.52"))
+        assertTrue(ips.contains("192.168.43.90"))
+        // Any device on the hotspot subnet counts as a hotspot client, not just the interface IP itself.
+        assertTrue(merged.first { it.ip == "192.168.43.52" }.isHotspot)
+        assertTrue(merged.first { it.ip == "192.168.43.90" }.isHotspot)
+    }
+
+    @Test
+    fun clashApiSecretGeneratedOnlyWhenBlank() {
+        // Blank: a secret must be generated; an existing one is never overwritten.
+        assertTrue(LanSharingLogics.clashApiSecretShouldBeGenerated(""))
+        assertTrue(LanSharingLogics.clashApiSecretShouldBeGenerated("   "))
+        assertFalse(LanSharingLogics.clashApiSecretShouldBeGenerated("FixedSecret"))
+
+        val first = LanSharingLogics.generateClashApiSecret()
+        val second = LanSharingLogics.generateClashApiSecret()
+        assertEquals(64, first.length)
+        assertTrue(first.matches(Regex("[0-9a-f]{64}")))
+        // Two generations are independent fresh randomness.
+        assertNotEquals(first, second)
+    }
+
+    @Test
+    fun maskSocks5LinkHidesPasswordOnly() {
+        // user:pass@ is masked; the host, port and remark stay readable.
+        assertEquals(
+            "socks5://yusa:\u2022\u2022\u2022\u2022@192.168.43.1:2080#LAN",
+            LanSharingLogics.maskSocks5Link("socks5://yusa:secretPw@192.168.43.1:2080#LAN"),
+        )
+        // A password containing @ is masked to its first user:pass pair boundary (last @ wins: the authority
+        // boundary is the last one before the host).
+        assertEquals(
+            "socks5://yusa:\u2022\u2022\u2022\u2022@192.168.43.1:2080",
+            LanSharingLogics.maskSocks5Link("socks5://yusa:pw@with@it@192.168.43.1:2080"),
+        )
+        // A link without credentials is unchanged.
+        assertEquals(
+            "socks5://192.168.43.1:2080",
+            LanSharingLogics.maskSocks5Link("socks5://192.168.43.1:2080"),
+        )
+        // Garbage in, unchanged out: never throws.
+        assertEquals("", LanSharingLogics.maskSocks5Link(""))
+        assertEquals("socks5://host:2080#x", LanSharingLogics.maskSocks5Link("socks5://host:2080#x"))
     }
 
     @Test

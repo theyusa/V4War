@@ -28,10 +28,12 @@ import io.nekohasekai.sagernet.aidl.ISagerNetService
 import io.nekohasekai.sagernet.bg.BaseService
 import io.nekohasekai.sagernet.bg.SagerConnection
 import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.database.SettingsRegistry
 import io.nekohasekai.sagernet.databinding.ActivityLanSharingBinding
 import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.ktx.needReload
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
+import io.nekohasekai.sagernet.utils.HotspotCandidate
 import io.nekohasekai.sagernet.utils.HotspotGatewayManager
 import io.nekohasekai.sagernet.utils.HotspotGatewaySnapshot
 import io.nekohasekai.sagernet.utils.HotspotGatewayState
@@ -52,11 +54,21 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
     private val connection = SagerConnection(SagerConnection.CONNECTION_ID_MAIN_ACTIVITY_BACKGROUND)
     private val clientHistory = ConcurrentHashMap<String, LanClientDevice>()
     private var statusReceiver: BroadcastReceiver? = null
-    private var suppressSwitchCallback = false
+    private var suppressShareSwitchCallback = false
+    private var suppressGatewaySwitchCallback = false
 
-    private var detectedHotspotIp: String? = null
+    private var detectedHotspotCandidate: HotspotCandidate? = null
     private var detectedWifiIp: String? = null
     private var hotspotActive: Boolean = false
+
+    private var netStateReceiver: BroadcastReceiver? = null
+
+    private companion object {
+        // System broadcasts that must re-detect the hotspot IP: AP state flips and tethering changes
+        // are sent by the OS, therefore the receiver is registered RECEIVER_EXPORTED.
+        const val WIFI_AP_STATE_CHANGED = "android.net.wifi.WIFI_AP_STATE_CHANGED"
+        const val TETHER_STATE_CHANGED = "android.net.conn.TETHER_STATE_CHANGED"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,9 +85,16 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
 
         setupViews()
         registerStatusUpdates()
+        registerSystemNetReceivers()
         connection.connect(this, this)
         refreshNetworkAndState()
         startPollingLoop()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Coming back to the screen re-detects: the hotspot subnet changes between openings.
+        refreshNetworkAndState()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -122,27 +141,50 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
     }
 
     private fun setupViews() {
-        setSwitchCheckedSilent(DataStore.hotspotGatewayEnabled)
+        setShareSwitchCheckedSilent(DataStore.allowLanAccess)
+        setGatewaySwitchCheckedSilent(DataStore.hotspotGatewayEnabled)
 
+        // Share (X): the switch is the real LAN inbound switch; turning it writes inbound_address to the LAN
+        // or loopback address and reloads the service (InboundSettingsFragment allowLan listener,
+        // NetworkSettingsScreens.kt:74-78).
         binding.switchLanSharing.setOnCheckedChangeListener { _, isChecked ->
-            if (suppressSwitchCallback) return@setOnCheckedChangeListener
+            if (suppressShareSwitchCallback) return@setOnCheckedChangeListener
+            DataStore.inboundAddress =
+                if (isChecked) SettingsRegistry.LAN_ADDRESS else SettingsRegistry.LOOPBACK_ADDRESS
+            if (isChecked) {
+                // The live client list reads the Clash API /connections endpoint: make sure the API
+                // is switched on, and that a secret exists. An existing secret is never overwritten;
+                // the needReload() below makes the core pick up both values.
+                if (LanSharingLogics.clashApiSecretShouldBeGenerated(DataStore.coreBoxClashApiSecret)) {
+                    DataStore.coreBoxClashApiSecret = LanSharingLogics.generateClashApiSecret()
+                }
+                val clashDecision = LanSharingLogics.ensureClashApiEnabledPort(DataStore.coreBoxClashApi)
+                if (clashDecision.changed) {
+                    DataStore.coreBoxClashApi = clashDecision.newRawPort
+                }
+            }
+            needReload()
+            refreshNetworkAndState()
+        }
+
+        binding.rowSwitchLanSharing.setOnClickListener {
+            binding.switchLanSharing.isChecked = !DataStore.allowLanAccess
+        }
+
+        // Auto connect (Y): the Wi-Fi gateway auto-connect feature, its dialog and its status.
+        binding.switchGatewaySwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (suppressGatewaySwitchCallback) return@setOnCheckedChangeListener
             if (isChecked) {
                 showHotspotDialog { saved ->
                     if (saved) {
-                        val clashDecision = LanSharingLogics.ensureClashApiEnabledPort(DataStore.coreBoxClashApi)
-                        if (clashDecision.changed) {
-                            DataStore.coreBoxClashApi = clashDecision.newRawPort
-                            needReload()
-                        }
                         DataStore.hotspotGatewayEnabled = true
-                        setSwitchCheckedSilent(true)
+                        setGatewaySwitchCheckedSilent(true)
                         HotspotGatewayManager.onSwitchChanged(true)
-                        refreshNetworkAndState()
                     } else {
                         DataStore.hotspotGatewayEnabled = false
-                        setSwitchCheckedSilent(false)
-                        refreshNetworkAndState()
+                        setGatewaySwitchCheckedSilent(false)
                     }
+                    refreshNetworkAndState()
                 }
             } else {
                 DataStore.hotspotGatewayEnabled = false
@@ -151,28 +193,39 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             }
         }
 
-        binding.rowSwitchLanSharing.setOnClickListener {
-            if (DataStore.hotspotGatewayEnabled) {
-                binding.switchLanSharing.isChecked = false
-            } else {
-                binding.switchLanSharing.isChecked = true
+        binding.rowGatewaySwitch.setOnClickListener {
+            binding.switchGatewaySwitch.isChecked = !DataStore.hotspotGatewayEnabled
+        }
+        binding.btnGatewayConfigure.setOnClickListener {
+            showHotspotDialog { saved ->
+                if (saved) {
+                    if (DataStore.hotspotGatewayEnabled) {
+                        runOnDefaultDispatcher {
+                            HotspotGatewayManager.checkAndUpdate(forceReload = true)
+                        }
+                    }
+                    refreshNetworkAndState()
+                }
             }
         }
 
         binding.btnCopyHotspotIp.setOnClickListener {
-            val ip = currentHotspotHostIp()
-            copyToClipboard(ip, getString(R.string.lan_sharing_copied_ip, ip))
+            currentHotspotHostIp()?.let { ip ->
+                copyToClipboard(ip, getString(R.string.lan_sharing_copied_ip, ip))
+            }
         }
         binding.btnCopyHotspotPort.setOnClickListener {
             val port = currentConfiguredPort()
             copyToClipboard(port.toString(), getString(R.string.lan_sharing_copied_port, port))
         }
         binding.btnCopyHotspotLink.setOnClickListener {
-            val link = buildSocksLinkForHost(currentHotspotHostIp())
-            copyToClipboard(link, getString(R.string.lan_sharing_copied_link))
+            currentHotspotHostIp()?.let { ip ->
+                val link = buildSocksLinkForHost(ip)
+                copyToClipboard(link, getString(R.string.lan_sharing_copied_link))
+            }
         }
         binding.btnShareHotspotLink.setOnClickListener {
-            shareSocksLink(buildSocksLinkForHost(currentHotspotHostIp()))
+            currentHotspotHostIp()?.let { ip -> shareSocksLink(buildSocksLinkForHost(ip)) }
         }
 
         binding.btnCopyWifiIp.setOnClickListener {
@@ -199,31 +252,22 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             }
         }
 
-        val openConfig = View.OnClickListener {
-            showHotspotDialog { saved ->
-                if (saved) {
-                    refreshNetworkAndState()
-                    if (DataStore.hotspotGatewayEnabled) {
-                        runOnDefaultDispatcher {
-                            HotspotGatewayManager.checkAndUpdate(forceReload = true)
-                        }
-                    }
-                }
-            }
-        }
-        binding.rowAuth.setOnClickListener(openConfig)
-        binding.btnAuthAction.setOnClickListener(openConfig)
-
         binding.btnRefreshDevices.setOnClickListener {
             refreshNetworkAndState()
             lifecycleScope.launch { pollClientDevicesOnce() }
         }
     }
 
-    private fun setSwitchCheckedSilent(checked: Boolean) {
-        suppressSwitchCallback = true
+    private fun setShareSwitchCheckedSilent(checked: Boolean) {
+        suppressShareSwitchCallback = true
         binding.switchLanSharing.isChecked = checked
-        suppressSwitchCallback = false
+        suppressShareSwitchCallback = false
+    }
+
+    private fun setGatewaySwitchCheckedSilent(checked: Boolean) {
+        suppressGatewaySwitchCallback = true
+        binding.switchGatewaySwitch.isChecked = checked
+        suppressGatewaySwitchCallback = false
     }
 
     private fun registerStatusUpdates() {
@@ -246,47 +290,71 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         }
     }
 
+    /**
+     * The OS-level hotspot signals: AP state flips (`WIFI_AP_STATE_CHANGED`) and tethering
+     * on/off (`TETHER_STATE_CHANGED`). They are system broadcasts, so the receiver must be
+     * registered RECEIVER_EXPORTED, unlike the in-app status broadcast above.
+     */
+    private fun registerSystemNetReceivers() {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                refreshNetworkAndState()
+            }
+        }
+        val filter = IntentFilter().apply {
+            addAction(WIFI_AP_STATE_CHANGED)
+            addAction(TETHER_STATE_CHANGED)
+        }
+        runCatching {
+            ContextCompat.registerReceiver(this, receiver, filter, ContextCompat.RECEIVER_EXPORTED)
+        }.onSuccess { netStateReceiver = receiver }
+    }
+
     private fun refreshNetworkAndState() {
         lifecycleScope.launch {
             val net = withContext(Dispatchers.IO) {
                 Triple(
                     LanSharingNetwork.isHotspotActive(this@LanSharingActivity),
-                    LanSharingNetwork.findHotspotIp(this@LanSharingActivity),
+                    LanSharingNetwork.findHotspotCandidates(this@LanSharingActivity),
                     LanSharingNetwork.findWifiIp(this@LanSharingActivity),
                 )
             }
             hotspotActive = net.first
-            detectedHotspotIp = net.second
+            // Show the first candidate; all candidates are in the list for diagnostics.
+            detectedHotspotCandidate = net.second.firstOrNull()
             detectedWifiIp = net.third
             renderUiState()
         }
     }
 
-    private fun currentConfiguredPort(): Int {
-        val snap = HotspotGatewayState.snapshot()
-        return snap.port.takeIf { it in 1..65535 } ?: DataStore.hotspotGatewayPort
-    }
+    /** The Share (X) inbound port: the mixed inbound's SOCKS port. */
+    private fun currentConfiguredPort(): Int = DataStore.inboundSocksPort
 
     private fun renderUiState() {
+        val shareOn = DataStore.allowLanAccess
         val enabled = DataStore.hotspotGatewayEnabled
-        setSwitchCheckedSilent(enabled)
+        setShareSwitchCheckedSilent(shareOn)
+        setGatewaySwitchCheckedSilent(enabled)
 
         val snapshot = HotspotGatewayState.snapshot()
-        val summaryText = statusSummaryText(enabled, snapshot)
-        binding.textSwitchSummary.text = summaryText
+        binding.textSwitchSummary.text =
+            getString(if (shareOn) R.string.lan_sharing_x_on else R.string.lan_sharing_x_off)
+        // The Hotspot Gateway status line belongs to the Auto Connect (Y) card only; it never
+        // bleeds into the Share (X) section's texts.
+        binding.textGatewaySummary.text = statusSummaryText(enabled, snapshot)
 
         val primaryColor = getColorAttr(R.attr.primaryOrTextPrimary)
         val secondaryColor = getColorAttr(android.R.attr.textColorSecondary)
 
         val port = currentConfiguredPort()
-        val hasAuth = DataStore.hotspotGatewayUser.isNotBlank() || DataStore.hotspotGatewayPass.isNotEmpty()
+        val hasAuth = DataStore.inboundAuth
         val authShort = if (hasAuth) {
-            getString(R.string.lan_sharing_auth_enabled, DataStore.hotspotGatewayUser.ifBlank { "***" })
+            getString(R.string.lan_sharing_auth_enabled, DataStore.inboundUser.ifBlank { "***" })
         } else {
             getString(R.string.lan_sharing_auth_none)
         }
 
-        if (enabled) {
+        if (shareOn) {
             binding.textHeroTitle.text = getString(R.string.lan_sharing_active)
             binding.badgeServiceStatus.text = getString(R.string.lan_sharing_status_running)
             binding.badgeServiceStatus.setTextColor(primaryColor)
@@ -297,15 +365,25 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             binding.badgeServiceStatus.setTextColor(secondaryColor)
             binding.imgHeroStatus.setColorFilter(secondaryColor)
         }
-        binding.textHeroSubtitle.text = "${getString(R.string.lan_sharing_status_sub, port, authShort)} · $summaryText"
+        binding.textHeroSubtitle.text = getString(R.string.lan_sharing_status_sub, port, authShort)
+        // X warns when the shared inbound carries no RFC1929 credential.
+        binding.textShareWarn.visibility = if (shareOn && !hasAuth) View.VISIBLE else View.GONE
+        binding.textAuthStatus.text = authShort
 
-        // Hotspot card
-        val gatewayOrHotspotIp = snapshot.gateway.takeIf { it.isNotBlank() } ?: detectedHotspotIp
-        val hotspotIp = gatewayOrHotspotIp ?: "192.168.43.1"
-        binding.textHotspotIp.text = hotspotIp
+        // Hotspot card. The share card advertises this phone's own hotspot address:
+        // LanSharingNetwork.findHotspotCandidates() is the only source and there is no default
+        // address: a hotspot subnet changes between openings (192.168.43.1 is one of many).
+        // HotspotGatewayState's gateway is the peer gateway discovered by Auto Connect (Y),
+        // never X's own IP.
+        val hotspotCandidate = detectedHotspotCandidate
+        val hotspotIp = hotspotCandidate?.ip
+        binding.textHotspotIp.text = hotspotIp ?: getString(R.string.lan_sharing_not_detected)
         binding.textHotspotPort.text = port.toString()
-        binding.textHotspotSocksLink.text = buildSocksLinkForHost(hotspotIp)
-        if (hotspotActive || !gatewayOrHotspotIp.isNullOrBlank()) {
+        binding.textHotspotSocksLink.text = if (hotspotIp != null) {
+            // Displayed masked; copy/share buttons below send the full link.
+            LanSharingLogics.maskSocks5Link(buildSocksLinkForHost(hotspotIp))
+        } else ""
+        if (hotspotActive || hotspotIp != null) {
             binding.badgeHotspotStatus.text = getString(R.string.lan_sharing_hotspot_detected)
             binding.badgeHotspotStatus.setTextColor(primaryColor)
             binding.textHotspotDesc.text = getString(R.string.lan_sharing_hotspot_desc)
@@ -314,13 +392,17 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             binding.badgeHotspotStatus.setTextColor(secondaryColor)
             binding.textHotspotDesc.text = getString(R.string.lan_sharing_hotspot_hint_off)
         }
+        // Same rule as the Wi-Fi card: no detectable gateway IP, no copy/share.
+        binding.btnCopyHotspotIp.isEnabled = hotspotIp != null
+        binding.btnCopyHotspotLink.isEnabled = hotspotIp != null
+        binding.btnShareHotspotLink.isEnabled = hotspotIp != null
 
         // Wi-Fi card
         val wifiIp = detectedWifiIp
         binding.textWifiPort.text = port.toString()
         if (!wifiIp.isNullOrBlank()) {
             binding.textWifiIp.text = wifiIp
-            binding.textWifiSocksLink.text = buildSocksLinkForHost(wifiIp)
+            binding.textWifiSocksLink.text = LanSharingLogics.maskSocks5Link(buildSocksLinkForHost(wifiIp))
             binding.badgeWifiStatus.text = getString(R.string.lan_sharing_wifi_detected)
             binding.badgeWifiStatus.setTextColor(primaryColor)
             binding.textWifiDesc.text = getString(R.string.lan_sharing_wifi_desc)
@@ -329,7 +411,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             binding.btnShareWifiLink.isEnabled = true
         } else {
             binding.textWifiIp.text = getString(R.string.lan_sharing_not_detected)
-            binding.textWifiSocksLink.text = buildSocksLinkForHost("0.0.0.0")
+            binding.textWifiSocksLink.text = LanSharingLogics.maskSocks5Link(buildSocksLinkForHost("0.0.0.0"))
             binding.badgeWifiStatus.text = getString(R.string.lan_sharing_wifi_not_connected)
             binding.badgeWifiStatus.setTextColor(secondaryColor)
             binding.textWifiDesc.text = getString(R.string.lan_sharing_wifi_hint_off)
@@ -338,8 +420,9 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             binding.btnShareWifiLink.isEnabled = false
         }
 
-        // Auth row
-        binding.textAuthStatus.text = authShort
+        // Auth row: display only. The X credential is configured in Settings › Basic › Inbound,
+        // not through the Hotspot Gateway dialog.
+        binding.btnAuthAction.visibility = View.GONE
     }
 
     private fun statusSummaryText(enabled: Boolean, snapshot: HotspotGatewaySnapshot): String {
@@ -408,8 +491,13 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
     private fun startPollingLoop() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                var tick = 0
                 while (isActive) {
                     pollClientDevicesOnce()
+                    // Every 3rd 2 s round the network info itself is refreshed so a reopened
+                    // hotspot is picked up while staying on the screen.
+                    if (tick % 3 == 2) refreshNetworkAndState()
+                    tick++
                     delay(2000L)
                 }
             }
@@ -425,12 +513,14 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 secret = DataStore.coreBoxClashApiSecret,
             )
             val clashList = if (body != null) LanSharingLogics.parseConnections(body) else emptyList()
-            val hotspotIp = detectedHotspotIp ?: HotspotGatewayState.snapshot().gateway.takeIf { it.isNotBlank() }
+            val hotspotIp = detectedHotspotCandidate?.ip
             val result = LanSharingLogics.mergeDevices(
                 history = clientHistory.toMap(),
                 arpIps = arp,
                 clash = clashList,
                 hotspotIp = hotspotIp,
+                hotspotPrefix = detectedHotspotCandidate?.prefixLength,
+                localIps = setOfNotNull(detectedHotspotCandidate?.ip, detectedWifiIp),
                 nowMs = now,
             )
             clientHistory.clear()
@@ -498,18 +588,20 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         }
     }
 
-    private fun currentHotspotHostIp(): String {
-        val snap = HotspotGatewayState.snapshot()
-        return snap.gateway.takeIf { it.isNotBlank() } ?: detectedHotspotIp ?: "192.168.43.1"
+    /** The Share (X) hotspot address to advertise: the detected one, no default is ever substituted. */
+    private fun currentHotspotHostIp(): String? {
+        return detectedHotspotCandidate?.ip
     }
 
     private fun buildSocksLinkForHost(host: String): String {
+        // Share (X) links mirror the real inbound: its port and, when the inbound auth is on, its
+        // username/password (no UoT parameter on the mixed inbound).
         return LanSharingLogics.buildSocks5ShareLink(
             host = host,
-            port = currentConfiguredPort(),
-            username = DataStore.hotspotGatewayUser,
-            password = DataStore.hotspotGatewayPass,
-            uot = DataStore.hotspotGatewayUot,
+            port = DataStore.inboundSocksPort,
+            username = if (DataStore.inboundAuth) DataStore.inboundUser else "",
+            password = if (DataStore.inboundAuth) DataStore.inboundPass else "",
+            uot = false,
             remark = getString(R.string.lan_sharing),
         )
     }
@@ -532,6 +624,8 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
     override fun onDestroy() {
         statusReceiver?.let { runCatching { unregisterReceiver(it) } }
         statusReceiver = null
+        netStateReceiver?.let { runCatching { unregisterReceiver(it) } }
+        netStateReceiver = null
         HotspotGatewayManager.onGatewayChanged = null
         connection.disconnect(this)
         super.onDestroy()

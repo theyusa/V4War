@@ -23,6 +23,36 @@ class HotspotGatewayPolicyTest {
     }
 
     @Test
+    fun startGatewayPollIsBounded() {
+        // The start retries the gateway lookup for at most 1500 ms and stops for good afterwards.
+        assertEquals(150L, HotspotGatewayPolicy.BEFORE_CORE_CONNECT_POLL_MS)
+        assertEquals(1500L, HotspotGatewayPolicy.BEFORE_CORE_CONNECT_MAX_WAIT_MS)
+        assertTrue(HotspotGatewayPolicy.shouldPollGateway(0L))
+        assertTrue(HotspotGatewayPolicy.shouldPollGateway(1499L))
+        assertFalse(HotspotGatewayPolicy.shouldPollGateway(1500L))
+        assertFalse(HotspotGatewayPolicy.shouldPollGateway(1501L))
+    }
+
+    @Test
+    fun startFailureWordingIsSpecific() {
+        // A credential demand after the first probe is worded as invalid credentials (its own EN/TR string).
+        assertEquals(
+            Socks5AuthFailure.INVALID_CREDENTIALS,
+            HotspotGatewayPolicy.startFailureFor(HotspotGatewayStatus.AUTH_REQUIRED),
+        )
+        assertEquals(
+            Socks5AuthFailure.UNSUPPORTED_AUTH,
+            HotspotGatewayPolicy.startFailureFor(HotspotGatewayStatus.UNSUPPORTED_AUTH),
+        )
+        // Everything else keeps the plain not-found class.
+        assertEquals(Socks5AuthFailure.NOT_FOUND, HotspotGatewayPolicy.startFailureFor(HotspotGatewayStatus.NOT_FOUND))
+        assertEquals(Socks5AuthFailure.NOT_FOUND, HotspotGatewayPolicy.startFailureFor(HotspotGatewayStatus.PROBING))
+        assertEquals(Socks5AuthFailure.NOT_FOUND, HotspotGatewayPolicy.startFailureFor(HotspotGatewayStatus.NO_GATEWAY))
+        assertEquals(Socks5AuthFailure.NOT_FOUND, HotspotGatewayPolicy.startFailureFor(HotspotGatewayStatus.PAIRING_REQUIRED))
+        assertEquals(Socks5AuthFailure.NOT_FOUND, HotspotGatewayPolicy.startFailureFor(HotspotGatewayStatus.FOUND))
+    }
+
+    @Test
     fun vpnTransportIsRejectedEvenWithWifi() {
         assertFalse(HotspotGatewayPolicy.isGatewayNetwork(hasWifiTransport = true, hasVpnTransport = true))
         assertTrue(HotspotGatewayPolicy.isGatewayNetwork(hasWifiTransport = true, hasVpnTransport = false))
@@ -427,6 +457,13 @@ class HotspotGatewayPolicyTest {
         // The value travels through logs and the shared record: it must not carry the credential itself.
         assertFalse(base.contains("secret-pass"))
         assertFalse(base.contains("user"))
+
+        // Item 8: length-prefixed field boundaries. A field split across two fields ("a b"+"c" vs "a"+"b c"
+        // in the gateway/username slots) must produce different digests.
+        assertNotEquals(
+            fp("a b", 2080, "c", "p", false),
+            fp("a", 2080, "b c", "p", false),
+        )
     }
 
     @Test
