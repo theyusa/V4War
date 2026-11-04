@@ -39,6 +39,7 @@ import io.nekohasekai.sagernet.group.DeviceDetails
 import io.nekohasekai.sagernet.group.RequestIdentity
 import io.nekohasekai.sagernet.group.SubscriptionClient
 import io.nekohasekai.sagernet.group.SubscriptionNameFilter
+import io.nekohasekai.sagernet.group.SubscriptionRefresh
 import io.nekohasekai.sagernet.group.SubscriptionScheduler
 import io.nekohasekai.sagernet.ktx.FixedLinearLayoutManager
 import io.nekohasekai.sagernet.ktx.confirmAction
@@ -88,6 +89,7 @@ class GroupSettingsActivity : ThemedActivity(R.layout.layout_config_settings), O
         private const val KEY_SKIP_AUTO_UPDATE = "groupSkipAutoUpdate"
         private const val KEY_IMPORT_ROUTE = "groupImportSubRoute"
         private const val KEY_SHOW_INFO_CARD = "groupSubShowInfoCard"
+        private const val KEY_CUSTOM_SNI = "groupSubCustomSni"
         private const val KEY_ADVANCED_TOGGLE = "groupAdvancedToggle"
         private val ADVANCED_CATEGORIES = listOf("groupAdvancedRequest", "groupAdvancedUpdate", "groupAdvancedAfterUpdate")
         private const val KEY_USER_AGENT = "groupSubUserAgent"
@@ -335,6 +337,7 @@ class GroupSettingsActivity : ThemedActivity(R.layout.layout_config_settings), O
         store.putBoolean(KEY_SKIP_AUTO_UPDATE, group.skipAutoUpdate)
         store.putBoolean(KEY_IMPORT_ROUTE, group.importSubRoute)
         store.putBoolean(KEY_SHOW_INFO_CARD, group.subOptions.showInfoCard)
+        store.putString(KEY_CUSTOM_SNI, group.subOptions.customSni)
         val options = group.subOptions
         store.putString(KEY_USER_AGENT, options.userAgent)
         store.putString(KEY_TLS_VERSION, overrideIndex(options.tlsVersion?.value))
@@ -399,6 +402,7 @@ class GroupSettingsActivity : ThemedActivity(R.layout.layout_config_settings), O
             nameExclude = text(KEY_NAME_EXCLUDE),
             typeExclude = (SubscriptionNameFilter.PROTOCOLS.map { it.id } + unknownTypes).filter { it in ticked },
             countryFilter = countryFilter,
+            customSni = text(KEY_CUSTOM_SNI),
             showInfoCard = store.getBoolean(KEY_SHOW_INFO_CARD, true),
         )
     }
@@ -458,7 +462,20 @@ class GroupSettingsActivity : ThemedActivity(R.layout.layout_config_settings), O
             val restart = editingId > 0 && running > 0L &&
                 ProfileManager.getProfile(ProfileManager.runningProfileId())?.groupId == editingId &&
                 RouteManager.resolveRouteId(group.routeId) != running
-            if (editingId > 0) GroupRepo.save(group) else GroupRepo.add(group)
+            if (editingId > 0) {
+                GroupRepo.save(group)
+                if (group.subOptions.customSni.isNotBlank()) {
+                    val profiles = ProfileManager.members(editingId)
+                    for (entity in profiles) {
+                        val out = entity.outbound
+                        SubscriptionRefresh.applyCustomSni(listOf(out), group.subOptions.customSni)
+                        entity.putOutbound(out)
+                        ProfileManager.updateProfile(entity)
+                    }
+                }
+            } else {
+                GroupRepo.add(group)
+            }
             SubscriptionScheduler.schedule()
             restart
         }

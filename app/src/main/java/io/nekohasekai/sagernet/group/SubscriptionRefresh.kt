@@ -56,6 +56,27 @@ internal object SubscriptionRefresh {
         return sb.toString()
     }
 
+    fun applyCustomSni(servers: Collection<Outbound>, customSni: String) {
+        val sni = customSni.trim()
+        if (sni.isEmpty()) return
+        for (outbound in servers) {
+            if (outbound.hasTls()) {
+                val tls = outbound.getTls()
+                if (tls.enabled || outbound.mustTls() || tls.server_name.isNotEmpty()) {
+                    tls.server_name = sni
+                }
+            }
+            if (outbound.hasXrayStream()) {
+                val stream = outbound.getXrayStream()
+                if (stream.security == "tls") {
+                    stream.tls.serverName = sni
+                } else if (stream.security == "reality") {
+                    stream.reality.serverName = sni
+                }
+            }
+        }
+    }
+
     /** reportTitle (GroupUpdater.cpp). */
     private fun reportTitle(surface: Surface, groupName: String): String =
         if (surface == Surface.Report) vtr(R.string.validation_import_title_new, groupName) else vtr(R.string.validation_import_title_update, groupName)
@@ -78,6 +99,9 @@ internal object SubscriptionRefresh {
         // A filtered-out profile never reaches the database; an old one that no longer passes goes stale below.
         val filter = SubscriptionNameFilter.Filter(options, group.name)
         val servers = if (filter.active) parsed.filter(filter::admits) else parsed
+        if (options.customSni.isNotBlank()) {
+            applyCustomSni(servers, options.customSni)
+        }
         // Likewise when the filters leave nothing: a provider renaming its servers must not empty the group.
         if (servers.isEmpty()) {
             if (info.valid) saveMetadata(group, info)
@@ -410,12 +434,14 @@ internal object SubscriptionRefresh {
      */
     suspend fun importDocuments(gid: Long, documents: List<String>, emptyReason: String = ""): ImportResult {
         val target = if (gid > 0) gid else GroupRepo.currentId()
+        val customSni = if (target > 0) GroupRepo.get(target)?.subOptions?.customSni.orEmpty() else ""
         val sink = ImportSink(target, null)
         val report = ImportReport()
         Logs.i(">>>>>>>> " + str(R.string.subs_processing))
         for (document in documents) {
             val result = parse(document)
             report.addAll(result.reports)
+            if (customSni.isNotBlank()) applyCustomSni(result.outbounds, customSni)
             for (outbound in result.outbounds) sink.add(outbound)
         }
         sink.flush()
