@@ -57,12 +57,68 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/lan_sharing_btn"
-                        style="@style/Widget.SagerNet.Button"
+                        style="@style/Widget.SagerNet.Button.OutlinedButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="8dp"
-                        android:text="@string/lan_sharing_open_btn"
-                        android:textColor="?whiteOrTextPrimary" />
+                        android:text="@string/lan_sharing_open_btn" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- DNS Leak & Fake-IP Check -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/dns_leak_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="16dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/tools_dns_leak"
+                        android:textAppearance="?attr/textAppearanceHeadline6" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/tools_dns_leak_summary"
+                        android:textAppearance="?attr/textAppearanceBody2"
+                        android:textColor="?android:attr/textColorSecondary" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:layout_margin="8dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/dns_leak_btn"
+                        style="@style/Widget.SagerNet.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/network_tools_open" />
 
                 </LinearLayout>
 
@@ -115,12 +171,11 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/nat_discovery_btn"
-                        style="@style/Widget.SagerNet.Button"
+                        style="@style/Widget.SagerNet.Button.OutlinedButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="8dp"
-                        android:text="@string/network_tools_open"
-                        android:textColor="?whiteOrTextPrimary" />
+                        android:text="@string/network_tools_open" />
 
                 </LinearLayout>
 
@@ -173,12 +228,11 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/cellular_network_btn"
-                        style="@style/Widget.SagerNet.Button"
+                        style="@style/Widget.SagerNet.Button.OutlinedButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="8dp"
-                        android:text="@string/network_tools_open"
-                        android:textColor="?whiteOrTextPrimary" />
+                        android:text="@string/network_tools_open" />
 
                 </LinearLayout>
 
@@ -231,12 +285,11 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/network_interfaces_btn"
-                        style="@style/Widget.SagerNet.Button"
+                        style="@style/Widget.SagerNet.Button.OutlinedButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="8dp"
-                        android:text="@string/network_tools_open"
-                        android:textColor="?whiteOrTextPrimary" />
+                        android:text="@string/network_tools_open" />
 
                 </LinearLayout>
 
