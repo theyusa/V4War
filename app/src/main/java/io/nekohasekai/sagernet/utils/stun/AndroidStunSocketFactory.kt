@@ -3,6 +3,7 @@ package io.nekohasekai.sagernet.utils.stun
 
 import android.net.Network
 import java.net.DatagramSocket
+import java.net.InetAddress
 import java.net.InetSocketAddress
 
 /**
@@ -18,5 +19,13 @@ class AndroidStunSocketFactory(
         network?.bindSocket(socket)
         socket.bind(InetSocketAddress(0))
         return socket
+    }
+
+    override fun resolve(host: String): Array<InetAddress> {
+        return try {
+            network?.getAllByName(host) ?: InetAddress.getAllByName(host)
+        } catch (_: Exception) {
+            InetAddress.getAllByName(host)
+        }
     }
 }
