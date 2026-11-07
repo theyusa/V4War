@@ -158,38 +158,81 @@ object Theme {
 
     fun getAmoledTheme(themeId: Int): Int {
         return when (themeId) {
+            MONET -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    R.style.Theme_SagerNet_Amoled_Monet
+                } else {
+                    val sysColor = getSystemWallpaperColor(app)
+                    if (sysColor != null) getAmoledTheme(getClosestThemeForColor(sysColor)) else R.style.Theme_SagerNet_Amoled_Blue
+                }
+            }
             RED -> R.style.Theme_SagerNet_Amoled_Red
-            VERDANT_MINT -> R.style.Theme_SagerNet_Amoled_VerdantMint
+            PINK_SSR -> R.style.Theme_SagerNet_Amoled_PinkSSR
+            PINK -> R.style.Theme_SagerNet_Amoled_Pink
+            PURPLE -> R.style.Theme_SagerNet_Amoled_Purple
+            DEEP_PURPLE -> R.style.Theme_SagerNet_Amoled_DeepPurple
+            INDIGO -> R.style.Theme_SagerNet_Amoled_Indigo
             BLUE -> R.style.Theme_SagerNet_Amoled_Blue
-            PURPLE, DEEP_PURPLE -> R.style.Theme_SagerNet_Amoled_Purple
-            ORANGE, DEEP_ORANGE -> R.style.Theme_SagerNet_Amoled_Orange
-            TEAL, CYAN -> R.style.Theme_SagerNet_Amoled_Teal
+            LIGHT_BLUE -> R.style.Theme_SagerNet_Amoled_LightBlue
+            CYAN -> R.style.Theme_SagerNet_Amoled_Cyan
+            TEAL -> R.style.Theme_SagerNet_Amoled_Teal
             GREEN -> R.style.Theme_SagerNet_Amoled_Green
-            PINK, PINK_SSR -> R.style.Theme_SagerNet_Amoled_Pink
-            AMBER, YELLOW -> R.style.Theme_SagerNet_Amoled_Amber
-            INDIGO, LIGHT_BLUE -> R.style.Theme_SagerNet_Amoled_Indigo
+            LIGHT_GREEN -> R.style.Theme_SagerNet_Amoled_LightGreen
+            LIME -> R.style.Theme_SagerNet_Amoled_Lime
+            YELLOW -> R.style.Theme_SagerNet_Amoled_Yellow
+            AMBER -> R.style.Theme_SagerNet_Amoled_Amber
+            ORANGE -> R.style.Theme_SagerNet_Amoled_Orange
+            DEEP_ORANGE -> R.style.Theme_SagerNet_Amoled_DeepOrange
+            BROWN -> R.style.Theme_SagerNet_Amoled_Brown
+            GREY -> R.style.Theme_SagerNet_Amoled_Grey
+            BLUE_GREY -> R.style.Theme_SagerNet_Amoled_BlueGrey
+            VERDANT_MINT -> R.style.Theme_SagerNet_Amoled_VerdantMint
+            CUSTOM -> getAmoledTheme(getClosestThemeForColor(0xFF000000.toInt() or DataStore.customThemeColor))
+            BLACK, WHITE, LIGHT_GRAY -> R.style.Theme_SagerNet_Black
             else -> R.style.Theme_SagerNet_Black
         }
     }
 
     fun getAmoledDialogTheme(themeId: Int): Int {
         return when (themeId) {
+            MONET -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    R.style.Theme_SagerNet_Dialog_Amoled_Monet
+                } else {
+                    val sysColor = getSystemWallpaperColor(app)
+                    if (sysColor != null) getAmoledDialogTheme(getClosestThemeForColor(sysColor)) else R.style.Theme_SagerNet_Dialog_Amoled_Blue
+                }
+            }
             RED -> R.style.Theme_SagerNet_Dialog_Amoled_Red
-            VERDANT_MINT -> R.style.Theme_SagerNet_Dialog_Amoled_VerdantMint
+            PINK_SSR -> R.style.Theme_SagerNet_Dialog_Amoled_PinkSSR
+            PINK -> R.style.Theme_SagerNet_Dialog_Amoled_Pink
+            PURPLE -> R.style.Theme_SagerNet_Dialog_Amoled_Purple
+            DEEP_PURPLE -> R.style.Theme_SagerNet_Dialog_Amoled_DeepPurple
+            INDIGO -> R.style.Theme_SagerNet_Dialog_Amoled_Indigo
             BLUE -> R.style.Theme_SagerNet_Dialog_Amoled_Blue
-            PURPLE, DEEP_PURPLE -> R.style.Theme_SagerNet_Dialog_Amoled_Purple
-            ORANGE, DEEP_ORANGE -> R.style.Theme_SagerNet_Dialog_Amoled_Orange
-            TEAL, CYAN -> R.style.Theme_SagerNet_Dialog_Amoled_Teal
+            LIGHT_BLUE -> R.style.Theme_SagerNet_Dialog_Amoled_LightBlue
+            CYAN -> R.style.Theme_SagerNet_Dialog_Amoled_Cyan
+            TEAL -> R.style.Theme_SagerNet_Dialog_Amoled_Teal
             GREEN -> R.style.Theme_SagerNet_Dialog_Amoled_Green
-            PINK, PINK_SSR -> R.style.Theme_SagerNet_Dialog_Amoled_Pink
-            AMBER, YELLOW -> R.style.Theme_SagerNet_Dialog_Amoled_Amber
-            INDIGO, LIGHT_BLUE -> R.style.Theme_SagerNet_Dialog_Amoled_Indigo
+            LIGHT_GREEN -> R.style.Theme_SagerNet_Dialog_Amoled_LightGreen
+            LIME -> R.style.Theme_SagerNet_Dialog_Amoled_Lime
+            YELLOW -> R.style.Theme_SagerNet_Dialog_Amoled_Yellow
+            AMBER -> R.style.Theme_SagerNet_Dialog_Amoled_Amber
+            ORANGE -> R.style.Theme_SagerNet_Dialog_Amoled_Orange
+            DEEP_ORANGE -> R.style.Theme_SagerNet_Dialog_Amoled_DeepOrange
+            BROWN -> R.style.Theme_SagerNet_Dialog_Amoled_Brown
+            GREY -> R.style.Theme_SagerNet_Dialog_Amoled_Grey
+            BLUE_GREY -> R.style.Theme_SagerNet_Dialog_Amoled_BlueGrey
+            VERDANT_MINT -> R.style.Theme_SagerNet_Dialog_Amoled_VerdantMint
+            CUSTOM -> getAmoledDialogTheme(getClosestThemeForColor(0xFF000000.toInt() or DataStore.customThemeColor))
+            BLACK, WHITE, LIGHT_GRAY -> R.style.Theme_SagerNet_Dialog_Black
             else -> R.style.Theme_SagerNet_Dialog_Black
         }
     }
 
     fun getTheme(theme: Int, context: Context? = null): Int {
         return when (theme) {
+            CUSTOM -> getTheme(getClosestThemeForColor(0xFF000000.toInt() or DataStore.customThemeColor), context)
             MONET -> R.style.Theme_SagerNet_Monet
             RED -> R.style.Theme_SagerNet_Red
             PINK_SSR -> R.style.Theme_SagerNet_Pink_SSR
@@ -221,6 +264,7 @@ object Theme {
 
     fun getDialogTheme(theme: Int, context: Context? = null): Int {
         return when (theme) {
+            CUSTOM -> getDialogTheme(getClosestThemeForColor(0xFF000000.toInt() or DataStore.customThemeColor), context)
             MONET -> R.style.Theme_SagerNet_Dialog_Monet
             RED -> R.style.Theme_SagerNet_Dialog_Red
             PINK_SSR -> R.style.Theme_SagerNet_Dialog_Pink_SSR
@@ -276,7 +320,7 @@ object Theme {
     }
 
     fun getPrimaryColor(context: Context): Int {
-        if (isBlackTheme(context)) {
+        if (DataStore.appTheme == BLACK || (isBlackTheme(context) && DataStore.appTheme in setOf(BLACK, WHITE, LIGHT_GRAY))) {
             return Color.WHITE
         }
         if (isWhiteTheme(context)) {

@@ -151,7 +151,10 @@ internal class RowContent(
                 head += "$latency${NBSP}ms"
                 headSpoken += "$latency ms"
             }
-            if (head.isNotEmpty()) items += Item(head.joinToString(NBSP), color, headSpoken.joinToString(", "))
+            if (head.isNotEmpty()) {
+                val headText = if (latency <= 0) head.joinToString(NBSP) + NBSP else head.joinToString(NBSP)
+                items += Item(headText, color, headSpoken.joinToString(", "))
+            }
             if (show.showSpeed) speeds(context, profile.dlSpeed, profile.ulSpeed, secondary)?.let { items += it }
             val ip = profile.ipOut.orEmpty()
             if (show.showIp && ip.isNotEmpty()) {
@@ -382,9 +385,9 @@ internal class ProfileRowHolder(view: View, private val adapter: ProfileListAdap
 
     private fun applyCardColors(selected: Boolean, checked: Boolean) {
         val context = card.context
-        val surface = context.getColorAttr(R.attr.colorSurface)
+        val surface = context.getColorAttr(R.attr.cardElevatedSurfaceColor)
         var background = surface
-        selectedIndicator.isVisible = selected
+        selectedIndicator.isVisible = false
         val isAmoled = Theme.isBlackTheme(context)
         if (isAmoled) {
             val isAmoledSeed = DataStore.appTheme == Theme.BLACK || (Theme.isBlackTheme(context) && DataStore.appTheme in setOf(Theme.BLACK, Theme.WHITE, Theme.LIGHT_GRAY))
@@ -398,21 +401,22 @@ internal class ProfileRowHolder(view: View, private val adapter: ProfileListAdap
                 card.strokeColor = strokeColor
                 card.strokeWidth = dp2px(2)
             } else {
-                card.strokeColor = if (strokeColor == Color.WHITE) Color.parseColor("#55FFFFFF") else ColorUtils.setAlphaComponent(strokeColor, 150)
+                card.strokeColor = androidx.core.content.ContextCompat.getColor(context, R.color.card_stroke)
                 card.strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
             }
         } else {
-            val stroke = context.getColorAttr(R.attr.profileCardStrokeColor)
-            if (stroke != 0) {
-                card.strokeColor = stroke
-                card.strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+            if (selected) {
+                card.strokeColor = context.getColorAttr(R.attr.colorPrimary)
+                card.strokeWidth = dp2px(2)
             } else {
-                card.strokeWidth = 0
+                val stroke = context.getColorAttr(R.attr.profileCardStrokeColor)
+                card.strokeColor = if (stroke != 0) stroke else androidx.core.content.ContextCompat.getColor(context, R.color.card_stroke)
+                card.strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
             }
         }
-        card.cardElevation = context.resources.getDimension(R.dimen.profile_card_elevation_classic)
+        card.cardElevation = 0f
         if (selected) {
-            val primary = context.getColorAttr(R.attr.selectedColorPrimary)
+            val primary = context.getColorAttr(R.attr.colorPrimary)
             background = ColorUtils.compositeColors(ColorUtils.setAlphaComponent(primary, 24), surface)
         }
         if (checked) {
