@@ -83,7 +83,7 @@ object RootRules {
 
     /**
      * Builds root shell commands to configure policy routing, iptables forwarding & NAT,
-     * and IPv6 leak protection.
+     * and IPv6 leak protection with guaranteed idempotency.
      */
     fun buildSetupCommands(
         vpn: VpnRouteInfo,
@@ -95,25 +95,28 @@ object RootRules {
         // 1. Enable IPv4 forwarding in kernel
         cmds.add("sysctl -w net.ipv4.ip_forward=1 2>/dev/null || echo 1 > /proc/sys/net/ipv4/ip_forward")
 
-        // 2. IPv4 FORWARD filter chain
+        // 2. IPv4 FORWARD filter chain (remove existing jumps first to prevent duplicates, then insert exactly one)
+        cmds.add("while iptables -D FORWARD -j $CHAIN_FORWARD 2>/dev/null; do :; done")
         cmds.add("iptables -N $CHAIN_FORWARD 2>/dev/null || true")
-        cmds.add("iptables -C FORWARD -j $CHAIN_FORWARD 2>/dev/null || iptables -I FORWARD 1 -j $CHAIN_FORWARD")
         cmds.add("iptables -F $CHAIN_FORWARD")
+        cmds.add("iptables -I FORWARD 1 -j $CHAIN_FORWARD")
         for (iface in hotspotIfaces) {
             cmds.add("iptables -A $CHAIN_FORWARD -i $iface -o ${vpn.tunInterface} -j ACCEPT")
             cmds.add("iptables -A $CHAIN_FORWARD -i ${vpn.tunInterface} -o $iface -m state --state RELATED,ESTABLISHED -j ACCEPT")
         }
 
         // 3. IPv4 NAT MASQUERADE
+        cmds.add("while iptables -t nat -D POSTROUTING -j $CHAIN_NAT 2>/dev/null; do :; done")
         cmds.add("iptables -t nat -N $CHAIN_NAT 2>/dev/null || true")
-        cmds.add("iptables -t nat -C POSTROUTING -j $CHAIN_NAT 2>/dev/null || iptables -t nat -I POSTROUTING 1 -j $CHAIN_NAT")
         cmds.add("iptables -t nat -F $CHAIN_NAT")
+        cmds.add("iptables -t nat -I POSTROUTING 1 -j $CHAIN_NAT")
         cmds.add("iptables -t nat -A $CHAIN_NAT -o ${vpn.tunInterface} -j MASQUERADE")
 
         // 4. IPv6 leak protection: unconditionally drop hotspot IPv6 forward traffic
+        cmds.add("while ip6tables -D FORWARD -j $CHAIN_FORWARD_V6 2>/dev/null; do :; done")
         cmds.add("ip6tables -N $CHAIN_FORWARD_V6 2>/dev/null || true")
-        cmds.add("ip6tables -C FORWARD -j $CHAIN_FORWARD_V6 2>/dev/null || ip6tables -I FORWARD 1 -j $CHAIN_FORWARD_V6")
         cmds.add("ip6tables -F $CHAIN_FORWARD_V6")
+        cmds.add("ip6tables -I FORWARD 1 -j $CHAIN_FORWARD_V6")
         for (iface in hotspotIfaces) {
             cmds.add("ip6tables -A $CHAIN_FORWARD_V6 -i $iface -j DROP")
             cmds.add("ip6tables -A $CHAIN_FORWARD_V6 -o $iface -j DROP")
@@ -138,20 +141,59 @@ object RootRules {
 
     /**
      * Builds root shell commands to cleanly tear down rules and custom iptables chains.
+     * All jumps in parent chains are stripped first before deleting chains.
      */
     fun buildTeardownCommands(): List<String> {
         return listOf(
-            "while ip rule del pref $PRIORITY_LOCAL_SUBNET 2>/dev/null; do :; done",
-            "while ip rule del pref $PRIORITY_VPN_ROUTING 2>/dev/null; do :; done",
-            "iptables -D FORWARD -j $CHAIN_FORWARD 2>/dev/null || true",
+            "while iptables -D FORWARD -j $CHAIN_FORWARD 2>/dev/null; do :; done",
             "iptables -F $CHAIN_FORWARD 2>/dev/null || true",
             "iptables -X $CHAIN_FORWARD 2>/dev/null || true",
-            "iptables -t nat -D POSTROUTING -j $CHAIN_NAT 2>/dev/null || true",
+            "while iptables -t nat -D POSTROUTING -j $CHAIN_NAT 2>/dev/null; do :; done",
             "iptables -t nat -F $CHAIN_NAT 2>/dev/null || true",
             "iptables -t nat -X $CHAIN_NAT 2>/dev/null || true",
-            "ip6tables -D FORWARD -j $CHAIN_FORWARD_V6 2>/dev/null || true",
+            "while ip6tables -D FORWARD -j $CHAIN_FORWARD_V6 2>/dev/null; do :; done",
             "ip6tables -F $CHAIN_FORWARD_V6 2>/dev/null || true",
             "ip6tables -X $CHAIN_FORWARD_V6 2>/dev/null || true",
+            "while ip rule del pref $PRIORITY_LOCAL_SUBNET 2>/dev/null; do :; done",
+            "while ip rule del pref $PRIORITY_VPN_ROUTING 2>/dev/null; do :; done",
         )
+    }
+
+    /**
+     * Fail-closed defense: when VPN drops, replaces forwarding rules with unconditional DROP
+     * on hotspot interfaces to prevent carrier data leaks.
+     */
+    fun buildBlockTrafficCommands(hotspotIfaces: Collection<String>): List<String> {
+        val cmds = mutableListOf<String>()
+
+        // 1. Remove policy routing so packets don't get routed to dead VPN or mobile data
+        cmds.add("while ip rule del pref $PRIORITY_VPN_ROUTING 2>/dev/null; do :; done")
+
+        // 2. Clear NAT table
+        cmds.add("while iptables -t nat -D POSTROUTING -j $CHAIN_NAT 2>/dev/null; do :; done")
+        cmds.add("iptables -t nat -F $CHAIN_NAT 2>/dev/null || true")
+        cmds.add("iptables -t nat -X $CHAIN_NAT 2>/dev/null || true")
+
+        // 3. Make throne_fwd strictly DROP all hotspot forward traffic
+        cmds.add("while iptables -D FORWARD -j $CHAIN_FORWARD 2>/dev/null; do :; done")
+        cmds.add("iptables -N $CHAIN_FORWARD 2>/dev/null || true")
+        cmds.add("iptables -F $CHAIN_FORWARD")
+        cmds.add("iptables -I FORWARD 1 -j $CHAIN_FORWARD")
+        for (iface in hotspotIfaces) {
+            cmds.add("iptables -A $CHAIN_FORWARD -i $iface -j DROP")
+            cmds.add("iptables -A $CHAIN_FORWARD -o $iface -j DROP")
+        }
+
+        // 4. Make throne_fwd6 strictly DROP all IPv6 traffic
+        cmds.add("while ip6tables -D FORWARD -j $CHAIN_FORWARD_V6 2>/dev/null; do :; done")
+        cmds.add("ip6tables -N $CHAIN_FORWARD_V6 2>/dev/null || true")
+        cmds.add("ip6tables -F $CHAIN_FORWARD_V6")
+        cmds.add("ip6tables -I FORWARD 1 -j $CHAIN_FORWARD_V6")
+        for (iface in hotspotIfaces) {
+            cmds.add("ip6tables -A $CHAIN_FORWARD_V6 -i $iface -j DROP")
+            cmds.add("ip6tables -A $CHAIN_FORWARD_V6 -o $iface -j DROP")
+        }
+
+        return cmds
     }
 }

@@ -48,7 +48,7 @@ class RootRulesTest {
     }
 
     @Test
-    fun buildSetupCommands_containsAllNecessaryRules() {
+    fun buildSetupCommands_containsAllNecessaryRulesAndIdempotentJumps() {
         val vpn = VpnRouteInfo("tun0", "102")
         val hotspotIfaces = listOf("ap0")
         val subnets = listOf(HotspotSubnet("ap0", "192.168.43.0/24"))
@@ -58,19 +58,19 @@ class RootRulesTest {
         // Must enable IP forwarding
         assertTrue(cmds.any { it.contains("net.ipv4.ip_forward=1") })
 
-        // Must set up throne_fwd with ACCEPT between ap0 and tun0
-        assertTrue(cmds.any { it.contains("iptables -N throne_fwd") })
+        // Must strip existing jumps before inserting exactly one jump
+        assertTrue(cmds.any { it.contains("while iptables -D FORWARD -j throne_fwd") })
         assertTrue(cmds.any { it.contains("iptables -I FORWARD 1 -j throne_fwd") })
         assertTrue(cmds.any { it.contains("-i ap0 -o tun0 -j ACCEPT") })
         assertTrue(cmds.any { it.contains("-i tun0 -o ap0 -m state --state RELATED,ESTABLISHED -j ACCEPT") })
 
         // Must set up throne_nat MASQUERADE
-        assertTrue(cmds.any { it.contains("iptables -t nat -N throne_nat") })
+        assertTrue(cmds.any { it.contains("while iptables -t nat -D POSTROUTING -j throne_nat") })
         assertTrue(cmds.any { it.contains("iptables -t nat -I POSTROUTING 1 -j throne_nat") })
         assertTrue(cmds.any { it.contains("iptables -t nat -A throne_nat -o tun0 -j MASQUERADE") })
 
         // Must set up IPv6 leak protection DROP
-        assertTrue(cmds.any { it.contains("ip6tables -N throne_fwd6") })
+        assertTrue(cmds.any { it.contains("while ip6tables -D FORWARD -j throne_fwd6") })
         assertTrue(cmds.any { it.contains("ip6tables -I FORWARD 1 -j throne_fwd6") })
         assertTrue(cmds.any { it.contains("ip6tables -A throne_fwd6 -i ap0 -j DROP") })
 
@@ -82,11 +82,28 @@ class RootRulesTest {
     @Test
     fun buildTeardownCommands_flushesAndRemovesChainsAndRules() {
         val cmds = RootRules.buildTeardownCommands()
+        // Jumps removed before chains deleted
+        val jumpRemoveIdx = cmds.indexOfFirst { it.contains("iptables -D FORWARD -j throne_fwd") }
+        val chainDeleteIdx = cmds.indexOfFirst { it.contains("iptables -X throne_fwd") }
+        assertTrue(jumpRemoveIdx in 0..<chainDeleteIdx)
+
         assertTrue(cmds.any { it.contains("ip rule del pref 10099") })
         assertTrue(cmds.any { it.contains("ip rule del pref 10100") })
-        assertTrue(cmds.any { it.contains("iptables -D FORWARD -j throne_fwd") })
-        assertTrue(cmds.any { it.contains("iptables -X throne_fwd") })
         assertTrue(cmds.any { it.contains("iptables -t nat -X throne_nat") })
         assertTrue(cmds.any { it.contains("ip6tables -X throne_fwd6") })
+    }
+
+    @Test
+    fun buildBlockTrafficCommands_configuresFailClosedDrop() {
+        val cmds = RootRules.buildBlockTrafficCommands(listOf("ap0"))
+
+        // Must delete vpn policy routing
+        assertTrue(cmds.any { it.contains("ip rule del pref 10100") })
+        // Must clear nat
+        assertTrue(cmds.any { it.contains("iptables -t nat -X throne_nat") || it.contains("iptables -t nat -F throne_nat") })
+        // Must insert DROP on ap0 in FORWARD and FORWARD_V6
+        assertTrue(cmds.any { it.contains("iptables -A throne_fwd -i ap0 -j DROP") })
+        assertTrue(cmds.any { it.contains("iptables -A throne_fwd -o ap0 -j DROP") })
+        assertTrue(cmds.any { it.contains("ip6tables -A throne_fwd6 -i ap0 -j DROP") })
     }
 }

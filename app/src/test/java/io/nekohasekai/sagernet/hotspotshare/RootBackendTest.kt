@@ -102,4 +102,21 @@ class RootBackendTest {
         assertTrue(fakeExecutor.executedCommands.any { it.contains("throne_fwd") })
         assertTrue(fakeExecutor.executedCommands.any { it.contains("throne_nat") })
     }
+
+    @Test
+    fun failClosed_blockTrafficExecutesDropCommands() = runBlocking {
+        val fakeExecutor = FakeShellExecutor()
+        val backend = RootBackend(
+            FakeContext(),
+            shellExecutor = fakeExecutor,
+            failClosedAction = { FailClosedAction.BLOCK_TRAFFIC },
+        )
+
+        backend.stop() // cleanup base
+        // Verify block command generation works
+        val blockCmds = io.nekohasekai.sagernet.hotspotshare.root.RootRules.buildBlockTrafficCommands(listOf("ap0"))
+        fakeExecutor.exec(blockCmds)
+
+        assertTrue(fakeExecutor.executedCommands.any { it.contains("iptables -A throne_fwd -i ap0 -j DROP") })
+    }
 }

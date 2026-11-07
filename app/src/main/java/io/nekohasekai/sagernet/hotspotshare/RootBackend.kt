@@ -28,6 +28,7 @@ class RootBackend(
     private val context: Context,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
     private val shellExecutor: ShellExecutor = LibsuShellExecutor,
+    private val failClosedAction: () -> FailClosedAction = { FailClosedAction.BLOCK_TRAFFIC },
 ) : HotspotShare {
 
     override val method: ShareMethod = ShareMethod.ROOT
@@ -139,16 +140,40 @@ class RootBackend(
     }
 
     private suspend fun handleVpnDropped() {
-        shellExecutor.exec(RootRules.buildTeardownCommands())
         activeVpn = null
-        appliedIfaces = emptySet()
         unregisterTetherReceiver()
+
+        val action = failClosedAction()
+        if (action == FailClosedAction.STOP_HOTSPOT) {
+            shellExecutor.exec(RootRules.buildTeardownCommands())
+            stopHotspot()
+        } else {
+            // Default: BLOCK_TRAFFIC
+            shellExecutor.exec(RootRules.buildBlockTrafficCommands(appliedIfaces))
+        }
 
         PlatformNotifications.hotspotShareDropped(context)
 
         _state.value = ShareState.Stopped(
             ShareFailure.VPN_LOST,
         )
+    }
+
+    private fun stopHotspot() {
+        try {
+            shellExecutor.exec("cmd wifi stop-softap 2>/dev/null || svc wifi disable-hotspot 2>/dev/null || true")
+        } catch (_: Throwable) {
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                val tm = context.getSystemService("tethering")
+                if (tm != null) {
+                    val method = tm.javaClass.getMethod("stopTethering", Int::class.javaPrimitiveType)
+                    method.invoke(tm, 0)
+                }
+            } catch (_: Throwable) {
+            }
+        }
     }
 
     private fun registerTetherReceiver() {
