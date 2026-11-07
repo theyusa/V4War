@@ -571,6 +571,16 @@ class ConfigGenerator @JvmOverloads constructor(
             }
             inbounds.add(mixed)
         }
+        if (settings.shareSocksInboundEnabled) {
+            inbounds.add(
+                jsonObjectOf(
+                    "tag" to Tags.SHARE_SOCKS_IN,
+                    "type" to "socks",
+                    "listen" to "127.0.0.1",
+                    "listen_port" to settings.shareSocksPort,
+                )
+            )
+        }
         if (settings.vpnMode) inbounds.add(buildTunInbound(state))
         for (item in JsonInput.parseObject(settings.customInboundJson).array("inbounds")) inbounds.add(item)
         state.coreConfig["inbounds"] = inbounds
@@ -1027,7 +1037,11 @@ class ConfigGenerator @JvmOverloads constructor(
             else -> return null
         }
         return jsonObjectOf(
-            "inbound" to JsonArray.of(Tags.DNS_IN, Tags.MIXED_IN, Tags.TUN_IN),
+            "inbound" to if (settings.shareSocksInboundEnabled) {
+                JsonArray.of(Tags.DNS_IN, Tags.MIXED_IN, Tags.TUN_IN, Tags.SHARE_SOCKS_IN)
+            } else {
+                JsonArray.of(Tags.DNS_IN, Tags.MIXED_IN, Tags.TUN_IN)
+            },
             "query_type" to JsonArray.of(dropped),
             "action" to "predefined",
         )
@@ -1111,7 +1125,12 @@ class ConfigGenerator @JvmOverloads constructor(
         }
         rules.add(jsonObjectOf("action" to "sniff"))
         if (settings.resolveDomainStrategy.isNotEmpty()) {
-            rules.add(jsonObjectOf("inbound" to JsonArray.of(Tags.MIXED_IN, Tags.TUN_IN), "action" to "resolve", "strategy" to settings.resolveDomainStrategy))
+            val resolveInbounds = if (settings.shareSocksInboundEnabled) {
+                JsonArray.of(Tags.MIXED_IN, Tags.TUN_IN, Tags.SHARE_SOCKS_IN)
+            } else {
+                JsonArray.of(Tags.MIXED_IN, Tags.TUN_IN)
+            }
+            rules.add(jsonObjectOf("inbound" to resolveInbounds, "action" to "resolve", "strategy" to settings.resolveDomainStrategy))
         }
         rules.add(jsonObjectOf("protocol" to "dns", "action" to "hijack-dns"))
         if (!state.forTest) rules.add(jsonObjectOf("inbound" to Tags.DNS_IN, "action" to "reject"))

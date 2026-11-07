@@ -71,6 +71,8 @@ object SettingsMapper {
             mixedUsername = DataStore.inboundUser,
             mixedPassword = DataStore.inboundPass,
             customInboundJson = DataStore.customInbound,
+            shareSocksInboundEnabled = DataStore.hotspotShareEnabled,
+            shareSocksPort = 2088,
             vpnMode = DataStore.serviceMode == Key.MODE_VPN,
             tunMtu = DataStore.vpnMtu,
             // strict_route is fixed on Android (decision D7).

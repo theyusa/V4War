@@ -24,6 +24,7 @@ internal object Tags {
     const val DNS_IN = "dns-in"
     const val MIXED_IN = "mixed-in"
     const val TUN_IN = "tun-in"
+    const val SHARE_SOCKS_IN = "share-socks-in"
     const val XRAY_FULL_CONFIG_IN = "throne-bridge"
 
     const val MAIN_CHAIN_PREFIX = "config"
