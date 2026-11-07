@@ -1,6 +1,6 @@
 <div align="center">
 
-# Throne for Android · `yusa` çatalı (fork)
+# V4War for Android · `yusa` çatalı (fork)
 
 [🇬🇧 English](README.md) · [🇹🇷 Türkçe](README.tr.md)
 
@@ -22,7 +22,7 @@ Android GUI vektör ve proxy istemcisi — [Sing-box](https://github.com/SagerNe
 Resmi Dokümantasyon: [throneproj.github.io](https://throneproj.github.io)
 
 <p align="center">
-  <a href="https://github.com/theyusa/ThroneForAndroid/releases">
+  <a href="https://github.com/theyusa/V4War/releases">
     <img alt="GitHub Sürümleri" src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F%20%C4%B0ndir-GitHub%20Releases-2088FF?logo=github&logoColor=white&style=for-the-badge" />
   </a>
 </p>

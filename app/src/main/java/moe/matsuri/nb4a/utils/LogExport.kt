@@ -38,7 +38,7 @@ object LogExport {
         SettingsRegistry.CURRENT_ROUTE_ID,
     ).map { it.key } + listOf(Key.PROXY_APPS, Key.BYPASS_MODE, Key.METERED_NETWORK, Key.ALLOW_BYPASS)
 
-    fun fileName(): String = "throne-log-${SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())}.txt"
+    fun fileName(): String = "v4war-log-${SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())}.txt"
 
     /** Writes cacheDir/log/<[fileName]> (shared through the FileProvider). Blocking: call it off the main thread. */
     fun build(context: Context, redact: Boolean, hideDestinations: Boolean): File {
