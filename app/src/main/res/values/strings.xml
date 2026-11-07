@@ -2889,4 +2889,6 @@
     <string name="custom_color_title">Custom Seed Color</string>
     <string name="custom_color_apply">Apply</string>
     <string name="custom_color_hex_hint">e.g. #00E676</string>
+    <string name="hotspot_share_dropped_title">Hotspot Sharing Dropped</string>
+    <string name="hotspot_share_dropped_text">Hotspot sharing stopped unexpectedly. Restart the hotspot to continue sharing.</string>
 </resources>

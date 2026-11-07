@@ -2674,4 +2674,6 @@
     <string name="custom_color_title">Özel Tohum Rengi</string>
     <string name="custom_color_apply">Uygula</string>
     <string name="custom_color_hex_hint">Ör. #00E676</string>
+    <string name="hotspot_share_dropped_title">Hotspot Paylaşımı Düştü</string>
+    <string name="hotspot_share_dropped_text">Hotspot paylaşımı beklenmedik şekilde durdu. Paylaşmaya devam etmek için hotspot\'u yeniden başlatın.</string>
 </resources>

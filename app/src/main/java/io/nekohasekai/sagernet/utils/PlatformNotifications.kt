@@ -21,6 +21,7 @@ object PlatformNotifications {
     private const val ID_WIFI_RULES = 1
     private const val ID_ALWAYS_ON = 2
     private const val ID_HOTSPOT_NO_PREVIOUS = 3
+    private const val ID_HOTSPOT_SHARE_DROPPED = 4
 
     fun wifiRulesInactive(context: Context) = post(
         context, ID_WIFI_RULES, R.string.wifi_rules_inactive_title, R.string.wifi_rules_inactive_text,
@@ -35,6 +36,13 @@ object PlatformNotifications {
     )
 
     fun cancelAlwaysOnNoProfile(context: Context) = cancel(context, ID_ALWAYS_ON)
+
+    fun hotspotShareDropped(context: Context) = post(
+        context, ID_HOTSPOT_SHARE_DROPPED, R.string.hotspot_share_dropped_title,
+        R.string.hotspot_share_dropped_text, mainIntent(context),
+    )
+
+    fun cancelHotspotShareDropped(context: Context) = cancel(context, ID_HOTSPOT_SHARE_DROPPED)
 
     /**
      * The hotspot was lost and there is no previous profile to return to: Throne keeps running with the current

@@ -181,9 +181,23 @@ class ShizukuBackend(
     private suspend fun handleUnexpectedServiceDeath() {
         hevTunnel.stop()
         userService = null
+        var recovered = false
+        try {
+            val recoveryService = bindService()
+            recoveryService.cleanupDirtyState()
+            unbindService()
+            recovered = true
+        } catch (_: Throwable) {
+        }
+
+        if (!recovered) {
+            io.nekohasekai.sagernet.utils.PlatformNotifications.hotspotShareDropped(context)
+        }
+
         _state.value = ShareState.Error(
             ShareFailure.BACKEND_DIED,
-            "Shizuku UserService died unexpectedly. Hotspot reverted to normal."
+            if (recovered) "Paylaşım servisi kapandı ve hotspot temizlendi."
+            else "Paylaşım düştü, hotspot yeniden başlatılmalı!"
         )
     }
 
@@ -229,10 +243,31 @@ class ShizukuBackend(
         userService = null
     }
 
-    private fun isShizukuAvailableAndGranted(): Boolean {
-        return try {
-            Shizuku.pingBinder() && Shizuku.checkSelfPermission() == android.content.pm.PackageManager.PERMISSION_GRANTED
-        } catch (_: Throwable) {
+    private suspend fun isShizukuAvailableAndGranted(): Boolean = withContext(Dispatchers.IO) {
+        if (!Shizuku.pingBinder()) {
+            val binderDeferred = CompletableDeferred<Boolean>()
+            val listener = Shizuku.OnBinderReceivedListener {
+                binderDeferred.complete(true)
+            }
+            Shizuku.addBinderReceivedListenerSticky(listener)
+            withTimeoutOrNull(3000) {
+                binderDeferred.await()
+            }
+            Shizuku.removeBinderReceivedListener(listener)
+        }
+
+        if (!Shizuku.pingBinder()) {
+            android.util.Log.e("ShizukuBackend", "Shizuku binder is not available (pingBinder=false)")
+            return@withContext false
+        }
+
+        try {
+            val perm = Shizuku.checkSelfPermission()
+            val granted = perm == android.content.pm.PackageManager.PERMISSION_GRANTED
+            android.util.Log.i("ShizukuBackend", "Shizuku.checkSelfPermission() = $perm, granted = $granted")
+            granted
+        } catch (t: Throwable) {
+            android.util.Log.e("ShizukuBackend", "Shizuku.checkSelfPermission() threw: ${t.message}", t)
             false
         }
     }
