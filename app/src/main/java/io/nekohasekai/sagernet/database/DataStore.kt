@@ -197,6 +197,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     // hotspot share (server side): the switch, the method choice and the state record the :bg process publishes
     var hotspotShareEnabled by SettingsRegistry.HOTSPOT_SHARE_ENABLED
     var hotspotShareMethod by SettingsRegistry.HOTSPOT_SHARE_METHOD
+    var hotspotShareFailClosed by SettingsRegistry.HOTSPOT_SHARE_FAIL_CLOSED
     var hotspotShareStatus by SettingsRegistry.HOTSPOT_SHARE_STATUS
     var hotspotShareStatusMethod by SettingsRegistry.HOTSPOT_SHARE_STATUS_METHOD
     var hotspotShareStatusReason by SettingsRegistry.HOTSPOT_SHARE_STATUS_REASON

@@ -178,6 +178,11 @@ class ShizukuBackend(
         }
     }
 
+    fun getTrafficStats(): Pair<Long, Long>? {
+        val stats = hevTunnel.getStats()
+        return if (stats.size >= 4) Pair(stats[3], stats[1]) else null
+    }
+
     private suspend fun handleUnexpectedServiceDeath() {
         hevTunnel.stop()
         userService = null
@@ -269,6 +274,25 @@ class ShizukuBackend(
         } catch (t: Throwable) {
             android.util.Log.e("ShizukuBackend", "Shizuku.checkSelfPermission() threw: ${t.message}", t)
             false
+        }
+    }
+
+    companion object {
+        fun isShizukuRunning(): Boolean {
+            return try {
+                Shizuku.pingBinder()
+            } catch (_: Throwable) {
+                false
+            }
+        }
+
+        fun isShizukuGranted(context: Context): Boolean {
+            return try {
+                if (!isShizukuRunning()) return false
+                Shizuku.checkSelfPermission() == android.content.pm.PackageManager.PERMISSION_GRANTED
+            } catch (_: Throwable) {
+                false
+            }
         }
     }
 }

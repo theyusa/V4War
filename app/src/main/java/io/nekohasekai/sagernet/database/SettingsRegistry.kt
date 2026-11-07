@@ -197,6 +197,8 @@ object SettingsRegistry {
     @JvmField val HOTSPOT_SHARE_ENABLED = bool("hotspot_share_enabled", false)
     /** auto | shizuku | root | lan_proxy ([io.nekohasekai.sagernet.hotspotshare.SharePreference.code]). */
     @JvmField val HOTSPOT_SHARE_METHOD = oneOf("hotspot_share_method", "auto", listOf("auto", "shizuku", "root", "lan_proxy"))
+    /** block | stop ([io.nekohasekai.sagernet.hotspotshare.FailClosedAction.code]). */
+    @JvmField val HOTSPOT_SHARE_FAIL_CLOSED = oneOf("hotspot_share_fail_closed", "block", listOf("block", "stop"))
     /** The state record the UI process renders (ShareStateCodec), written by the :bg process. */
     @JvmField val HOTSPOT_SHARE_STATUS = string("hotspot_share_status", "off")
     @JvmField val HOTSPOT_SHARE_STATUS_METHOD = string("hotspot_share_status_method", "")
@@ -441,7 +443,7 @@ object SettingsRegistry {
         HOTSPOT_GATEWAY_STATUS_GATEWAY.key, HOTSPOT_GATEWAY_STATUS_PORT.key, HOTSPOT_GATEWAY_STATUS_UPDATED_AT.key,
         HOTSPOT_GATEWAY_STOP_ON_LOSS.key, HOTSPOT_GATEWAY_AUTO_SWITCH.key,
         // Hotspot share is bound to this device's Shizuku/root/hotspot state, so a backup never carries it.
-        HOTSPOT_SHARE_ENABLED.key, HOTSPOT_SHARE_METHOD.key, HOTSPOT_SHARE_STATUS.key,
+        HOTSPOT_SHARE_ENABLED.key, HOTSPOT_SHARE_METHOD.key, HOTSPOT_SHARE_FAIL_CLOSED.key, HOTSPOT_SHARE_STATUS.key,
         HOTSPOT_SHARE_STATUS_METHOD.key, HOTSPOT_SHARE_STATUS_REASON.key, HOTSPOT_SHARE_STATUS_UPDATED_AT.key,
     )
 

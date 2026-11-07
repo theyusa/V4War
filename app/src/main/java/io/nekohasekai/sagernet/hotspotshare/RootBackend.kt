@@ -41,6 +41,8 @@ class RootBackend(
     private var activeVpn: VpnRouteInfo? = null
     private var appliedIfaces = setOf<String>()
 
+    val activeInterfaces: Set<String> get() = appliedIfaces
+
     suspend fun isAvailable(): Boolean = withContext(Dispatchers.IO) {
         shellExecutor.isRoot()
     }
@@ -139,11 +141,10 @@ class RootBackend(
         watcherJob = null
     }
 
-    private suspend fun handleVpnDropped() {
+    suspend fun handleVpnDropped(action: FailClosedAction = failClosedAction()) {
         activeVpn = null
         unregisterTetherReceiver()
 
-        val action = failClosedAction()
         if (action == FailClosedAction.STOP_HOTSPOT) {
             shellExecutor.exec(RootRules.buildTeardownCommands())
             stopHotspot()
@@ -209,6 +210,15 @@ class RootBackend(
     }
 
     companion object {
+        fun isRootAvailable(): Boolean {
+            return try {
+                com.topjohnwu.superuser.Shell.isAppGrantedRoot() == true ||
+                    com.topjohnwu.superuser.Shell.cmd("id").exec().isSuccess
+            } catch (_: Throwable) {
+                false
+            }
+        }
+
         fun cleanupLegacyRules(executor: ShellExecutor = LibsuShellExecutor) {
             try {
                 if (executor.isRoot()) {
