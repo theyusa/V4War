@@ -194,6 +194,14 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var hotspotGatewayStopOnLoss by SettingsRegistry.HOTSPOT_GATEWAY_STOP_ON_LOSS
     var hotspotGatewayAutoSwitch by SettingsRegistry.HOTSPOT_GATEWAY_AUTO_SWITCH
 
+    // hotspot share (server side): the switch, the method choice and the state record the :bg process publishes
+    var hotspotShareEnabled by SettingsRegistry.HOTSPOT_SHARE_ENABLED
+    var hotspotShareMethod by SettingsRegistry.HOTSPOT_SHARE_METHOD
+    var hotspotShareStatus by SettingsRegistry.HOTSPOT_SHARE_STATUS
+    var hotspotShareStatusMethod by SettingsRegistry.HOTSPOT_SHARE_STATUS_METHOD
+    var hotspotShareStatusReason by SettingsRegistry.HOTSPOT_SHARE_STATUS_REASON
+    var hotspotShareStatusUpdatedAt by SettingsRegistry.HOTSPOT_SHARE_STATUS_UPDATED_AT
+
     /** disable_mixed_inbound only applies in VPN mode: the proxy-only service mode needs the mixed inbound. */
     val mixedInboundDisabled: Boolean
         get() = disableMixedInbound && serviceMode == Key.MODE_VPN

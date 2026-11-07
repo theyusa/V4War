@@ -191,6 +191,18 @@ object SettingsRegistry {
     @JvmField val HOTSPOT_GATEWAY_STOP_ON_LOSS = bool("hotspot_gateway_stop_on_loss", false)
     @JvmField val HOTSPOT_GATEWAY_AUTO_SWITCH = bool("hotspot_gateway_auto_switch", false)
 
+    // ------------------------------------------------------------------------------------------------ hotspot share
+
+    /** "Share VPN over hotspot" (server side; unrelated to the Hotspot Gateway client above). */
+    @JvmField val HOTSPOT_SHARE_ENABLED = bool("hotspot_share_enabled", false)
+    /** auto | shizuku | root | lan_proxy ([io.nekohasekai.sagernet.hotspotshare.SharePreference.code]). */
+    @JvmField val HOTSPOT_SHARE_METHOD = oneOf("hotspot_share_method", "auto", listOf("auto", "shizuku", "root", "lan_proxy"))
+    /** The state record the UI process renders (ShareStateCodec), written by the :bg process. */
+    @JvmField val HOTSPOT_SHARE_STATUS = string("hotspot_share_status", "off")
+    @JvmField val HOTSPOT_SHARE_STATUS_METHOD = string("hotspot_share_status_method", "")
+    @JvmField val HOTSPOT_SHARE_STATUS_REASON = string("hotspot_share_status_reason", "")
+    @JvmField val HOTSPOT_SHARE_STATUS_UPDATED_AT = long("hotspot_share_status_updated_at", 0L) { it >= 0 }
+
     // ------------------------------------------------------------------------------------------------ tun
 
     /** Android 9000 (decision D2; desktop 1500). */
@@ -428,6 +440,9 @@ object SettingsRegistry {
         HOTSPOT_GATEWAY_CONFIG_FINGERPRINT.key, HOTSPOT_GATEWAY_APPLIED_FINGERPRINT.key, HOTSPOT_GATEWAY_LAST_RELOAD_AT.key, HOTSPOT_GATEWAY_STATUS.key,
         HOTSPOT_GATEWAY_STATUS_GATEWAY.key, HOTSPOT_GATEWAY_STATUS_PORT.key, HOTSPOT_GATEWAY_STATUS_UPDATED_AT.key,
         HOTSPOT_GATEWAY_STOP_ON_LOSS.key, HOTSPOT_GATEWAY_AUTO_SWITCH.key,
+        // Hotspot share is bound to this device's Shizuku/root/hotspot state, so a backup never carries it.
+        HOTSPOT_SHARE_ENABLED.key, HOTSPOT_SHARE_METHOD.key, HOTSPOT_SHARE_STATUS.key,
+        HOTSPOT_SHARE_STATUS_METHOD.key, HOTSPOT_SHARE_STATUS_REASON.key, HOTSPOT_SHARE_STATUS_UPDATED_AT.key,
     )
 
     // ------------------------------------------------------------------------------------------------ lookup
