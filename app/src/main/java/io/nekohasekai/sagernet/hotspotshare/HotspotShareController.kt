@@ -64,7 +64,8 @@ class HotspotShareController(
     }
 
     /**
-     * Proactively cleans up leftover test networks and tethering state on app startup or crash recovery.
+     * Proactively cleans up leftover test networks, tethering state, and legacy iptables rules
+     * on app startup or crash recovery.
      */
     suspend fun recoverDirtyState() = mutex.withLock {
         try {
@@ -75,6 +76,11 @@ class HotspotShareController(
                     backend.recoverDirtyState()
                 }
             }
+        } catch (_: Exception) {
+        }
+
+        try {
+            RootBackend.cleanupLegacyRules()
         } catch (_: Exception) {
         }
     }
