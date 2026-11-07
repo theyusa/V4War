@@ -95,7 +95,7 @@
     <string name="stun_action_start">Start</string>
     <string name="stun_action_cancel">Cancel</string>
     <string name="stun_vpn_warning_title">VPN active</string>
-    <string name="stun_vpn_warning_summary">Throne VPN is currently active. The test reflects the VPN tunnel\'s NAT behavior rather than your physical network.</string>
+    <string name="stun_vpn_warning_summary">V4War VPN is currently active. The test reflects the VPN tunnel\'s NAT behavior rather than your physical network.</string>
     <string name="stun_test_physical_network">Test via physical network</string>
     <string name="stun_test_physical_network_summary">Bypasses VPN tunnel using direct socket binding to the underlying physical network.</string>
     <string name="stun_no_physical_network">No physical network with internet access found.</string>
