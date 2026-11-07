@@ -151,7 +151,10 @@ internal class RowContent(
                 head += "$latency${NBSP}ms"
                 headSpoken += "$latency ms"
             }
-            if (head.isNotEmpty()) items += Item(head.joinToString(NBSP), color, headSpoken.joinToString(", "))
+            if (head.isNotEmpty()) {
+                val headText = if (latency <= 0) head.joinToString(NBSP) + NBSP else head.joinToString(NBSP)
+                items += Item(headText, color, headSpoken.joinToString(", "))
+            }
             if (show.showSpeed) speeds(context, profile.dlSpeed, profile.ulSpeed, secondary)?.let { items += it }
             val ip = profile.ipOut.orEmpty()
             if (show.showIp && ip.isNotEmpty()) {

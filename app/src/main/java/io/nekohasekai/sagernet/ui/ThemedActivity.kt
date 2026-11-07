@@ -119,6 +119,11 @@ abstract class ThemedActivity : AppCompatActivity {
         view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text).apply {
             maxLines = 10
         }
+        if (Theme.isBlackTheme(this@ThemedActivity)) {
+            setBackgroundTint(Color.parseColor("#181818"))
+            setTextColor(Color.WHITE)
+            setActionTextColor(getColorAttr(androidx.appcompat.R.attr.colorPrimary))
+        }
     }
 
     internal open fun snackbarInternal(text: CharSequence): Snackbar =

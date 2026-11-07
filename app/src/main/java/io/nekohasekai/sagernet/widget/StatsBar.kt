@@ -511,7 +511,7 @@ class StatsBar @JvmOverloads constructor(
                 Logs.w(e.toString())
                 onMainDispatcher {
                     isEnabled = true
-                    setStatus(app.getText(R.string.connection_test_testing))
+                    setStatus(app.getText(R.string.vpn_connected))
 
                     activity.snackbar(
                         app.getString(
