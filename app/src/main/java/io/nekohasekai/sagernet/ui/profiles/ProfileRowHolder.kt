@@ -396,7 +396,7 @@ internal class ProfileRowHolder(view: View, private val adapter: ProfileListAdap
                 card.strokeColor = strokeColor
                 card.strokeWidth = dp2px(2)
             } else {
-                card.strokeColor = if (strokeColor == Color.WHITE) Color.parseColor("#33FFFFFF") else ColorUtils.setAlphaComponent(strokeColor, 80)
+                card.strokeColor = androidx.core.content.ContextCompat.getColor(context, R.color.card_stroke)
                 card.strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
             }
         } else {

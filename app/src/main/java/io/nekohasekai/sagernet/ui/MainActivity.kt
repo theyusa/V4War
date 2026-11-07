@@ -151,6 +151,7 @@ class MainActivity : ThemedActivity(),
         navigation.setBackgroundColor(drawerBgColor)
         navigation.backgroundTintList = ColorStateList.valueOf(drawerBgColor)
         ExpressiveSettingsHelper.applyDrawerMaskedIcons(navigation, this)
+        navigation.getHeaderView(0)?.findViewById<android.widget.TextView>(R.id.drawerVersionBadge)?.text = "v${BuildConfig.VERSION_NAME}"
         navigation.setNavigationItemSelectedListener(this)
         // NavigationView pads its header and menu itself (top/bottom); its side follows side bars and cutouts.
         ViewCompat.setOnApplyWindowInsetsListener(binding.drawerLayout) { _, insets ->

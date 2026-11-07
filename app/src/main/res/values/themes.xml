@@ -196,6 +196,7 @@
     </style>
 
     <style name="ThemeOverlay.MaterialComponents.MaterialAlertDialog.SagerNet">
+        <item name="colorSurface">?attr/cardElevatedSurfaceColor</item>
         <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.SagerNet.Dialog</item>
         <item name="buttonBarPositiveButtonStyle">
             @style/Widget.MaterialComponents.Button.TextButton.Dialog.Primary
@@ -230,7 +231,7 @@
         <item name="cardCornerRadius">@dimen/profile_card_corner_radius</item>
         <item name="strokeColor">@color/card_stroke</item>
         <item name="strokeWidth">@dimen/card_stroke_width</item>
-        <item name="cardBackgroundColor">?attr/colorSurface</item>
+        <item name="cardBackgroundColor">?attr/cardElevatedSurfaceColor</item>
     </style>
 
     <!-- MD3 Immersive AppBar & Toolbar styles -->
@@ -429,6 +430,7 @@
         <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.SagerNet.BottomSheet</item>
     </style>
     <style name="ThemeOverlay.SagerNet.BottomSheetDialog" parent="ThemeOverlay.MaterialComponents.BottomSheetDialog">
+        <item name="colorSurface">?attr/cardElevatedSurfaceColor</item>
         <item name="bottomSheetStyle">@style/Widget.SagerNet.BottomSheet</item>
     </style>
 
@@ -845,7 +847,7 @@
         <item name="android:windowBackground">@color/black</item>
         <item name="colorSurface">@color/black</item>
         <item name="cardElevatedSurfaceColor">@color/color_black_theme_card_elevated</item>
-        <item name="profileCardStrokeColor">?attr/colorPrimary</item>
+        <item name="profileCardStrokeColor">@color/card_stroke</item>
         <item name="android:textColorPrimary">@color/white</item>
         <item name="android:textColorSecondary">@color/color_black_theme_text_secondary</item>
         <item name="android:textColorTertiary">@color/color_black_theme_text_tertiary</item>
@@ -968,7 +970,7 @@
         <item name="colorMaterial100">@color/color_black_theme_material_100</item>
         <item name="colorMaterial300">@color/color_black_theme_material_300</item>
         <item name="cardElevatedSurfaceColor">@color/color_black_theme_card_elevated</item>
-        <item name="profileCardStrokeColor">?attr/colorPrimary</item>
+        <item name="profileCardStrokeColor">@color/card_stroke</item>
         <item name="selectedColorPrimary">@color/white</item>
         <item name="fabColorBackground">@color/color_black_theme_fab</item>
         <item name="itemShapeFillColor">@color/color_black_theme_item_shape</item>
@@ -1028,6 +1030,10 @@
 
     <style name="Theme.SagerNet.Dialog.Monet" parent="Theme.SagerNet.Dialog" />
 
+    <style name="Theme.SagerNet.Amoled.Monet" parent="Theme.SagerNet.Amoled" />
+
+    <style name="Theme.SagerNet.Dialog.Amoled.Monet" parent="Theme.SagerNet.Dialog.Amoled" />
+
     <style name="Theme.Start" parent="Theme.SagerNet">
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="colorPrimary">@android:color/transparent</item>
@@ -1038,194 +1044,296 @@
         <item name="windowNoTitle">true</item>
     </style>
 
+    <!-- MD3 Expressive AMOLED Base Theme & Toolbar -->
+    <style name="ThemeOverlay.SagerNet.Toolbar.Amoled" parent="ThemeOverlay.MaterialComponents.Toolbar.Surface">
+        <item name="colorControlNormal">?android:attr/textColorPrimary</item>
+        <item name="actionMenuTextColor">?android:attr/textColorPrimary</item>
+        <item name="colorSurface">@color/black</item>
+        <item name="android:colorBackground">@color/black</item>
+        <item name="actionBarPopupTheme">@style/ThemeOverlay.SagerNet.Popup</item>
+        <item name="actionButtonStyle">@style/Widget.SagerNet.ActionButton</item>
+        <item name="actionOverflowButtonStyle">@style/Widget.SagerNet.ActionOverflowButton</item>
+        <item name="toolbarNavigationButtonStyle">@style/Widget.SagerNet.ToolbarNavigationButton</item>
+    </style>
+
     <style name="Theme.SagerNet.Amoled" parent="Theme.SagerNet">
-        <item name="fabColorBackground">@color/color_black_theme_fab</item>
-        <item name="elevationOverlayEnabled">false</item>
-        <item name="dialogButtonColor">@color/white</item>
+        <!-- 100% Pure Black Background (Tone 1: Derin Zemin) -->
         <item name="android:colorBackground">@color/black</item>
         <item name="android:windowBackground">@color/black</item>
+        <item name="android:statusBarColor">@color/black</item>
+        <item name="android:navigationBarColor">@color/black</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="colorSurface">@color/black</item>
-        <item name="cardElevatedSurfaceColor">@color/color_amoled_card_elevated</item>
+        <item name="colorSurfaceVariant">@color/color_black_theme_card_elevated</item>
+
+        <!-- Elevated Cards & Container Boxes (Tone 2: Kart Kutusu: #121212) -->
+        <item name="cardElevatedSurfaceColor">@color/color_black_theme_card_elevated</item>
+        <item name="colorOutline">@color/card_stroke</item>
+        <item name="profileCardStrokeColor">@color/card_stroke</item>
+        <item name="itemShapeFillColor">@color/color_black_theme_item_shape</item>
+
+        <!-- High-Contrast Clean Typography -->
         <item name="android:textColorPrimary">@color/white</item>
-        <item name="android:textColorSecondary">@color/color_amoled_text_secondary</item>
-        <item name="android:textColorTertiary">@color/color_amoled_text_tertiary</item>
+        <item name="android:textColorSecondary">@color/color_black_theme_text_secondary</item>
+        <item name="android:textColorTertiary">@color/color_black_theme_text_tertiary</item>
         <item name="colorOnSurface">@color/white</item>
-        <item name="colorOnSurfaceVariant">@color/color_amoled_text_secondary</item>
+        <item name="colorOnSurfaceVariant">@color/color_black_theme_text_secondary</item>
         <item name="colorOnPrimary">@color/black</item>
-        <item name="colorPrimary">@color/white</item>
-        <item name="colorAccent">@color/white</item>
-        <item name="selectedColorPrimary">@color/white</item>
-        <item name="primaryOrTextPrimary">@color/white</item>
-        <item name="primaryOrTextSecondary">@color/color_amoled_text_secondary</item>
-        <item name="accentOrTextPrimary">@color/white</item>
-        <item name="accentOrTextSecondary">@color/color_amoled_text_secondary</item>
+
+        <!-- Tabs: Clean secondary unselected, accent selected -->
+        <item name="tabTextColor">@color/color_black_theme_tab_unselected</item>
+        <item name="tabSelectedTextColor">?colorPrimary</item>
+        <item name="tabIndicatorColor">?colorPrimary</item>
+        <item name="tabRippleColor">?colorPrimary</item>
+
+        <!-- Dynamic Seed Accent attributes (Tone 3: Canli Vurgu) -->
+        <item name="primaryOrTextPrimary">?colorPrimary</item>
+        <item name="primaryOrTextSecondary">?colorPrimary</item>
+        <item name="accentOrTextPrimary">?colorAccent</item>
+        <item name="accentOrTextSecondary">?colorAccent</item>
+        <item name="whiteOrTextPrimary">@color/white</item>
+        <item name="dialogButtonColor">?colorPrimary</item>
+        <item name="selectedColorPrimary">?colorPrimary</item>
+        <item name="fabColorBackground">?colorPrimary</item>
+        <item name="colorControlActivated">?colorPrimary</item>
+
+        <item name="elevationOverlayEnabled">false</item>
+        <item name="actionBarTheme">@style/ThemeOverlay.SagerNet.Toolbar.Amoled</item>
+        <item name="actionBarPopupTheme">@style/ThemeOverlay.SagerNet.Popup</item>
+        <item name="appBarLayoutStyle">@style/Widget.SagerNet.AppBarLayout.Black</item>
     </style>
 
     <!-- AMOLED Seed Color Variants (100% Pure Black Background + Vibrant Seed Accent) -->
-    <style name="Theme.SagerNet.Amoled.Red" parent="Theme.SagerNet.Black">
+    <style name="Theme.SagerNet.Amoled.Red" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/material_red_accent_200</item>
+        <item name="colorPrimaryDark">@color/material_red_700</item>
+        <item name="colorAccent">@color/material_red_accent_200</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.VerdantMint" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/color_verdant_mint_accent</item>
+        <item name="colorPrimaryDark">@color/color_verdant_mint_dark</item>
+        <item name="colorAccent">@color/color_verdant_mint_accent</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.Blue" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/material_blue_accent_200</item>
+        <item name="colorPrimaryDark">@color/material_blue_700</item>
+        <item name="colorAccent">@color/material_blue_accent_200</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.LightBlue" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/material_light_blue_accent_200</item>
+        <item name="colorPrimaryDark">@color/material_light_blue_700</item>
+        <item name="colorAccent">@color/material_light_blue_accent_200</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.Cyan" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/material_cyan_accent_200</item>
+        <item name="colorPrimaryDark">@color/material_cyan_700</item>
+        <item name="colorAccent">@color/material_cyan_accent_200</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.Teal" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/material_teal_accent_200</item>
+        <item name="colorPrimaryDark">@color/material_teal_700</item>
+        <item name="colorAccent">@color/material_teal_accent_200</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.Green" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/material_green_accent_200</item>
+        <item name="colorPrimaryDark">@color/material_green_700</item>
+        <item name="colorAccent">@color/material_green_accent_200</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.LightGreen" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/material_light_green_accent_200</item>
+        <item name="colorPrimaryDark">@color/material_light_green_700</item>
+        <item name="colorAccent">@color/material_light_green_accent_200</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.Lime" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/material_lime_accent_200</item>
+        <item name="colorPrimaryDark">@color/material_lime_700</item>
+        <item name="colorAccent">@color/material_lime_accent_200</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.Yellow" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/material_yellow_accent_200</item>
+        <item name="colorPrimaryDark">@color/material_yellow_700</item>
+        <item name="colorAccent">@color/material_yellow_accent_200</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.Amber" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/material_amber_accent_200</item>
+        <item name="colorPrimaryDark">@color/material_amber_700</item>
+        <item name="colorAccent">@color/material_amber_accent_200</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.Orange" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/material_orange_accent_200</item>
+        <item name="colorPrimaryDark">@color/material_orange_700</item>
+        <item name="colorAccent">@color/material_orange_accent_200</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.DeepOrange" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/material_deep_orange_accent_200</item>
+        <item name="colorPrimaryDark">@color/material_deep_orange_700</item>
+        <item name="colorAccent">@color/material_deep_orange_accent_200</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.Purple" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/material_purple_accent_200</item>
+        <item name="colorPrimaryDark">@color/material_purple_700</item>
+        <item name="colorAccent">@color/material_purple_accent_200</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.DeepPurple" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/material_deep_purple_accent_200</item>
+        <item name="colorPrimaryDark">@color/material_deep_purple_700</item>
+        <item name="colorAccent">@color/material_deep_purple_accent_200</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.Indigo" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/material_indigo_accent_200</item>
+        <item name="colorPrimaryDark">@color/material_indigo_700</item>
+        <item name="colorAccent">@color/material_indigo_accent_200</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.Pink" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/material_pink_accent_200</item>
+        <item name="colorPrimaryDark">@color/material_pink_700</item>
+        <item name="colorAccent">@color/material_pink_accent_200</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.PinkSSR" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/color_pink_ssr</item>
+        <item name="colorPrimaryDark">@color/color_pink_ssr</item>
+        <item name="colorAccent">@color/color_pink_ssr</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.Brown" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/dialog_button_brown</item>
+        <item name="colorPrimaryDark">@color/material_brown_700</item>
+        <item name="colorAccent">@color/dialog_button_brown</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.Grey" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/md3_text_primary</item>
+        <item name="colorPrimaryDark">@color/material_grey_700</item>
+        <item name="colorAccent">@color/md3_text_primary</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.BlueGrey" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/dialog_button_blue_grey</item>
+        <item name="colorPrimaryDark">@color/material_blue_grey_700</item>
+        <item name="colorAccent">@color/dialog_button_blue_grey</item>
+    </style>
+
+    <!-- Dialog AMOLED base & seed variants -->
+    <style name="Theme.SagerNet.Dialog.Amoled" parent="Theme.SagerNet.Dialog">
+        <item name="colorSurface">@color/color_black_theme_card_elevated</item>
+        <item name="cardElevatedSurfaceColor">@color/color_black_theme_card_elevated</item>
+        <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:textColorSecondary">@color/color_black_theme_text_secondary</item>
+        <item name="colorOnSurface">@color/white</item>
+        <item name="colorOnSurfaceVariant">@color/color_black_theme_text_secondary</item>
+        <item name="primaryOrTextPrimary">?colorPrimary</item>
+        <item name="primaryOrTextSecondary">?colorPrimary</item>
+        <item name="accentOrTextPrimary">?colorAccent</item>
+        <item name="accentOrTextSecondary">?colorAccent</item>
+        <item name="dialogButtonColor">?colorPrimary</item>
+        <item name="colorControlActivated">?colorPrimary</item>
+    </style>
+
+    <style name="Theme.SagerNet.Dialog.Amoled.Red" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_red_accent_200</item>
         <item name="colorAccent">@color/material_red_accent_200</item>
-        <item name="tabSelectedTextColor">@color/material_red_accent_200</item>
-        <item name="tabIndicatorColor">@color/material_red_accent_200</item>
-        <item name="fabColorBackground">@color/material_red_accent_200</item>
-        <item name="selectedColorPrimary">@color/material_red_accent_200</item>
-        <item name="colorControlActivated">@color/material_red_accent_200</item>
-        <item name="dialogButtonColor">@color/material_red_accent_200</item>
     </style>
-
-    <style name="Theme.SagerNet.Amoled.VerdantMint" parent="Theme.SagerNet.Black">
+    <style name="Theme.SagerNet.Dialog.Amoled.VerdantMint" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/color_verdant_mint_accent</item>
         <item name="colorAccent">@color/color_verdant_mint_accent</item>
-        <item name="tabSelectedTextColor">@color/color_verdant_mint_accent</item>
-        <item name="tabIndicatorColor">@color/color_verdant_mint_accent</item>
-        <item name="fabColorBackground">@color/color_verdant_mint_accent</item>
-        <item name="selectedColorPrimary">@color/color_verdant_mint_accent</item>
-        <item name="colorControlActivated">@color/color_verdant_mint_accent</item>
-        <item name="dialogButtonColor">@color/color_verdant_mint_accent</item>
     </style>
-
-    <style name="Theme.SagerNet.Amoled.Blue" parent="Theme.SagerNet.Black">
+    <style name="Theme.SagerNet.Dialog.Amoled.Blue" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_blue_accent_200</item>
         <item name="colorAccent">@color/material_blue_accent_200</item>
-        <item name="tabSelectedTextColor">@color/material_blue_accent_200</item>
-        <item name="tabIndicatorColor">@color/material_blue_accent_200</item>
-        <item name="fabColorBackground">@color/material_blue_accent_200</item>
-        <item name="selectedColorPrimary">@color/material_blue_accent_200</item>
-        <item name="colorControlActivated">@color/material_blue_accent_200</item>
-        <item name="dialogButtonColor">@color/material_blue_accent_200</item>
     </style>
-
-    <style name="Theme.SagerNet.Amoled.Purple" parent="Theme.SagerNet.Black">
-        <item name="colorPrimary">@color/material_purple_accent_200</item>
-        <item name="colorAccent">@color/material_purple_accent_200</item>
-        <item name="tabSelectedTextColor">@color/material_purple_accent_200</item>
-        <item name="tabIndicatorColor">@color/material_purple_accent_200</item>
-        <item name="fabColorBackground">@color/material_purple_accent_200</item>
-        <item name="selectedColorPrimary">@color/material_purple_accent_200</item>
-        <item name="colorControlActivated">@color/material_purple_accent_200</item>
-        <item name="dialogButtonColor">@color/material_purple_accent_200</item>
+    <style name="Theme.SagerNet.Dialog.Amoled.LightBlue" parent="Theme.SagerNet.Dialog.Amoled">
+        <item name="colorPrimary">@color/material_light_blue_accent_200</item>
+        <item name="colorAccent">@color/material_light_blue_accent_200</item>
     </style>
-
-    <style name="Theme.SagerNet.Amoled.Orange" parent="Theme.SagerNet.Black">
-        <item name="colorPrimary">@color/material_orange_accent_200</item>
-        <item name="colorAccent">@color/material_orange_accent_200</item>
-        <item name="tabSelectedTextColor">@color/material_orange_accent_200</item>
-        <item name="tabIndicatorColor">@color/material_orange_accent_200</item>
-        <item name="fabColorBackground">@color/material_orange_accent_200</item>
-        <item name="selectedColorPrimary">@color/material_orange_accent_200</item>
-        <item name="colorControlActivated">@color/material_orange_accent_200</item>
-        <item name="dialogButtonColor">@color/material_orange_accent_200</item>
+    <style name="Theme.SagerNet.Dialog.Amoled.Cyan" parent="Theme.SagerNet.Dialog.Amoled">
+        <item name="colorPrimary">@color/material_cyan_accent_200</item>
+        <item name="colorAccent">@color/material_cyan_accent_200</item>
     </style>
-
-    <style name="Theme.SagerNet.Amoled.Teal" parent="Theme.SagerNet.Black">
+    <style name="Theme.SagerNet.Dialog.Amoled.Teal" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_teal_accent_200</item>
         <item name="colorAccent">@color/material_teal_accent_200</item>
-        <item name="tabSelectedTextColor">@color/material_teal_accent_200</item>
-        <item name="tabIndicatorColor">@color/material_teal_accent_200</item>
-        <item name="fabColorBackground">@color/material_teal_accent_200</item>
-        <item name="selectedColorPrimary">@color/material_teal_accent_200</item>
-        <item name="colorControlActivated">@color/material_teal_accent_200</item>
-        <item name="dialogButtonColor">@color/material_teal_accent_200</item>
     </style>
-
-    <style name="Theme.SagerNet.Amoled.Green" parent="Theme.SagerNet.Black">
+    <style name="Theme.SagerNet.Dialog.Amoled.Green" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_green_accent_200</item>
         <item name="colorAccent">@color/material_green_accent_200</item>
-        <item name="tabSelectedTextColor">@color/material_green_accent_200</item>
-        <item name="tabIndicatorColor">@color/material_green_accent_200</item>
-        <item name="fabColorBackground">@color/material_green_accent_200</item>
-        <item name="selectedColorPrimary">@color/material_green_accent_200</item>
-        <item name="colorControlActivated">@color/material_green_accent_200</item>
-        <item name="dialogButtonColor">@color/material_green_accent_200</item>
     </style>
-
-    <style name="Theme.SagerNet.Amoled.Pink" parent="Theme.SagerNet.Black">
-        <item name="colorPrimary">@color/material_pink_accent_200</item>
-        <item name="colorAccent">@color/material_pink_accent_200</item>
-        <item name="tabSelectedTextColor">@color/material_pink_accent_200</item>
-        <item name="tabIndicatorColor">@color/material_pink_accent_200</item>
-        <item name="fabColorBackground">@color/material_pink_accent_200</item>
-        <item name="selectedColorPrimary">@color/material_pink_accent_200</item>
-        <item name="colorControlActivated">@color/material_pink_accent_200</item>
-        <item name="dialogButtonColor">@color/material_pink_accent_200</item>
+    <style name="Theme.SagerNet.Dialog.Amoled.LightGreen" parent="Theme.SagerNet.Dialog.Amoled">
+        <item name="colorPrimary">@color/material_light_green_accent_200</item>
+        <item name="colorAccent">@color/material_light_green_accent_200</item>
     </style>
-
-    <style name="Theme.SagerNet.Amoled.Amber" parent="Theme.SagerNet.Black">
+    <style name="Theme.SagerNet.Dialog.Amoled.Lime" parent="Theme.SagerNet.Dialog.Amoled">
+        <item name="colorPrimary">@color/material_lime_accent_200</item>
+        <item name="colorAccent">@color/material_lime_accent_200</item>
+    </style>
+    <style name="Theme.SagerNet.Dialog.Amoled.Yellow" parent="Theme.SagerNet.Dialog.Amoled">
+        <item name="colorPrimary">@color/material_yellow_accent_200</item>
+        <item name="colorAccent">@color/material_yellow_accent_200</item>
+    </style>
+    <style name="Theme.SagerNet.Dialog.Amoled.Amber" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_amber_accent_200</item>
         <item name="colorAccent">@color/material_amber_accent_200</item>
-        <item name="tabSelectedTextColor">@color/material_amber_accent_200</item>
-        <item name="tabIndicatorColor">@color/material_amber_accent_200</item>
-        <item name="fabColorBackground">@color/material_amber_accent_200</item>
-        <item name="selectedColorPrimary">@color/material_amber_accent_200</item>
-        <item name="colorControlActivated">@color/material_amber_accent_200</item>
-        <item name="dialogButtonColor">@color/material_amber_accent_200</item>
     </style>
-
-    <style name="Theme.SagerNet.Amoled.Indigo" parent="Theme.SagerNet.Black">
-        <item name="colorPrimary">@color/material_indigo_accent_200</item>
-        <item name="colorAccent">@color/material_indigo_accent_200</item>
-        <item name="tabSelectedTextColor">@color/material_indigo_accent_200</item>
-        <item name="tabIndicatorColor">@color/material_indigo_accent_200</item>
-        <item name="fabColorBackground">@color/material_indigo_accent_200</item>
-        <item name="selectedColorPrimary">@color/material_indigo_accent_200</item>
-        <item name="colorControlActivated">@color/material_indigo_accent_200</item>
-        <item name="dialogButtonColor">@color/material_indigo_accent_200</item>
-    </style>
-
-    <!-- Dialog AMOLED seed variants -->
-    <style name="Theme.SagerNet.Dialog.Amoled.Red" parent="Theme.SagerNet.Dialog.Black">
-        <item name="colorPrimary">@color/material_red_accent_200</item>
-        <item name="colorAccent">@color/material_red_accent_200</item>
-        <item name="dialogButtonColor">@color/material_red_accent_200</item>
-    </style>
-    <style name="Theme.SagerNet.Dialog.Amoled.VerdantMint" parent="Theme.SagerNet.Dialog.Black">
-        <item name="colorPrimary">@color/color_verdant_mint_accent</item>
-        <item name="colorAccent">@color/color_verdant_mint_accent</item>
-        <item name="dialogButtonColor">@color/color_verdant_mint_accent</item>
-    </style>
-    <style name="Theme.SagerNet.Dialog.Amoled.Blue" parent="Theme.SagerNet.Dialog.Black">
-        <item name="colorPrimary">@color/material_blue_accent_200</item>
-        <item name="colorAccent">@color/material_blue_accent_200</item>
-        <item name="dialogButtonColor">@color/material_blue_accent_200</item>
-    </style>
-    <style name="Theme.SagerNet.Dialog.Amoled.Purple" parent="Theme.SagerNet.Dialog.Black">
-        <item name="colorPrimary">@color/material_purple_accent_200</item>
-        <item name="colorAccent">@color/material_purple_accent_200</item>
-        <item name="dialogButtonColor">@color/material_purple_accent_200</item>
-    </style>
-    <style name="Theme.SagerNet.Dialog.Amoled.Orange" parent="Theme.SagerNet.Dialog.Black">
+    <style name="Theme.SagerNet.Dialog.Amoled.Orange" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_orange_accent_200</item>
         <item name="colorAccent">@color/material_orange_accent_200</item>
-        <item name="dialogButtonColor">@color/material_orange_accent_200</item>
     </style>
-    <style name="Theme.SagerNet.Dialog.Amoled.Teal" parent="Theme.SagerNet.Dialog.Black">
-        <item name="colorPrimary">@color/material_teal_accent_200</item>
-        <item name="colorAccent">@color/material_teal_accent_200</item>
-        <item name="dialogButtonColor">@color/material_teal_accent_200</item>
+    <style name="Theme.SagerNet.Dialog.Amoled.DeepOrange" parent="Theme.SagerNet.Dialog.Amoled">
+        <item name="colorPrimary">@color/material_deep_orange_accent_200</item>
+        <item name="colorAccent">@color/material_deep_orange_accent_200</item>
     </style>
-    <style name="Theme.SagerNet.Dialog.Amoled.Green" parent="Theme.SagerNet.Dialog.Black">
-        <item name="colorPrimary">@color/material_green_accent_200</item>
-        <item name="colorAccent">@color/material_green_accent_200</item>
-        <item name="dialogButtonColor">@color/material_green_accent_200</item>
+    <style name="Theme.SagerNet.Dialog.Amoled.Purple" parent="Theme.SagerNet.Dialog.Amoled">
+        <item name="colorPrimary">@color/material_purple_accent_200</item>
+        <item name="colorAccent">@color/material_purple_accent_200</item>
     </style>
-    <style name="Theme.SagerNet.Dialog.Amoled.Pink" parent="Theme.SagerNet.Dialog.Black">
-        <item name="colorPrimary">@color/material_pink_accent_200</item>
-        <item name="colorAccent">@color/material_pink_accent_200</item>
-        <item name="dialogButtonColor">@color/material_pink_accent_200</item>
+    <style name="Theme.SagerNet.Dialog.Amoled.DeepPurple" parent="Theme.SagerNet.Dialog.Amoled">
+        <item name="colorPrimary">@color/material_deep_purple_accent_200</item>
+        <item name="colorAccent">@color/material_deep_purple_accent_200</item>
     </style>
-    <style name="Theme.SagerNet.Dialog.Amoled.Amber" parent="Theme.SagerNet.Dialog.Black">
-        <item name="colorPrimary">@color/material_amber_accent_200</item>
-        <item name="colorAccent">@color/material_amber_accent_200</item>
-        <item name="dialogButtonColor">@color/material_amber_accent_200</item>
-    </style>
-    <style name="Theme.SagerNet.Dialog.Amoled.Indigo" parent="Theme.SagerNet.Dialog.Black">
+    <style name="Theme.SagerNet.Dialog.Amoled.Indigo" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_indigo_accent_200</item>
         <item name="colorAccent">@color/material_indigo_accent_200</item>
-        <item name="dialogButtonColor">@color/material_indigo_accent_200</item>
+    </style>
+    <style name="Theme.SagerNet.Dialog.Amoled.Pink" parent="Theme.SagerNet.Dialog.Amoled">
+        <item name="colorPrimary">@color/material_pink_accent_200</item>
+        <item name="colorAccent">@color/material_pink_accent_200</item>
+    </style>
+    <style name="Theme.SagerNet.Dialog.Amoled.PinkSSR" parent="Theme.SagerNet.Dialog.Amoled">
+        <item name="colorPrimary">@color/color_pink_ssr</item>
+        <item name="colorAccent">@color/color_pink_ssr</item>
+    </style>
+    <style name="Theme.SagerNet.Dialog.Amoled.Brown" parent="Theme.SagerNet.Dialog.Amoled">
+        <item name="colorPrimary">@color/dialog_button_brown</item>
+        <item name="colorAccent">@color/dialog_button_brown</item>
+    </style>
+    <style name="Theme.SagerNet.Dialog.Amoled.Grey" parent="Theme.SagerNet.Dialog.Amoled">
+        <item name="colorPrimary">@color/md3_text_primary</item>
+        <item name="colorAccent">@color/md3_text_primary</item>
+    </style>
+    <style name="Theme.SagerNet.Dialog.Amoled.BlueGrey" parent="Theme.SagerNet.Dialog.Amoled">
+        <item name="colorPrimary">@color/dialog_button_blue_grey</item>
+        <item name="colorAccent">@color/dialog_button_blue_grey</item>
     </style>
 
 
-    <style name="Theme.OwnBox.Dialog" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <style name="Theme.OwnBox.Dialog" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowNoTitle">true</item>

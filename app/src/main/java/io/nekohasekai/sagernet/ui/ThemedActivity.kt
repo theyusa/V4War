@@ -35,6 +35,7 @@ abstract class ThemedActivity : AppCompatActivity {
     private var lastWallpaperColor: Int? = null
     private var lastAppTheme: Int = 0
     private var lastNightTheme: Int = 0
+    private var lastAmoledTheme: Boolean = false
     private var lastUsingNight: Boolean = false
 
     var lightStatusBar = false
@@ -45,6 +46,7 @@ abstract class ThemedActivity : AppCompatActivity {
         lastWallpaperColor = if (DataStore.useSystemTheme) Theme.getSystemWallpaperColor(this) else null
         lastAppTheme = DataStore.appTheme
         lastNightTheme = DataStore.nightTheme
+        lastAmoledTheme = DataStore.amoledTheme
         lastUsingNight = Theme.usingNightMode(this)
 
         Theme.applyNightTheme()
@@ -71,7 +73,13 @@ abstract class ThemedActivity : AppCompatActivity {
         }
     }
 
-    private fun navigationBarStyle() = SystemBarStyle.auto(LIGHT_SCRIM, DARK_SCRIM) { Theme.usingNightMode(this) }
+    private fun navigationBarStyle(): SystemBarStyle {
+        return if (Theme.isBlackTheme(this)) {
+            SystemBarStyle.dark(Color.TRANSPARENT)
+        } else {
+            SystemBarStyle.auto(LIGHT_SCRIM, DARK_SCRIM) { Theme.usingNightMode(this) }
+        }
+    }
 
     override fun onResume() {
         super.onResume()
@@ -81,6 +89,7 @@ abstract class ThemedActivity : AppCompatActivity {
             (DataStore.useSystemTheme && lastWallpaperColor != currentWallpaperColor) ||
             (!DataStore.useSystemTheme && lastAppTheme != DataStore.appTheme) ||
             lastNightTheme != DataStore.nightTheme ||
+            lastAmoledTheme != DataStore.amoledTheme ||
             lastUsingNight != currentUsingNight) {
             ActivityCompat.recreate(this)
         }

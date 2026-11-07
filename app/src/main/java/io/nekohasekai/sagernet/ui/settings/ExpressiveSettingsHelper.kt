@@ -53,6 +53,19 @@ object ExpressiveSettingsHelper {
         val iconSize = dp2px(iconSizeDp)
         val inset = (size - iconSize) / 2
 
+        // Fast-path: if originalDrawable is already a badge LayerDrawable, update in-place without re-wrapping
+        if (originalDrawable is LayerDrawable && originalDrawable.numberOfLayers == 2) {
+            val bg = originalDrawable.getDrawable(0) as? GradientDrawable
+            val icon = originalDrawable.getDrawable(1)
+            if (bg != null && icon != null) {
+                bg.setColor(containerColor)
+                val iconMut = icon.mutate()
+                iconMut.clearColorFilter()
+                DrawableCompat.setTint(iconMut, iconColor)
+                return originalDrawable
+            }
+        }
+
         val rawIcon = unwrapOriginalIcon(originalDrawable)
 
         val background = GradientDrawable().apply {
