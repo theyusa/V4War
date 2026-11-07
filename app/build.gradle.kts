@@ -93,5 +93,8 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
 
+    implementation("dev.rikka.shizuku:api:13.1.5")
+    implementation("dev.rikka.shizuku:provider:13.1.5")
+
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
 }

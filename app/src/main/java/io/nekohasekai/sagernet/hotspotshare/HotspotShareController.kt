@@ -63,6 +63,22 @@ class HotspotShareController(
         publish(ShareState.Off)
     }
 
+    /**
+     * Proactively cleans up leftover test networks and tethering state on app startup or crash recovery.
+     */
+    suspend fun recoverDirtyState() = mutex.withLock {
+        try {
+            val env = environment()
+            if (env.sdkInt >= 33 && env.shizukuGranted && env.shizukuRunning) {
+                val backend = backendFactory(ShareMethod.SHIZUKU)
+                if (backend is ShizukuBackend) {
+                    backend.recoverDirtyState()
+                }
+            }
+        } catch (_: Exception) {
+        }
+    }
+
     /** Ends the backend without touching the published state, so an Error or Stopped stays visible. */
     private suspend fun teardown() {
         val current = backend ?: return
