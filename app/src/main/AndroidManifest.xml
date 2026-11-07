@@ -20,6 +20,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
 
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
@@ -520,6 +521,15 @@
             android:name="androidx.work.multiprocess.RemoteWorkerService"
             android:exported="false"
             android:process=":bg" />
+
+        <!-- Shizuku provider for rootless privileged shell operations -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:multiprocess="false"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
 
     </application>
 

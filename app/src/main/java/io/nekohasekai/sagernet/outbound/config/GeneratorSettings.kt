@@ -38,6 +38,9 @@ data class GeneratorSettings(
     val mixedPassword: String = "",
     /** custom_inbound (SettingsRepo.h:207): a JSON object whose `inbounds` array is appended verbatim. */
     val customInboundJson: String = "",
+    /** Dedicated 127.0.0.1 socks inbound for VPN hotspot sharing. */
+    val shareSocksInboundEnabled: Boolean = false,
+    val shareSocksPort: Int = 2088,
 
     // ---- tun (only in VPN mode)
     /** spmode_vpn (SettingsRepo.h:48) <- DataStore.serviceMode == Key.MODE_VPN. */
