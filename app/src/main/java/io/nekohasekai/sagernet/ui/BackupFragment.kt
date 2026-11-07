@@ -73,7 +73,7 @@ class BackupFragment : Fragment(R.layout.layout_backup) {
             if (restore != null) arguments = bundleOf(ARG_RESTORE to restore.toString())
         }
 
-        fun fileName(): String = "Throne-backup-${SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())}.thrbackup"
+        fun fileName(): String = "V4War-backup-${SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())}.thrbackup"
     }
 
     private var binding: LayoutBackupBinding? = null
