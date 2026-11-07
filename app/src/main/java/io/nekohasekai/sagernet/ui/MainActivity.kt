@@ -33,6 +33,7 @@ import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.Key
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
+import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
 import io.nekohasekai.sagernet.aidl.ISagerNetService
 import io.nekohasekai.sagernet.aidl.SpeedDisplayData
 import io.nekohasekai.sagernet.aidl.TrafficDataBatch
@@ -42,6 +43,7 @@ import io.nekohasekai.sagernet.bg.test.TestSpec
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.SettingsRegistry
 import io.nekohasekai.sagernet.database.ProfileManager
+import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.database.preference.OnPreferenceDataStoreChangeListener
 import io.nekohasekai.sagernet.database.backup.BackupEntry
 import io.nekohasekai.sagernet.databinding.LayoutMainBinding
@@ -142,6 +144,14 @@ class MainActivity : ThemedActivity(),
             navigation = binding.navViewBlack
             binding.drawerLayout.removeView(binding.navView)
         }
+        val drawerBgColor = when {
+            isAmoled || isBlackTheme -> Color.BLACK
+            else -> MaterialColors.getColor(binding.root, android.R.attr.colorBackground, Color.BLACK)
+        }
+        navigation.setBackgroundColor(drawerBgColor)
+        navigation.backgroundTintList = ColorStateList.valueOf(drawerBgColor)
+        ExpressiveSettingsHelper.applyDrawerMaskedIcons(navigation, this)
+        navigation.getHeaderView(0)?.findViewById<android.widget.TextView>(R.id.drawerVersionBadge)?.text = "v${BuildConfig.VERSION_NAME}"
         navigation.setNavigationItemSelectedListener(this)
         // NavigationView pads its header and menu itself (top/bottom); its side follows side bars and cutouts.
         ViewCompat.setOnApplyWindowInsetsListener(binding.drawerLayout) { _, insets ->
@@ -586,6 +596,7 @@ class MainActivity : ThemedActivity(),
 
     override fun onServiceDisconnected() = changeState(BaseService.State.Idle)
     override fun onBinderDied() {
+        changeState(BaseService.State.Idle)
         connection.disconnect(this)
         connection.connect(this, this)
     }
@@ -598,11 +609,29 @@ class MainActivity : ThemedActivity(),
     private val wifiFlow = WifiPermissionFlow(this)
 
     private fun toggleService() {
-        if (DataStore.serviceState.canStop) SagerNet.stopService() else startFromUi()
+        when {
+            DataStore.serviceState.canStop -> SagerNet.stopService()
+            DataStore.serviceState == BaseService.State.Stopping -> {
+                SagerNet.stopService()
+                changeState(BaseService.State.Idle)
+            }
+            else -> startFromUi()
+        }
     }
 
     /** Wi-Fi rules of the routing profile the selected profile starts with ask for location access once before a start from here. */
     private fun startFromUi() {
+        if (DataStore.selectedProxy <= 0L) {
+            val fallback = SagerDatabase.proxyDao.getAll().firstOrNull()
+            if (fallback != null) {
+                DataStore.selectedProxy = fallback.id
+                DataStore.currentProfile = fallback.id
+                refreshConfigurationProfileState()
+            } else {
+                snackbar(R.string.profile_empty).show()
+                return
+            }
+        }
         if (DataStore.wifiPermissionAsked || WifiStateAccess.status(this) == WifiStateAccess.Status.OK) {
             return launchConnect()
         }

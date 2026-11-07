@@ -149,7 +149,7 @@ internal class SubscriptionInfoCard(val view: View) {
                     val prim = context.getColorAttr(R.attr.colorPrimary)
                     if (ColorUtils.calculateLuminance(prim) < 0.08) Color.WHITE else prim
                 }
-                view.strokeColor = if (strokeColor == Color.WHITE) Color.parseColor("#55FFFFFF") else ColorUtils.setAlphaComponent(strokeColor, 150)
+                view.strokeColor = ContextCompat.getColor(context, R.color.card_stroke)
                 view.strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
             } else {
                 view.strokeWidth = 0

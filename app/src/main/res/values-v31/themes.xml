@@ -19,4 +19,16 @@
         <item name="cardElevatedSurfaceColor">@color/monet_card_elevated</item>
     </style>
 
+    <style name="Theme.SagerNet.Amoled.Monet" parent="Theme.SagerNet.Amoled">
+        <item name="colorPrimary">@color/monet_primary</item>
+        <item name="colorPrimaryDark">@color/monet_primary_variant</item>
+        <item name="colorAccent">@color/monet_secondary</item>
+    </style>
+
+    <style name="Theme.SagerNet.Dialog.Amoled.Monet" parent="Theme.SagerNet.Dialog.Amoled">
+        <item name="colorPrimary">@color/monet_primary</item>
+        <item name="colorPrimaryDark">@color/monet_primary_variant</item>
+        <item name="colorAccent">@color/monet_secondary</item>
+    </style>
+
 </resources>
