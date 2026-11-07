@@ -35,6 +35,18 @@ enum class SharePreference(val code: String) {
     }
 }
 
+/** What to do in ROOT mode if the running VPN drops unexpectedly (leak protection). */
+enum class FailClosedAction(val code: String) {
+    BLOCK_TRAFFIC("block"),
+    STOP_HOTSPOT("stop"),
+    ;
+
+    companion object {
+        val CODES: List<String> = entries.map { it.code }
+        fun fromCode(code: String): FailClosedAction = entries.firstOrNull { it.code == code } ?: BLOCK_TRAFFIC
+    }
+}
+
 /** Why sharing is unavailable, failed or stopped. [code] is persisted, so never rename one. */
 enum class ShareFailure(val code: String) {
     UNSUPPORTED_ANDROID("unsupported_android"),
