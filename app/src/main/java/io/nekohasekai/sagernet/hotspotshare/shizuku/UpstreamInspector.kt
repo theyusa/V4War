@@ -114,8 +114,26 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
         return parseWifiClientCount(obs.rawOutput)
     }
 
-    private fun runDumpsys(service: String): UpstreamObservation {
-        val process = ProcessBuilder("dumpsys", service).start()
+    fun observeNeighbors(): String {
+        val neigh = runShellCommand(listOf("ip", "-4", "neigh", "show")).rawOutput
+        val arp = runCatching { File("/proc/net/arp").readText() }.getOrDefault("")
+        return buildString {
+            if (neigh.isNotBlank()) {
+                append(neigh)
+                append('\n')
+            }
+            if (arp.isNotBlank()) {
+                append("---ARP---\n")
+                append(arp)
+            }
+        }
+    }
+
+    private fun runDumpsys(service: String): UpstreamObservation =
+        runShellCommand(listOf("dumpsys", service))
+
+    private fun runShellCommand(cmd: List<String>): UpstreamObservation {
+        val process = ProcessBuilder(cmd).start()
         val drainPool = Executors.newFixedThreadPool(2)
 
         val stdout = drainPool.submit<String> { process.inputStream.drain() }

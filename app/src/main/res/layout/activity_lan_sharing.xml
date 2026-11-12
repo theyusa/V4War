@@ -101,61 +101,7 @@
                     android:textSize="12sp" />
             </LinearLayout>
 
-            <!-- Service card: main switch -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardService"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/card_stroke"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:id="@+id/rowSwitchLanSharing"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="16dp">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/textSwitchSummary"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/lan_sharing_x_off" />
-                    </LinearLayout>
-
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/switchLanSharing"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp" />
-                </LinearLayout>
-
-                <!-- Share (X) warning: shown when the mixed inbound has no RFC1929 authentication. -->
-                <TextView
-                    android:id="@+id/textShareWarn"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:paddingBottom="12dp"
-                    android:text="@string/lan_sharing_x_auth_warn"
-                    android:textColor="@color/material_amber_500"
-                    android:textSize="12sp"
-                    android:visibility="gone" />
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- VPN Hotspot Share card -->
+            <!-- VPN Hotspot Share card (unified with LAN inbound control) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardHotspotShare"
                 android:layout_width="match_parent"
@@ -164,7 +110,7 @@
                 app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/card_stroke"
+                app:strokeColor="?attr/colorOutline"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -325,6 +271,15 @@
                                 android:textColor="?android:attr/textColorSecondary"
                                 android:textSize="12sp" />
                         </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/textShareClients"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="12sp"
+                            android:visibility="gone" />
                     </LinearLayout>
 
                     <!-- Shizuku permission request row -->
@@ -383,6 +338,63 @@
                             android:textColor="@color/material_amber_500"
                             android:textSize="12sp" />
                     </LinearLayout>
+
+                    <!-- Unified LAN Inbound control inside Share card -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="12dp"
+                        android:alpha="0.25"
+                        android:background="?attr/colorOutline" />
+
+                    <LinearLayout
+                        android:id="@+id/rowSwitchLanSharing"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/hotspot_share_lan_inbound_title"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/textSwitchSummary"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/lan_sharing_x_off"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switchLanSharing"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp" />
+                    </LinearLayout>
+
+                    <!-- Share (X) warning: shown when the mixed inbound has no RFC1929 authentication. -->
+                    <TextView
+                        android:id="@+id/textShareWarn"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="@string/lan_sharing_x_auth_warn"
+                        android:textColor="@color/material_amber_500"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -395,7 +407,7 @@
                 app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/card_stroke"
+                app:strokeColor="?attr/colorOutline"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -458,7 +470,7 @@
                 app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/card_stroke"
+                app:strokeColor="?attr/colorOutline"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -668,7 +680,7 @@
                 app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/card_stroke"
+                app:strokeColor="?attr/colorOutline"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -876,7 +888,7 @@
                 app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/card_stroke"
+                app:strokeColor="?attr/colorOutline"
                 app:strokeWidth="1dp">
 
                 <LinearLayout

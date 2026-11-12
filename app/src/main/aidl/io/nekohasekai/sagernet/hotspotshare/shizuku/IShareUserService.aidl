@@ -56,6 +56,12 @@ interface IShareUserService {
     int getConnectedClientCount();
 
     /**
+     * Returns raw neighbor table output (`ip -4 neigh show` + `/proc/net/arp`)
+     * executed as shell UID 2000 for accurate client IP discovery.
+     */
+    String getNeighborDump();
+
+    /**
      * Probes device compatibility for TestNetworkManager and TetheringManager.setPreferTestNetworks.
      */
     String checkCompatibility();

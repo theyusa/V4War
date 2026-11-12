@@ -106,4 +106,40 @@ class RootRulesTest {
         assertTrue(cmds.any { it.contains("iptables -A throne_fwd -o ap0 -j DROP") })
         assertTrue(cmds.any { it.contains("ip6tables -A throne_fwd6 -i ap0 -j DROP") })
     }
+
+    @Test
+    fun buildSetupCommands_includesDnsHijackTcpmssAndRpFilter() {
+        val vpn = VpnRouteInfo("tun0", "102")
+        val cmds = RootRules.buildSetupCommands(
+            vpn = vpn,
+            hotspotIfaces = listOf("ap0"),
+            subnets = listOf(HotspotSubnet("ap0", "192.168.43.0/24")),
+        )
+
+        assertTrue(cmds.any { it.contains("rp_filter=0") })
+        assertTrue(cmds.any { it.contains("TCPMSS --clamp-mss-to-pmtu") })
+        assertTrue(cmds.any { it.contains("-t nat -I PREROUTING 1 -j throne_dns") })
+        assertTrue(cmds.any { it.contains("--to-destination 1.1.1.1:53") })
+        assertTrue(cmds.any { it.contains("-m conntrack --ctstate RELATED,ESTABLISHED") })
+    }
+
+    @Test
+    fun buildTeardownCommands_removesDnsHijackChain() {
+        val cmds = RootRules.buildTeardownCommands()
+        val jumpIdx = cmds.indexOfFirst { it.contains("iptables -t nat -D PREROUTING -j throne_dns") }
+        val deleteIdx = cmds.indexOfFirst { it.contains("iptables -t nat -X throne_dns") }
+        assertTrue(jumpIdx in 0..<deleteIdx)
+    }
+
+    @Test
+    fun parseVpnRoute_supportsSplitDefaultRoutes() {
+        val splitLines = listOf(
+            "0.0.0.0/1 dev tun0 table 102 proto static",
+            "128.0.0.0/1 dev tun0 table 102 proto static",
+            "192.168.43.0/24 dev ap0 proto kernel scope link",
+        )
+        val parsed = RootRules.parseVpnRoute(splitLines)
+        assertEquals("tun0", parsed?.tunInterface)
+        assertEquals("102", parsed?.table)
+    }
 }

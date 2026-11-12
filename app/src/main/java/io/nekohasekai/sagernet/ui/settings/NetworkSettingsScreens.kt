@@ -72,7 +72,17 @@ class InboundSettingsFragment : SettingsScreenFragment(R.xml.settings_inbound) {
 
         allowLan.isChecked = DataStore.allowLanAccess
         allowLan.setOnPreferenceChangeListener { _, newValue ->
-            DataStore.inboundAddress = if (newValue as Boolean) SettingsRegistry.LAN_ADDRESS else SettingsRegistry.LOOPBACK_ADDRESS
+            val enableLan = newValue as Boolean
+            DataStore.inboundAddress = if (enableLan) SettingsRegistry.LAN_ADDRESS else SettingsRegistry.LOOPBACK_ADDRESS
+            if (enableLan) {
+                if (io.nekohasekai.sagernet.utils.LanSharingLogics.clashApiSecretShouldBeGenerated(DataStore.coreBoxClashApiSecret)) {
+                    DataStore.coreBoxClashApiSecret = io.nekohasekai.sagernet.utils.LanSharingLogics.generateClashApiSecret()
+                }
+                val clashDecision = io.nekohasekai.sagernet.utils.LanSharingLogics.ensureClashApiEnabledPort(DataStore.coreBoxClashApi)
+                if (clashDecision.changed) {
+                    DataStore.coreBoxClashApi = clashDecision.newRawPort
+                }
+            }
             needReload()
             true
         }

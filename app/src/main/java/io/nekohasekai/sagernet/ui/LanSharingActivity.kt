@@ -27,7 +27,9 @@ import android.widget.ArrayAdapter
 import io.nekohasekai.sagernet.hotspotshare.FailClosedAction
 import io.nekohasekai.sagernet.hotspotshare.HotspotShareStateStore
 import io.nekohasekai.sagernet.hotspotshare.HotspotTrafficMonitor
+import io.nekohasekai.sagernet.hotspotshare.RootBackend
 import io.nekohasekai.sagernet.hotspotshare.ShareFailure
+import io.nekohasekai.sagernet.hotspotshare.ShareMethod
 import io.nekohasekai.sagernet.hotspotshare.SharePreference
 import io.nekohasekai.sagernet.hotspotshare.ShareState
 import io.nekohasekai.sagernet.hotspotshare.ShizukuBackend
@@ -103,6 +105,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
 
         setupViews()
         setupHotspotShareViews()
+        ensureClashApiForManualLanIfNeeded()
         try {
             Shizuku.addRequestPermissionResultListener(shizukuPermissionListener)
         } catch (_: Throwable) {}
@@ -187,6 +190,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             }
             needReload()
             refreshNetworkAndState()
+            lifecycleScope.launch { pollClientDevicesOnce() }
         }
 
         binding.rowSwitchLanSharing.setOnClickListener {
@@ -376,9 +380,17 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             getString(R.string.lan_sharing_auth_none)
         }
 
-        if (shareOn) {
+        val shareState = HotspotShareStateStore.snapshot()
+        val activeMethodCode = (shareState as? ShareState.Active)?.method?.code?.uppercase()
+        val anySharingActive = shareOn || activeMethodCode != null
+
+        if (anySharingActive) {
             binding.textHeroTitle.text = getString(R.string.lan_sharing_active)
-            binding.badgeServiceStatus.text = getString(R.string.lan_sharing_status_running)
+            binding.badgeServiceStatus.text = if (activeMethodCode != null) {
+                getString(R.string.hotspot_share_status_active, activeMethodCode)
+            } else {
+                getString(R.string.lan_sharing_status_running)
+            }
             binding.badgeServiceStatus.setTextColor(primaryColor)
             binding.imgHeroStatus.setColorFilter(primaryColor)
         } else {
@@ -387,7 +399,11 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             binding.badgeServiceStatus.setTextColor(secondaryColor)
             binding.imgHeroStatus.setColorFilter(secondaryColor)
         }
-        binding.textHeroSubtitle.text = getString(R.string.lan_sharing_status_sub, port, authShort)
+        binding.textHeroSubtitle.text = if (activeMethodCode != null && !shareOn) {
+            getString(R.string.hotspot_share_status_active, activeMethodCode)
+        } else {
+            getString(R.string.lan_sharing_status_sub, port, authShort)
+        }
         // X warns when the shared inbound carries no RFC1929 credential.
         binding.textShareWarn.visibility = if (shareOn && !hasAuth) View.VISIBLE else View.GONE
         binding.textAuthStatus.text = authShort
@@ -524,6 +540,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                         )
                         binding.textShareSpeed.text = getString(R.string.hotspot_share_speed_format, down, up)
                         binding.textShareUsage.text = getString(R.string.hotspot_share_traffic_format, total)
+                        updateShareClientCountLabel()
                     }
                 }
             }
@@ -553,21 +570,36 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 secret = DataStore.coreBoxClashApiSecret,
             )
             val clashList = if (body != null) LanSharingLogics.parseConnections(body) else emptyList()
+            val tcpRemotes = LanSharingNetwork.readProcNetTcpRemotes(DataStore.inboundSocksPort)
+            val shizukuDump = ShizukuBackend.queryActiveNeighborDump()
+            val activeRootMode = (HotspotShareStateStore.snapshot() as? ShareState.Active)?.method == ShareMethod.ROOT
+            val rootGranted = runCatching { com.topjohnwu.superuser.Shell.isAppGrantedRoot() == true }.getOrDefault(false)
+            val rootDump = if (activeRootMode || rootGranted) RootBackend.queryNeighborDump() else null
+            val hotspotIfaces = setOfNotNull(detectedHotspotCandidate?.interfaceName)
+            val neighSnapshot = LanSharingNetwork.readPrivilegedNeighbors(
+                shizukuDump = shizukuDump,
+                rootDump = rootDump,
+                hotspotIfaces = hotspotIfaces,
+            )
+
             val hotspotIp = detectedHotspotCandidate?.ip
             val result = LanSharingLogics.mergeDevices(
                 history = clientHistory.toMap(),
-                arpIps = arp,
+                arpIps = (arp + neighSnapshot.allIps).distinct(),
                 clash = clashList,
                 hotspotIp = hotspotIp,
                 hotspotPrefix = detectedHotspotCandidate?.prefixLength,
                 localIps = setOfNotNull(detectedHotspotCandidate?.ip, detectedWifiIp),
                 nowMs = now,
+                activePeerIps = tcpRemotes.toSet() + neighSnapshot.activeIps,
+                hotspotHintIps = neighSnapshot.hotspotIps,
             )
             clientHistory.clear()
             result.forEach { clientHistory[it.ip] = it }
             result to (body != null)
         }
         renderDeviceList(merged, clashReachable)
+        updateShareClientCountLabel()
     }
 
     private fun renderDeviceList(devices: List<LanClientDevice>, clashReachable: Boolean) {
@@ -577,8 +609,10 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
 
         binding.layoutDevicesList.removeAllViews()
         if (devices.isEmpty()) {
+            val hotspotShareActive = HotspotShareStateStore.snapshot() is ShareState.Active
+            val sharingReady = (DataStore.serviceState.connected && clashReachable) || hotspotShareActive
             binding.layoutNoDevices.visibility = View.VISIBLE
-            binding.textNoDevicesHint.text = if (!DataStore.serviceState.connected || !clashReachable) {
+            binding.textNoDevicesHint.text = if (!sharingReady) {
                 getString(R.string.lan_sharing_not_connected)
             } else {
                 getString(R.string.lan_sharing_no_devices_hint)
@@ -684,6 +718,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 TetherWatchService.stop(this)
             }
             refreshNetworkAndState()
+            lifecycleScope.launch { pollClientDevicesOnce() }
         }
 
         binding.rowSwitchHotspotShare.setOnClickListener {
@@ -773,24 +808,28 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_off)
                 binding.badgeShareStatus.setTextColor(secondaryColor)
                 binding.layoutShareTraffic.visibility = View.GONE
+                binding.textShareClients.visibility = View.GONE
                 binding.bannerShareWarning.visibility = View.GONE
             }
             is ShareState.Starting -> {
                 binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_starting)
                 binding.badgeShareStatus.setTextColor(amberColor)
                 binding.layoutShareTraffic.visibility = View.GONE
+                binding.textShareClients.visibility = View.GONE
                 binding.bannerShareWarning.visibility = View.GONE
             }
             is ShareState.Active -> {
                 binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_active, state.method.code.uppercase())
                 binding.badgeShareStatus.setTextColor(primaryColor)
                 binding.layoutShareTraffic.visibility = View.VISIBLE
+                updateShareClientCountLabel()
                 binding.bannerShareWarning.visibility = View.GONE
             }
             is ShareState.Stopped -> {
                 binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_stopped, state.cause.code)
                 binding.badgeShareStatus.setTextColor(amberColor)
                 binding.layoutShareTraffic.visibility = View.GONE
+                binding.textShareClients.visibility = View.GONE
                 binding.bannerShareWarning.visibility = View.VISIBLE
                 binding.textShareWarning.text = if (state.cause == ShareFailure.VPN_LOST) {
                     getString(R.string.hotspot_share_traffic_blocked_warn)
@@ -802,6 +841,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_error, state.reason.code)
                 binding.badgeShareStatus.setTextColor(redColor)
                 binding.layoutShareTraffic.visibility = View.GONE
+                binding.textShareClients.visibility = View.GONE
                 binding.bannerShareWarning.visibility = View.VISIBLE
                 binding.textShareWarning.text = state.detail ?: state.reason.code
             }
@@ -840,6 +880,40 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             View.GONE
         }
     }
+    private fun ensureClashApiForManualLanIfNeeded() {
+        if (!DataStore.allowLanAccess) return
+        var changed = false
+        if (LanSharingLogics.clashApiSecretShouldBeGenerated(DataStore.coreBoxClashApiSecret)) {
+            DataStore.coreBoxClashApiSecret = LanSharingLogics.generateClashApiSecret()
+            changed = true
+        }
+        val clashDecision = LanSharingLogics.ensureClashApiEnabledPort(DataStore.coreBoxClashApi)
+        if (clashDecision.changed) {
+            DataStore.coreBoxClashApi = clashDecision.newRawPort
+            changed = true
+        }
+        if (changed) {
+            needReload()
+        }
+    }
+
+    private fun updateShareClientCountLabel() {
+        val state = HotspotShareStateStore.snapshot()
+        if (state !is ShareState.Active) {
+            binding.textShareClients.visibility = View.GONE
+            return
+        }
+        val shizukuCount = if (state.method == ShareMethod.SHIZUKU) {
+            ShizukuBackend.queryActiveClientCount()
+        } else {
+            null
+        }
+        val discoveredCount = clientHistory.count { it.value.isHotspot || it.value.activeConnections > 0 }
+        val count = maxOf(shizukuCount ?: 0, discoveredCount)
+        binding.textShareClients.visibility = View.VISIBLE
+        binding.textShareClients.text = getString(R.string.hotspot_share_clients_format, count)
+    }
+
     override fun onDestroy() {
         statusReceiver?.let { runCatching { unregisterReceiver(it) } }
         statusReceiver = null

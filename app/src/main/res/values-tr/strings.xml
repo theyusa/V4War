@@ -582,11 +582,11 @@
     <string name="action_masque">MASQUE</string>
     <string name="action_openvpn">OpenVPN</string>
     <string name="action_openconnect">OpenConnect</string>
-    <string name="throne_link">Throne bağlantısı</string>
+    <string name="throne_link">V4War bağlantısı</string>
     <string name="edit_as_json">JSON olarak düzenle</string>
     <string name="raw_json_invalid">JSON bu tür için geçerli bir profil değil</string>
     <string name="project_website">Proje web sitesi</string>
-    <string name="support_throne">Throne\'u destekle</string>
+    <string name="support_throne">V4War\'ı destekle</string>
     <string name="tri_state_default">Varsayılanı koru</string>
     <string name="tri_state_on">Açık</string>
     <string name="tri_state_off">Kapalı</string>
@@ -611,7 +611,7 @@
     <string name="settings_core">Çekirdek</string>
     <string name="settings_core_sum">Günlükleme, istatistik, Clash API, güvenlik, NTP</string>
     <string name="settings_backup">Yedekleme ve geri yükleme</string>
-    <string name="settings_backup_sum">Throne masaüstü ile paylaşılan .thrbackup dosyaları, yerel ve WebDAV</string>
+    <string name="settings_backup_sum">V4War masaüstü ile paylaşılan .thrbackup dosyaları, yerel ve WebDAV</string>
     <string name="setting_default">Varsayılan</string>
     <string name="setting_default_value">Varsayılan (%s)</string>
     <string name="cag_connection">Bağlantı</string>
@@ -789,7 +789,7 @@
     <string name="route_import_clipboard_profile">Panodan \"%s\" rota profili içe aktarılsın mı?</string>
     <string name="route_import_clipboard_rules">Panodan bir rota kural listesi içe aktarılsın mı?</string>
     <string name="route_import_paste_title">Rota profili içe aktar</string>
-    <string name="route_import_paste_hint">Bir Throne rota bağlantısı, bir remoteRoute bağlantısı, bir base64 bloğu veya bir JSON kural dizisi yapıştırın</string>
+    <string name="route_import_paste_hint">Bir V4War rota bağlantısı, bir remoteRoute bağlantısı, bir base64 bloğu veya bir JSON kural dizisi yapıştırın</string>
     <string name="route_import_invalid_title">Geçersiz girdi</string>
     <string name="route_import_invalid">Bu rota profili içe aktarılamadı:\n%s</string>
     <string name="route_import_warnings_title">Uyarılarla içe aktarıldı</string>
@@ -837,7 +837,7 @@
     <string name="route_profile_remote_source">Uzak kaynak</string>
     <string name="route_profile_remote_rules_note">Her güncelleme bu profilin kurallarını URL\'deki kurallarla değiştirir, bu yüzden burada eklediğiniz veya değiştirdiğiniz kurallar kaybolur. Kendi kurallarınızı korumak için rota profilleri listesinde Çoğalt\'ı kullanın: çoğaltılan profil, hiçbir zaman güncellenmeyen yerel bir kopyadır.</string>
     <string name="route_profile_url">URL</string>
-    <string name="route_profile_url_hint">https://… (throne://route bağlantısı, base64 veya JSON)</string>
+    <string name="route_profile_url_hint">https://… (V4War route bağlantısı, base64 veya JSON)</string>
     <string name="route_profile_auto_update">Otomatik güncelleme</string>
     <string name="route_profile_auto_update_sum">Uzak profiller otomatik güncellendiğinde bu profili URL\'den yeniden getir. Yerel düzenlemeleriniz her güncellemede üzerine yazılır.</string>
     <string name="route_profile_fetch">Şimdi getir</string>
@@ -1163,7 +1163,7 @@
     </plurals>
     <string name="profiles_copy_links">Bağlantıları kopyala</string>
     <string name="profiles_copy_share_links">Paylaşma bağlantıları</string>
-    <string name="profiles_copy_throne_links">Throne bağlantıları</string>
+    <string name="profiles_copy_throne_links">V4War bağlantıları</string>
     <plurals name="profiles_copied">
         <item quantity="one">%d öğe kopyalandı</item>
         <item quantity="other">%d öğe kopyalandı</item>
@@ -1549,7 +1549,7 @@
     <string name="backup_part_routes">Rota profilleri</string>
     <string name="backup_part_settings">Ayarlar</string>
     <string name="backup_part_otp">OTP profilleri (Android\'de geri yüklenmez)</string>
-    <string name="backup_local_summary">Yedekler Throne masaüstü biçimini (.thrbackup) kullanır: her iki uygulama da geri yükleyebilir. WebDAV bilgileri bu cihazda kalır.</string>
+    <string name="backup_local_summary">Yedekler V4War masaüstü biçimini (.thrbackup) kullanır: her iki uygulama da geri yükleyebilir. WebDAV bilgileri bu cihazda kalır.</string>
     <string name="backup_hotspot_note">Hotspot Gateway eşleşme kimlikleri yedeklere asla dahil edilmez. Başka bir cihazda geri yükleme sonrası (veya eşleşme yoksa) yeniden eşleşmeniz gerekir.</string>
     <string name="backup_create">Yedek oluştur</string>
     <string name="backup_restore">Geri yükle</string>
@@ -1557,7 +1557,7 @@
     <string name="backup_creating">Yedek oluşturuluyor…</string>
     <string name="backup_created">Yedek oluşturuldu. Dahil edilenler: %s</string>
     <string name="backup_failed">Yedek oluşturulamadı: %s</string>
-    <string name="backup_open_label">Throne yedeğini geri yükle</string>
+    <string name="backup_open_label">V4War yedeğini geri yükle</string>
     <string name="backup_restore_title">Yedeği geri yükle</string>
     <string name="backup_restore_header">%1$s tarihinde oluşturulmuş yedek (%2$s).\nGeri yüklenecek bölümleri seçin:</string>
     <string name="backup_unknown_date">bilinmeyen tarih</string>
@@ -1566,14 +1566,14 @@
     <string name="backup_platform_linux">Linux</string>
     <string name="backup_platform_macos">macOS</string>
     <string name="backup_platform_unknown">bilinmeyen platform</string>
-    <string name="backup_restore_warning">Seçilen her bölüm mevcut verilerin üzerine yazar. Bu geri alınamaz.\nThrone, geri yüklemeyi tamamlamak için yeniden başlayacak.</string>
+    <string name="backup_restore_warning">Seçilen her bölüm mevcut verilerin üzerine yazar. Bu geri alınamaz.\nV4War, geri yüklemeyi tamamlamak için yeniden başlayacak.</string>
     <string name="backup_restore_select_part">Geri yüklenecek en az bir bölüm seçin.</string>
     <string name="backup_reading">Yedek okunuyor…</string>
     <string name="backup_restoring">Geri yükleniyor…</string>
-    <string name="backup_restored">Yedek başarıyla geri yüklendi. Değişikliklerin geçerli olması için Throne şimdi yeniden başlayacak.</string>
-    <string name="backup_restored_warnings">Yedek geri yüklendi. Değişikliklerin geçerli olması için Throne şimdi yeniden başlayacak.\n\nNotlar:\n%s</string>
+    <string name="backup_restored">Yedek başarıyla geri yüklendi. Değişikliklerin geçerli olması için V4War şimdi yeniden başlayacak.</string>
+    <string name="backup_restored_warnings">Yedek geri yüklendi. Değişikliklerin geçerli olması için V4War şimdi yeniden başlayacak.\n\nNotlar:\n%s</string>
     <string name="backup_restore_failed">Geri yükleme başarısız: %s</string>
-    <string name="backup_error_not_backup">Geçerli bir Throne yedek dosyası değil.</string>
+    <string name="backup_error_not_backup">Geçerli bir V4War yedek dosyası değil.</string>
     <string name="backup_error_version">Desteklenmeyen yedek biçimi sürümü: %d.\nBu yedek uygulamanın daha yeni bir sürümüyle oluşturulmuş olabilir.</string>
     <string name="backup_error_corrupt">Yedek dosyası bozulmuş veya eksik.</string>
     <string name="backup_error_nothing">Bu yedek dosyası geri yüklenebilir veri içermiyor.</string>
@@ -1588,17 +1588,17 @@
     <string name="backup_warn_dropped_profiles">Hiç grubu olmayan %d profil atlandı.</string>
     <string name="backup_warn_unlisted_profiles">Gruplarının listesinde eksik olan %d profil sonuna eklendi.</string>
     <string name="backup_warn_orphan_rules">Eksik rota profillerinin %d kuralı atlandı.</string>
-    <string name="backup_warn_raw_routes">Throne masaüstünden %d ham rota profili salt okunur tutuluyor; Android bunları kullanamaz.</string>
+    <string name="backup_warn_raw_routes">V4War masaüstünden %d ham rota profili salt okunur tutuluyor; Android bunları kullanamaz.</string>
     <string name="backup_warn_lan_access">Yedek diğer cihazların bağlanmasına izin veriyor (gelen adres %s); bu kapatılmıştı. Gerekirse gelen ayarlarında tekrar açın.</string>
     <string name="webdav_choose_backup">Bir yedek seçin</string>
     <string name="webdav_no_backups">%s içinde .thrbackup dosyası bulunamadı.</string>
     <string name="webdav_listing">WebDAV klasörü okunuyor…</string>
     <string name="webdav_uploading">WebDAV\'a yükleniyor…</string>
     <string name="webdav_downloading">WebDAV\'tan indiriliyor…</string>
-    <string name="route_raw_summary">Ham (Throne masaüstü) · salt okunur</string>
+    <string name="route_raw_summary">Ham (V4War masaüstü) · salt okunur</string>
     <string name="route_raw_view">Görüntüle</string>
-    <string name="route_raw_not_usable">Throne masaüstünden ham rota profilleri Android\'de kullanılamaz.</string>
-    <string name="route_raw_notice">Bu ham rota profili Throne masaüstünde yapılmıştır. Yedeklerin onu masaüstüne geri vermesi için olduğu gibi tutulur; Android onu düzenleyemez veya kullanamaz.</string>
+    <string name="route_raw_not_usable">V4War masaüstünden ham rota profilleri Android\'de kullanılamaz.</string>
+    <string name="route_raw_notice">Bu ham rota profili V4War masaüstünde yapılmıştır. Yedeklerin onu masaüstüne geri vermesi için olduğu gibi tutulur; Android onu düzenleyemez veya kullanamaz.</string>
     <plurals name="route_endpoints_notice">
         <item quantity="one">%d masaüstü uç nokta profili (OpenVPN / OpenConnect) bu rota profiliyle birlikte tutulur ama Android\'de çalışmaz.</item>
         <item quantity="other">%d masaüstü uç nokta profili (OpenVPN / OpenConnect) bu rota profiliyle birlikte tutulur ama Android\'de çalışmaz.</item>
@@ -1607,7 +1607,7 @@
     <string name="update_channel_stable">Kanal: kararlı sürümler</string>
     <string name="update_channel_beta">Kanal: kararlı ve ön sürümler</string>
     <string name="update_checking">Güncellemeler denetleniyor…</string>
-    <string name="update_up_to_date">Throne güncel</string>
+    <string name="update_up_to_date">V4War güncel</string>
     <string name="update_check_failed">Güncellemeler denetlenemedi</string>
     <string name="update_current_version">Mevcut sürüm: %s</string>
     <string name="update_new_version">Yeni sürüm: %s</string>
@@ -1625,7 +1625,7 @@
     <string name="update_action_close">Kapat</string>
     <string name="update_action_skip">Bu sürümü atla</string>
     <string name="update_downloading">Güncelleme indiriliyor</string>
-    <string name="update_downloading_x">Throne %s indiriliyor</string>
+    <string name="update_downloading_x">V4War %s indiriliyor</string>
     <string name="update_progress">%1$s / %2$s</string>
     <string name="update_verifying">Güncelleme doğrulanıyor…</string>
     <string name="update_installing">Güncelleme kuruluyor…</string>
@@ -1637,13 +1637,13 @@
     <string name="update_error_package">İndirme bu uygulamanın bir güncellemesi değil.</string>
     <string name="update_error_version">İndirme beklenen sürüme sahip değil.</string>
     <string name="update_error_signature">İndirme bu derlemeden farklı bir anahtarla imzalanmış, bu yüzden Android onu güncelleme olarak kuramaz. Yedek alın, bu derlemeyi kaldırın ve GitHub\'daki sürümü kurun.</string>
-    <string name="update_error_pin">İndirme Throne yayın anahtarıyla imzalanmamış.</string>
+    <string name="update_error_pin">İndirme V4War yayın anahtarıyla imzalanmamış.</string>
     <string name="update_install_cancelled">Kurulum iptal edildi.</string>
     <string name="update_install_failed">Kurulum başarısız: %s</string>
     <string name="update_permission_title">Güncelleme kurmaya izin ver</string>
-    <string name="update_permission_message">Throne\'un kendini güncellemesi için uygulama kurma iznine ihtiyacı var. Bir sonraki ekranda Throne için etkinleştirin, sonra geri dönün.</string>
+    <string name="update_permission_message">V4War\'ın kendini güncellemesi için uygulama kurma iznine ihtiyacı var. Bir sonraki ekranda V4War için etkinleştirin, sonra geri dönün.</string>
     <string name="update_notification_channel">Uygulama güncellemeleri</string>
-    <string name="update_notification_available">Throne %s mevcut</string>
+    <string name="update_notification_available">V4War %s mevcut</string>
     <string name="update_notification_available_text">Güncellemeyi görmek için dokunun</string>
     <string name="update_notification_ready">Güncelleme hazır</string>
     <string name="update_notification_tap_install">Kurmak için dokunun</string>
@@ -1658,12 +1658,12 @@
     <string name="log_hide_destinations">Hedefleri gizle</string>
     <string name="log_saved">Günlükler kaydedildi</string>
     <string name="log_export_failed">Günlük dışa aktarma başarısız: %s</string>
-    <string name="log_crash_title">Throne çöktü</string>
+    <string name="log_crash_title">V4War çöktü</string>
     <string name="not_now">Şimdi değil</string>
     <string name="channel_warnings">Uyarılar</string>
     <string name="wifi_permission_title">Wi-Fi kuralları</string>
-    <string name="wifi_permission_message">Bir Wi-Fi adı (SSID) veya erişim noktası (BSSID) ile eşleşen kuralların hassas konum erişimine ihtiyacı vardır: Android, bu erişimi olmayan uygulamalardan bağlı Wi-Fi\'yi gizler. Throne yalnızca bağlı ağı okur, asla konumunuzu değil.</string>
-    <string name="wifi_permission_background_message">VPN, Throne kapatılırken çalışmaya devam eder, bu yüzden Wi-Fi kurallarının da her zaman konum erişimine ihtiyacı vardır. Bir sonraki ekranda \"Her zaman izin ver\"i seçin.</string>
+    <string name="wifi_permission_message">Bir Wi-Fi adı (SSID) veya erişim noktası (BSSID) ile eşleşen kuralların hassas konum erişimine ihtiyacı vardır: Android, bu erişimi olmayan uygulamalardan bağlı Wi-Fi\'yi gizler. V4War yalnızca bağlı ağı okur, asla konumunuzu değil.</string>
+    <string name="wifi_permission_background_message">VPN, V4War kapatılırken çalışmaya devam eder, bu yüzden Wi-Fi kurallarının da her zaman konum erişimine ihtiyacı vardır. Bir sonraki ekranda \"Her zaman izin ver\"i seçin.</string>
     <string name="wifi_location_off_message">Konum kapalı ve Android konum kapalıyken Wi-Fi adını gizler. Wi-Fi kurallarının eşleşmesi için konumu açın.</string>
     <string name="wifi_permission_settings_message">Konum erişimi reddedildi. Wi-Fi kurallarının eşleşmesi için uygulama ayarlarında izin verin.</string>
     <string name="wifi_permission_continue">Devam et</string>
@@ -1680,9 +1680,9 @@
     <string name="notification_permission">Bildirimler</string>
     <string name="notification_permission_allowed">İzin verildi</string>
     <string name="notification_permission_blocked">Engellendi: servis bildirimi ve düğmeleri gizli. İzin vermek için dokunun.</string>
-    <string name="notification_permission_rationale">Throne VPN çalışırken bir bildirim gösterir, durdurma ve sunucu değiştirme düğmeleriyle. Görmek için bildirimlere izin verin.</string>
-    <string name="battery_prompt_title">Throne\'un çalışmasına izin ver</string>
-    <string name="battery_prompt_message">Android, pil tasarrufu için arka plandaki uygulamaları durdurabilir veya geciktirebilir. Throne\'u pil optimizasyonsuz çalıştırın ki VPN ekran kapalıyken bağlı kalsın ve bildirim, karo veya widget\'tan sunucu değiştirme çalışsın.</string>
+    <string name="notification_permission_rationale">V4War VPN çalışırken bir bildirim gösterir, durdurma ve sunucu değiştirme düğmeleriyle. Görmek için bildirimlere izin verin.</string>
+    <string name="battery_prompt_title">V4War\'ın çalışmasına izin ver</string>
+    <string name="battery_prompt_message">Android, pil tasarrufu için arka plandaki uygulamaları durdurabilir veya geciktirebilir. V4War\'ı pil optimizasyonsuz çalıştırın ki VPN ekran kapalıyken bağlı kalsın ve bildirim, karo veya widget\'tan sunucu değiştirme çalışsın.</string>
     <string name="battery_prompt_allow">İzin ver</string>
     <string name="battery_prompt_later">Bunu daha sonra Ayarlar › Genel › Pil optimizasyonu\'ndan izin verebilirsiniz</string>
     <string name="battery_optimization">Pil optimizasyonu</string>
@@ -1691,18 +1691,18 @@
     <string name="battery_state_restricted">Sistem tarafından kısıtlı: arka plan başlatmaları engellendi</string>
     <string name="battery_settings_missing">Bu cihazda pil optimizasyon ayarları yok</string>
     <string name="oem_background">Arka plan ve otomatik başlatma</string>
-    <string name="oem_background_summary">Throne\'u arka planda durdurabilen cihaza özgü ayarlar</string>
+    <string name="oem_background_summary">V4War\'ı arka planda durdurabilen cihaza özgü ayarlar</string>
     <string name="always_on_vpn">Her zaman açık VPN</string>
     <string name="always_on_vpn_off">Kapalı. Sistem VPN ayarlarında ayarlayın</string>
-    <string name="always_on_vpn_on">Açık: Android, Throne\'u kendisi VPN modunda başlatır</string>
+    <string name="always_on_vpn_on">Açık: Android, V4War\'ı kendisi VPN modunda başlatır</string>
     <string name="always_on_vpn_lockdown">Açık, VPN\'siz bağlantıları engelliyor</string>
     <string name="always_on_vpn_unknown">Sistem VPN ayarlarında ayarlayın</string>
     <string name="always_on_vpn_no_profile">Her zaman açık VPN\'nin profili yok</string>
-    <string name="always_on_vpn_no_profile_text">Throne\'da bir profil seçin; o zamana kadar her zaman açık VPN bağlanamaz.</string>
+    <string name="always_on_vpn_no_profile_text">V4War\'da bir profil seçin; o zamana kadar her zaman açık VPN bağlanamaz.</string>
     <string name="auto_connect_superseded">Her zaman açık VPN tarafından geçersiz kılındı</string>
     <string name="vpn_settings_missing">Bu cihazda VPN ayarları ekranı yok</string>
     <string name="vpn_dialog_missing_title">VPN onayı kullanılamıyor</string>
-    <string name="vpn_dialog_missing_message">Bu cihazda VPN erişimini onaylayacak bir ekran yok, bu yüzden Throne bunu isteyemiyor. Bir kez adb üzerinden verin:\n\nadb shell appops set %1$s ACTIVATE_VPN allow\n\nveya servis modunu \"Yalnızca vekil sunucu\"ya geçirin.</string>
+    <string name="vpn_dialog_missing_message">Bu cihazda VPN erişimini onaylayacak bir ekran yok, bu yüzden V4War bunu isteyemiyor. Bir kez adb üzerinden verin:\n\nadb shell appops set %1$s ACTIVATE_VPN allow\n\nveya servis modunu \"Yalnızca vekil sunucu\"ya geçirin.</string>
     <string name="vpn_dialog_use_proxy">Vekil sunucu modunu kullan</string>
     <string name="vpn_dialog_copy_command">Komutu kopyala</string>
     <string name="widget_toggle_name">Aç/kapat</string>
@@ -1909,7 +1909,7 @@
     <string name="diagnostics_contention">Kilit çekişmesi</string>
     <string name="diagnostics_contention_sum">Goroutine\'lerin kilitlerde ve kanallarda nerede beklediğini kaydeder.</string>
     <string name="diagnostics_trace">Yürütme izi (daha büyük dosya)</string>
-    <string name="diagnostics_include_logs">Throne günlüklerini dahil et</string>
+    <string name="diagnostics_include_logs">V4War günlüklerini dahil et</string>
     <string name="diagnostics_include_logs_sum">Günlükler ziyaret edilen alan adlarını ve sunucu adreslerini içerir.</string>
     <string name="diagnostics_start">Başlat</string>
     <string name="diagnostics_save">Kaydet…</string>
@@ -2068,8 +2068,8 @@
         <item quantity="other">%1$d kullanıcıdan yalnızca ilki içe aktarıldı.</item>
     </plurals>
     <string name="validation_import_xray_unstorable">Bir VLESS profili bu ayarı saklayamaz, bu yüzden yok sayıldı. Böyle bir giden bağlantı, içinde düzeltilmesi gereken başka bir şey yoksa yazıldığı gibi korunur.</string>
-    <string name="validation_import_xray_rename_protects">Bu anahtarı \"%1$s\" olarak yeniden adlandırın: Throne yalnızca bu yazımı okur ve değerin atılması bağlantının güvenliğini zayıflatırdı.</string>
-    <string name="validation_import_xray_rename">Bu anahtarı \"%1$s\" olarak yeniden adlandırın: Throne yalnızca bu yazımı okur, bu yüzden değeri yok sayıldı.</string>
+    <string name="validation_import_xray_rename_protects">Bu anahtarı \"%1$s\" olarak yeniden adlandırın: V4War yalnızca bu yazımı okur ve değerin atılması bağlantının güvenliğini zayıflatırdı.</string>
+    <string name="validation_import_xray_rename">Bu anahtarı \"%1$s\" olarak yeniden adlandırın: V4War yalnızca bu yazımı okur, bu yüzden değeri yok sayıldı.</string>
     <string name="validation_import_xray_verbatim">Bir VLESS profilinin atacağı %1$s korunsun diye özel bir Xray giden bağlantısı olarak içe aktarıldı.</string>
     <string name="validation_import_json_syntax">Geçerli JSON değil: %1$s, satır %2$s, sütun %3$s.</string>
     <string name="validation_import_unparsed">Ayrıştırılamadı.</string>
@@ -2163,7 +2163,7 @@
     <string name="validation_xray_extra_invalid">extra değeri geçerli bir JSON nesnesi değil, bu yüzden yok sayıldı.</string>
     <string name="validation_xray_finalmask_json">finalmask değeri geçerli JSON değil (%1$s), bu yüzden yok sayıldı.</string>
     <string name="validation_xray_finalmask_object">finalmask değeri bir JSON nesnesi olmalıdır, bu yüzden yok sayıldı.</string>
-    <string name="validation_xray_network">Throne, \"%1$s\" Xray taşımasını desteklemez. raw, xhttp, ws, httpupgrade, grpc, kcp veya xdrive kullanın.</string>
+    <string name="validation_xray_network">V4War, \"%1$s\" Xray taşımasını desteklemez. raw, xhttp, ws, httpupgrade, grpc, kcp veya xdrive kullanın.</string>
     <string name="validation_xray_security">Xray, \"%1$s\" güvenliğini desteklemez. none, tls veya reality kullanın.</string>
     <string name="validation_xray_reality_network">REALITY yalnızca raw, xhttp veya grpc taşıması ile çalışır.</string>
     <string name="validation_xray_reality_hellogolang">REALITY, hellogolang parmak izini kullanamaz; başka bir tane seçin.</string>
@@ -2279,7 +2279,7 @@
     <string name="validation_wg_signature_unknown">Bilinmeyen etiket &lt;%1$s&gt;. &lt;b 0x...&gt;, &lt;r N&gt;, &lt;rc N&gt;, &lt;rd N&gt;, &lt;dz N&gt;, &lt;t&gt;, &lt;d&gt; veya &lt;ds&gt; kullanın.</string>
     <string name="validation_wg_unknown_setting">Bilinmeyen ayar, yok sayıldı.</string>
     <string name="validation_wg_peer_sections">%1$s [Peer] bölümünden yalnızca sonuncusu kullanılır.</string>
-    <string name="validation_wg_allowed_ips_ignored">Yok sayıldı; Throne bu profilin tüm trafiğini tünelden geçirir.</string>
+    <string name="validation_wg_allowed_ips_ignored">Yok sayıldı; V4War bu profilin tüm trafiğini tünelden geçirir.</string>
     <string name="validation_wg_no_endpoint">[Peer] bölümünde vpn.example.com:51820 gibi bir Endpoint yok.</string>
     <string name="validation_wg_peers">%1$s eşten yalnızca ilki kullanılır.</string>
     <string name="validation_wg_address_required">En az bir yerel adres gerekir, örneğin 10.0.0.2/32.</string>
@@ -2313,7 +2313,7 @@
     <string name="validation_oc_reported_os_unknown">Bilinmeyen bildirilen OS, yok sayıldı: %1$s</string>
     <string name="validation_oc_token_mode_unsupported">Desteklenmeyen token modu, yok sayıldı: %1$s</string>
     <string name="validation_oc_form_entry_format">--form-entry=FORM:OPTION=VALUE bekleniyordu, yok sayıldı: %1$s</string>
-    <string name="validation_oc_proxy_ignored">Bir vekil sunucuyu bunun yerine Throne\'un zinciri üzerinden yapılandırın, yok sayıldı: %1$s</string>
+    <string name="validation_oc_proxy_ignored">Bir vekil sunucuyu bunun yerine V4War\'ın zinciri üzerinden yapılandırın, yok sayıldı: %1$s</string>
     <string name="validation_oc_option_unknown">Bilinmeyen OpenConnect seçeneği, yok sayıldı: %1$s</string>
     <string name="validation_oc_dpd_raised">%1$s %2$s, uç noktanın kullandığı en kısa aralık olan 2s\'ye yükseltildi.</string>
     <string name="validation_oc_anyconnect_dtd">DTD içeren bir AnyConnect profili kabul edilmez.</string>
@@ -2402,10 +2402,10 @@
     <string name="validation_custom_xray_reverse">Ters vekil sunucu içe aktarılan yapılandırmadan kaldırıldı: sunucunun bu cihaza ve ağına erişmesine izin verirdi.</string>
     <string name="validation_custom_inbound_removed">Bu gelen bağlantı içe aktarılan yapılandırmadan kaldırıldı: başka cihazların bu cihaz üzerinden bağlanmasına izin verebilirdi. Yalnızca tun gelenleri ve 127.0.0.1 veya ::1 üzerinde dinleyen yerel vekil sunucular korunur.</string>
     <string name="validation_custom_clash_api">Clash API içe aktarılan yapılandırmadan kaldırıldı: bu cihazdaki web sayfaları ve programlar çekirdeği denetlemek için kullanabilirdi ve external_ui ayarı dosya indirir.</string>
-    <string name="validation_custom_v2ray_api">V2Ray API içe aktarılan yapılandırmadan kaldırıldı: Throne\'un çekirdeği onsuz derlenmiştir ve başlamazdı; ayrıca bu cihazda bir istatistik portu açardı.</string>
-    <string name="validation_custom_xray_inbounds">Gelen bağlantılar içe aktarılan yapılandırmadan kaldırıldı: Throne kendi yerel gelen bağlantısını ekler ve bunlar başka cihazların bu cihaz üzerinden bağlanmasına izin verebilirdi.</string>
-    <string name="validation_custom_xray_env">Ortam değişkenleri içe aktarılan yapılandırmadan kaldırıldı: Throne\'un çekirdeğine ve başlattığı programlara uygulanırlardı.</string>
-    <string name="validation_custom_xray_geodata">Geodata güncelleyicisi içe aktarılan yapılandırmadan kaldırıldı: göndericinin seçtiği adreslerden dosya indirir ve Throne\'un klasöründeki dosyaları değiştirirdi.</string>
+    <string name="validation_custom_v2ray_api">V2Ray API içe aktarılan yapılandırmadan kaldırıldı: V4War\'ın çekirdeği onsuz derlenmiştir ve başlamazdı; ayrıca bu cihazda bir istatistik portu açardı.</string>
+    <string name="validation_custom_xray_inbounds">Gelen bağlantılar içe aktarılan yapılandırmadan kaldırıldı: V4War kendi yerel gelen bağlantısını ekler ve bunlar başka cihazların bu cihaz üzerinden bağlanmasına izin verebilirdi.</string>
+    <string name="validation_custom_xray_env">Ortam değişkenleri içe aktarılan yapılandırmadan kaldırıldı: V4War\'ın çekirdeğine ve başlattığı programlara uygulanırlardı.</string>
+    <string name="validation_custom_xray_geodata">Geodata güncelleyicisi içe aktarılan yapılandırmadan kaldırıldı: göndericinin seçtiği adreslerden dosya indirir ve V4War\'ın klasöründeki dosyaları değiştirirdi.</string>
     <string name="validation_custom_xray_webhook">Webhook bu yönlendirme kuralından kaldırıldı: eşleşen her bağlantının ayrıntılarını göndericinin seçtiği bir adrese gönderirdi.</string>
     <string name="validation_autoselector_countries">Virgülle ayrılmış iki harfli ülke kodları kullanın, örneğin DE,NL,FR.</string>
     <string name="validation_autoselector_build_limit">Sıralanandan (%1$s) fazla profil çalıştırılamaz.</string>
@@ -2609,7 +2609,7 @@
     <string name="hotspot_gateway_auth_not_enforced">Hotspot ağ geçidi: sunucu rastgele kimlik bilgilerini kabul etti, yapılandırılan ağ geçidi değil</string>
     <string name="hotspot_gateway_auth_not_found">Hotspot ağ geçidi: Wi-Fi ağ geçidinde SOCKS5 sunucusu bulunamadı</string>
     <string name="hotspot_gateway_no_previous_title">Hotspot kaybedildi</string>
-    <string name="hotspot_gateway_no_previous_text">Dönülecek önceki profil yok, Throne mevcut seçimle çalışmaya devam ediyor.</string>
+    <string name="hotspot_gateway_no_previous_text">Dönülecek önceki profil yok, V4War mevcut seçimle çalışmaya devam ediyor.</string>
     <string name="lan_sharing">LAN Paylaşımı</string>
     <string name="lan_sharing_tools_summary">Wi-Fi hotspot ağ geçidini SOCKS5 vekili olarak kullanın ve LAN istemcilerini izleyin</string>
     <string name="lan_sharing_action_refresh">Yenile</string>
@@ -2702,4 +2702,6 @@
     <string name="hotspot_share_leak_warn">Paylaşım durdu — normal veri kullanılıyor!</string>
     <string name="hotspot_share_traffic_blocked_warn">VPN bağlantısı kesildi — veri sızıntısını önlemek için istemci trafiği engellendi.</string>
     <string name="hotspot_share_status_label">Durum</string>
+    <string name="hotspot_share_clients_format">Bağlı cihazlar: %d</string>
+    <string name="hotspot_share_lan_inbound_title">Yerel Ağ (LAN) Proxy Girişi</string>
 </resources>

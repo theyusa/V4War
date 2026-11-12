@@ -19,6 +19,20 @@ data class LanClientDevice(
     val isHotspot: Boolean,
 )
 
+/** Parsed entry from `ip -4 neigh show` or `/proc/net/arp`. */
+data class NeighborEntry(
+    val ip: String,
+    val iface: String,
+    val mac: String?,
+    val state: String,
+) {
+    val isActive: Boolean
+        get() = state.equals("REACHABLE", ignoreCase = true) ||
+            state.equals("DELAY", ignoreCase = true) ||
+            state.equals("PROBE", ignoreCase = true) ||
+            state.equals("PERMANENT", ignoreCase = true)
+}
+
 /**
  * The pure decisions of the LAN Sharing client list: turning the ARP table and the Clash API /connections
  * payload into device rows, and merging them with the caller's history into one sorted view.
@@ -31,6 +45,19 @@ object LanSharingLogics {
     const val IDLE_MS: Long = 600_000L // 10 minutes
 
     /**
+     * Normalizes bracketed IPv6 or IPv4-mapped IPv6 addresses (e.g. `[::ffff:192.168.43.52]`)
+     * into dotted IPv4 when applicable. Pure and unit-testable.
+     */
+    fun normalizeIp(rawIp: String): String {
+        val noBrackets = rawIp.trim().removePrefix("[").substringBefore('%').removeSuffix("]")
+        return if (noBrackets.startsWith("::ffff:", ignoreCase = true)) {
+            noBrackets.substring(7)
+        } else {
+            noBrackets
+        }
+    }
+
+    /**
      * Parses `/proc/net/arp`. Ends with the device IP; rows with an all-zero MAC are hardware assertions, not
      * devices, and loopback / link-local / our own VPN range rows are not LAN clients either.
      */
@@ -38,13 +65,112 @@ object LanSharingLogics {
         return text.lines().drop(1).mapNotNull { line ->
             val parts = line.trim().split(Regex("\\s+"))
             if (parts.size < 4) return@mapNotNull null
-            val ip = parts[0]
+            val ip = normalizeIp(parts[0])
             val mac = parts[3]
             val isReal = !parts.all { it == "IP address" } &&
                 mac.isNotBlank() && mac != "00:00:00:00:00:00"
-            val usable = listOf("127.", "169.254.", "172.19.").none { it -> ip.startsWith(it) }
+            val usable = !isLocalSource(ip) && !ip.startsWith("169.254.")
             if (isReal && usable) ip else null
         }.distinct()
+    }
+
+    /**
+     * Parses `ip -4 neigh show` output (and optional `---ARP---` section) into structured [NeighborEntry] rows.
+     * Excludes FAILED/INCOMPLETE/local/VPN addresses. Pure and unit-testable.
+     */
+    fun parseIpNeigh(text: String): List<NeighborEntry> {
+        val result = ArrayList<NeighborEntry>()
+        val seen = HashSet<String>()
+        var inArpSection = false
+        for (rawLine in text.lineSequence()) {
+            val line = rawLine.trim()
+            if (line.isEmpty()) continue
+            if (line == "---ARP---") {
+                inArpSection = true
+                continue
+            }
+            if (inArpSection) {
+                if (line.startsWith("IP address")) continue
+                val parts = line.split(Regex("\\s+"))
+                if (parts.size < 6) continue
+                val ip = normalizeIp(parts[0])
+                val mac = parts[3]
+                val iface = parts[5]
+                if (mac.isBlank() || mac == "00:00:00:00:00:00") continue
+                if (isLocalSource(ip) || ip.startsWith("169.254.") || ipv4ToInt(ip) == null) continue
+                if (seen.add(ip)) {
+                    result.add(NeighborEntry(ip = ip, iface = iface, mac = mac, state = "STALE"))
+                }
+                continue
+            }
+
+            // Format: "<ip> dev <iface> [lladdr <mac>] <STATE>"
+            val tokens = line.split(Regex("\\s+"))
+            if (tokens.size < 3) continue
+            val ip = normalizeIp(tokens[0])
+            if (isLocalSource(ip) || ip.startsWith("169.254.") || ipv4ToInt(ip) == null) continue
+            val devIdx = tokens.indexOf("dev")
+            val iface = if (devIdx >= 0 && devIdx + 1 < tokens.size) tokens[devIdx + 1] else continue
+            val llIdx = tokens.indexOf("lladdr")
+            val mac = if (llIdx >= 0 && llIdx + 1 < tokens.size) tokens[llIdx + 1] else null
+            val state = tokens.lastOrNull() ?: ""
+            if (state.equals("FAILED", ignoreCase = true) || state.equals("INCOMPLETE", ignoreCase = true)) {
+                continue
+            }
+            if (mac == null && state.equals("NONE", ignoreCase = true)) continue
+            if (seen.add(ip)) {
+                result.add(NeighborEntry(ip = ip, iface = iface, mac = mac, state = state))
+            }
+        }
+        return result
+    }
+
+    /**
+     * Parses kernel `/proc/net/tcp` or `/proc/net/tcp6` text for sockets whose `local_address` port
+     * matches [listenPort] and are not in LISTEN (`0A`) state. Picks up manual proxy clients even
+     * when Clash `/connections` is off or between short-lived proxy requests.
+     */
+    fun parseProcNetTcpRemotes(procTcpText: String, listenPort: Int): List<String> {
+        if (listenPort <= 0 || procTcpText.isBlank()) return emptyList()
+        val targetPortHex = "%04X".format(listenPort)
+        val result = LinkedHashSet<String>()
+        for (rawLine in procTcpText.lineSequence().drop(1)) {
+            val parts = rawLine.trim().split(Regex("\\s+"))
+            if (parts.size < 4) continue
+            val local = parts[1]
+            val remote = parts[2]
+            val state = parts[3]
+            if (state.equals("0A", ignoreCase = true)) continue // skip LISTEN socket
+            val localPortHex = local.substringAfter(':', "")
+            if (!localPortHex.equals(targetPortHex, ignoreCase = true)) continue
+            val remoteHex = remote.substringBefore(':', "")
+            val ip = decodeProcNetHexIp(remoteHex) ?: continue
+            if (!isLocalSource(ip) && !ip.startsWith("169.254.")) {
+                result.add(ip)
+            }
+        }
+        return result.toList()
+    }
+
+    private fun decodeProcNetHexIp(hex: String): String? {
+        val clean = hex.trim()
+        val ipv4Hex = when (clean.length) {
+            8 -> clean
+            // IPv4-mapped IPv6 in little-endian 32-bit words: 00000000 00000000 FFFF0000 <LE-IPv4>
+            32 -> if (clean.startsWith("0000000000000000FFFF0000", ignoreCase = true)) {
+                clean.substring(24, 32)
+            } else {
+                return null
+            }
+            else -> return null
+        }
+        val word = ipv4Hex.toLongOrNull(16) ?: return null
+        if (word == 0L) return null
+        val b0 = (word and 0xFF).toInt()
+        val b1 = ((word shr 8) and 0xFF).toInt()
+        val b2 = ((word shr 16) and 0xFF).toInt()
+        val b3 = ((word shr 24) and 0xFF).toInt()
+        return "$b0.$b1.$b2.$b3"
     }
 
     /**
@@ -67,8 +193,9 @@ object LanSharingLogics {
         for (i in 0 until connections.length()) {
             val item = connections.getJSONObject(i)
             val meta = item.optJSONObject("metadata") ?: continue
-            val ip = meta.optString("sourceIP")
-            if (ip.isNullOrEmpty() || isLocalSource(ip)) continue
+            val rawIp = meta.optString("sourceIP")
+            val ip = normalizeIp(rawIp)
+            if (ip.isEmpty() || isLocalSource(ip)) continue
             val entry = acc.getOrPut(ip) { Acc(0, 0L, 0L, null) }
             entry.active += 1
             entry.up += item.optLong("upload", 0L)
@@ -82,11 +209,17 @@ object LanSharingLogics {
     }
 
     /**
-     * Sources that are not LAN clients: loopback (`127.*`, `::1`), the VPN/tun range (`172.19.*`) and,
-     * via [localIps], the phone's own hotspot / Wi-Fi addresses. Pure and unit-testable.
+     * Sources that are not LAN clients: loopback (`127.*`, `::1`), the VPN/tun range (`172.19.*`, `192.0.2.*`)
+     * and, via [localIps], the phone's own hotspot / Wi-Fi addresses. Pure and unit-testable.
      */
-    fun isLocalSource(ip: String, localIps: Set<String> = emptySet()): Boolean =
-        ip in localIps || ip.startsWith("127.") || ip == "::1" || ip.startsWith("172.19.")
+    fun isLocalSource(ip: String, localIps: Set<String> = emptySet()): Boolean {
+        val norm = normalizeIp(ip)
+        return norm in localIps ||
+            norm.startsWith("127.") ||
+            norm == "::1" ||
+            norm.startsWith("172.19.") ||
+            norm.startsWith("192.0.2.")
+    }
 
     /** The /24 default when the OS does not report a hotspot prefix length. */
     private const val DEFAULT_PREFIX_BITS = 24
@@ -115,7 +248,7 @@ object LanSharingLogics {
 
     /** Packs a dotted-quad IPv4 string into a Long (0..255 per octet), or null when it is not an IPv4 address. */
     private fun ipv4ToInt(ip: String): Long? {
-        val parts = ip.trim().split(".")
+        val parts = normalizeIp(ip).split(".")
         if (parts.size != 4) return null
         var value = 0L
         for (part in parts) {
@@ -127,11 +260,17 @@ object LanSharingLogics {
     }
 
     /**
-     * Merges a history map (rows the caller kept from earlier polls) with a fresh ARP table and fresh Clash
+     * Merges a history map (rows the caller kept from earlier polls) with ARP/neighbor entries and fresh Clash
      * entries, deduplicating by IP with Clash winning over ARP. Rows past [IDLE_MS] are dropped; the rest are
      * shown with active connections first and the most recently seen afterwards. Local sources ([localIps]
      * plus the static loopback and tun ranges) never become devices.
+     *
+     * Optional [activePeerIps] marks clients that are actively connected via Shizuku/Root tethering (e.g.
+     * REACHABLE hotspot neighbors) or live manual-proxy TCP sockets when Clash `/connections` shows 0 flows.
+     * Optional [hotspotHintIps] marks IPs known to sit on a hotspot/tethering interface even before subnet
+     * metadata settles.
      */
+    @JvmOverloads
     fun mergeDevices(
         history: Map<String, LanClientDevice>,
         arpIps: List<String>,
@@ -140,34 +279,76 @@ object LanSharingLogics {
         hotspotPrefix: Int?,
         localIps: Set<String>,
         nowMs: Long,
+        activePeerIps: Set<String> = emptySet(),
+        hotspotHintIps: Set<String> = emptySet(),
     ): List<LanClientDevice> {
+        val normalizedLocals = localIps.mapTo(HashSet()) { normalizeIp(it) }
+        val normalizedHotspot = hotspotIp?.let { normalizeIp(it) }
+        val normalizedActivePeers = activePeerIps.mapTo(HashSet()) { normalizeIp(it) }
+        val normalizedHotspotHints = hotspotHintIps.mapTo(HashSet()) { normalizeIp(it) }
         val byIp = LinkedHashMap<String, LanClientDevice>()
-        arpIps.forEach { ip ->
-            if (isLocalSource(ip, localIps)) return@forEach
+
+        fun isHotspotFor(ip: String): Boolean =
+            isHotspotClient(ip, normalizedHotspot, hotspotPrefix) || ip in normalizedHotspotHints
+
+        arpIps.forEach { rawIp ->
+            val ip = normalizeIp(rawIp)
+            if (isLocalSource(ip, normalizedLocals)) return@forEach
             val historyRow = history[ip]
+            val peerActive = ip in normalizedActivePeers
             byIp[ip] = LanClientDevice(
-                ip,
-                0,
-                0L,
-                0L,
-                lastHost = null,
-                lastSeenMs = historyRow?.lastSeenMs ?: nowMs,
-                isHotspot = isHotspotClient(ip, hotspotIp, hotspotPrefix),
+                ip = ip,
+                activeConnections = if (peerActive) 1 else 0,
+                uploadBytes = historyRow?.uploadBytes ?: 0L,
+                downloadBytes = historyRow?.downloadBytes ?: 0L,
+                lastHost = historyRow?.lastHost,
+                lastSeenMs = if (peerActive) nowMs else (historyRow?.lastSeenMs ?: nowMs),
+                isHotspot = isHotspotFor(ip),
             )
         }
-        history.forEach { (ip, row) ->
-            if (isLocalSource(ip, localIps)) return@forEach
+        normalizedActivePeers.forEach { ip ->
+            if (isLocalSource(ip, normalizedLocals)) return@forEach
+            if (ip !in byIp) {
+                val historyRow = history[ip]
+                byIp[ip] = LanClientDevice(
+                    ip = ip,
+                    activeConnections = 1,
+                    uploadBytes = historyRow?.uploadBytes ?: 0L,
+                    downloadBytes = historyRow?.downloadBytes ?: 0L,
+                    lastHost = historyRow?.lastHost,
+                    lastSeenMs = nowMs,
+                    isHotspot = isHotspotFor(ip),
+                )
+            }
+        }
+        history.forEach { (rawIp, row) ->
+            val ip = normalizeIp(rawIp)
+            if (isLocalSource(ip, normalizedLocals)) return@forEach
             if (row.lastSeenMs >= nowMs - IDLE_MS) {
                 // Idle rows are re-classified against the current hotspot subnet: the hotspot
                 // interface (and the whole subnet) changes between openings.
-                byIp.putIfAbsent(ip, row.copy(isHotspot = isHotspotClient(ip, hotspotIp, hotspotPrefix)))
+                byIp.putIfAbsent(
+                    ip,
+                    row.copy(
+                        ip = ip,
+                        activeConnections = 0,
+                        isHotspot = isHotspotFor(ip),
+                    ),
+                )
             }
         }
-        clash.forEach { entry ->
-            if (isLocalSource(entry.ip, localIps)) return@forEach
-            byIp[entry.ip] = entry.copy(
-                lastSeenMs = entry.lastSeenMs.takeIf { it > 0L } ?: nowMs,
-                isHotspot = isHotspotClient(entry.ip, hotspotIp, hotspotPrefix),
+        clash.forEach { rawEntry ->
+            val ip = normalizeIp(rawEntry.ip)
+            if (isLocalSource(ip, normalizedLocals)) return@forEach
+            val prev = byIp[ip]
+            byIp[ip] = rawEntry.copy(
+                ip = ip,
+                activeConnections = rawEntry.activeConnections.coerceAtLeast(if (ip in normalizedActivePeers) 1 else 0),
+                uploadBytes = rawEntry.uploadBytes.coerceAtLeast(prev?.uploadBytes ?: 0L),
+                downloadBytes = rawEntry.downloadBytes.coerceAtLeast(prev?.downloadBytes ?: 0L),
+                lastHost = rawEntry.lastHost ?: prev?.lastHost,
+                lastSeenMs = rawEntry.lastSeenMs.takeIf { it > 0L } ?: nowMs,
+                isHotspot = isHotspotFor(ip),
             )
         }
         return byIp.values

@@ -6,6 +6,8 @@ import android.content.ServiceConnection
 import android.os.IBinder
 import android.util.Log
 import io.nekohasekai.sagernet.BuildConfig
+import io.nekohasekai.sagernet.SagerNet
+import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.hotspotshare.shizuku.HevTunnel
 import io.nekohasekai.sagernet.hotspotshare.shizuku.IShareUserService
 import io.nekohasekai.sagernet.hotspotshare.shizuku.ShareUserService
@@ -26,6 +28,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import rikka.shizuku.Shizuku
+import java.net.InetSocketAddress
+import java.net.Socket
 import kotlin.math.max
 
 /**
@@ -70,6 +74,7 @@ class ShizukuBackend(
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val stub = IShareUserService.Stub.asInterface(service)
             userService = stub
+            activeServiceInstance = stub
             try {
                 service?.linkToDeath(deathRecipient, 0)
             } catch (_: Throwable) {
@@ -78,6 +83,9 @@ class ShizukuBackend(
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
+            if (activeServiceInstance === userService) {
+                activeServiceInstance = null
+            }
             userService = null
             connectDeferred = null
         }
@@ -106,6 +114,16 @@ class ShizukuBackend(
             _state.value = ShareState.Error(
                 ShareFailure.BACKEND_DIED,
                 "Failed to bind Shizuku UserService: ${t.message}"
+            )
+            return@withContext
+        }
+
+        // 2.5. Ensure sing-box loopback SOCKS inbound (2088) is actually listening
+        // (critical if VPN started before Hotspot Share was enabled).
+        if (!ensureLoopbackSocksReady()) {
+            _state.value = ShareState.Error(
+                ShareFailure.VPN_NOT_RUNNING,
+                "127.0.0.1:$socksPort dahili SOCKS girişi hazır değil. Lütfen VPN bağlantısını başlatın."
             )
             return@withContext
         }
@@ -239,8 +257,40 @@ class ShizukuBackend(
             unbindService()
         }
         activeInterfaceName = null
+        activeServiceInstance = null
+
+        if (DataStore.serviceState.connected && !DataStore.hotspotShareEnabled) {
+            withContext(Dispatchers.Main) {
+                runCatching { SagerNet.reloadService() }
+            }
+        }
 
         _state.value = ShareState.Off
+    }
+
+    private suspend fun ensureLoopbackSocksReady(): Boolean {
+        if (isLoopbackPortOpen(socksPort)) return true
+        if (!DataStore.serviceState.connected) return false
+
+        Log.i(TAG, "Loopback port $socksPort not open yet; reloading VPN core to bind share inbound")
+        withContext(Dispatchers.Main) {
+            runCatching { SagerNet.reloadService() }
+        }
+        val deadline = System.currentTimeMillis() + SOCKS_WAIT_TIMEOUT_MS
+        while (System.currentTimeMillis() < deadline) {
+            if (isLoopbackPortOpen(socksPort)) return true
+            delay(200)
+        }
+        return isLoopbackPortOpen(socksPort)
+    }
+
+    private fun isLoopbackPortOpen(port: Int): Boolean {
+        return runCatching {
+            Socket().use { s ->
+                s.connect(InetSocketAddress("127.0.0.1", port), 300)
+                true
+            }
+        }.getOrDefault(false)
     }
 
     /**
@@ -351,6 +401,9 @@ class ShizukuBackend(
             Shizuku.unbindUserService(args, serviceConnection, true)
         } catch (_: Throwable) {
         }
+        if (activeServiceInstance === userService) {
+            activeServiceInstance = null
+        }
         boundArgs = null
         userService = null
     }
@@ -388,6 +441,18 @@ class ShizukuBackend(
         private const val TAG = "ShizukuBackend"
         private const val UPSTREAM_SETTLE_MS = 8_000L
         private const val WATCHDOG_INTERVAL_MS = 5_000L
+        private const val SOCKS_WAIT_TIMEOUT_MS = 6_000L
+
+        @Volatile
+        private var activeServiceInstance: IShareUserService? = null
+
+        fun queryActiveNeighborDump(): String? {
+            return runCatching { activeServiceInstance?.neighborDump }.getOrNull()
+        }
+
+        fun queryActiveClientCount(): Int {
+            return runCatching { activeServiceInstance?.connectedClientCount ?: 0 }.getOrDefault(0)
+        }
 
         fun isShizukuRunning(): Boolean {
             return try {

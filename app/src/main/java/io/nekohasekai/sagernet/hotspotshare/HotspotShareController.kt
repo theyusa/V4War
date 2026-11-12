@@ -59,7 +59,13 @@ class HotspotShareController(
 
     /** The user turned sharing off: tear down and report [ShareState.Off]. */
     suspend fun stop() = mutex.withLock {
+        val currentBackend = backend
         teardown()
+        // If Root fail-closed held DROP rules after a VPN drop (so backend was already cleared),
+        // user turning sharing OFF explicitly removes those firewall rules too.
+        if (currentBackend == null && environment().rootAvailable) {
+            runCatching { RootBackend.cleanupLegacyRules() }
+        }
         publish(ShareState.Off)
     }
 

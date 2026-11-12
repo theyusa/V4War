@@ -633,11 +633,11 @@
     <string name="action_masque">MASQUE</string>
     <string name="action_openvpn">OpenVPN</string>
     <string name="action_openconnect">OpenConnect</string>
-    <string name="throne_link">Throne link</string>
+    <string name="throne_link">V4War link</string>
     <string name="edit_as_json">Edit as JSON</string>
     <string name="raw_json_invalid">The JSON is not a valid profile of this type</string>
     <string name="project_website">Project website</string>
-    <string name="support_throne">Support Throne</string>
+    <string name="support_throne">Support V4War</string>
     <string name="tri_state_default">Keep default</string>
     <string name="tri_state_on">On</string>
     <string name="tri_state_off">Off</string>
@@ -664,7 +664,7 @@
     <string name="settings_core">Core</string>
     <string name="settings_core_sum">Logging, statistics, Clash API, security, NTP</string>
     <string name="settings_backup">Backup &amp; restore</string>
-    <string name="settings_backup_sum">.thrbackup files shared with Throne desktop, local and WebDAV</string>
+    <string name="settings_backup_sum">.thrbackup files shared with V4War desktop, local and WebDAV</string>
     <string name="setting_default">Default</string>
     <string name="setting_default_value">Default (%s)</string>
     <string name="cag_connection">Connection</string>
@@ -898,7 +898,7 @@
     <string name="route_import_clipboard_profile">Import routing profile \"%s\" from the clipboard?</string>
     <string name="route_import_clipboard_rules">Import a routing rule list from the clipboard?</string>
     <string name="route_import_paste_title">Import routing profile</string>
-    <string name="route_import_paste_hint">Paste a Throne route link, a remoteRoute link, a base64 blob, or a JSON rule array</string>
+    <string name="route_import_paste_hint">Paste a V4War route link, a remoteRoute link, a base64 blob, or a JSON rule array</string>
     <string name="route_import_invalid_title">Invalid input</string>
     <string name="route_import_invalid">Could not import this routing profile:\n%s</string>
     <string name="route_import_warnings_title">Imported with warnings</string>
@@ -946,7 +946,7 @@
     <string name="route_profile_remote_source">Remote source</string>
     <string name="route_profile_remote_rules_note">Every update replaces this profile\'s rules with the ones from the URL, so rules you add or change here are lost. To keep your own rules, use Clone in the routing profile list: the clone is a local copy that is never updated.</string>
     <string name="route_profile_url">URL</string>
-    <string name="route_profile_url_hint">https://… (throne://route link, base64, or JSON)</string>
+    <string name="route_profile_url_hint">https://… (V4War route link, base64, or JSON)</string>
     <string name="route_profile_auto_update">Auto update</string>
     <string name="route_profile_auto_update_sum">Re-fetch this profile from the URL when remote profiles auto-update. Your local edits are overwritten on each update.</string>
     <string name="route_profile_fetch">Fetch now</string>
@@ -1317,7 +1317,7 @@
     </plurals>
     <string name="profiles_copy_links">Copy links</string>
     <string name="profiles_copy_share_links">Share links</string>
-    <string name="profiles_copy_throne_links">Throne links</string>
+    <string name="profiles_copy_throne_links">V4War links</string>
     <plurals name="profiles_copied">
         <item quantity="one">Copied %d item</item>
         <item quantity="other">Copied %d items</item>
@@ -1759,7 +1759,7 @@
     <string name="backup_part_routes">Routing profiles</string>
     <string name="backup_part_settings">Settings</string>
     <string name="backup_part_otp">OTP profiles (not restored on Android)</string>
-    <string name="backup_local_summary">Backups use the Throne desktop format (.thrbackup): either app restores them. WebDAV credentials stay on this device.</string>
+    <string name="backup_local_summary">Backups use the V4War desktop format (.thrbackup): either app restores them. WebDAV credentials stay on this device.</string>
     <string name="backup_hotspot_note">Hotspot Gateway pairing credentials are never included in a backup. After a restore on another device (or without a pairing) you will need to pair again.</string>
     <string name="backup_create">Create backup</string>
     <string name="backup_restore">Restore</string>
@@ -1767,7 +1767,7 @@
     <string name="backup_creating">Creating backup…</string>
     <string name="backup_created">Backup created. Included: %s</string>
     <string name="backup_failed">Failed to create the backup: %s</string>
-    <string name="backup_open_label">Restore Throne backup</string>
+    <string name="backup_open_label">Restore V4War backup</string>
 
     <string name="backup_restore_title">Restore backup</string>
     <string name="backup_restore_header">Backup created on %1$s (%2$s).\nSelect which parts to restore:</string>
@@ -1777,15 +1777,15 @@
     <string name="backup_platform_linux">Linux</string>
     <string name="backup_platform_macos">macOS</string>
     <string name="backup_platform_unknown">unknown platform</string>
-    <string name="backup_restore_warning">Each selected part replaces the current data. This cannot be undone.\nThrone will restart to complete the restore.</string>
+    <string name="backup_restore_warning">Each selected part replaces the current data. This cannot be undone.\nV4War will restart to complete the restore.</string>
     <string name="backup_restore_select_part">Select at least one part to restore.</string>
     <string name="backup_reading">Reading the backup…</string>
     <string name="backup_restoring">Restoring…</string>
-    <string name="backup_restored">Backup restored successfully. Throne will now restart for the changes to take effect.</string>
-    <string name="backup_restored_warnings">Backup restored. Throne will now restart for the changes to take effect.\n\nNotes:\n%s</string>
+    <string name="backup_restored">Backup restored successfully. V4War will now restart for the changes to take effect.</string>
+    <string name="backup_restored_warnings">Backup restored. V4War will now restart for the changes to take effect.\n\nNotes:\n%s</string>
     <string name="backup_restore_failed">Restore failed: %s</string>
 
-    <string name="backup_error_not_backup">Not a valid Throne backup file.</string>
+    <string name="backup_error_not_backup">Not a valid V4War backup file.</string>
     <string name="backup_error_version">Unsupported backup format version: %d.\nThis backup may have been created with a newer version of the application.</string>
     <string name="backup_error_corrupt">The backup file is damaged or incomplete.</string>
     <string name="backup_error_nothing">This backup file does not contain any restorable data.</string>
@@ -1802,7 +1802,7 @@
     <string name="backup_warn_unlisted_profiles">%d profiles missing from their group\'s list were added at its end.</string>
     <string name="backup_warn_orphan_rules">%d rules of missing routing profiles were skipped.</string>
     <string name="backup_warn_unsupported_rules">%1$d routing rules were skipped because they use fields this app does not support (%2$s).</string>
-    <string name="backup_warn_raw_routes">%d raw routing profiles from Throne desktop are kept read-only; Android cannot use them.</string>
+    <string name="backup_warn_raw_routes">%d raw routing profiles from V4War desktop are kept read-only; Android cannot use them.</string>
     <string name="backup_warn_lan_access">The backup lets other devices connect (inbound address %s); this was turned off. Turn it on again in the inbound settings if you need it.</string>
 
     <string name="webdav_choose_backup">Choose a backup</string>
@@ -1841,10 +1841,10 @@
     <string name="backup_restore_header_device">Backup created on %1$s by %2$s (%3$s).\nSelect which parts to restore:</string>
 
     <!-- Desktop raw routing profiles: carried verbatim, never used -->
-    <string name="route_raw_summary">Raw (Throne desktop) · read-only</string>
+    <string name="route_raw_summary">Raw (V4War desktop) · read-only</string>
     <string name="route_raw_view">View</string>
-    <string name="route_raw_not_usable">Raw routing profiles from Throne desktop cannot be used on Android.</string>
-    <string name="route_raw_notice">This raw routing profile was made on Throne desktop. It is kept unchanged so that backups give it back to the desktop; Android cannot edit or use it.</string>
+    <string name="route_raw_not_usable">Raw routing profiles from V4War desktop cannot be used on Android.</string>
+    <string name="route_raw_notice">This raw routing profile was made on V4War desktop. It is kept unchanged so that backups give it back to the desktop; Android cannot edit or use it.</string>
     <plurals name="route_endpoints_notice">
         <item quantity="one">%d desktop endpoint profile (OpenVPN / OpenConnect) is kept with this routing profile but not run on Android.</item>
         <item quantity="other">%d desktop endpoint profiles (OpenVPN / OpenConnect) are kept with this routing profile but not run on Android.</item>
@@ -1886,11 +1886,11 @@
     <string name="update_error_package">The download is not an update of this app.</string>
     <string name="update_error_version">The download does not have the expected version.</string>
     <string name="update_error_signature">The download is signed with a different key than this build, so Android cannot install it as an update. Back up, uninstall this build and install the release from GitHub.</string>
-    <string name="update_error_pin">The download is not signed with the Throne release key.</string>
+    <string name="update_error_pin">The download is not signed with the V4War release key.</string>
     <string name="update_install_cancelled">The installation was cancelled.</string>
     <string name="update_install_failed">The installation failed: %s</string>
     <string name="update_permission_title">Allow installing updates</string>
-    <string name="update_permission_message">To update itself, Throne needs the permission to install apps. Enable it for Throne on the next screen, then come back.</string>
+    <string name="update_permission_message">To update itself, V4War needs the permission to install apps. Enable it for V4War on the next screen, then come back.</string>
     <string name="update_notification_channel">App updates</string>
     <string name="update_notification_available">V4War %s is available</string>
     <string name="update_notification_available_text">Tap to see the update</string>
@@ -1919,8 +1919,8 @@
 
     <!-- Wi-Fi rules -->
     <string name="wifi_permission_title">Wi-Fi rules</string>
-    <string name="wifi_permission_message">Rules that match a Wi-Fi name (SSID) or access point (BSSID) need precise location access: Android hides the connected Wi-Fi from apps without it. Throne only reads the connected network, never your location.</string>
-    <string name="wifi_permission_background_message">The VPN keeps running while Throne is closed, so Wi-Fi rules also need location access all the time. Choose \"Allow all the time\" on the next screen.</string>
+    <string name="wifi_permission_message">Rules that match a Wi-Fi name (SSID) or access point (BSSID) need precise location access: Android hides the connected Wi-Fi from apps without it. V4War only reads the connected network, never your location.</string>
+    <string name="wifi_permission_background_message">The VPN keeps running while V4War is closed, so Wi-Fi rules also need location access all the time. Choose \"Allow all the time\" on the next screen.</string>
     <string name="wifi_location_off_message">Location is turned off, and Android hides the Wi-Fi name while it is off. Turn location on for Wi-Fi rules to match.</string>
     <string name="wifi_permission_settings_message">Location access is denied. Allow it in the app settings for Wi-Fi rules to match.</string>
     <string name="wifi_permission_continue">Continue</string>
@@ -1967,7 +1967,7 @@
 
     <!-- VPN consent -->
     <string name="vpn_dialog_missing_title">VPN confirmation unavailable</string>
-    <string name="vpn_dialog_missing_message">This device has no screen to confirm VPN access, so Throne cannot ask for it. Grant it once over adb:\n\nadb shell appops set %1$s ACTIVATE_VPN allow\n\nor switch the service mode to \"Proxy only\".</string>
+    <string name="vpn_dialog_missing_message">This device has no screen to confirm VPN access, so V4War cannot ask for it. Grant it once over adb:\n\nadb shell appops set %1$s ACTIVATE_VPN allow\n\nor switch the service mode to \"Proxy only\".</string>
     <string name="vpn_dialog_use_proxy">Use proxy mode</string>
     <string name="vpn_dialog_copy_command">Copy command</string>
 
@@ -2123,7 +2123,7 @@
     <string name="diagnostics_contention">Lock contention</string>
     <string name="diagnostics_contention_sum">Records where goroutines wait on locks and channels.</string>
     <string name="diagnostics_trace">Execution trace (larger file)</string>
-    <string name="diagnostics_include_logs">Include Throne logs</string>
+    <string name="diagnostics_include_logs">Include V4War logs</string>
     <string name="diagnostics_include_logs_sum">Logs contain visited domains and server addresses.</string>
     <string name="diagnostics_start">Start</string>
     <string name="diagnostics_save">Save…</string>
@@ -2284,8 +2284,8 @@
         <item quantity="other">Only the first user of %1$d was imported.</item>
     </plurals>
     <string name="validation_import_xray_unstorable">A VLESS profile cannot store this setting, so it was ignored. Such an outbound is kept as written only when nothing else in it needs fixing.</string>
-    <string name="validation_import_xray_rename_protects">Rename this key to \"%1$s\": Throne reads only that spelling, and dropping its value would weaken the connection\'s security.</string>
-    <string name="validation_import_xray_rename">Rename this key to \"%1$s\": Throne reads only that spelling, so its value was ignored.</string>
+    <string name="validation_import_xray_rename_protects">Rename this key to \"%1$s\": V4War reads only that spelling, and dropping its value would weaken the connection\'s security.</string>
+    <string name="validation_import_xray_rename">Rename this key to \"%1$s\": V4War reads only that spelling, so its value was ignored.</string>
     <string name="validation_import_xray_verbatim">Imported as a custom Xray outbound to keep %1$s, which a VLESS profile would drop.</string>
     <string name="validation_import_json_syntax">Not valid JSON: %1$s at line %2$s, column %3$s.</string>
     <string name="validation_import_unparsed">Could not be parsed.</string>
@@ -2379,7 +2379,7 @@
     <string name="validation_xray_extra_invalid">The extra value is not a valid JSON object, so it was ignored.</string>
     <string name="validation_xray_finalmask_json">The finalmask value is not valid JSON (%1$s), so it was ignored.</string>
     <string name="validation_xray_finalmask_object">The finalmask value must be a JSON object, so it was ignored.</string>
-    <string name="validation_xray_network">Throne does not support the Xray transport \"%1$s\". Use raw, xhttp, ws, httpupgrade, grpc, kcp or xdrive.</string>
+    <string name="validation_xray_network">V4War does not support the Xray transport \"%1$s\". Use raw, xhttp, ws, httpupgrade, grpc, kcp or xdrive.</string>
     <string name="validation_xray_security">Xray does not support the security \"%1$s\". Use none, tls or reality.</string>
     <string name="validation_xray_reality_network">REALITY works only with the raw, xhttp or grpc transport.</string>
     <string name="validation_xray_reality_hellogolang">REALITY cannot use the hellogolang fingerprint; choose another one.</string>
@@ -2495,7 +2495,7 @@
     <string name="validation_wg_signature_unknown">Unknown tag &lt;%1$s&gt;. Use &lt;b 0x...&gt;, &lt;r N&gt;, &lt;rc N&gt;, &lt;rd N&gt;, &lt;dz N&gt;, &lt;t&gt;, &lt;d&gt; or &lt;ds&gt;.</string>
     <string name="validation_wg_unknown_setting">Unknown setting, ignored.</string>
     <string name="validation_wg_peer_sections">Only the last of the %1$s [Peer] sections is used.</string>
-    <string name="validation_wg_allowed_ips_ignored">Ignored; Throne sends all traffic of this profile through the tunnel.</string>
+    <string name="validation_wg_allowed_ips_ignored">Ignored; V4War sends all traffic of this profile through the tunnel.</string>
     <string name="validation_wg_no_endpoint">The [Peer] section has no Endpoint such as vpn.example.com:51820.</string>
     <string name="validation_wg_peers">Only the first of the %1$s peers is used.</string>
     <string name="validation_wg_address_required">At least one local address is required, for example 10.0.0.2/32.</string>
@@ -2529,7 +2529,7 @@
     <string name="validation_oc_reported_os_unknown">Unknown reported OS, ignored: %1$s</string>
     <string name="validation_oc_token_mode_unsupported">Unsupported token mode, ignored: %1$s</string>
     <string name="validation_oc_form_entry_format">Expected --form-entry=FORM:OPTION=VALUE, ignored: %1$s</string>
-    <string name="validation_oc_proxy_ignored">Configure a proxy through Throne\'s chain instead, ignored: %1$s</string>
+    <string name="validation_oc_proxy_ignored">Configure a proxy through V4War\'s chain instead, ignored: %1$s</string>
     <string name="validation_oc_option_unknown">Unknown OpenConnect option, ignored: %1$s</string>
     <string name="validation_oc_dpd_raised">Raised %1$s %2$s to 2s, the shortest interval the endpoint uses.</string>
     <string name="validation_oc_anyconnect_dtd">An AnyConnect profile carrying a DTD is not accepted.</string>
@@ -2618,10 +2618,10 @@
     <string name="validation_custom_xray_reverse">Removed the reverse proxy from the imported configuration: it would let the server reach this device and its network.</string>
     <string name="validation_custom_inbound_removed">Removed this inbound from the imported configuration: it could let other devices connect through this device. Only tun inbounds and local proxies that listen on 127.0.0.1 or ::1 are kept.</string>
     <string name="validation_custom_clash_api">Removed the Clash API from the imported configuration: web pages and programs on this device could use it to control the core, and its external_ui setting downloads files.</string>
-    <string name="validation_custom_v2ray_api">Removed the V2Ray API from the imported configuration: Throne\'s core is built without it and would not start, and it would open a statistics port on this device.</string>
-    <string name="validation_custom_xray_inbounds">Removed the inbounds from the imported configuration: Throne adds its own local inbound, and these could let other devices connect through this device.</string>
-    <string name="validation_custom_xray_env">Removed the environment variables from the imported configuration: they would apply to Throne\'s core and to the programs it starts.</string>
-    <string name="validation_custom_xray_geodata">Removed the geodata updater from the imported configuration: it would download files from addresses the sender chose and replace files in Throne\'s folder.</string>
+    <string name="validation_custom_v2ray_api">Removed the V2Ray API from the imported configuration: V4War\'s core is built without it and would not start, and it would open a statistics port on this device.</string>
+    <string name="validation_custom_xray_inbounds">Removed the inbounds from the imported configuration: V4War adds its own local inbound, and these could let other devices connect through this device.</string>
+    <string name="validation_custom_xray_env">Removed the environment variables from the imported configuration: they would apply to V4War\'s core and to the programs it starts.</string>
+    <string name="validation_custom_xray_geodata">Removed the geodata updater from the imported configuration: it would download files from addresses the sender chose and replace files in V4War\'s folder.</string>
     <string name="validation_custom_xray_webhook">Removed the webhook from this routing rule: it would send the details of every matching connection to an address the sender chose.</string>
     <string name="validation_autoselector_countries">Use two-letter country codes separated by commas, for example DE,NL,FR; put ! before a code to exclude that country, for example !RU.</string>
     <string name="validation_autoselector_build_limit">Cannot run more profiles than are ranked (%1$s).</string>
@@ -2917,4 +2917,6 @@
     <string name="hotspot_share_leak_warn">Sharing stopped — normal cellular data in use!</string>
     <string name="hotspot_share_traffic_blocked_warn">VPN disconnected — client traffic blocked to prevent data leaks.</string>
     <string name="hotspot_share_status_label">Status</string>
+    <string name="hotspot_share_clients_format">Connected clients: %d</string>
+    <string name="hotspot_share_lan_inbound_title">LAN Proxy Inbound</string>
 </resources>

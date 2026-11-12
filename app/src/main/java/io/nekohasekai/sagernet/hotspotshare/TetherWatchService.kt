@@ -100,7 +100,10 @@ class TetherWatchService : Service(), SagerConnection.Callback {
             backendFactory = { method ->
                 val backend: HotspotShare = when (method) {
                     ShareMethod.SHIZUKU -> ShizukuBackend(this)
-                    ShareMethod.ROOT -> RootBackend(this)
+                    ShareMethod.ROOT -> RootBackend(
+                        context = this,
+                        failClosedAction = { FailClosedAction.fromCode(DataStore.hotspotShareFailClosed) },
+                    )
                     ShareMethod.LAN_PROXY -> LanProxyBackend()
                 }
                 activeBackend = backend
@@ -136,6 +139,7 @@ class TetherWatchService : Service(), SagerConnection.Callback {
     }
 
     private fun stopSharingSession() {
+        DataStore.hotspotShareEnabled = false
         serviceScope.launch {
             controller?.stop()
             activeBackend = null
@@ -174,8 +178,11 @@ class TetherWatchService : Service(), SagerConnection.Callback {
         statsJob?.cancel()
         val provider: () -> Pair<Long, Long>? = {
             when (method) {
-                ShareMethod.SHIZUKU -> (activeBackend as? ShizukuBackend)?.getTrafficStats()
-                    ?: ProcNetDevParser.readCurrent(setOf("testtun0"))
+                ShareMethod.SHIZUKU -> {
+                    val shizuku = activeBackend as? ShizukuBackend
+                    val iface = shizuku?.activeInterfaceName ?: "testtun0"
+                    shizuku?.getTrafficStats() ?: ProcNetDevParser.readCurrent(setOf(iface))
+                }
                 ShareMethod.ROOT -> (activeBackend as? RootBackend)?.let { root ->
                     ProcNetDevParser.readCurrent(root.activeInterfaces.ifEmpty { emptySet() })
                 } ?: ProcNetDevParser.readCurrent()
@@ -299,7 +306,7 @@ class TetherWatchService : Service(), SagerConnection.Callback {
         )
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_hardware_router)
+            .setSmallIcon(R.drawable.ic_throne_tile)
             .setContentTitle(title)
             .setContentText(text)
             .setContentIntent(contentIntent)

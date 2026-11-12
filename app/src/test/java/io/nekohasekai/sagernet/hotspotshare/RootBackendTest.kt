@@ -35,10 +35,13 @@ class RootBackendTest {
 
         override fun exec(command: String): ShellResult {
             executedCommands.add(command)
-            return if (command.contains("ip route show table all")) {
-                ShellResult(isSuccess = true, code = 0, out = routeOutput, err = emptyList())
-            } else {
-                ShellResult(isSuccess = !failExecution, code = if (failExecution) 1 else 0, out = emptyList(), err = emptyList())
+            return when {
+                command.contains("ip route show table all") ->
+                    ShellResult(isSuccess = true, code = 0, out = routeOutput, err = emptyList())
+                command.contains("dumpsys tethering") ->
+                    ShellResult(isSuccess = true, code = 0, out = listOf("  ap0 - TetheredState - Tethered"), err = emptyList())
+                else ->
+                    ShellResult(isSuccess = !failExecution, code = if (failExecution) 1 else 0, out = emptyList(), err = emptyList())
             }
         }
 
@@ -118,5 +121,31 @@ class RootBackendTest {
         fakeExecutor.exec(blockCmds)
 
         assertTrue(fakeExecutor.executedCommands.any { it.contains("iptables -A throne_fwd -i ap0 -j DROP") })
+    }
+
+    @Test
+    fun failClosed_blockTrafficPreservesDropAcrossStopUntilExplicitCleanup() = runBlocking {
+        val fakeExecutor = FakeShellExecutor()
+        val backend = RootBackend(
+            FakeContext(),
+            shellExecutor = fakeExecutor,
+            failClosedAction = { FailClosedAction.BLOCK_TRAFFIC },
+        )
+
+        backend.start()
+        assertTrue(backend.state.value is ShareState.Active)
+        fakeExecutor.executedCommands.clear()
+
+        runCatching { backend.handleVpnDropped(FailClosedAction.BLOCK_TRAFFIC) }
+        assertTrue(fakeExecutor.executedCommands.any { it.contains("-j DROP") })
+        fakeExecutor.executedCommands.clear()
+
+        // Controller mirror stop should preserve the armed DROP rules instead of tearing them down
+        backend.stop()
+        assertFalse(fakeExecutor.executedCommands.any { it.contains("iptables -X throne_fwd") })
+
+        // Explicit legacy cleanup strips the armed DROP rules when user turns sharing off
+        RootBackend.cleanupLegacyRules(fakeExecutor)
+        assertTrue(fakeExecutor.executedCommands.any { it.contains("iptables -X throne_fwd") })
     }
 }

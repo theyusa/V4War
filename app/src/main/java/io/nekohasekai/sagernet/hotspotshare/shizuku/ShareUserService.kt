@@ -499,6 +499,10 @@ class ShareUserService : IShareUserService.Stub {
         return runCatching { inspector.observeWifiClientCount() }.getOrDefault(0)
     }
 
+    override fun getNeighborDump(): String {
+        return runCatching { inspector.observeNeighbors() }.getOrDefault("")
+    }
+
     override fun checkCompatibility(): String {
         val ctx = runCatching { context }.getOrNull()
         val testNetPresent = testNetworkManager != null
@@ -617,7 +621,7 @@ class ShareUserService : IShareUserService.Stub {
 
     companion object {
         private const val TAG = "ShareUserService"
-        const val CONTRACT_VERSION = 2
+        const val CONTRACT_VERSION = 3
 
         const val TUN_IPV4_ADDRESS = "192.0.2.2"
         const val TUN_IPV4_PREFIX = 24
