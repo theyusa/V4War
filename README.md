@@ -34,18 +34,18 @@ Documentation: [throneproj.github.io](https://throneproj.github.io)
 Share your active VPN connection across devices over **Phone Hotspot** or **Local Wi-Fi (LAN)** without root permissions, or auto-connect other phones and computers to your shared proxy with zero manual configuration.
 
 <p align="center">
-  <img src=".github/assets/lan-sharing.jpg" alt="Throne LAN Sharing & Hotspot Gateway Interface" width="340" style="border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.25);" />
+  <img src=".github/assets/lan-sharing.jpg" alt="V4War LAN Sharing & Hotspot Gateway Interface" width="340" style="border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.25);" />
 </p>
 
 ### 📱 Phone to Phone Sharing
-- **Zero-Config Auto Pairing:** If **both phones run Throne** with this feature enabled, the client phone automatically discovers the hotspot gateway and routes traffic through it without typing any IP or port.
-- **Other Devices / General Clients:** If the receiving device does not have Throne, you can:
+- **Zero-Config Auto Pairing:** If **both phones run V4War** with this feature enabled, the client phone automatically discovers the hotspot gateway and routes traffic through it without typing any IP or port.
+- **Other Devices / General Clients:** If the receiving device does not have V4War, you can:
   - Tap **Share Link** or **Copy Link** to send the standard `socks5://[user:pass@]host:port#remark` URI directly to the client.
   - Or tap **Copy IP** and **Copy Port** to manually configure the SOCKS5 proxy in your device's Wi-Fi / Proxy settings.
 
 ### 💻 Phone to Computer Sharing (Windows & Linux)
 - If your computer runs our desktop application [theyusa/Throne](https://github.com/theyusa/Throne):
-  1. Turn on your phone's Hotspot and enable **LAN Sharing** in Throne for Android.
+  1. Turn on your phone's Hotspot and enable **LAN Sharing** in V4War for Android.
   2. Connect your PC to the phone's Hotspot.
   3. In desktop Throne, navigate to **Settings → Basic Settings → Hotspot Gateway** and toggle it on.
   4. Your PC immediately tunnels through your phone's VPN connection — **no IP or port configuration required!**
@@ -60,7 +60,7 @@ Share your active VPN connection across devices over **Phone Hotspot** or **Loca
 
 ---
 
-## ✨ Throne's Core Features
+## ✨ V4War's Core Features
 
 - 🗂️ **Groups and Subscriptions:** Works seamlessly with desktop Throne: per-group subscription options (filters, clean-up, URL test after update), front / landing proxy, HWID headers, and scheduled updates with change reports.
 - 💾 **Cross-Platform Backups:** Backups in `.thrbackup` format, restorable on Android or desktop: save, share, or sync over WebDAV.

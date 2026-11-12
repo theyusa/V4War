@@ -5,5 +5,5 @@
     <solid android:color="?attr/cardElevatedSurfaceColor" />
     <stroke
         android:width="@dimen/card_stroke_width"
-        android:color="@color/card_stroke" />
+        android:color="?attr/colorOutline" />
 </shape>

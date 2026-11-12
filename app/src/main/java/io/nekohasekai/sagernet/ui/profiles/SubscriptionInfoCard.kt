@@ -141,16 +141,10 @@ internal class SubscriptionInfoCard(val view: View) {
     fun bind(group: ProxyGroup?) {
         wanted = group != null && group.isSubscription && group.subOptions.showInfoCard && render(group, group.subInfo)
         if (view is MaterialCardView) {
+            view.setCardBackgroundColor(Theme.resolveCardBackground(context))
             if (Theme.isBlackTheme(context)) {
-                val isAmoledSeed = DataStore.appTheme == Theme.BLACK || (Theme.isBlackTheme(context) && DataStore.appTheme in setOf(Theme.BLACK, Theme.WHITE, Theme.LIGHT_GRAY))
-                val strokeColor = if (isAmoledSeed) {
-                    Color.WHITE
-                } else {
-                    val prim = context.getColorAttr(R.attr.colorPrimary)
-                    if (ColorUtils.calculateLuminance(prim) < 0.08) Color.WHITE else prim
-                }
-                view.strokeColor = ContextCompat.getColor(context, R.color.card_stroke)
-                view.strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
+                view.strokeColor = Theme.resolveCardStrokeColor(context, selected = false)
+                view.strokeWidth = Theme.resolveCardStrokeWidthPx(context, selected = false).toInt().coerceAtLeast(1)
             } else {
                 view.strokeWidth = 0
             }

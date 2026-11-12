@@ -79,8 +79,8 @@
                 app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/card_stroke"
-                app:strokeWidth="1dp">
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="?attr/cardStrokeWidth">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -199,8 +199,8 @@
                 app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/card_stroke"
-                app:strokeWidth="1dp">
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="?attr/cardStrokeWidth">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -283,8 +283,8 @@
                 app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/card_stroke"
-                app:strokeWidth="1dp">
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="?attr/cardStrokeWidth">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -332,8 +332,8 @@
                 app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/card_stroke"
-                app:strokeWidth="1dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="?attr/cardStrokeWidth"
                 tools:visibility="visible">
 
                 <LinearLayout

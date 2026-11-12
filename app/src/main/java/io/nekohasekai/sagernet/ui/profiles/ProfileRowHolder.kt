@@ -31,6 +31,7 @@ import moe.matsuri.nb4a.Protocols.getProtocolColor
 import android.graphics.drawable.GradientDrawable
 import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.utils.Theme
+import kotlin.math.roundToInt
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.Locale
@@ -383,39 +384,20 @@ internal class ProfileRowHolder(view: View, private val adapter: ProfileListAdap
 
     private fun applyCardColors(selected: Boolean, checked: Boolean) {
         val context = card.context
-        val surface = context.getColorAttr(R.attr.cardElevatedSurfaceColor)
+        val surface = Theme.resolveCardBackground(context)
         var background = surface
         selectedIndicator.isVisible = false
-        val isAmoled = Theme.isBlackTheme(context)
-        if (isAmoled) {
-            val isAmoledSeed = DataStore.appTheme == Theme.BLACK || (Theme.isBlackTheme(context) && DataStore.appTheme in setOf(Theme.BLACK, Theme.WHITE, Theme.LIGHT_GRAY))
-            val strokeColor = if (isAmoledSeed) {
-                Color.WHITE
-            } else {
-                val prim = context.getColorAttr(R.attr.colorPrimary)
-                if (ColorUtils.calculateLuminance(prim) < 0.08) Color.WHITE else prim
-            }
-            if (selected) {
-                card.strokeColor = strokeColor
-                card.strokeWidth = dp2px(2)
-            } else {
-                card.strokeColor = androidx.core.content.ContextCompat.getColor(context, R.color.card_stroke)
-                card.strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
-            }
-        } else {
-            if (selected) {
-                card.strokeColor = context.getColorAttr(R.attr.colorPrimary)
-                card.strokeWidth = dp2px(2)
-            } else {
-                val stroke = context.getColorAttr(R.attr.profileCardStrokeColor)
-                card.strokeColor = if (stroke != 0) stroke else androidx.core.content.ContextCompat.getColor(context, R.color.card_stroke)
-                card.strokeWidth = context.resources.getDimensionPixelSize(R.dimen.card_stroke_width)
-            }
-        }
+        card.strokeColor = Theme.resolveCardStrokeColor(context, selected = selected)
+        card.strokeWidth = Theme.resolveCardStrokeWidthPx(context, selected = selected).roundToInt()
         card.cardElevation = 0f
         if (selected) {
-            val primary = context.getColorAttr(R.attr.colorPrimary)
-            background = ColorUtils.compositeColors(ColorUtils.setAlphaComponent(primary, 24), surface)
+            val primary = Theme.getSeedPrimaryColor(context)
+            val tintAlpha = when {
+                Theme.isPureAmoled(context) -> 18
+                Theme.isTintedAmoled(context) -> 34
+                else -> 24
+            }
+            background = ColorUtils.compositeColors(ColorUtils.setAlphaComponent(primary, tintAlpha), surface)
         }
         if (checked) {
             val accent = context.getColorAttr(R.attr.colorAccent)

@@ -7,7 +7,7 @@
 </div>
 
 > 🔀 **Bu depo [throneproj/ThroneForAndroid](https://github.com/throneproj/ThroneForAndroid) projesinin bir çatalıdır (fork).**
-> Dahili **LAN Paylaşımı ve Hotspot Ağ Geçidi (LAN Sharing & Hotspot Gateway)** özelliğini içerir — telefonunuzun aktif VPN bağlantısını **Root gerektirmeden** mobil erişim noktası (Hotspot) veya yerel Wi-Fi ağı üzerinden paylaşmanıza ve diğer Throne istemcilerine hiçbir IP/Port girmeden sıfır yapılandırmayla aktarmanıza olanak tanır.
+> Dahili **LAN Paylaşımı ve Hotspot Ağ Geçidi (LAN Sharing & Hotspot Gateway)** özelliğini içerir — telefonunuzun aktif VPN bağlantısını **Root gerektirmeden** mobil erişim noktası (Hotspot) veya yerel Wi-Fi ağı üzerinden paylaşmanıza ve diğer V4War istemcilerine hiçbir IP/Port girmeden sıfır yapılandırmayla aktarmanıza olanak tanır.
 
 <p align="center">
   <a href="#"><img alt="Android" src="https://img.shields.io/badge/Android-7.0%2B%20(API%2024)-3DDC84?logo=android&logoColor=white&style=for-the-badge"></a>
@@ -34,18 +34,18 @@ Resmi Dokümantasyon: [throneproj.github.io](https://throneproj.github.io)
 Telefonunuzun bağlı olduğu VPN tünelini, **Root yetkisi gerektirmeden** mobil erişim noktası (Hotspot) veya aynı yerel Wi-Fi ağı üzerindeki diğer cihazlarla paylaşın.
 
 <p align="center">
-  <img src=".github/assets/lan-sharing.jpg" alt="Throne LAN Paylaşımı ve Hotspot Ağ Geçidi Ekranı" width="340" style="border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.25);" />
+  <img src=".github/assets/lan-sharing.jpg" alt="V4War LAN Paylaşımı ve Hotspot Ağ Geçidi Ekranı" width="340" style="border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.25);" />
 </p>
 
 ### 📱 Telefondan Telefona Paylaşım
-- **Sıfır Yapılandırma ile Otomatik Eşleşme:** Eğer **her iki telefonda da Throne yüklüyse ve bu özellik açıksa**, bağlanan telefon ağ geçidini otomatik olarak keşfeder; hiçbir IP veya port girmeden internetini telefonunuzun VPN'i üzerinden geçirir.
-- **Diğer Cihazlar / Genel İstemciler:** Bağlanacak cihazda Throne yoksa:
+- **Sıfır Yapılandırma ile Otomatik Eşleşme:** Eğer **her iki telefonda da V4War yüklüyse ve bu özellik açıksa**, bağlanan telefon ağ geçidini otomatik olarak keşfeder; hiçbir IP veya port girmeden internetini telefonunuzun VPN'i üzerinden geçirir.
+- **Diğer Cihazlar / Genel İstemciler:** Bağlanacak cihazda V4War yoksa:
   - **Linki Paylaş** veya **Linki Kopyala** butonuna dokunarak hazır `socks5://[kullanıcı:parola@]ip:port#açıklama` bağlantı linkini gönderin.
   - Veya cihazın Wi-Fi / Proxy ayarlarına **IP Kopyala** ve **Port Kopyala** butonlarıyla elde ettiğiniz değerleri girin.
 
 ### 💻 Telefondan Bilgisayara Paylaşım (Windows & Linux)
 - Bilgisayarınızda masaüstü uygulamamız [theyusa/Throne](https://github.com/theyusa/Throne) kullanılıyorsa:
-  1. Telefonunuzun Mobil Erişim Noktasını (Hotspot) açın ve Throne uygulamasında **Araçlar → Ağ ve Paylaşım → LAN Paylaşımı** anahtarını etkinleştirin.
+  1. Telefonunuzun Mobil Erişim Noktasını (Hotspot) açın ve V4War uygulamasında **Araçlar → Ağ ve Paylaşım → LAN Paylaşımı** anahtarını etkinleştirin.
   2. Bilgisayarınızı telefonun hotspot ağına bağlayın.
   3. Bilgisayardaki Throne uygulamasında **Settings → Basic Settings → Hotspot Ağ Geçidi (Hotspot Gateway)** ayarını açın.
   4. Bilgisayarınız **hiçbir IP ya da port yazmanıza gerek kalmadan** telefonunuzun VPN tüneli üzerinden güvenle internete çıkar!
@@ -60,7 +60,7 @@ Telefonunuzun bağlı olduğu VPN tünelini, **Root yetkisi gerektirmeden** mobi
 
 ---
 
-## ✨ Throne'un Genel Özellikleri
+## ✨ V4War Özellikleri
 
 - 🗂️ **Grup ve Abonelik Yönetimi:** Masaüstü Throne ile birebir uyumlu grup seçenekleri (filtreler, temizleme, güncelleme sonrası URL testi), ön/iniş proxy'si, HWID başlıkları ve zamanlanmış güncellemeler.
 - 💾 **Platformlar Arası Yedekleme:** `.thrbackup` biçiminde çift yönlü geri yüklenebilir yedekler: yerel kaydetme, paylaşma veya WebDAV üzerinden eşitleme.

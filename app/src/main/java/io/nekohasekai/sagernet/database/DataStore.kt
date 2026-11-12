@@ -81,6 +81,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var amoledTheme by configurationStore.boolean(Key.AMOLED_THEME)
     var tintPreferenceIcons by configurationStore.boolean(Key.TINT_PREFERENCE_ICONS) { true }
     var customThemeColor by configurationStore.int("custom_theme_color") { 0x00E676 }
+    var lastSeedTheme by configurationStore.int("last_seed_theme") { 22 }
     var appLanguage by configurationStore.string(Key.APP_LANGUAGE) { "" }
     var serviceMode by configurationStore.string(Key.SERVICE_MODE) { Key.MODE_VPN }
 
@@ -117,7 +118,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
         set(value) = configurationStore.putString(Key.WEBDAV_PASSWORD, value)
 
     var webdavPath: String?
-        get() = configurationStore.getString(Key.WEBDAV_PATH) ?: "Throne"
+        get() = configurationStore.getString(Key.WEBDAV_PATH) ?: "V4War"
         set(value) = configurationStore.putString(Key.WEBDAV_PATH, value)
 
     /** This device in the WebDAV backup list: a random UUID made on first use, never backed up or restored. */

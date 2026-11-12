@@ -121,30 +121,19 @@ class GeneralSettingsFragment : SettingsScreenFragment(R.xml.settings_general) {
 class AppearanceSettingsFragment : SettingsScreenFragment(R.xml.settings_appearance) {
 
     override fun bind() {
-        if (DataStore.nightTheme == 1 && DataStore.amoledTheme) {
-            DataStore.nightTheme = 3
+        // Migrate legacy Dark + Amoled toggle to Normal AMOLED surface mode
+        if (DataStore.nightTheme == Theme.NIGHT_DARK && DataStore.amoledTheme) {
+            DataStore.nightTheme = Theme.NIGHT_AMOLED
         }
-        if (DataStore.appTheme == Theme.BLACK) {
-            DataStore.appTheme = Theme.VERDANT_MINT
-            DataStore.nightTheme = 3
-            DataStore.amoledTheme = true
+
+        findPreference<Preference>("themeStudio")?.setOnPreferenceChangeListener { _, _ ->
+            applyPreferenceIconTint()
+            applyThemeInstantly()
+            true
         }
 
         val appTheme = pref<ColorPickerPreference>(Key.APP_THEME)
         appTheme.setOnPreferenceChangeListener { _, _ ->
-            applyThemeInstantly()
-            true
-        }
-        pref<SimpleMenuPreference>(Key.NIGHT_THEME).setOnPreferenceChangeListener { _, newTheme ->
-            val mode = (newTheme as String).toInt()
-            DataStore.nightTheme = mode
-            Theme.currentNightMode = mode
-            if (mode == 3) {
-                DataStore.amoledTheme = true
-            } else if (mode in setOf(0, 1, 2)) {
-                DataStore.amoledTheme = false
-            }
-            Theme.applyNightTheme()
             applyPreferenceIconTint()
             applyThemeInstantly()
             true

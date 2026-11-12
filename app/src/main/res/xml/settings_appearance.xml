@@ -1,19 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
+    <moe.matsuri.nb4a.ui.ThemeStudioPreference
+        app:key="themeStudio"
+        app:persistent="false" />
     <PreferenceCategory app:title="@string/theme">
         <moe.matsuri.nb4a.ui.ColorPickerPreference
-            android:title="@string/theme"
-            app:icon="@drawable/ic_baseline_color_lens_24"
+            android:title="@string/theme_studio_seed_color"
             app:key="appTheme" />
-        <moe.matsuri.nb4a.ui.SimpleMenuPreference
-            app:defaultValue="0"
-            app:entries="@array/night_mode_entries"
-            app:entryValues="@array/night_mode_values"
-            app:icon="@drawable/ic_baseline_wb_sunny_24"
-            app:key="nightTheme"
-            app:title="@string/night_mode"
-            app:useSimpleSummaryProvider="true" />
         <SwitchPreference
             app:defaultValue="true"
             app:icon="@drawable/ic_baseline_color_lens_24"

@@ -353,4 +353,4 @@ fun isLoopbackPortFree(port: Int): Boolean = try {
     false
 }
 
-const val USER_AGENT = "Throne/Android/" + BuildConfig.VERSION_NAME
+const val USER_AGENT = "V4War/Android/" + BuildConfig.VERSION_NAME
