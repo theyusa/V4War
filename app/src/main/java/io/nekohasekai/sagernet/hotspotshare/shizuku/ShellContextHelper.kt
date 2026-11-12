@@ -1,5 +1,6 @@
 package io.nekohasekai.sagernet.hotspotshare.shizuku
 
+import android.annotation.SuppressLint
 import android.content.AttributionSource
 import android.content.Context
 import android.content.ContextWrapper
@@ -10,8 +11,11 @@ import java.lang.reflect.Field
 
 /**
  * Creates and prepares a Context identifying as "com.android.shell" with UID 2000,
- * fixing TetheringService package-name / UID validation on Android 12+ (API 31+).
+ * fixing TetheringService / ConnectivityService package-name & AttributionSource validation
+ * on Android 12+ (API 31+).
  *
+ * Rebases existing AttributionSource via `withPackageName("com.android.shell")` (as in shizzi)
+ * so the system binder token on ContextImpl is preserved.
  * Fails fast with explicit IllegalStateException if reflection fails (no silent drops).
  */
 object ShellContextHelper {
@@ -20,34 +24,34 @@ object ShellContextHelper {
     const val SHELL_UID = 2000
 
     @JvmStatic
-    fun createShellContext(): Context {
+    @SuppressLint("PrivateApi", "DiscouragedPrivateApi")
+    fun acquireSystemContext(): Context {
         val atClass = Class.forName("android.app.ActivityThread")
         val systemMainMethod = atClass.getMethod("systemMain")
         val activityThread = systemMainMethod.invoke(null)
             ?: throw IllegalStateException("ActivityThread.systemMain() returned null")
         val getSystemContextMethod = atClass.getMethod("getSystemContext")
-        val sysContext = (getSystemContextMethod.invoke(activityThread) as? Context)
+        return (getSystemContextMethod.invoke(activityThread) as? Context)
             ?: throw IllegalStateException("ActivityThread.getSystemContext() returned null")
+    }
 
-        var base: Context = sysContext
-        try {
-            val pkgCtx = sysContext.createPackageContext(SHELL_PACKAGE, 0)
-            if (pkgCtx != null) {
-                base = pkgCtx
-            }
+    @JvmStatic
+    fun createShellContext(baseContext: Context? = null): Context {
+        val sysContext = baseContext ?: acquireSystemContext()
+        val rebased: Context = try {
+            sysContext.createPackageContext(SHELL_PACKAGE, 0) ?: sysContext
         } catch (_: Throwable) {
-            // pkgCtx creation failure falls back to sysContext
+            sysContext
         }
 
-        patchContextFields(base)
-
-        return wrapContext(base)
+        patchContextFields(rebased)
+        return wrapContext(rebased)
     }
 
     @JvmStatic
     fun patchContextFields(context: Context) {
         var opPackagePatched = false
-        var attributionSourcePatched = Build.VERSION.SDK_INT < 31 // Only required on API 31+
+        var attributionSourcePatched = Build.VERSION.SDK_INT < Build.VERSION_CODES.S
 
         var cls: Class<*>? = context.javaClass
         while (cls != null && cls != Any::class.java) {
@@ -61,18 +65,31 @@ object ShellContextHelper {
                 throw IllegalStateException("Failed to set mOpPackageName on ${cls.name}: ${t.message}", t)
             }
 
-            if (Build.VERSION.SDK_INT >= 31) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 try {
                     val f: Field = cls.getDeclaredField("mAttributionSource")
                     f.isAccessible = true
-                    val asInstance = AttributionSource.Builder(Process.myUid())
-                        .setPackageName(SHELL_PACKAGE)
-                        .build()
-                    f.set(context, asInstance)
+                    val current = f.get(context)
+                    val rebasedAttribution = if (current != null) {
+                        try {
+                            current.javaClass
+                                .getMethod("withPackageName", String::class.java)
+                                .invoke(current, SHELL_PACKAGE)
+                        } catch (_: Throwable) {
+                            AttributionSource.Builder(Process.myUid())
+                                .setPackageName(SHELL_PACKAGE)
+                                .build()
+                        }
+                    } else {
+                        AttributionSource.Builder(Process.myUid())
+                            .setPackageName(SHELL_PACKAGE)
+                            .build()
+                    }
+                    f.set(context, rebasedAttribution)
                     attributionSourcePatched = true
                 } catch (_: NoSuchFieldException) {
                 } catch (t: Throwable) {
-                    throw IllegalStateException("Failed to set mAttributionSource on ${cls.name}: ${t.message}", t)
+                    throw IllegalStateException("Failed to rebase mAttributionSource on ${cls.name}: ${t.message}", t)
                 }
             }
 
@@ -82,7 +99,7 @@ object ShellContextHelper {
         if (!opPackagePatched) {
             throw IllegalStateException("mOpPackageName field was not found in Context hierarchy: ${context.javaClass.name}")
         }
-        if (Build.VERSION.SDK_INT >= 31 && !attributionSourcePatched) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !attributionSourcePatched) {
             throw IllegalStateException("mAttributionSource field was not found in Context hierarchy: ${context.javaClass.name}")
         }
     }
@@ -102,10 +119,17 @@ object ShellContextHelper {
             }
 
             override fun getAttributionSource(): AttributionSource {
-                return if (Build.VERSION.SDK_INT >= 31) {
-                    AttributionSource.Builder(Process.myUid())
-                        .setPackageName(SHELL_PACKAGE)
-                        .build()
+                return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    try {
+                        val current = super.getAttributionSource()
+                        (current.javaClass
+                            .getMethod("withPackageName", String::class.java)
+                            .invoke(current, SHELL_PACKAGE) as? AttributionSource) ?: current
+                    } catch (_: Throwable) {
+                        AttributionSource.Builder(Process.myUid())
+                            .setPackageName(SHELL_PACKAGE)
+                            .build()
+                    }
                 } else {
                     super.getAttributionSource()
                 }
