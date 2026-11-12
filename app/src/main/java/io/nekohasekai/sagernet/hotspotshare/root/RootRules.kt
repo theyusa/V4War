@@ -13,6 +13,7 @@ data class HotspotSubnet(
 object RootRules {
     const val CHAIN_FORWARD = "throne_fwd"
     const val CHAIN_NAT = "throne_nat"
+    const val CHAIN_DNS = "throne_dns"
     const val CHAIN_FORWARD_V6 = "throne_fwd6"
 
     const val PRIORITY_LOCAL_SUBNET = 10099
@@ -24,32 +25,38 @@ object RootRules {
 
     /**
      * Parses the output of `ip route show table all` to find an active VPN TUN interface and its routing table.
-     * Prefers non-local tables containing default routes or link routes for the TUN interface.
+     * Prefers non-local tables containing default routes (or 0.0.0.0/1 split routes) for the TUN interface.
      */
     fun parseVpnRoute(ipRouteLines: List<String>): VpnRouteInfo? {
+        var splitDefaultRoute: VpnRouteInfo? = null
         var fallbackRoute: VpnRouteInfo? = null
 
         for (line in ipRouteLines) {
-            val tunMatch = TUN_REGEX.find(line) ?: continue
+            val trimmed = line.trim()
+            val tunMatch = TUN_REGEX.find(trimmed) ?: continue
             val iface = tunMatch.groupValues[1]
 
-            val tableMatch = TABLE_REGEX.find(line)
+            val tableMatch = TABLE_REGEX.find(trimmed)
             val table = tableMatch?.groupValues?.get(1) ?: "main"
 
             // Skip local table routes (e.g. broadcast, local interface IP)
             if (table == "local") continue
 
             // A default route or route explicitly specifying the VPN table is highest priority
-            if (line.startsWith("default")) {
+            if (trimmed.startsWith("default")) {
                 return VpnRouteInfo(tunInterface = iface, table = table)
             }
 
-            if (fallbackRoute == null) {
+            if ((trimmed.startsWith("0.0.0.0/1") || trimmed.startsWith("128.0.0.0/1")) && splitDefaultRoute == null) {
+                splitDefaultRoute = VpnRouteInfo(tunInterface = iface, table = table)
+            }
+
+            if (fallbackRoute == null || (fallbackRoute.table == "main" && table != "main")) {
                 fallbackRoute = VpnRouteInfo(tunInterface = iface, table = table)
             }
         }
 
-        return fallbackRoute
+        return splitDefaultRoute ?: fallbackRoute
     }
 
     /**
@@ -82,8 +89,9 @@ object RootRules {
     }
 
     /**
-     * Builds root shell commands to configure policy routing, iptables forwarding & NAT,
-     * and IPv6 leak protection with guaranteed idempotency.
+     * Builds root shell commands to configure policy routing, rp_filter relaxation,
+     * DNS hijacking to VPN TUN (fixing DHCP dnsmasq leaks/FakeIP), MSS clamping,
+     * iptables forwarding & NAT, and IPv6 leak protection with guaranteed idempotency.
      */
     fun buildSetupCommands(
         vpn: VpnRouteInfo,
@@ -92,27 +100,46 @@ object RootRules {
     ): List<String> {
         val cmds = mutableListOf<String>()
 
-        // 1. Enable IPv4 forwarding in kernel
+        // 1. Enable IPv4 forwarding and relax asymmetric rp_filter checks in kernel
         cmds.add("sysctl -w net.ipv4.ip_forward=1 2>/dev/null || echo 1 > /proc/sys/net/ipv4/ip_forward")
+        cmds.add("sysctl -w net.ipv4.conf.all.rp_filter=0 2>/dev/null || true")
+        cmds.add("sysctl -w net.ipv4.conf.${vpn.tunInterface}.rp_filter=0 2>/dev/null || true")
+        for (iface in hotspotIfaces) {
+            cmds.add("sysctl -w net.ipv4.conf.$iface.rp_filter=0 2>/dev/null || true")
+        }
 
         // 2. IPv4 FORWARD filter chain (remove existing jumps first to prevent duplicates, then insert exactly one)
         cmds.add("while iptables -D FORWARD -j $CHAIN_FORWARD 2>/dev/null; do :; done")
         cmds.add("iptables -N $CHAIN_FORWARD 2>/dev/null || true")
         cmds.add("iptables -F $CHAIN_FORWARD")
         cmds.add("iptables -I FORWARD 1 -j $CHAIN_FORWARD")
+        // Clamp TCP MSS to PMTU to avoid blackholed TLS handshakes over TUN
+        cmds.add("iptables -A $CHAIN_FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true")
         for (iface in hotspotIfaces) {
             cmds.add("iptables -A $CHAIN_FORWARD -i $iface -o ${vpn.tunInterface} -j ACCEPT")
-            cmds.add("iptables -A $CHAIN_FORWARD -i ${vpn.tunInterface} -o $iface -m state --state RELATED,ESTABLISHED -j ACCEPT")
+            // GKI kernels (Android 13-16) may omit legacy xt_state and only ship xt_conntrack
+            cmds.add("iptables -A $CHAIN_FORWARD -i ${vpn.tunInterface} -o $iface -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || iptables -A $CHAIN_FORWARD -i ${vpn.tunInterface} -o $iface -m state --state RELATED,ESTABLISHED -j ACCEPT")
         }
 
-        // 3. IPv4 NAT MASQUERADE
+        // 3. IPv4 DNS hijack in nat PREROUTING so client queries to phone's DHCP DNS (e.g. 192.168.43.1:53)
+        // are routed into the VPN TUN (where sing-box hijacks port 53 for FakeIP/remote DNS instead of leaking via dnsmasq)
+        cmds.add("while iptables -t nat -D PREROUTING -j $CHAIN_DNS 2>/dev/null; do :; done")
+        cmds.add("iptables -t nat -N $CHAIN_DNS 2>/dev/null || true")
+        cmds.add("iptables -t nat -F $CHAIN_DNS")
+        cmds.add("iptables -t nat -I PREROUTING 1 -j $CHAIN_DNS")
+        for (iface in hotspotIfaces) {
+            cmds.add("iptables -t nat -A $CHAIN_DNS -i $iface -p udp --dport 53 -j DNAT --to-destination 1.1.1.1:53")
+            cmds.add("iptables -t nat -A $CHAIN_DNS -i $iface -p tcp --dport 53 -j DNAT --to-destination 1.1.1.1:53")
+        }
+
+        // 4. IPv4 NAT MASQUERADE
         cmds.add("while iptables -t nat -D POSTROUTING -j $CHAIN_NAT 2>/dev/null; do :; done")
         cmds.add("iptables -t nat -N $CHAIN_NAT 2>/dev/null || true")
         cmds.add("iptables -t nat -F $CHAIN_NAT")
         cmds.add("iptables -t nat -I POSTROUTING 1 -j $CHAIN_NAT")
         cmds.add("iptables -t nat -A $CHAIN_NAT -o ${vpn.tunInterface} -j MASQUERADE")
 
-        // 4. IPv6 leak protection: unconditionally drop hotspot IPv6 forward traffic
+        // 5. IPv6 leak protection: unconditionally drop hotspot IPv6 forward traffic
         cmds.add("while ip6tables -D FORWARD -j $CHAIN_FORWARD_V6 2>/dev/null; do :; done")
         cmds.add("ip6tables -N $CHAIN_FORWARD_V6 2>/dev/null || true")
         cmds.add("ip6tables -F $CHAIN_FORWARD_V6")
@@ -122,16 +149,16 @@ object RootRules {
             cmds.add("ip6tables -A $CHAIN_FORWARD_V6 -o $iface -j DROP")
         }
 
-        // 5. Clean prior rules at our priorities (idempotent)
+        // 6. Clean prior rules at our priorities (idempotent)
         cmds.add("while ip rule del pref $PRIORITY_LOCAL_SUBNET 2>/dev/null; do :; done")
         cmds.add("while ip rule del pref $PRIORITY_VPN_ROUTING 2>/dev/null; do :; done")
 
-        // 6. Add local subnet rules so client-to-client and client-to-gateway traffic stays in main table
+        // 7. Add local subnet rules so client-to-client and client-to-gateway traffic stays in main table
         for (subnet in subnets) {
             cmds.add("ip rule add from all iif ${subnet.iface} to ${subnet.cidr} lookup main pref $PRIORITY_LOCAL_SUBNET")
         }
 
-        // 7. Add hotspot incoming traffic rule to lookup VPN routing table
+        // 8. Add hotspot incoming traffic rule to lookup VPN routing table
         for (iface in hotspotIfaces) {
             cmds.add("ip rule add from all iif $iface lookup ${vpn.table} pref $PRIORITY_VPN_ROUTING")
         }
@@ -148,6 +175,9 @@ object RootRules {
             "while iptables -D FORWARD -j $CHAIN_FORWARD 2>/dev/null; do :; done",
             "iptables -F $CHAIN_FORWARD 2>/dev/null || true",
             "iptables -X $CHAIN_FORWARD 2>/dev/null || true",
+            "while iptables -t nat -D PREROUTING -j $CHAIN_DNS 2>/dev/null; do :; done",
+            "iptables -t nat -F $CHAIN_DNS 2>/dev/null || true",
+            "iptables -t nat -X $CHAIN_DNS 2>/dev/null || true",
             "while iptables -t nat -D POSTROUTING -j $CHAIN_NAT 2>/dev/null; do :; done",
             "iptables -t nat -F $CHAIN_NAT 2>/dev/null || true",
             "iptables -t nat -X $CHAIN_NAT 2>/dev/null || true",
@@ -169,7 +199,10 @@ object RootRules {
         // 1. Remove policy routing so packets don't get routed to dead VPN or mobile data
         cmds.add("while ip rule del pref $PRIORITY_VPN_ROUTING 2>/dev/null; do :; done")
 
-        // 2. Clear NAT table
+        // 2. Clear DNS redirect & NAT table
+        cmds.add("while iptables -t nat -D PREROUTING -j $CHAIN_DNS 2>/dev/null; do :; done")
+        cmds.add("iptables -t nat -F $CHAIN_DNS 2>/dev/null || true")
+        cmds.add("iptables -t nat -X $CHAIN_DNS 2>/dev/null || true")
         cmds.add("while iptables -t nat -D POSTROUTING -j $CHAIN_NAT 2>/dev/null; do :; done")
         cmds.add("iptables -t nat -F $CHAIN_NAT 2>/dev/null || true")
         cmds.add("iptables -t nat -X $CHAIN_NAT 2>/dev/null || true")

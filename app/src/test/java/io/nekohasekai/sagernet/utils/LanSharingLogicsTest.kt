@@ -317,4 +317,78 @@ class LanSharingLogicsTest {
         assertEquals("", LanSharingLogics.buildSocks5ShareLink("", 2080, "u", "p", false, ""))
         assertEquals("", LanSharingLogics.buildSocks5ShareLink("192.168.43.1", 0, "u", "p", false, ""))
     }
+
+    @Test
+    fun parseIpNeighExtractsIpsInterfacesAndReachability() {
+        val dump = """
+            192.168.43.52 dev wlan1 lladdr aa:bb:cc:dd:ee:01 REACHABLE
+            192.168.1.99 dev wlan0 lladdr 11:22:33:44:55:66 STALE
+            192.168.43.120 dev ap0  FAILED
+            fe80::1 dev wlan0 lladdr aa:bb:cc:dd:ee:02 REACHABLE
+        """.trimIndent()
+        val parsed = LanSharingLogics.parseIpNeigh(dump)
+        assertEquals(2, parsed.size)
+        assertEquals("192.168.43.52", parsed[0].ip)
+        assertEquals("wlan1", parsed[0].iface)
+        assertEquals("REACHABLE", parsed[0].state)
+        assertEquals("192.168.1.99", parsed[1].ip)
+        assertEquals("wlan0", parsed[1].iface)
+        assertEquals("STALE", parsed[1].state)
+    }
+
+    @Test
+    fun parseProcNetTcpRemotesDecodesIpv4AndMappedIpv6SocketsOnListenPort() {
+        // Port 2080 = 0x0820; 192.168.43.52 = 0x342BA8C0; 192.168.43.88 = 0x582BA8C0; 127.0.0.1 = 0x0100007F
+        val procTcp = """
+              sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode
+               0: 00000000:0820 00000000:0000 0A 00000000:00000000 00:00000000 00000000  10123        0 1001
+               1: 012BA8C0:0820 342BA8C0:D431 01 00000000:00000000 00:00000000 00000000  10123        0 1002
+               2: 0100007F:0820 0100007F:E001 01 00000000:00000000 00:00000000 00000000  10123        0 1003
+               3: 0000000000000000FFFF0000012BA8C0:0820 0000000000000000FFFF0000582BA8C0:D500 01 00000000:00000000 00:00000000 00000000 10123 0 1004
+        """.trimIndent()
+        val remotes = LanSharingLogics.parseProcNetTcpRemotes(procTcp, listenPort = 2080)
+        assertEquals(listOf("192.168.43.52", "192.168.43.88"), remotes)
+    }
+
+    @Test
+    fun normalizeIpAndMergeDevicesPreservesHistoryAndMarksAllModes() {
+        assertEquals("192.168.43.52", LanSharingLogics.normalizeIp("[::ffff:192.168.43.52]%wlan0"))
+        assertTrue(LanSharingLogics.isLocalSource("192.0.2.2"))
+
+        val history = mapOf(
+            "192.168.43.52" to LanClientDevice(
+                ip = "192.168.43.52",
+                activeConnections = 2,
+                uploadBytes = 1024L,
+                downloadBytes = 4096L,
+                lastHost = "example.com",
+                lastSeenMs = 1_000L,
+                isHotspot = true,
+            ),
+        )
+        // Device became idle in Clash but remains REACHABLE in ip neigh & active TCP socket
+        val merged = LanSharingLogics.mergeDevices(
+            history = history,
+            arpIps = listOf("192.168.43.52", "192.0.2.2", "192.168.43.99"),
+            clash = emptyList(),
+            hotspotIp = "192.168.43.1",
+            hotspotPrefix = 24,
+            localIps = setOf("192.168.43.1"),
+            nowMs = 5_000L,
+            activePeerIps = setOf("192.168.43.52"),
+            hotspotHintIps = setOf("192.168.43.99"),
+        )
+
+        assertEquals(2, merged.size)
+        val first = merged.first { it.ip == "192.168.43.52" }
+        assertEquals(1, first.activeConnections)
+        assertEquals(1024L, first.uploadBytes)
+        assertEquals(4096L, first.downloadBytes)
+        assertEquals("example.com", first.lastHost)
+        assertTrue(first.isHotspot)
+
+        val second = merged.first { it.ip == "192.168.43.99" }
+        assertTrue(second.isHotspot)
+        assertFalse(merged.any { it.ip == "192.0.2.2" })
+    }
 }
