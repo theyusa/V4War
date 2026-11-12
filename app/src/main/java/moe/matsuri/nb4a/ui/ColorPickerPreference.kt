@@ -2,53 +2,68 @@ package moe.matsuri.nb4a.ui
 
 import android.app.Activity
 import android.content.Context
-import android.content.res.Resources
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
-import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.os.Build
+import android.text.Editable
 import android.text.InputType
+import android.text.TextUtils
+import android.text.TextWatcher
 import android.util.AttributeSet
+import android.util.TypedValue
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.SeekBar
 import android.widget.TextView
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.content.res.TypedArrayUtils
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
-import androidx.core.view.setPadding
-import androidx.core.widget.NestedScrollView
 import androidx.preference.Preference
 import androidx.preference.PreferenceViewHolder
-import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.utils.Theme
-import kotlin.math.roundToInt
 
-class ColorPickerPreference @JvmOverloads constructor(
-    context: Context, attrs: AttributeSet? = null, defStyle: Int = TypedArrayUtils.getAttr(
+/**
+ * Inline Material 3 Expressive seed-color palette card.
+ * Displays an instant 6-column grid of circular color swatches + Monet + Custom HEX/RGB builder.
+ */
+class ColorPickerPreference
+@JvmOverloads
+constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyle: Int = TypedArrayUtils.getAttr(
         context,
-        androidx.preference.R.attr.editTextPreferenceStyle,
-        android.R.attr.editTextPreferenceStyle
-    )
+        androidx.preference.R.attr.preferenceStyle,
+        android.R.attr.preferenceStyle,
+    ),
 ) : Preference(context, attrs, defStyle) {
 
-    data class PresetTheme(
+    private data class PresetTheme(
         val id: Int,
         val name: String,
-        val color: Int
+        val color: Int,
     )
+
+    init {
+        layoutResource = R.layout.layout_pref_color_palette
+        isSelectable = false
+    }
 
     private fun resolveSwatchColor(themeId: Int): Int {
         return when (themeId) {
@@ -84,8 +99,9 @@ class ColorPickerPreference @JvmOverloads constructor(
 
     private fun getThemeName(themeId: Int, isTr: Boolean): String {
         return when (themeId) {
-            Theme.WHITE -> if (isTr) "Saf Beyaz" else "Pure White"
-            Theme.LIGHT_GRAY -> if (isTr) "Açık Gri" else "Light Gray"
+            Theme.BLACK -> context.getString(R.string.theme_special_black)
+            Theme.WHITE -> context.getString(R.string.theme_special_white)
+            Theme.LIGHT_GRAY -> context.getString(R.string.theme_special_light_gray)
             Theme.MONET -> "Material You"
             Theme.VERDANT_MINT -> if (isTr) "Nane Yeşili" else "Verdant Mint"
             Theme.BLUE -> if (isTr) "Klasik Mavi" else "Classic Blue"
@@ -100,293 +116,481 @@ class ColorPickerPreference @JvmOverloads constructor(
             Theme.GREEN -> if (isTr) "Orman Yeşili" else "Forest Green"
             Theme.INDIGO -> if (isTr) "İndigo" else "Indigo"
             Theme.LIGHT_BLUE -> if (isTr) "Gök Mavisi" else "Sky Blue"
+            Theme.LIGHT_GREEN -> if (isTr) "Açık Yeşil" else "Light Green"
+            Theme.LIME -> if (isTr) "Limon Yeşili" else "Lime"
+            Theme.YELLOW -> if (isTr) "Sarı" else "Yellow"
             Theme.PINK_SSR -> if (isTr) "Kiraz Çiçeği" else "Sakura Pink"
             Theme.PINK -> if (isTr) "Neon Pembe" else "Neon Pink"
             Theme.BROWN -> if (isTr) "Mocha Kahve" else "Mocha Brown"
             Theme.BLUE_GREY -> if (isTr) "Mavi Gri" else "Blue Grey"
             Theme.GREY -> if (isTr) "Antrasit Gri" else "Graphite Grey"
-            Theme.LIGHT_GREEN -> if (isTr) "Açık Yeşil" else "Light Green"
-            Theme.LIME -> if (isTr) "Limon Yeşili" else "Lime"
-            Theme.YELLOW -> if (isTr) "Sarı" else "Yellow"
-            Theme.CUSTOM -> if (isTr) "Özel Tohum Rengi" else "Custom Seed Color"
-            else -> if (isTr) "Nane Yeşili" else "Verdant Mint"
+            Theme.CUSTOM -> String.format("#%06X", 0xFFFFFF and DataStore.customThemeColor)
+            else -> if (isTr) "Özel" else "Custom"
         }
     }
 
-    override fun getSummary(): CharSequence? {
-        val activeThemeId = if (DataStore.useSystemTheme) Theme.MONET else DataStore.appTheme
-        val isTr = context.resources.configuration.locales[0]?.language == "tr"
+    override fun getSummary(): CharSequence {
+        val activeThemeId = Theme.activeThemeId()
+        val isTr = context.resources.configuration.locales[0].language == "tr"
         return getThemeName(activeThemeId, isTr)
+    }
+
+    private fun buildPresets(isTr: Boolean): List<PresetTheme> {
+        val list = mutableListOf<PresetTheme>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            list.add(PresetTheme(Theme.MONET, "Material You", resolveSwatchColor(Theme.MONET)))
+        }
+        val seedIds = listOf(
+            Theme.VERDANT_MINT,
+            Theme.BLUE,
+            Theme.INDIGO,
+            Theme.LIGHT_BLUE,
+            Theme.CYAN,
+            Theme.TEAL,
+            Theme.GREEN,
+            Theme.LIGHT_GREEN,
+            Theme.LIME,
+            Theme.YELLOW,
+            Theme.AMBER,
+            Theme.ORANGE,
+            Theme.DEEP_ORANGE,
+            Theme.RED,
+            Theme.PINK_SSR,
+            Theme.PINK,
+            Theme.PURPLE,
+            Theme.DEEP_PURPLE,
+            Theme.BROWN,
+            Theme.BLUE_GREY,
+            Theme.GREY,
+        )
+        for (id in seedIds) {
+            list.add(PresetTheme(id, getThemeName(id, isTr), resolveSwatchColor(id)))
+        }
+        list.add(
+            PresetTheme(
+                Theme.CUSTOM,
+                context.getString(R.string.theme_custom_color),
+                0xFF000000.toInt() or DataStore.customThemeColor,
+            ),
+        )
+        return list
+    }
+
+    private fun applyTheme(themeId: Int) {
+        if (Theme.isColorfulSeed(themeId)) {
+            Theme.rememberSeedTheme(themeId)
+        }
+        DataStore.appTheme = themeId
+        DataStore.useSystemTheme = (themeId == Theme.MONET)
+        Theme.applyNightTheme()
+        notifyChanged()
+        callChangeListener(themeId)
+        val host = context as? Activity ?: return
+        host.window?.decorView?.post {
+            if (!host.isFinishing && !host.isDestroyed) {
+                ActivityCompat.recreate(host)
+            }
+        }
     }
 
     override fun onBindViewHolder(holder: PreferenceViewHolder) {
         super.onBindViewHolder(holder)
+        val root = holder.itemView as? ViewGroup ?: return
+        root.removeAllViews()
 
-        val widgetFrame = holder.findViewById(android.R.id.widget_frame) as? LinearLayout ?: return
-        widgetFrame.removeAllViews()
+        val activeThemeId = Theme.activeThemeId()
+        val isTr = context.resources.configuration.locales[0].language == "tr"
+        val isNight = Theme.usingNightMode(context)
+        val textPrimary = context.getColorAttr(android.R.attr.textColorPrimary)
+        val textSecondary = context.getColorAttr(android.R.attr.textColorSecondary)
+        val activeColor = resolveSwatchColor(activeThemeId)
+        val effectiveRing = Theme.getSeedPrimaryColor(context)
 
-        val activeThemeId = if (DataStore.useSystemTheme) Theme.MONET else DataStore.appTheme
-        val displayColor = resolveSwatchColor(activeThemeId)
-
-        val factor = context.resources.displayMetrics.density
-        val size = (36 * factor).roundToInt()
-        val widgetIv = ImageView(context).apply {
-            layoutParams = ViewGroup.LayoutParams(size, size)
-            setImageDrawable(getColorBadgeDrawable(context.resources, displayColor))
-        }
-        widgetFrame.addView(widgetIv)
-        widgetFrame.visibility = android.view.View.VISIBLE
-    }
-
-    private fun getColorBadgeDrawable(res: Resources, color: Int): Drawable {
-        val factor = res.displayMetrics.density
-        val strokeColor = when (color) {
-            Color.WHITE -> Color.parseColor("#CCCCCC")
-            Color.BLACK -> Color.parseColor("#444444")
-            Color.parseColor("#F5F5F7") -> Color.parseColor("#CBD5E1")
-            else -> Color.parseColor("#33888888")
-        }
-
-        return GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(color)
-            setStroke((1.5f * factor).roundToInt().coerceAtLeast(1), strokeColor)
-        }
-    }
-
-    override fun onClick() {
-        super.onClick()
-
-        lateinit var dialog: AlertDialog
-
-        val rootLayout = LinearLayout(context).apply {
+        val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp2px(16), dp2px(12), dp2px(16), dp2px(16))
-        }
-
-        val scroll = NestedScrollView(context).apply {
-            addView(rootLayout)
-        }
-
-        val currentThemeId = if (DataStore.useSystemTheme) Theme.MONET else DataStore.appTheme
-
-        fun applyTheme(themeId: Int) {
-            persistInt(themeId)
-            DataStore.appTheme = themeId
-            DataStore.useSystemTheme = (themeId == Theme.MONET)
-            if (themeId in setOf(Theme.WHITE, Theme.LIGHT_GRAY) && Theme.usingNightMode(context)) {
-                DataStore.nightTheme = 2
-                Theme.currentNightMode = 2
-            }
-            Theme.applyNightTheme()
-            dialog.dismiss()
-            notifyChanged()
-            callChangeListener(themeId)
-            (context as? Activity)?.let {
-                ActivityCompat.recreate(it)
-            }
-        }
-
-        val isTr = context.resources.configuration.locales[0]?.language == "tr"
-        val seedThemes = mutableListOf<PresetTheme>()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            seedThemes.add(
-                PresetTheme(Theme.MONET, "Material You", resolveSwatchColor(Theme.MONET))
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
             )
         }
 
-        seedThemes.addAll(
-            listOf(
-                PresetTheme(Theme.WHITE, if (isTr) "Saf Beyaz" else "Pure White", Color.WHITE),
-                PresetTheme(Theme.LIGHT_GRAY, if (isTr) "Açık Gri" else "Light Gray", Color.parseColor("#F5F5F7")),
-                PresetTheme(Theme.VERDANT_MINT, if (isTr) "Nane Yeşili" else "Verdant Mint", resolveSwatchColor(Theme.VERDANT_MINT)),
-                PresetTheme(Theme.BLUE, if (isTr) "Klasik Mavi" else "Classic Blue", resolveSwatchColor(Theme.BLUE)),
-                PresetTheme(Theme.RED, if (isTr) "Alev Kırmızısı" else "Flame Red", resolveSwatchColor(Theme.RED)),
-                PresetTheme(Theme.DEEP_PURPLE, if (isTr) "Koyu Mor" else "Deep Purple", resolveSwatchColor(Theme.DEEP_PURPLE)),
-                PresetTheme(Theme.PURPLE, if (isTr) "Lavanta Moru" else "Purple", resolveSwatchColor(Theme.PURPLE)),
-                PresetTheme(Theme.DEEP_ORANGE, if (isTr) "Mercan" else "Coral Orange", resolveSwatchColor(Theme.DEEP_ORANGE)),
-                PresetTheme(Theme.ORANGE, if (isTr) "Canlı Turuncu" else "Vivid Orange", resolveSwatchColor(Theme.ORANGE)),
-                PresetTheme(Theme.AMBER, if (isTr) "Kehribar" else "Amber", resolveSwatchColor(Theme.AMBER)),
-                PresetTheme(Theme.CYAN, if (isTr) "Turkuaz" else "Cyan", resolveSwatchColor(Theme.CYAN)),
-                PresetTheme(Theme.TEAL, if (isTr) "Su Yeşili" else "Teal", resolveSwatchColor(Theme.TEAL)),
-                PresetTheme(Theme.GREEN, if (isTr) "Orman Yeşili" else "Forest Green", resolveSwatchColor(Theme.GREEN)),
-                PresetTheme(Theme.INDIGO, if (isTr) "İndigo" else "Indigo", resolveSwatchColor(Theme.INDIGO)),
-                PresetTheme(Theme.LIGHT_BLUE, if (isTr) "Gök Mavisi" else "Sky Blue", resolveSwatchColor(Theme.LIGHT_BLUE)),
-                PresetTheme(Theme.LIGHT_GREEN, if (isTr) "Açık Yeşil" else "Light Green", resolveSwatchColor(Theme.LIGHT_GREEN)),
-                PresetTheme(Theme.LIME, if (isTr) "Limon Yeşili" else "Lime", resolveSwatchColor(Theme.LIME)),
-                PresetTheme(Theme.YELLOW, if (isTr) "Sarı" else "Yellow", resolveSwatchColor(Theme.YELLOW)),
-                PresetTheme(Theme.PINK_SSR, if (isTr) "Kiraz Çiçeği" else "Sakura Pink", resolveSwatchColor(Theme.PINK_SSR)),
-                PresetTheme(Theme.PINK, if (isTr) "Neon Pembe" else "Neon Pink", resolveSwatchColor(Theme.PINK)),
-                PresetTheme(Theme.BROWN, if (isTr) "Mocha Kahve" else "Mocha Brown", resolveSwatchColor(Theme.BROWN)),
-                PresetTheme(Theme.BLUE_GREY, if (isTr) "Mavi Gri" else "Blue Grey", resolveSwatchColor(Theme.BLUE_GREY)),
-                PresetTheme(Theme.GREY, if (isTr) "Antrasit Gri" else "Graphite Grey", resolveSwatchColor(Theme.GREY))
-            )
-        )
-
-        for (preset in seedThemes) {
-            val isSelected = currentThemeId == preset.id
-            val strokeCol = if (isSelected) {
-                if (preset.color == Color.BLACK) Color.WHITE else preset.color
-            } else {
-                Color.parseColor("#20888888")
-            }
-            val bgCol = if (isSelected) {
-                if (preset.color == Color.BLACK) Color.parseColor("#15FFFFFF")
-                else ColorUtils.setAlphaComponent(preset.color, 24)
-            } else Color.TRANSPARENT
-
-            val card = MaterialCardView(context).apply {
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    setMargins(0, 0, 0, dp2px(4))
-                }
-                radius = dp2px(10).toFloat()
-                cardElevation = 0f
-                strokeWidth = if (isSelected) dp2px(2) else dp2px(1)
-                strokeColor = strokeCol
-                setCardBackgroundColor(bgCol)
-                isClickable = true
-                isFocusable = true
-                setOnClickListener {
-                    applyTheme(preset.id)
-                }
-
-                val row = LinearLayout(context).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    gravity = Gravity.CENTER_VERTICAL
-                    setPadding(dp2px(12), dp2px(8), dp2px(12), dp2px(8))
-
-                    val iv = ImageView(context).apply {
-                        val sz = dp2px(26)
-                        layoutParams = LinearLayout.LayoutParams(sz, sz).apply {
-                            marginEnd = dp2px(12)
-                        }
-                        setImageDrawable(getColorBadgeDrawable(context.resources, preset.color))
-                    }
-                    addView(iv)
-
-                    val titleView = TextView(context).apply {
-                        layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-                        text = preset.name
-                        textSize = 14f
-                        setTypeface(null, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
-                        setTextColor(context.getColorAttr(android.R.attr.textColorPrimary))
-                    }
-                    addView(titleView)
-
-                    if (isSelected) {
-                        val checkIv = ImageView(context).apply {
-                            val sz = dp2px(20)
-                            layoutParams = LinearLayout.LayoutParams(sz, sz)
-                            val checkTint = if (preset.color == Color.BLACK) Color.WHITE else preset.color
-                            val checkDrawable = ResourcesCompat.getDrawable(context.resources, R.drawable.ic_baseline_check_circle_24, null)!!.mutate()
-                            DrawableCompat.setTint(checkDrawable, checkTint)
-                            setImageDrawable(checkDrawable)
-                        }
-                        addView(checkIv)
-                    }
-                }
-                addView(row)
-            }
-            rootLayout.addView(card)
+        // Top header row: Title + Active seed badge + Custom button
+        val header = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, dp2px(12))
         }
 
-        // Custom Seed Color Section
-        val isCustomSelected = currentThemeId == Theme.CUSTOM
-        val customColorInt = 0xFF000000.toInt() or DataStore.customThemeColor
-        val customCard = MaterialCardView(context).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(0, dp2px(2), 0, dp2px(4))
+        val titleCol = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginEnd = dp2px(8)
             }
-            radius = dp2px(10).toFloat()
-            cardElevation = 0f
-            strokeWidth = if (isCustomSelected) dp2px(2) else dp2px(1)
-            strokeColor = if (isCustomSelected) customColorInt else Color.parseColor("#20888888")
-            setCardBackgroundColor(
-                if (isCustomSelected) ColorUtils.setAlphaComponent(customColorInt, 24)
-                else Color.TRANSPARENT
-            )
+        }
+        titleCol.addView(TextView(context).apply {
+            text = title ?: context.getString(R.string.theme_studio_seed_color)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15.5f)
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(textPrimary)
+        })
+
+        // Active chip line
+        val activeRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp2px(2), 0, 0)
+        }
+        activeRow.addView(View(context).apply {
+            layoutParams = LinearLayout.LayoutParams(dp2px(9), dp2px(9)).apply {
+                marginEnd = dp2px(6)
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(activeColor)
+                setStroke(dp2px(0.8f).coerceAtLeast(1), ColorUtils.setAlphaComponent(textSecondary, 90))
+            }
+        })
+        activeRow.addView(TextView(context).apply {
+            text = getThemeName(activeThemeId, isTr)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+            setTextColor(textSecondary)
+        })
+        titleCol.addView(activeRow)
+        header.addView(titleCol)
+
+        // Compact Custom HEX button pill
+        val customPill = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp2px(11), dp2px(6), dp2px(11), dp2px(6))
             isClickable = true
             isFocusable = true
-            setOnClickListener {
-                val input = EditText(context).apply {
-                    hint = context.getString(R.string.custom_color_hex_hint)
-                    inputType = InputType.TYPE_CLASS_TEXT
-                    val savedHex = String.format("#%06X", 0xFFFFFF and DataStore.customThemeColor)
-                    setText(savedHex)
-                    setSelection(text.length)
-                }
-                val container = LinearLayout(context).apply {
-                    setPadding(dp2px(20), dp2px(12), dp2px(20), 0)
-                    addView(input, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-                }
-                MaterialAlertDialogBuilder(context)
-                    .setTitle(context.getString(R.string.custom_color_title))
-                    .setView(container)
-                    .setPositiveButton(context.getString(R.string.custom_color_apply)) { _, _ ->
-                        val hexStr = input.text.toString().trim()
-                        try {
-                            val parsed = Color.parseColor(if (hexStr.startsWith("#")) hexStr else "#$hexStr")
-                            DataStore.customThemeColor = parsed
-                            val mappedTheme = Theme.getClosestThemeForColor(parsed)
-                            applyTheme(mappedTheme)
-                        } catch (_: Throwable) {
-                            Toast.makeText(context, "Invalid HEX code", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show()
+            val pillStroke = if (activeThemeId == Theme.CUSTOM) effectiveRing
+            else Theme.resolveCardStrokeColor(context, selected = false)
+            val pillBg = if (activeThemeId == Theme.CUSTOM) {
+                ColorUtils.setAlphaComponent(effectiveRing, if (isNight) 38 else 24)
+            } else {
+                Theme.resolveNestedBoxBackground(context)
             }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp2px(99).toFloat()
+                setColor(pillBg)
+                setStroke(dp2px(1), pillStroke)
+            }
+            foreground = RippleDrawable(
+                ColorStateList.valueOf(ColorUtils.setAlphaComponent(effectiveRing, 40)),
+                null,
+                null,
+            )
+            setOnClickListener { showCustomColorDialog() }
+        }
+        customPill.addView(View(context).apply {
+            layoutParams = LinearLayout.LayoutParams(dp2px(10), dp2px(10)).apply {
+                marginEnd = dp2px(6)
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(0xFF000000.toInt() or DataStore.customThemeColor)
+            }
+        })
+        customPill.addView(TextView(context).apply {
+            text = context.getString(R.string.theme_custom_color)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(textPrimary)
+        })
+        header.addView(customPill)
+        container.addView(header)
 
-            val customRow = LinearLayout(context).apply {
+        // 6-column swatch grid
+        val presets = buildPresets(isTr)
+        val columns = 6
+        val rows = presets.chunked(columns)
+        rows.forEachIndexed { rowIdx, chunk ->
+            val row = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp2px(12), dp2px(8), dp2px(12), dp2px(8))
-
-                val customIv = ImageView(context).apply {
-                    val sz = dp2px(26)
-                    layoutParams = LinearLayout.LayoutParams(sz, sz).apply {
-                        marginEnd = dp2px(12)
-                    }
-                    setImageDrawable(getColorBadgeDrawable(context.resources, customColorInt))
-                }
-                addView(customIv)
-
-                val titleView = TextView(context).apply {
-                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-                    val savedHex = String.format("#%06X", 0xFFFFFF and DataStore.customThemeColor)
-                    text = "${context.getString(R.string.custom_color_title)} ($savedHex)"
-                    textSize = 14f
-                    setTypeface(null, if (isCustomSelected) Typeface.BOLD else Typeface.NORMAL)
-                    setTextColor(context.getColorAttr(android.R.attr.textColorPrimary))
-                }
-                addView(titleView)
-
-                if (isCustomSelected) {
-                    val checkIv = ImageView(context).apply {
-                        val sz = dp2px(20)
-                        layoutParams = LinearLayout.LayoutParams(sz, sz)
-                        val checkDrawable = ResourcesCompat.getDrawable(context.resources, R.drawable.ic_baseline_check_circle_24, null)!!.mutate()
-                        DrawableCompat.setTint(checkDrawable, customColorInt)
-                        setImageDrawable(checkDrawable)
-                    }
-                    addView(checkIv)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    if (rowIdx < rows.lastIndex) bottomMargin = dp2px(10)
                 }
             }
-            addView(customRow)
+            for (colIdx in 0 until columns) {
+                val cell = FrameLayout(context).apply {
+                    layoutParams = LinearLayout.LayoutParams(0, dp2px(46), 1f)
+                }
+                val preset = chunk.getOrNull(colIdx)
+                if (preset != null) {
+                    val isSelected = activeThemeId == preset.id
+                    cell.addView(buildSwatchItem(preset, isSelected, isNight, textSecondary))
+                }
+                row.addView(cell)
+            }
+            container.addView(row)
         }
-        rootLayout.addView(customCard)
 
-        dialog = MaterialAlertDialogBuilder(context)
-            .setTitle(title)
-            .setView(scroll)
+        root.addView(container)
+    }
+
+    private fun buildSwatchItem(
+        preset: PresetTheme,
+        isSelected: Boolean,
+        isNight: Boolean,
+        ringFallback: Int,
+    ): FrameLayout {
+        val swatchSize = dp2px(38)
+        val item = FrameLayout(context).apply {
+            layoutParams = FrameLayout.LayoutParams(dp2px(44), dp2px(44), Gravity.CENTER)
+            contentDescription = preset.name
+            isClickable = true
+            isFocusable = true
+            background = RippleDrawable(
+                ColorStateList.valueOf(ColorUtils.setAlphaComponent(preset.color, 55)),
+                null,
+                GradientDrawable().apply { shape = GradientDrawable.OVAL },
+            )
+            setOnClickListener {
+                if (preset.id == Theme.CUSTOM) {
+                    showCustomColorDialog()
+                } else {
+                    applyTheme(preset.id)
+                }
+            }
+        }
+
+        if (isSelected) {
+            // Outer M3 active halo ring
+            item.addView(View(context).apply {
+                layoutParams = FrameLayout.LayoutParams(dp2px(43), dp2px(43), Gravity.CENTER)
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(Color.TRANSPARENT)
+                    setStroke(dp2px(2), preset.color)
+                }
+            })
+        }
+
+        val innerCircleSize = if (isSelected) dp2px(33) else swatchSize
+        val circle = View(context).apply {
+            layoutParams = FrameLayout.LayoutParams(innerCircleSize, innerCircleSize, Gravity.CENTER)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                if (preset.id == Theme.MONET) {
+                    // Subtle dynamic dual-tone sheen for Material You swatch
+                    colors = intArrayOf(
+                        preset.color,
+                        ColorUtils.blendARGB(preset.color, Color.WHITE, 0.25f),
+                    )
+                    orientation = GradientDrawable.Orientation.TL_BR
+                } else {
+                    setColor(preset.color)
+                }
+                if (!isSelected) {
+                    setStroke(
+                        dp2px(0.8f).coerceAtLeast(1),
+                        ColorUtils.setAlphaComponent(ringFallback, if (isNight) 55 else 40),
+                    )
+                }
+            }
+        }
+        item.addView(circle)
+
+        val checkIconColor = if (ColorUtils.calculateLuminance(preset.color) > 0.52) Color.BLACK else Color.WHITE
+        if (isSelected) {
+            item.addView(ImageView(context).apply {
+                layoutParams = FrameLayout.LayoutParams(dp2px(18), dp2px(18), Gravity.CENTER)
+                val checkDrawable = ResourcesCompat.getDrawable(
+                    context.resources,
+                    R.drawable.ic_baseline_check_circle_24,
+                    null,
+                )?.mutate()
+                if (checkDrawable != null) {
+                    DrawableCompat.setTint(checkDrawable, checkIconColor)
+                    setImageDrawable(checkDrawable)
+                }
+            })
+        } else if (preset.id == Theme.CUSTOM) {
+            item.addView(TextView(context).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.CENTER,
+                )
+                text = "+"
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+                setTypeface(null, Typeface.BOLD)
+                setTextColor(checkIconColor)
+                includeFontPadding = false
+            })
+        }
+        return item
+    }
+
+    private fun showCustomColorDialog() {
+        val initialColor = 0xFF000000.toInt() or DataStore.customThemeColor
+        var red = Color.red(initialColor)
+        var green = Color.green(initialColor)
+        var blue = Color.blue(initialColor)
+        var updatingFromSliders = false
+        var updatingFromText = false
+
+        val dialogLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp2px(22), dp2px(16), dp2px(22), dp2px(4))
+        }
+
+        // Preview banner with large circle + live hex
+        val previewRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, dp2px(14))
+        }
+        val previewDot = View(context).apply {
+            layoutParams = LinearLayout.LayoutParams(dp2px(48), dp2px(48)).apply {
+                marginEnd = dp2px(14)
+            }
+        }
+        previewRow.addView(previewDot)
+
+        val hexLayout = TextInputLayout(context).apply {
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            hint = context.getString(R.string.custom_color_hex_hint)
+            boxBackgroundMode = TextInputLayout.BOX_BACKGROUND_OUTLINE
+        }
+        val hexInput = TextInputEditText(hexLayout.context).apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
+            maxLines = 1
+            setText(String.format("#%06X", 0xFFFFFF and initialColor))
+        }
+        hexLayout.addView(hexInput)
+        previewRow.addView(hexLayout)
+        dialogLayout.addView(previewRow)
+
+        fun updatePreviewDot(color: Int) {
+            previewDot.background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(color)
+                setStroke(dp2px(1.5f).coerceAtLeast(1), ColorUtils.setAlphaComponent(Color.GRAY, 120))
+            }
+        }
+        updatePreviewDot(initialColor)
+
+        fun buildChannelSlider(label: String, tint: Int, initial: Int, onChange: (Int) -> Unit): SeekBar {
+            val row = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, dp2px(4), 0, dp2px(4))
+            }
+            val nameView = TextView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(dp2px(22), ViewGroup.LayoutParams.WRAP_CONTENT)
+                text = label
+                setTypeface(null, Typeface.BOLD)
+                setTextColor(tint)
+            }
+            val valueView = TextView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(dp2px(34), ViewGroup.LayoutParams.WRAP_CONTENT)
+                text = initial.toString()
+                gravity = Gravity.END
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+                setTextColor(context.getColorAttr(android.R.attr.textColorSecondary))
+            }
+            val seek = SeekBar(context).apply {
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                max = 255
+                progress = initial
+                progressTintList = ColorStateList.valueOf(tint)
+                thumbTintList = ColorStateList.valueOf(tint)
+                setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                        valueView.text = progress.toString()
+                        if (fromUser && !updatingFromText) {
+                            onChange(progress)
+                        }
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
+                })
+            }
+            row.addView(nameView)
+            row.addView(seek)
+            row.addView(valueView)
+            dialogLayout.addView(row)
+            return seek
+        }
+
+        lateinit var redSeek: SeekBar
+        lateinit var greenSeek: SeekBar
+        lateinit var blueSeek: SeekBar
+
+        fun syncHexFromRgb() {
+            val col = Color.rgb(red, green, blue)
+            updatePreviewDot(col)
+            updatingFromSliders = true
+            hexInput.setText(String.format("#%06X", 0xFFFFFF and col))
+            hexInput.setSelection(hexInput.text?.length ?: 0)
+            updatingFromSliders = false
+        }
+
+        redSeek = buildChannelSlider("R", Color.parseColor("#EF4444"), red) { v ->
+            red = v
+            syncHexFromRgb()
+        }
+        greenSeek = buildChannelSlider("G", Color.parseColor("#22C55E"), green) { v ->
+            green = v
+            syncHexFromRgb()
+        }
+        blueSeek = buildChannelSlider("B", Color.parseColor("#3B82F6"), blue) { v ->
+            blue = v
+            syncHexFromRgb()
+        }
+
+        hexInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            override fun afterTextChanged(s: Editable?) {
+                if (updatingFromSliders) return
+                val raw = s?.toString()?.trim().orEmpty()
+                val normalized = if (raw.startsWith("#")) raw else "#$raw"
+                if (normalized.length == 7 || normalized.length == 9) {
+                    runCatching { Color.parseColor(normalized) }.getOrNull()?.let { parsed ->
+                        updatingFromText = true
+                        red = Color.red(parsed)
+                        green = Color.green(parsed)
+                        blue = Color.blue(parsed)
+                        redSeek.progress = red
+                        greenSeek.progress = green
+                        blueSeek.progress = blue
+                        updatePreviewDot(0xFF000000.toInt() or parsed)
+                        updatingFromText = false
+                    }
+                }
+            }
+        })
+
+        MaterialAlertDialogBuilder(context)
+            .setTitle(context.getString(R.string.custom_color_title))
+            .setView(dialogLayout)
+            .setPositiveButton(context.getString(R.string.custom_color_apply)) { _, _ ->
+                val raw = hexInput.text?.toString()?.trim().orEmpty()
+                val parsed = if (raw.isNotEmpty()) {
+                    runCatching {
+                        Color.parseColor(if (raw.startsWith("#")) raw else "#$raw")
+                    }.getOrNull() ?: Color.rgb(red, green, blue)
+                } else {
+                    Color.rgb(red, green, blue)
+                }
+                DataStore.customThemeColor = 0xFF000000.toInt() or parsed
+                applyTheme(Theme.CUSTOM)
+            }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
+
+    private fun dp2px(dp: Float): Int = (dp * context.resources.displayMetrics.density).toInt()
 }

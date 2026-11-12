@@ -88,13 +88,13 @@ object LogExport {
             else -> "on (best effort: review before sharing)"
         }
         return buildString {
-            appendLine("===== Throne for Android log export =====")
+            appendLine("===== V4War for Android log export =====")
             appendLine("exported  : ${utc.format(Date())}")
             appendLine(
                 "app       : ${SagerNet.appVersionNameForDisplay} (versionCode ${BuildConfig.VERSION_CODE}), " +
                         "flavor ${BuildConfig.FLAVOR}, $buildType, package ${BuildConfig.APPLICATION_ID}"
             )
-            appendLine("core      : ThroneCore ${BuildConfig.THRONE_CORE_REF} (versions: the \"core:\" line of core.log)")
+            appendLine("core      : V4War Core ${BuildConfig.THRONE_CORE_REF} (versions: the \"core:\" line of core.log)")
             appendLine(
                 "android   : ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT}), " +
                         "security patch ${Build.VERSION.SECURITY_PATCH}"

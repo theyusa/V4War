@@ -8,5 +8,8 @@
     <shape android:shape="rectangle">
         <corners android:radius="@dimen/dialog_corner_radius" />
         <solid android:color="?attr/colorSurface" />
+        <stroke
+            android:width="@dimen/card_stroke_width"
+            android:color="?attr/colorOutline" />
     </shape>
 </inset>

@@ -16,6 +16,8 @@
     <attr name="cardElevatedSurfaceColor" format="color" />
     <!-- Outline of the profile cards, set only where their shadow does not show (OLED black); unset means none -->
     <attr name="profileCardStrokeColor" format="color" />
+    <!-- Theme-adaptive stroke width for cards and expressive outlines (thinner hairline on AMOLED/Pure AMOLED) -->
+    <attr name="cardStrokeWidth" format="dimension" />
 
     <!-- JSON editor preference -->
     <declare-styleable name="EditConfigPreference">

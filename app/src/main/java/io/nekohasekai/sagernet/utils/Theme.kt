@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.database.DataStore
@@ -42,6 +43,35 @@ object Theme {
     const val CUSTOM = 99
 
     private fun defaultTheme() = VERDANT_MINT
+
+    const val NIGHT_SYSTEM = 0
+    const val NIGHT_DARK = 1
+    const val NIGHT_LIGHT = 2
+    const val NIGHT_AMOLED = 3
+    const val NIGHT_PURE_AMOLED = 4
+
+    fun activeThemeId(): Int {
+        return if (DataStore.useSystemTheme && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            MONET
+        } else {
+            DataStore.appTheme
+        }
+    }
+
+    fun isColorfulSeed(themeId: Int): Boolean {
+        return themeId !in setOf(BLACK, WHITE, LIGHT_GRAY) && isValidTheme(themeId)
+    }
+
+    fun rememberSeedTheme(themeId: Int) {
+        if (isColorfulSeed(themeId)) {
+            DataStore.lastSeedTheme = themeId
+        }
+    }
+
+    fun resolveSeedRestoreTheme(): Int {
+        val saved = DataStore.lastSeedTheme
+        return if (isColorfulSeed(saved)) saved else defaultTheme()
+    }
 
     fun isValidTheme(themeId: Int): Boolean {
         return themeId in MONET..LIGHT_GRAY || themeId == CUSTOM
@@ -118,116 +148,180 @@ object Theme {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && (DataStore.useSystemTheme || DataStore.appTheme == MONET)
     }
 
+    private data class AmoledStyleQuad(
+        val tinted: Int,
+        val tintedDialog: Int,
+        val pure: Int,
+        val pureDialog: Int,
+    )
+
+    private val amoledStyles: Map<Int, AmoledStyleQuad> = mapOf(
+        RED to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Red, R.style.Theme_SagerNet_Dialog_Amoled_Red,
+            R.style.Theme_SagerNet_PureAmoled_Red, R.style.Theme_SagerNet_Dialog_PureAmoled_Red,
+        ),
+        PINK_SSR to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_PinkSSR, R.style.Theme_SagerNet_Dialog_Amoled_PinkSSR,
+            R.style.Theme_SagerNet_PureAmoled_PinkSSR, R.style.Theme_SagerNet_Dialog_PureAmoled_PinkSSR,
+        ),
+        PINK to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Pink, R.style.Theme_SagerNet_Dialog_Amoled_Pink,
+            R.style.Theme_SagerNet_PureAmoled_Pink, R.style.Theme_SagerNet_Dialog_PureAmoled_Pink,
+        ),
+        PURPLE to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Purple, R.style.Theme_SagerNet_Dialog_Amoled_Purple,
+            R.style.Theme_SagerNet_PureAmoled_Purple, R.style.Theme_SagerNet_Dialog_PureAmoled_Purple,
+        ),
+        DEEP_PURPLE to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_DeepPurple, R.style.Theme_SagerNet_Dialog_Amoled_DeepPurple,
+            R.style.Theme_SagerNet_PureAmoled_DeepPurple, R.style.Theme_SagerNet_Dialog_PureAmoled_DeepPurple,
+        ),
+        INDIGO to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Indigo, R.style.Theme_SagerNet_Dialog_Amoled_Indigo,
+            R.style.Theme_SagerNet_PureAmoled_Indigo, R.style.Theme_SagerNet_Dialog_PureAmoled_Indigo,
+        ),
+        BLUE to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Blue, R.style.Theme_SagerNet_Dialog_Amoled_Blue,
+            R.style.Theme_SagerNet_PureAmoled_Blue, R.style.Theme_SagerNet_Dialog_PureAmoled_Blue,
+        ),
+        LIGHT_BLUE to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_LightBlue, R.style.Theme_SagerNet_Dialog_Amoled_LightBlue,
+            R.style.Theme_SagerNet_PureAmoled_LightBlue, R.style.Theme_SagerNet_Dialog_PureAmoled_LightBlue,
+        ),
+        CYAN to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Cyan, R.style.Theme_SagerNet_Dialog_Amoled_Cyan,
+            R.style.Theme_SagerNet_PureAmoled_Cyan, R.style.Theme_SagerNet_Dialog_PureAmoled_Cyan,
+        ),
+        TEAL to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Teal, R.style.Theme_SagerNet_Dialog_Amoled_Teal,
+            R.style.Theme_SagerNet_PureAmoled_Teal, R.style.Theme_SagerNet_Dialog_PureAmoled_Teal,
+        ),
+        GREEN to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Green, R.style.Theme_SagerNet_Dialog_Amoled_Green,
+            R.style.Theme_SagerNet_PureAmoled_Green, R.style.Theme_SagerNet_Dialog_PureAmoled_Green,
+        ),
+        LIGHT_GREEN to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_LightGreen, R.style.Theme_SagerNet_Dialog_Amoled_LightGreen,
+            R.style.Theme_SagerNet_PureAmoled_LightGreen, R.style.Theme_SagerNet_Dialog_PureAmoled_LightGreen,
+        ),
+        LIME to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Lime, R.style.Theme_SagerNet_Dialog_Amoled_Lime,
+            R.style.Theme_SagerNet_PureAmoled_Lime, R.style.Theme_SagerNet_Dialog_PureAmoled_Lime,
+        ),
+        YELLOW to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Yellow, R.style.Theme_SagerNet_Dialog_Amoled_Yellow,
+            R.style.Theme_SagerNet_PureAmoled_Yellow, R.style.Theme_SagerNet_Dialog_PureAmoled_Yellow,
+        ),
+        AMBER to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Amber, R.style.Theme_SagerNet_Dialog_Amoled_Amber,
+            R.style.Theme_SagerNet_PureAmoled_Amber, R.style.Theme_SagerNet_Dialog_PureAmoled_Amber,
+        ),
+        ORANGE to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Orange, R.style.Theme_SagerNet_Dialog_Amoled_Orange,
+            R.style.Theme_SagerNet_PureAmoled_Orange, R.style.Theme_SagerNet_Dialog_PureAmoled_Orange,
+        ),
+        DEEP_ORANGE to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_DeepOrange, R.style.Theme_SagerNet_Dialog_Amoled_DeepOrange,
+            R.style.Theme_SagerNet_PureAmoled_DeepOrange, R.style.Theme_SagerNet_Dialog_PureAmoled_DeepOrange,
+        ),
+        BROWN to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Brown, R.style.Theme_SagerNet_Dialog_Amoled_Brown,
+            R.style.Theme_SagerNet_PureAmoled_Brown, R.style.Theme_SagerNet_Dialog_PureAmoled_Brown,
+        ),
+        GREY to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Grey, R.style.Theme_SagerNet_Dialog_Amoled_Grey,
+            R.style.Theme_SagerNet_PureAmoled_Grey, R.style.Theme_SagerNet_Dialog_PureAmoled_Grey,
+        ),
+        BLUE_GREY to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_BlueGrey, R.style.Theme_SagerNet_Dialog_Amoled_BlueGrey,
+            R.style.Theme_SagerNet_PureAmoled_BlueGrey, R.style.Theme_SagerNet_Dialog_PureAmoled_BlueGrey,
+        ),
+        VERDANT_MINT to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_VerdantMint, R.style.Theme_SagerNet_Dialog_Amoled_VerdantMint,
+            R.style.Theme_SagerNet_PureAmoled_VerdantMint, R.style.Theme_SagerNet_Dialog_PureAmoled_VerdantMint,
+        ),
+    )
+
+    private fun resolveAmoledStyle(themeId: Int, isDialog: Boolean, isPure: Boolean): Int {
+        val resolvedId = when (themeId) {
+            CUSTOM -> getClosestThemeForColor(0xFF000000.toInt() or DataStore.customThemeColor)
+            MONET -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    return when {
+                        isDialog && isPure -> R.style.Theme_SagerNet_Dialog_PureAmoled_Monet
+                        isDialog -> R.style.Theme_SagerNet_Dialog_Amoled_Monet
+                        isPure -> R.style.Theme_SagerNet_PureAmoled_Monet
+                        else -> R.style.Theme_SagerNet_Amoled_Monet
+                    }
+                }
+                val sysColor = getSystemWallpaperColor(app)
+                if (sysColor != null) getClosestThemeForColor(sysColor) else BLUE
+            }
+            else -> themeId
+        }
+        if (resolvedId in setOf(BLACK, WHITE, LIGHT_GRAY)) {
+            return if (isDialog) R.style.Theme_SagerNet_Dialog_Black else R.style.Theme_SagerNet_Black
+        }
+        val quad = amoledStyles[resolvedId]
+            ?: return if (isDialog) R.style.Theme_SagerNet_Dialog_Black else R.style.Theme_SagerNet_Black
+        return when {
+            isDialog && isPure -> quad.pureDialog
+            isDialog -> quad.tintedDialog
+            isPure -> quad.pure
+            else -> quad.tinted
+        }
+    }
+
     fun getTheme(context: Context? = null): Int {
         val ctx = context ?: app
-        val themeId = if (DataStore.useSystemTheme && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            MONET
-        } else {
-            DataStore.appTheme
-        }
+        val themeId = activeThemeId()
         if (themeId == BLACK) {
             return R.style.Theme_SagerNet_Black
         }
         if (usingNightMode(ctx) && themeId in setOf(WHITE, LIGHT_GRAY)) {
             return R.style.Theme_SagerNet_Black
         }
-        if (usingNightMode(ctx) && (DataStore.amoledTheme || DataStore.nightTheme == 3)) {
-            return getAmoledTheme(themeId)
+        if (usingNightMode(ctx)) {
+            if (DataStore.nightTheme == NIGHT_PURE_AMOLED ||
+                (DataStore.nightTheme != NIGHT_AMOLED && DataStore.amoledTheme)
+            ) {
+                return resolveAmoledStyle(themeId, isDialog = false, isPure = true)
+            }
+            if (DataStore.nightTheme == NIGHT_AMOLED) {
+                return resolveAmoledStyle(themeId, isDialog = false, isPure = false)
+            }
         }
         return getTheme(themeId, ctx)
     }
 
     fun getDialogTheme(context: Context? = null): Int {
         val ctx = context ?: app
-        val themeId = if (DataStore.useSystemTheme && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            MONET
-        } else {
-            DataStore.appTheme
-        }
+        val themeId = activeThemeId()
         if (themeId == BLACK) {
             return R.style.Theme_SagerNet_Dialog_Black
         }
         if (usingNightMode(ctx) && themeId in setOf(WHITE, LIGHT_GRAY)) {
             return R.style.Theme_SagerNet_Dialog_Black
         }
-        if (usingNightMode(ctx) && (DataStore.amoledTheme || DataStore.nightTheme == 3)) {
-            return getAmoledDialogTheme(themeId)
+        if (usingNightMode(ctx)) {
+            if (DataStore.nightTheme == NIGHT_PURE_AMOLED ||
+                (DataStore.nightTheme != NIGHT_AMOLED && DataStore.amoledTheme)
+            ) {
+                return resolveAmoledStyle(themeId, isDialog = true, isPure = true)
+            }
+            if (DataStore.nightTheme == NIGHT_AMOLED) {
+                return resolveAmoledStyle(themeId, isDialog = true, isPure = false)
+            }
         }
         return getDialogTheme(themeId, ctx)
     }
 
     fun getAmoledTheme(themeId: Int): Int {
-        return when (themeId) {
-            MONET -> {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    R.style.Theme_SagerNet_Amoled_Monet
-                } else {
-                    val sysColor = getSystemWallpaperColor(app)
-                    if (sysColor != null) getAmoledTheme(getClosestThemeForColor(sysColor)) else R.style.Theme_SagerNet_Amoled_Blue
-                }
-            }
-            RED -> R.style.Theme_SagerNet_Amoled_Red
-            PINK_SSR -> R.style.Theme_SagerNet_Amoled_PinkSSR
-            PINK -> R.style.Theme_SagerNet_Amoled_Pink
-            PURPLE -> R.style.Theme_SagerNet_Amoled_Purple
-            DEEP_PURPLE -> R.style.Theme_SagerNet_Amoled_DeepPurple
-            INDIGO -> R.style.Theme_SagerNet_Amoled_Indigo
-            BLUE -> R.style.Theme_SagerNet_Amoled_Blue
-            LIGHT_BLUE -> R.style.Theme_SagerNet_Amoled_LightBlue
-            CYAN -> R.style.Theme_SagerNet_Amoled_Cyan
-            TEAL -> R.style.Theme_SagerNet_Amoled_Teal
-            GREEN -> R.style.Theme_SagerNet_Amoled_Green
-            LIGHT_GREEN -> R.style.Theme_SagerNet_Amoled_LightGreen
-            LIME -> R.style.Theme_SagerNet_Amoled_Lime
-            YELLOW -> R.style.Theme_SagerNet_Amoled_Yellow
-            AMBER -> R.style.Theme_SagerNet_Amoled_Amber
-            ORANGE -> R.style.Theme_SagerNet_Amoled_Orange
-            DEEP_ORANGE -> R.style.Theme_SagerNet_Amoled_DeepOrange
-            BROWN -> R.style.Theme_SagerNet_Amoled_Brown
-            GREY -> R.style.Theme_SagerNet_Amoled_Grey
-            BLUE_GREY -> R.style.Theme_SagerNet_Amoled_BlueGrey
-            VERDANT_MINT -> R.style.Theme_SagerNet_Amoled_VerdantMint
-            CUSTOM -> getAmoledTheme(getClosestThemeForColor(0xFF000000.toInt() or DataStore.customThemeColor))
-            BLACK, WHITE, LIGHT_GRAY -> R.style.Theme_SagerNet_Black
-            else -> R.style.Theme_SagerNet_Black
-        }
+        return resolveAmoledStyle(themeId, isDialog = false, isPure = DataStore.nightTheme == NIGHT_PURE_AMOLED)
     }
 
     fun getAmoledDialogTheme(themeId: Int): Int {
-        return when (themeId) {
-            MONET -> {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    R.style.Theme_SagerNet_Dialog_Amoled_Monet
-                } else {
-                    val sysColor = getSystemWallpaperColor(app)
-                    if (sysColor != null) getAmoledDialogTheme(getClosestThemeForColor(sysColor)) else R.style.Theme_SagerNet_Dialog_Amoled_Blue
-                }
-            }
-            RED -> R.style.Theme_SagerNet_Dialog_Amoled_Red
-            PINK_SSR -> R.style.Theme_SagerNet_Dialog_Amoled_PinkSSR
-            PINK -> R.style.Theme_SagerNet_Dialog_Amoled_Pink
-            PURPLE -> R.style.Theme_SagerNet_Dialog_Amoled_Purple
-            DEEP_PURPLE -> R.style.Theme_SagerNet_Dialog_Amoled_DeepPurple
-            INDIGO -> R.style.Theme_SagerNet_Dialog_Amoled_Indigo
-            BLUE -> R.style.Theme_SagerNet_Dialog_Amoled_Blue
-            LIGHT_BLUE -> R.style.Theme_SagerNet_Dialog_Amoled_LightBlue
-            CYAN -> R.style.Theme_SagerNet_Dialog_Amoled_Cyan
-            TEAL -> R.style.Theme_SagerNet_Dialog_Amoled_Teal
-            GREEN -> R.style.Theme_SagerNet_Dialog_Amoled_Green
-            LIGHT_GREEN -> R.style.Theme_SagerNet_Dialog_Amoled_LightGreen
-            LIME -> R.style.Theme_SagerNet_Dialog_Amoled_Lime
-            YELLOW -> R.style.Theme_SagerNet_Dialog_Amoled_Yellow
-            AMBER -> R.style.Theme_SagerNet_Dialog_Amoled_Amber
-            ORANGE -> R.style.Theme_SagerNet_Dialog_Amoled_Orange
-            DEEP_ORANGE -> R.style.Theme_SagerNet_Dialog_Amoled_DeepOrange
-            BROWN -> R.style.Theme_SagerNet_Dialog_Amoled_Brown
-            GREY -> R.style.Theme_SagerNet_Dialog_Amoled_Grey
-            BLUE_GREY -> R.style.Theme_SagerNet_Dialog_Amoled_BlueGrey
-            VERDANT_MINT -> R.style.Theme_SagerNet_Dialog_Amoled_VerdantMint
-            CUSTOM -> getAmoledDialogTheme(getClosestThemeForColor(0xFF000000.toInt() or DataStore.customThemeColor))
-            BLACK, WHITE, LIGHT_GRAY -> R.style.Theme_SagerNet_Dialog_Black
-            else -> R.style.Theme_SagerNet_Dialog_Black
-        }
+        return resolveAmoledStyle(themeId, isDialog = true, isPure = DataStore.nightTheme == NIGHT_PURE_AMOLED)
     }
 
     fun getTheme(theme: Int, context: Context? = null): Int {
@@ -314,9 +408,30 @@ object Theme {
         return !usingNightMode(ctx) && DataStore.appTheme == LIGHT_GRAY
     }
 
+    fun isTintedAmoled(context: Context? = null): Boolean {
+        val ctx = context ?: app
+        val mode = if (currentNightMode != -1) currentNightMode else DataStore.nightTheme
+        return usingNightMode(ctx) && mode == NIGHT_AMOLED && !isMonochromeBlack(ctx)
+    }
+
+    fun isPureAmoled(context: Context? = null): Boolean {
+        val ctx = context ?: app
+        val mode = if (currentNightMode != -1) currentNightMode else DataStore.nightTheme
+        val pureFlag = mode == NIGHT_PURE_AMOLED || (mode != NIGHT_AMOLED && DataStore.amoledTheme)
+        return usingNightMode(ctx) && pureFlag && !isMonochromeBlack(ctx)
+    }
+
+    fun isAnyAmoled(context: Context? = null): Boolean {
+        val ctx = context ?: app
+        val mode = if (currentNightMode != -1) currentNightMode else DataStore.nightTheme
+        return usingNightMode(ctx) && (mode in setOf(NIGHT_AMOLED, NIGHT_PURE_AMOLED) || DataStore.amoledTheme)
+    }
+
     fun isBlackTheme(context: Context? = null): Boolean {
         val ctx = context ?: app
-        return DataStore.appTheme == BLACK || (usingNightMode(ctx) && (DataStore.amoledTheme || DataStore.nightTheme == 3 || DataStore.appTheme in setOf(WHITE, LIGHT_GRAY)))
+        val mode = if (currentNightMode != -1) currentNightMode else DataStore.nightTheme
+        return DataStore.appTheme == BLACK ||
+            (usingNightMode(ctx) && (DataStore.amoledTheme || mode in setOf(NIGHT_AMOLED, NIGHT_PURE_AMOLED) || DataStore.appTheme in setOf(WHITE, LIGHT_GRAY)))
     }
 
     fun getPrimaryColor(context: Context): Int {
@@ -338,6 +453,91 @@ object Theme {
         return context.getColorAttr(R.attr.colorPrimary)
     }
 
+    /**
+     * Resolves the card/box fill color across Light, Dark, Normal AMOLED (2-3 seed tones on #000000),
+     * Pure AMOLED (#000000 boxes), and Monochrome Black.
+     */
+    fun resolveCardBackground(context: Context): Int {
+        if (isMonochromeBlack(context) || isPureAmoled(context)) {
+            return Color.BLACK
+        }
+        if (isTintedAmoled(context)) {
+            if (activeThemeId() in setOf(MONET, CUSTOM)) {
+                val prim = getSeedPrimaryColor(context)
+                return ColorUtils.blendARGB(Color.BLACK, prim, 0.11f)
+            }
+            val elevated = context.getColorAttr(R.attr.cardElevatedSurfaceColor)
+            if (elevated != 0 && elevated != Color.BLACK) {
+                return elevated
+            }
+            return ColorUtils.blendARGB(Color.BLACK, getSeedPrimaryColor(context), 0.11f)
+        }
+        val elevated = context.getColorAttr(R.attr.cardElevatedSurfaceColor)
+        if (elevated != 0) return elevated
+        return if (usingNightMode(context)) 0xFF1E1F1E.toInt() else Color.WHITE
+    }
+
+    /**
+     * Resolves Tone 3 (secondary nested container / selected surface) harmonious with [resolveCardBackground].
+     */
+    fun resolveNestedBoxBackground(context: Context): Int {
+        if (isMonochromeBlack(context)) return 0xFF141414.toInt()
+        val seed = getSeedPrimaryColor(context)
+        if (isPureAmoled(context)) {
+            return ColorUtils.blendARGB(Color.BLACK, seed, 0.08f)
+        }
+        val base = resolveCardBackground(context)
+        if (isTintedAmoled(context)) {
+            return ColorUtils.blendARGB(base, seed, 0.12f)
+        }
+        return ColorUtils.blendARGB(base, seed, if (usingNightMode(context)) 0.10f else 0.07f)
+    }
+
+    /**
+     * Resolves card/box border color. Pure AMOLED uses a softened hairline alpha so thin borders look crisp.
+     */
+    fun resolveCardStrokeColor(context: Context, selected: Boolean = false): Int {
+        if (isMonochromeBlack(context)) {
+            return if (selected) Color.WHITE else ContextCompat.getColor(context, R.color.card_stroke)
+        }
+        val seed = getSeedPrimaryColor(context)
+        val accentStroke = if (ColorUtils.calculateLuminance(seed) < 0.08) Color.WHITE else seed
+        return when {
+            isPureAmoled(context) -> {
+                if (selected) ColorUtils.setAlphaComponent(accentStroke, 240)
+                else ColorUtils.setAlphaComponent(accentStroke, 155)
+            }
+            isTintedAmoled(context) -> {
+                if (selected) accentStroke else ContextCompat.getColor(context, R.color.card_stroke)
+            }
+            selected -> accentStroke
+            else -> {
+                context.getColorAttr(R.attr.profileCardStrokeColor).takeIf { it != 0 }
+                    ?: ContextCompat.getColor(context, R.color.card_stroke)
+            }
+        }
+    }
+
+    /**
+     * Resolves border thickness in pixels: ultra-thin 0.5dp hairline for AMOLED / Pure AMOLED.
+     */
+    fun resolveCardStrokeWidthPx(context: Context, selected: Boolean = false): Float {
+        val density = context.resources.displayMetrics.density
+        return if (isPureAmoled(context) || isTintedAmoled(context) || isMonochromeBlack(context)) {
+            if (selected) (1.15f * density).coerceAtLeast(1f) else (0.5f * density).coerceAtLeast(1f)
+        } else {
+            if (selected) (1.5f * density).coerceAtLeast(1f) else context.resources.getDimension(R.dimen.card_stroke_width)
+        }
+    }
+
+    fun getSeedPrimaryColor(context: Context): Int {
+        if (DataStore.appTheme == CUSTOM) {
+            return 0xFF000000.toInt() or DataStore.customThemeColor
+        }
+        val attr = context.getColorAttr(R.attr.colorPrimary)
+        return if (attr != 0) attr else getPrimaryColor(context)
+    }
+
     var currentNightMode = -1
     fun getNightMode(): Int {
         if (currentNightMode == -1) {
@@ -348,9 +548,9 @@ object Theme {
 
     fun getNightMode(mode: Int): Int {
         return when (mode) {
-            0 -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-            1, 3 -> AppCompatDelegate.MODE_NIGHT_YES
-            2 -> AppCompatDelegate.MODE_NIGHT_NO
+            NIGHT_SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            NIGHT_DARK, NIGHT_AMOLED, NIGHT_PURE_AMOLED -> AppCompatDelegate.MODE_NIGHT_YES
+            NIGHT_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
             else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
         }
     }
@@ -360,32 +560,41 @@ object Theme {
         if (DataStore.appTheme == BLACK) return true
         val mode = if (currentNightMode != -1) currentNightMode else DataStore.nightTheme
         return when (mode) {
-            1, 3 -> true
-            2 -> false
+            NIGHT_DARK, NIGHT_AMOLED, NIGHT_PURE_AMOLED -> true
+            NIGHT_LIGHT -> false
             else -> isSystemNight(ctx)
         }
     }
 
+    fun isMonochromeBlack(context: Context? = null): Boolean {
+        val ctx = context ?: app
+        return DataStore.appTheme == BLACK || (usingNightMode(ctx) && DataStore.appTheme in setOf(BLACK, WHITE, LIGHT_GRAY))
+    }
+
     fun applyNightTheme() {
-        if (DataStore.nightTheme == 1 && DataStore.amoledTheme) {
-            DataStore.nightTheme = 3
+        if (DataStore.nightTheme == NIGHT_DARK && DataStore.amoledTheme) {
+            DataStore.nightTheme = NIGHT_PURE_AMOLED
         }
-        if (DataStore.appTheme == BLACK) {
-            DataStore.appTheme = VERDANT_MINT
-            DataStore.nightTheme = 3
+        if (DataStore.appTheme == BLACK && DataStore.nightTheme !in setOf(NIGHT_AMOLED, NIGHT_PURE_AMOLED)) {
+            DataStore.nightTheme = NIGHT_PURE_AMOLED
             DataStore.amoledTheme = true
         }
+        currentNightMode = DataStore.nightTheme
         when (DataStore.nightTheme) {
-            0 -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-            1 -> {
+            NIGHT_SYSTEM -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+            NIGHT_DARK -> {
                 DataStore.amoledTheme = false
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
             }
-            2 -> {
+            NIGHT_LIGHT -> {
                 DataStore.amoledTheme = false
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
             }
-            3 -> {
+            NIGHT_AMOLED -> {
+                DataStore.amoledTheme = false
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            }
+            NIGHT_PURE_AMOLED -> {
                 DataStore.amoledTheme = true
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
             }

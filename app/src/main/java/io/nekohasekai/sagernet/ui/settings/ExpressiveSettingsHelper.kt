@@ -84,9 +84,14 @@ object ExpressiveSettingsHelper {
         }
     }
 
-    fun applyDrawerMaskedIcons(navigation: NavigationView, context: Context) {
-        val isDark = Theme.usingNightMode(context)
-        val isAmoled = Theme.isBlackTheme(context)
+    internal fun resolveBadgeColors(context: Context, isDark: Boolean, isAmoled: Boolean): Pair<Int, Int> {
+        val tintIcons = DataStore.tintPreferenceIcons
+        if (isAmoled && Theme.isMonochromeBlack(context)) {
+            val containerColor = Color.parseColor("#1EFFFFFF")
+            val iconColor = if (tintIcons) Color.WHITE else Color.parseColor("#C4C7C5")
+            return containerColor to iconColor
+        }
+
         val themeAccent = context.getColorAttr(R.attr.colorAccent).takeIf { it != 0 && it != Color.WHITE }
             ?: context.getColorAttr(R.attr.colorPrimary).takeIf { it != 0 && it != Color.WHITE }
             ?: ContextCompat.getColor(context, R.color.material_blue_accent_200)
@@ -97,7 +102,6 @@ object ExpressiveSettingsHelper {
             else -> ColorUtils.blendARGB(themeAccent, Color.WHITE, 0.88f)
         }
 
-        val tintIcons = DataStore.tintPreferenceIcons
         val iconColor = if (tintIcons) {
             if (isDark) {
                 ColorUtils.blendARGB(themeAccent, Color.WHITE, 0.15f)
@@ -107,6 +111,14 @@ object ExpressiveSettingsHelper {
         } else {
             if (isDark) Color.parseColor("#C4C7C5") else Color.parseColor("#444746")
         }
+
+        return containerColor to iconColor
+    }
+
+    fun applyDrawerMaskedIcons(navigation: NavigationView, context: Context) {
+        val isDark = Theme.usingNightMode(context)
+        val isAmoled = Theme.isBlackTheme(context)
+        val (containerColor, iconColor) = resolveBadgeColors(context, isDark, isAmoled)
 
         navigation.itemIconTintList = null
 
@@ -185,27 +197,7 @@ fun PreferenceFragmentCompat.applyExpressiveSettingsStyle() {
         list.addItemDecoration(ExpressivePreferenceDecoration())
     }
 
-    // 3-Tone Seed Harmony: Vibrant theme accent (CanlÄ± vurgu)
-    val themeAccent = ctx.getColorAttr(R.attr.colorAccent).takeIf { it != 0 && it != Color.WHITE }
-        ?: ctx.getColorAttr(R.attr.colorPrimary).takeIf { it != 0 && it != Color.WHITE }
-        ?: ContextCompat.getColor(ctx, R.color.material_blue_accent_200)
-
-    val containerColor = when {
-        isAmoled -> ColorUtils.setAlphaComponent(themeAccent, (255 * 0.20f).toInt())
-        isNight -> ColorUtils.setAlphaComponent(themeAccent, (255 * 0.16f).toInt())
-        else -> ColorUtils.blendARGB(themeAccent, Color.WHITE, 0.88f)
-    }
-
-    val tintIcons = DataStore.tintPreferenceIcons
-    val iconColor = if (tintIcons) {
-        if (isNight) {
-            ColorUtils.blendARGB(themeAccent, Color.WHITE, 0.15f)
-        } else {
-            themeAccent
-        }
-    } else {
-        if (isNight) Color.parseColor("#C4C7C5") else Color.parseColor("#444746")
-    }
+    val (containerColor, iconColor) = ExpressiveSettingsHelper.resolveBadgeColors(ctx, isNight, isAmoled)
 
     preferenceScreen?.applyMaskedIconBadges(ctx, containerColor, iconColor)
 }

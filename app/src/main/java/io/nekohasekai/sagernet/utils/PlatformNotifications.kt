@@ -60,7 +60,7 @@ object PlatformNotifications {
     private fun post(context: Context, id: Int, @StringRes title: Int, @StringRes text: Int, intent: Intent) {
         val message = context.getString(text)
         val notification = NotificationCompat.Builder(context, CHANNEL_WARNINGS)
-            .setSmallIcon(R.drawable.ic_notification_warning)
+            .setSmallIcon(R.drawable.ic_throne_tile)
             .setContentTitle(context.getString(title))
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))

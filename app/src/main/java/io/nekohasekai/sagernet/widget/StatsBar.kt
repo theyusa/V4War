@@ -162,11 +162,10 @@ class StatsBar @JvmOverloads constructor(
         if (!this::statusText.isInitialized) return
         val currentContext = context ?: return
 
-        val isBlack = Theme.isBlackTheme(currentContext) ||
-            (Theme.usingNightMode(currentContext) && (DataStore.amoledTheme || DataStore.nightTheme == 3))
-
+        val isBlack = Theme.isBlackTheme(currentContext)
         val bgColor = when {
-            isBlack -> Color.BLACK
+            Theme.isPureAmoled(currentContext) || Theme.isMonochromeBlack(currentContext) -> Color.BLACK
+            Theme.isTintedAmoled(currentContext) -> Theme.resolveCardBackground(currentContext)
             Theme.isWhiteTheme(currentContext) -> Color.WHITE
             Theme.isLightGrayTheme(currentContext) -> Color.parseColor("#F5F5F7")
             else -> {
@@ -184,8 +183,10 @@ class StatsBar @JvmOverloads constructor(
 
         (background as? MaterialShapeDrawable)?.let { shape ->
             if (isBlack) {
-                shape.strokeWidth = 1f * resources.displayMetrics.density
-                shape.strokeColor = ColorStateList.valueOf(Color.parseColor("#33FFFFFF"))
+                shape.strokeWidth = Theme.resolveCardStrokeWidthPx(currentContext, selected = false)
+                shape.strokeColor = ColorStateList.valueOf(
+                    Theme.resolveCardStrokeColor(currentContext, selected = false)
+                )
             } else {
                 shape.strokeWidth = 0f
             }

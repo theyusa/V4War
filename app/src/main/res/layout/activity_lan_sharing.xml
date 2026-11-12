@@ -111,7 +111,7 @@
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
                 app:strokeColor="?attr/colorOutline"
-                app:strokeWidth="1dp">
+                app:strokeWidth="?attr/cardStrokeWidth">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -408,7 +408,7 @@
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
                 app:strokeColor="?attr/colorOutline"
-                app:strokeWidth="1dp">
+                app:strokeWidth="?attr/cardStrokeWidth">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -471,7 +471,7 @@
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
                 app:strokeColor="?attr/colorOutline"
-                app:strokeWidth="1dp">
+                app:strokeWidth="?attr/cardStrokeWidth">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -681,7 +681,7 @@
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
                 app:strokeColor="?attr/colorOutline"
-                app:strokeWidth="1dp">
+                app:strokeWidth="?attr/cardStrokeWidth">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -889,7 +889,7 @@
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
                 app:strokeColor="?attr/colorOutline"
-                app:strokeWidth="1dp">
+                app:strokeWidth="?attr/cardStrokeWidth">
 
                 <LinearLayout
                     android:id="@+id/rowAuth"

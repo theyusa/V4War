@@ -11,9 +11,7 @@ import android.view.ViewOutlineProvider
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceGroupAdapter
 import androidx.recyclerview.widget.RecyclerView
-import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.ktx.dp2px
-import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.utils.Theme
 
 /**
@@ -49,9 +47,12 @@ class ExpressivePreferenceDecoration : RecyclerView.ItemDecoration() {
         if (pref is PreferenceCategory) {
             val topOffset = if (pos == 0) dp2px(2) else dp2px(8)
             outRect.set(0, topOffset, 0, dp2px(2))
+        } else if (pref?.key == "themeStudio") {
+            outRect.set(dp2px(16), dp2px(4), dp2px(16), dp2px(6))
         } else {
             val marginH = dp2px(16)
-            val isBottom = (pos == adapter.itemCount - 1 || adapter.getItem(pos + 1) is PreferenceCategory)
+            val nextPref = if (pos < adapter.itemCount - 1) adapter.getItem(pos + 1) else null
+            val isBottom = (pos == adapter.itemCount - 1 || nextPref is PreferenceCategory || nextPref?.key == "themeStudio")
             val bottomMargin = if (isBottom) dp2px(4) else dp2px(2)
             outRect.set(marginH, 0, marginH, bottomMargin)
         }
@@ -61,29 +62,15 @@ class ExpressivePreferenceDecoration : RecyclerView.ItemDecoration() {
         val adapter = parent.adapter as? PreferenceGroupAdapter ?: return
         val ctx = parent.context
 
-        val isNight = Theme.usingNightMode(ctx)
-        val isAmoled = Theme.isBlackTheme(ctx)
+        cardPaint.color = Theme.resolveCardBackground(ctx)
 
-        // 3-Tone Dynamic Theme Harmony:
-        // Use active theme's cardElevatedSurfaceColor (or colorSurface fallback)
-        val cardColor = when {
-            isAmoled -> 0xFF121212.toInt()
-            else -> {
-                val elevated = ctx.getColorAttr(R.attr.cardElevatedSurfaceColor)
-                if (elevated != 0) elevated else {
-                    if (isNight) 0xFF1E1F1E.toInt() else 0xFFFFFFFF.toInt()
-                }
-            }
-        }
-        cardPaint.color = cardColor
-
+        val isAmoledBorder = Theme.isAnyAmoled(ctx) || Theme.isMonochromeBlack(ctx)
         val rBig = dp2px(20).toFloat()
         val rSmall = dp2px(4).toFloat()
-        val strokeWidthPx = dp2px(1).toFloat()
 
-        if (isAmoled) {
-            strokePaint.strokeWidth = strokeWidthPx
-            strokePaint.color = 0x22FFFFFF.toInt()
+        if (isAmoledBorder) {
+            strokePaint.strokeWidth = Theme.resolveCardStrokeWidthPx(ctx, selected = false)
+            strokePaint.color = Theme.resolveCardStrokeColor(ctx, selected = false)
         }
 
         for (i in 0 until parent.childCount) {
@@ -92,10 +79,12 @@ class ExpressivePreferenceDecoration : RecyclerView.ItemDecoration() {
             if (pos == RecyclerView.NO_POSITION || pos !in 0 until adapter.itemCount) continue
 
             val pref = adapter.getItem(pos)
-            if (pref is PreferenceCategory) continue
+            if (pref is PreferenceCategory || pref?.key == "themeStudio") continue
 
-            val isTop = (pos == 0 || adapter.getItem(pos - 1) is PreferenceCategory)
-            val isBottom = (pos == adapter.itemCount - 1 || adapter.getItem(pos + 1) is PreferenceCategory)
+            val prevPref = if (pos > 0) adapter.getItem(pos - 1) else null
+            val nextPref = if (pos < adapter.itemCount - 1) adapter.getItem(pos + 1) else null
+            val isTop = (pos == 0 || prevPref is PreferenceCategory || prevPref?.key == "themeStudio")
+            val isBottom = (pos == adapter.itemCount - 1 || nextPref is PreferenceCategory || nextPref?.key == "themeStudio")
 
             val left = child.left.toFloat()
             val right = child.right.toFloat()
@@ -121,7 +110,7 @@ class ExpressivePreferenceDecoration : RecyclerView.ItemDecoration() {
             path.addRoundRect(rectF, radii, Path.Direction.CW)
 
             c.drawPath(path, cardPaint)
-            if (isAmoled) {
+            if (isAmoledBorder) {
                 c.drawPath(path, strokePaint)
             }
 

@@ -456,7 +456,7 @@ class DashboardFragment : ToolbarFragment(R.layout.layout_dashboard), Toolbar.On
                 }
                 var changed = false;
                 if (!entry) {
-                  servers.push({ id: ID, name: "Throne", url: url, secret: secret });
+                  servers.push({ id: ID, name: "V4War", url: url, secret: secret });
                   changed = true;
                 } else if (entry.url !== url || entry.secret !== secret) {
                   entry.url = url;
