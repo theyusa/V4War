@@ -90,7 +90,7 @@ internal class TestNotification(private val session: TestSession) {
     private fun warnAssets(problems: Collection<String>) {
         val text = problems.take(MAX_WARNED_PROBLEMS).joinToString("\n\n")
         val notification = NotificationCompat.Builder(app, PlatformNotifications.CHANNEL_WARNINGS)
-            .setSmallIcon(R.drawable.ic_notification_warning)
+            .setSmallIcon(R.drawable.ic_throne_tile)
             .setContentTitle(app.getString(R.string.xray_geo_test_warning_title))
             .setContentText(text.substringBefore('\n'))
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))

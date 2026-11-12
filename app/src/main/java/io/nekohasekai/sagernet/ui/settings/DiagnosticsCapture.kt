@@ -152,7 +152,7 @@ object DiagnosticsCapture {
             if (options.includeLogs) {
                 try {
                     val log = LogExport.build(app, DataStore.logExportRedact, false)
-                    val target = File(work, "throne.log")
+                    val target = File(work, "v4war.log")
                     if (!log.renameTo(target)) {
                         log.copyTo(target, overwrite = true)
                         log.delete()
@@ -187,7 +187,7 @@ object DiagnosticsCapture {
     }
 
     private fun archiveFile(dir: File): File {
-        val stem = "throne-profile-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+        val stem = "v4war-profile-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
         var file = File(dir, "$stem.zip")
         var n = 2
         while (file.exists()) file = File(dir, "$stem-${n++}.zip")
@@ -210,7 +210,7 @@ object DiagnosticsCapture {
             .getOrElse { RouteDnsSettings.global() to false }
         return JsonWriter.writeIndented(
             jsonObjectOf(
-                "throne_version" to SagerNet.appVersionNameForDisplay,
+                "v4war_version" to SagerNet.appVersionNameForDisplay,
                 "version_code" to BuildConfig.VERSION_CODE,
                 "build_type" to if (BuildConfig.DEBUG) "debug" else "release",
                 "core_ref" to BuildConfig.THRONE_CORE_REF,

@@ -7,7 +7,8 @@
     android:layout_height="wrap_content"
     app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
     app:cardElevation="8dp"
-    app:strokeWidth="0dp">
+    app:strokeColor="?attr/colorOutline"
+    app:strokeWidth="?attr/cardStrokeWidth">
 
     <LinearLayout
         android:id="@+id/test_panel_content"

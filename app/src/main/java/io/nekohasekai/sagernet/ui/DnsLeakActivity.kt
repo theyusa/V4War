@@ -304,7 +304,7 @@ class DnsLeakActivity : ThemedActivity() {
                 binding.badgeVerdict.text = getString(R.string.dns_leak_direct_title)
                 binding.textVerdictTitle.text = getString(R.string.dns_leak_direct_title)
                 binding.textVerdictDesc.text = getString(R.string.dns_leak_direct_desc)
-                binding.textRecommendation.text = "Connect to Throne VPN to protect your DNS queries and mask your public IP address."
+                binding.textRecommendation.text = "Connect to V4War VPN to protect your DNS queries and mask your public IP address."
             }
             fakeIpDetected -> {
                 binding.imageVerdictIcon.setImageResource(R.drawable.ic_baseline_check_circle_24)

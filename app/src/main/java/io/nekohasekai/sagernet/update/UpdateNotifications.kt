@@ -55,7 +55,7 @@ object UpdateNotifications {
 
     fun available(context: Context, offer: UpdateChecker.Offer) {
         val builder = builder(context)
-            .setSmallIcon(R.drawable.ic_baseline_update_24)
+            .setSmallIcon(R.drawable.ic_throne_tile)
             .setContentTitle(context.getString(R.string.update_notification_available, offer.versionName))
             .setContentText(context.getString(R.string.update_notification_available_text))
             .setAutoCancel(true)
@@ -73,7 +73,7 @@ object UpdateNotifications {
         val percent = if (total > 0) (done * 100 / total).toInt() else 0
         post(
             context, ID_PROGRESS, builder(context)
-                .setSmallIcon(android.R.drawable.stat_sys_download)
+                .setSmallIcon(R.drawable.ic_throne_tile)
                 .setContentTitle(context.getString(R.string.update_downloading_x, offer.versionName))
                 .setContentText(
                     context.getString(
@@ -96,7 +96,7 @@ object UpdateNotifications {
         )
         post(
             context, ID_PROGRESS, builder(context)
-                .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                .setSmallIcon(R.drawable.ic_throne_tile)
                 .setContentTitle(context.getString(R.string.update_notification_ready))
                 .setContentText(context.getString(R.string.update_notification_tap_install))
                 .setContentIntent(tap)
@@ -108,7 +108,7 @@ object UpdateNotifications {
     fun failed(context: Context, message: String) {
         post(
             context, ID_PROGRESS, builder(context)
-                .setSmallIcon(R.drawable.ic_baseline_update_24)
+                .setSmallIcon(R.drawable.ic_throne_tile)
                 .setContentTitle(context.getString(R.string.update_failed))
                 .setContentText(message)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(message))

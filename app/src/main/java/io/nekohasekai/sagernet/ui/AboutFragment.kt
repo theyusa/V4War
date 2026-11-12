@@ -102,7 +102,7 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                         .addItem(
                             MaterialAboutActionItem.Builder()
                                 .icon(R.drawable.ic_baseline_layers_24)
-                                .text(getString(R.string.version_x, "ThroneCore"))
+                                .text(getString(R.string.version_x, "V4War Core"))
                                 .subText(shortRef(BuildConfig.THRONE_CORE_REF))
                                 .setOnClickAction(::copyCoreRef)
                                 .setOnLongClickAction(::copyCoreRef)
@@ -118,7 +118,7 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                                 .text(R.string.github)
                                 .setOnClickAction {
                                     requireContext().launchCustomTab(
-                                        "https://github.com/theyusa/ThroneForAndroid"
+                                        "https://github.com/theyusa/V4War"
 
                                     )
                                 }
@@ -129,7 +129,7 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                                 .text(R.string.project_website)
                                 .setOnClickAction {
                                     requireContext().launchCustomTab(
-                                        "https://throneproj.github.io"
+                                        "https://github.com/theyusa/V4War#readme"
                                     )
                                 }
                                 .build())
@@ -138,9 +138,8 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                                 .icon(R.drawable.ic_baseline_favorite_24)
                                 .text(R.string.support_throne)
                                 .setOnClickAction {
-                                    // dialog_about.cpp:72-75
                                     requireContext().launchCustomTab(
-                                        "https://github.com/throneproj/Throne/blob/dev/.github/donate/Donate.md"
+                                        "https://github.com/theyusa/V4War"
                                     )
                                 }
                                 .build())
@@ -179,18 +178,19 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                     height = ViewGroup.LayoutParams.WRAP_CONTENT
                 }
 
-                val cardStrokeWidth = resources.getDimensionPixelSize(
-                    R.dimen.card_stroke_width
-                )
-                val cardStrokeColor = ContextCompat.getColor(
-                    requireContext(),
-                    R.color.card_stroke
-                )
+                val ctx = requireContext()
+                val cardStrokeWidth = io.nekohasekai.sagernet.utils.Theme
+                    .resolveCardStrokeWidthPx(ctx, selected = false).toInt().coerceAtLeast(1)
+                val cardStrokeColor = io.nekohasekai.sagernet.utils.Theme
+                    .resolveCardStrokeColor(ctx, selected = false)
+                val cardBgColor = io.nekohasekai.sagernet.utils.Theme
+                    .resolveCardBackground(ctx)
                 val cardCornerRadius = resources.getDimension(
                     R.dimen.card_corner_radius
                 )
                 fun applyApplicationCardStyle(child: View) {
                     (child as? MaterialCardView)?.apply {
+                        setCardBackgroundColor(cardBgColor)
                         strokeWidth = cardStrokeWidth
                         strokeColor = cardStrokeColor
                         radius = cardCornerRadius

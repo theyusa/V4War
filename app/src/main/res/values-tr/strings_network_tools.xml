@@ -95,7 +95,7 @@
     <string name="stun_action_start">Başlat</string>
     <string name="stun_action_cancel">İptal</string>
     <string name="stun_vpn_warning_title">VPN devrede</string>
-    <string name="stun_vpn_warning_summary">Throne VPN açık. Test sonuçları yerel ağınız yerine VPN tüneli çıkışını yansıtır.</string>
+    <string name="stun_vpn_warning_summary">V4War VPN açık. Test sonuçları yerel ağınız yerine VPN tüneli çıkışını yansıtır.</string>
     <string name="stun_test_physical_network">Fiziksel ağdan test et</string>
     <string name="stun_test_physical_network_summary">Doğrudan soket bağlama yöntemiyle VPN tünelini atlayıp fiziksel ağ üzerinden test yapar.</string>
     <string name="stun_no_physical_network">İnternet erişimi olan fiziksel bir ağ bulunamadı.</string>
