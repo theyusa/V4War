@@ -71,6 +71,7 @@ object LanSharingNetwork {
             n.startsWith("wwan") ||
             n.startsWith("dummy") ||
             n.startsWith("tun") ||
+            n.startsWith("testtun") ||
             n.startsWith("sit") ||
             n.startsWith("ip6") ||
             n.startsWith("clat") ||
@@ -116,7 +117,8 @@ object LanSharingNetwork {
             ip != "0.0.0.0" &&
             !ip.startsWith("127.") &&
             !ip.startsWith("169.254.") &&
-            !ip.startsWith("172.19.")
+            !ip.startsWith("172.19.") &&
+            !ip.startsWith("192.0.2.")
     }
 
     fun isHotspotActive(context: Context): Boolean {
@@ -251,6 +253,89 @@ object LanSharingNetwork {
     fun readArp(): List<String> {
         val text = runCatching { File("/proc/net/arp").readText() }.getOrNull() ?: return emptyList()
         return LanSharingLogics.parseArpFile(text)
+    }
+
+    data class NeighborSnapshot(
+        val allIps: List<String>,
+        val activeIps: Set<String>,
+        val hotspotIps: Set<String>,
+    )
+
+    fun readProcNetTcpRemotes(listenPort: Int): List<String> {
+        if (listenPort <= 0) return emptyList()
+        val results = linkedSetOf<String>()
+        listOf("/proc/net/tcp", "/proc/net/tcp6").forEach { path ->
+            val text = runCatching { File(path).readText() }.getOrNull() ?: return@forEach
+            results += LanSharingLogics.parseProcNetTcpRemotes(text, listenPort)
+        }
+        return results.toList()
+    }
+
+    fun readPrivilegedNeighbors(
+        shizukuDump: String?,
+        rootDump: String?,
+        hotspotIfaces: Set<String> = emptySet(),
+    ): NeighborSnapshot {
+        val allIps = linkedSetOf<String>()
+        val activeIps = linkedSetOf<String>()
+        val hotspotIps = linkedSetOf<String>()
+
+        fun ingestEntries(entries: List<NeighborEntry>) {
+            entries.forEach { entry ->
+                val ip = entry.ip
+                if (!isValidHotspotIp(ip)) return@forEach
+                allIps += ip
+                val iface = entry.iface
+                if (iface.isNotBlank() && (isHotspotInterfaceName(iface) || iface in hotspotIfaces)) {
+                    hotspotIps += ip
+                }
+                if (entry.isActive) {
+                    activeIps += ip
+                }
+            }
+        }
+
+        val combinedDumps = listOfNotNull(shizukuDump, rootDump).filter { it.isNotBlank() }
+        combinedDumps.forEach { dump ->
+            val lines = dump.lineSequence().toList()
+            val arpLines = mutableListOf<String>()
+            val neighLines = mutableListOf<String>()
+            lines.forEach { line ->
+                val trimmed = line.trim()
+                if (trimmed.isEmpty()) return@forEach
+                if (trimmed.contains(" dev ")) {
+                    neighLines += trimmed
+                } else {
+                    arpLines += trimmed
+                }
+            }
+            if (neighLines.isNotEmpty()) {
+                ingestEntries(LanSharingLogics.parseIpNeigh(neighLines.joinToString("\n")))
+            }
+            if (arpLines.isNotEmpty()) {
+                LanSharingLogics.parseArpFile(arpLines.joinToString("\n"))
+                    .filter { isValidHotspotIp(it) }
+                    .forEach { allIps += it }
+            }
+        }
+
+        readArp().filter { isValidHotspotIp(it) }.forEach { allIps += it }
+
+        val localNeigh = runCatching {
+            val p = ProcessBuilder("ip", "-4", "neigh", "show").redirectErrorStream(true).start()
+            val out = p.inputStream.bufferedReader().readText()
+            p.waitFor()
+            out
+        }.getOrNull()
+        if (!localNeigh.isNullOrBlank()) {
+            ingestEntries(LanSharingLogics.parseIpNeigh(localNeigh))
+        }
+
+        return NeighborSnapshot(
+            allIps = allIps.toList(),
+            activeIps = activeIps,
+            hotspotIps = hotspotIps,
+        )
     }
 
     /**

@@ -421,6 +421,12 @@
             android:process=":bg" />
 
         <service
+            android:name="io.nekohasekai.sagernet.hotspotshare.TetherWatchService"
+            android:exported="false"
+            android:foregroundServiceType="systemExempted"
+            tools:ignore="ForegroundServicePermission" />
+
+        <service
             android:name="io.nekohasekai.sagernet.bg.TileService"
             android:exported="true"
             android:foregroundServiceType="systemExempted"
