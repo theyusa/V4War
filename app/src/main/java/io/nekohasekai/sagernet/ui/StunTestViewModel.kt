@@ -58,7 +58,12 @@ class StunTestViewModel : ViewModel() {
         }
 
         testJob = viewModelScope.launch {
-            val results = natTester.test(servers, ipv6Mode) { updatedResult ->
+            val results = natTester.test(
+                servers = servers,
+                ipv6Mode = ipv6Mode,
+                enableQualityBurst = true,
+                enableCrossServerFallback = true,
+            ) { updatedResult ->
                 _uiState.update { current ->
                     val updatedList = current.results.map {
                         if (it.server == updatedResult.server) updatedResult else it

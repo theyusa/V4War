@@ -6,28 +6,29 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.widget.Toolbar
+import androidx.core.graphics.ColorUtils
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.color.MaterialColors
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.databinding.ActivityNetworkInterfacesBinding
 import io.nekohasekai.sagernet.databinding.ItemNetworkInterfaceBinding
+import io.nekohasekai.sagernet.ktx.getColorAttr
+import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
 import io.nekohasekai.sagernet.utils.HotspotKind
-import io.nekohasekai.sagernet.utils.InterfaceIp
 import io.nekohasekai.sagernet.utils.InterfaceKind
 import io.nekohasekai.sagernet.utils.InterfaceRoute
 import io.nekohasekai.sagernet.utils.NetworkInterfaceInfo
 import io.nekohasekai.sagernet.utils.NetworkInterfacesRepository
 import io.nekohasekai.sagernet.utils.NetworkInterfacesSnapshot
+import io.nekohasekai.sagernet.widget.applyListInsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -52,12 +53,15 @@ class NetworkInterfacesActivity : ThemedActivity() {
         binding = ActivityNetworkInterfacesBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.apply {
-            setTitle(R.string.network_interfaces_title)
-            setDisplayHomeAsUpEnabled(true)
-            setHomeAsUpIndicator(R.drawable.baseline_arrow_back_24)
+        ExpressiveSettingsHelper.attachActivityFloatingHeader(
+            this,
+            binding.root,
+            getString(R.string.network_interfaces_title),
+        )
+        styleExpressiveCards()
+
+        binding.btnRefreshInterfaces.setOnClickListener {
+            refresh()
         }
 
         binding.recyclerInterfaces.apply {
@@ -66,23 +70,28 @@ class NetworkInterfacesActivity : ThemedActivity() {
         }
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.network_interfaces_menu, menu)
-        return true
-    }
+    private fun styleExpressiveCards() {
+        binding.scrollNetworkInterfaces.applyListInsets()
+        listOf(
+            binding.cardHero,
+            binding.cardDiagnostic,
+            binding.cardLiveIndicator,
+            binding.cardActiveOverview,
+            binding.cardPartialWarning,
+        ).forEach { ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 20f) }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            android.R.id.home -> {
-                finish()
-                true
-            }
-            R.id.action_refresh -> {
-                refresh()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
+        ExpressiveSettingsHelper.applySquircleIcon(
+            binding.iconHeroBadge,
+            R.drawable.ic_hardware_router,
+            sizeDp = 42,
+            iconSizeDp = 22,
+        )
+        ExpressiveSettingsHelper.styleOutlinedButton(binding.btnRefreshInterfaces)
+        ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeActiveMode)
+
+        val accent = ExpressiveSettingsHelper.resolveAccentColor(this)
+        binding.progressBarLoading.setIndicatorColor(accent)
+        binding.progressBarLoading.trackColor = ColorUtils.setAlphaComponent(accent, 45)
     }
 
     private var refreshJob: Job? = null
@@ -231,9 +240,15 @@ class NetworkInterfacesActivity : ThemedActivity() {
     ) : RecyclerView.ViewHolder(itemBinding.root) {
 
         fun bind(info: NetworkInterfaceInfo) {
+            ExpressiveSettingsHelper.styleExpressiveCard(itemBinding.cardInterfaceItem, cornerRadiusDp = 20f)
+            val accent = ExpressiveSettingsHelper.resolveAccentColor(this@NetworkInterfacesActivity)
+            val secondary = getColorAttr(android.R.attr.textColorSecondary)
+            val errorColor = MaterialColors.getColor(itemBinding.root, com.google.android.material.R.attr.colorError)
+
             itemBinding.textInterfaceName.text = info.name
 
             // Kind badge
+            ExpressiveSettingsHelper.styleExpressiveBadge(itemBinding.badgeKind, secondary)
             itemBinding.badgeKind.text = when (info.kind) {
                 InterfaceKind.WIFI -> getString(R.string.network_interfaces_wifi)
                 InterfaceKind.CELLULAR -> getString(R.string.network_interfaces_cellular)
@@ -243,6 +258,12 @@ class NetworkInterfacesActivity : ThemedActivity() {
             }
 
             // Up / Down badge
+            val statusColor = when (info.up) {
+                true -> accent
+                false -> if (info.isVpn) secondary else errorColor
+                null -> secondary
+            }
+            ExpressiveSettingsHelper.styleExpressiveBadge(itemBinding.badgeStatus, statusColor)
             itemBinding.badgeStatus.text = when (info.up) {
                 true -> getString(R.string.network_interfaces_up)
                 false -> if (info.isVpn) getString(R.string.network_interfaces_vpn_standby) else getString(R.string.network_interfaces_down)
@@ -251,16 +272,19 @@ class NetworkInterfacesActivity : ThemedActivity() {
 
             // Default Route badge
             itemBinding.badgeDefaultRoute.visibility = if (info.isDefaultRoute) View.VISIBLE else View.GONE
+            ExpressiveSettingsHelper.styleExpressiveBadge(itemBinding.badgeDefaultRoute, accent)
             itemBinding.badgeDefaultRoute.text = getString(R.string.network_interfaces_default_route)
 
             // Hotspot badge
             when (info.hotspot) {
                 HotspotKind.CONFIRMED -> {
                     itemBinding.badgeHotspot.visibility = View.VISIBLE
+                    ExpressiveSettingsHelper.styleExpressiveBadge(itemBinding.badgeHotspot, accent)
                     itemBinding.badgeHotspot.text = getString(R.string.network_interfaces_tethered)
                 }
                 HotspotKind.POSSIBLE -> {
                     itemBinding.badgeHotspot.visibility = View.VISIBLE
+                    ExpressiveSettingsHelper.styleExpressiveBadge(itemBinding.badgeHotspot, secondary)
                     itemBinding.badgeHotspot.text = getString(R.string.network_interfaces_possible_hotspot)
                 }
                 HotspotKind.NONE -> {
