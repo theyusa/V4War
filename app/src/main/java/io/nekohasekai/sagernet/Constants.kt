@@ -97,6 +97,9 @@ object Action {
     /** The shared Hotspot Gateway status record changed; the payload lives in the uncached settings store. */
     const val HOTSPOT_GATEWAY_STATUS = "io.nekohasekai.sagernet.HOTSPOT_GATEWAY_STATUS"
 
+    /** Hotspot share backend state changed in [io.nekohasekai.sagernet.hotspotshare.HotspotShareStateStore]. */
+    const val HOTSPOT_SHARE_STATE = "io.nekohasekai.sagernet.HOTSPOT_SHARE_STATE"
+
     /** The auto-selector [EXTRA_PROFILE_ID] goes back to automatic in the running core. */
     const val AUTO_SELECTOR_AUTOMATIC = "io.nekohasekai.sagernet.AUTO_SELECTOR_AUTOMATIC"
     const val EXTRA_PROFILE_ID = "profileId"

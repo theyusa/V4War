@@ -14,7 +14,6 @@ import io.nekohasekai.sagernet.hotspotshare.root.ShellExecutor
 import io.nekohasekai.sagernet.hotspotshare.root.VpnRouteInfo
 import io.nekohasekai.sagernet.hotspotshare.shizuku.UpstreamInspector
 import io.nekohasekai.sagernet.utils.LanSharingNetwork
-import io.nekohasekai.sagernet.utils.PlatformNotifications
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -233,8 +232,6 @@ class RootBackend(
             shellExecutor.exec(RootRules.buildBlockTrafficCommands(ifacesToBlock))
         }
 
-        PlatformNotifications.hotspotShareDropped(context)
-
         _state.value = ShareState.Stopped(
             ShareFailure.VPN_LOST,
         )
@@ -273,8 +270,8 @@ class RootBackend(
                         ?: intent.getStringArrayListExtra("activeArray")
                         ?: emptyList()
 
-                    if (activeList.isEmpty()) {
-                        stop()
+                    if (activeList.isEmpty() && _state.value is ShareState.Active) {
+                        _state.value = ShareState.Stopped(ShareFailure.TETHER_LOST)
                     }
                 }
             }
@@ -300,8 +297,7 @@ class RootBackend(
 
         fun isRootAvailable(): Boolean {
             return try {
-                com.topjohnwu.superuser.Shell.isAppGrantedRoot() == true ||
-                    com.topjohnwu.superuser.Shell.cmd("id").exec().isSuccess
+                com.topjohnwu.superuser.Shell.isAppGrantedRoot() == true || LibsuShellExecutor.isRoot()
             } catch (_: Throwable) {
                 false
             }

@@ -14,7 +14,7 @@ import android.os.IBinder
 import android.text.format.Formatter
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import com.topjohnwu.superuser.Shell
+import io.nekohasekai.sagernet.Action
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.aidl.ISagerNetService
 import io.nekohasekai.sagernet.bg.BaseService
@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -34,6 +35,7 @@ class TetherWatchService : Service(), SagerConnection.Callback {
 
     companion object {
         const val ACTION_START = "io.nekohasekai.sagernet.hotspotshare.action.START"
+        const val ACTION_RESTART = "io.nekohasekai.sagernet.hotspotshare.action.RESTART"
         const val ACTION_STOP = "io.nekohasekai.sagernet.hotspotshare.action.STOP"
 
         const val CHANNEL_ID = "hotspot_share_service"
@@ -42,6 +44,9 @@ class TetherWatchService : Service(), SagerConnection.Callback {
         const val WIFI_AP_STATE_CHANGED = "android.net.wifi.WIFI_AP_STATE_CHANGED"
         const val TETHER_STATE_CHANGED = "android.net.conn.TETHER_STATE_CHANGED"
 
+        private const val RELOAD_GRACE_MS = 4_000L
+        private const val DISCONNECT_GRACE_MS = 1_000L
+
         var isRunning: Boolean = false
             private set
 
@@ -49,6 +54,17 @@ class TetherWatchService : Service(), SagerConnection.Callback {
             val intent = Intent(context, TetherWatchService::class.java).apply {
                 action = ACTION_START
             }
+            launchService(context, intent)
+        }
+
+        fun restart(context: Context) {
+            val intent = Intent(context, TetherWatchService::class.java).apply {
+                action = ACTION_RESTART
+            }
+            launchService(context, intent)
+        }
+
+        private fun launchService(context: Context, intent: Intent) {
             try {
                 ContextCompat.startForegroundService(context, intent)
             } catch (_: Exception) {
@@ -61,7 +77,7 @@ class TetherWatchService : Service(), SagerConnection.Callback {
             val intent = Intent(context, TetherWatchService::class.java).apply {
                 action = ACTION_STOP
             }
-            context.startService(intent)
+            runCatching { context.startService(intent) }
         }
     }
 
@@ -72,7 +88,10 @@ class TetherWatchService : Service(), SagerConnection.Callback {
     private var activeBackend: HotspotShare? = null
     private var systemNetReceiver: BroadcastReceiver? = null
     private var statsJob: Job? = null
+    private var vpnDropGraceJob: Job? = null
     private var lastState: ShareState = ShareState.Off
+    private var lastActiveMethod: ShareMethod? = null
+    private var sessionGeneration: Long = 0L
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -93,7 +112,7 @@ class TetherWatchService : Service(), SagerConnection.Callback {
                     sdkInt = Build.VERSION.SDK_INT,
                     shizukuRunning = ShizukuBackend.isShizukuRunning(),
                     shizukuGranted = ShizukuBackend.isShizukuGranted(this),
-                    rootAvailable = Shell.isAppGrantedRoot() == true || RootBackend.isRootAvailable(),
+                    rootAvailable = RootBackend.isRootAvailable(),
                 )
             },
             preference = { SharePreference.fromCode(DataStore.hotspotShareMethod) },
@@ -121,49 +140,100 @@ class TetherWatchService : Service(), SagerConnection.Callback {
         when (intent?.action) {
             ACTION_STOP -> {
                 stopSharingSession()
-                stopSelf()
                 return START_NOT_STICKY
             }
+            ACTION_RESTART -> {
+                val fgState = if (lastState is ShareState.Active) lastState else ShareState.Starting
+                startForeground(NOTIFICATION_ID, buildNotification(fgState, HotspotTrafficMonitor.stats.value))
+                startSharingSession(restart = true)
+                return START_STICKY
+            }
             else -> {
-                startForeground(NOTIFICATION_ID, buildNotification(ShareState.Starting, HotspotTrafficStats()))
-                startSharingSession()
+                val fgState = if (lastState is ShareState.Active) lastState else ShareState.Starting
+                startForeground(NOTIFICATION_ID, buildNotification(fgState, HotspotTrafficMonitor.stats.value))
+                startSharingSession(restart = false)
                 return START_STICKY
             }
         }
     }
 
-    private fun startSharingSession() {
+    private fun startSharingSession(restart: Boolean) {
+        sessionGeneration++
+        vpnDropGraceJob?.cancel()
+        vpnDropGraceJob = null
+        lastActiveMethod = null
+        PlatformNotifications.cancelHotspotShareDropped(this)
+        DataStore.hotspotShareEnabled = true
         serviceScope.launch {
-            controller?.start()
+            if (restart) {
+                controller?.restart()
+            } else {
+                controller?.start()
+            }
         }
     }
 
     private fun stopSharingSession() {
+        sessionGeneration++
+        vpnDropGraceJob?.cancel()
+        vpnDropGraceJob = null
+        lastActiveMethod = null
+        PlatformNotifications.cancelHotspotShareDropped(this)
         DataStore.hotspotShareEnabled = false
         serviceScope.launch {
-            controller?.stop()
-            activeBackend = null
-            HotspotTrafficMonitor.stop()
-            stopForeground(STOP_FOREGROUND_REMOVE)
+            try {
+                controller?.stop()
+            } finally {
+                activeBackend = null
+                stopTrafficMonitoring()
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
         }
     }
 
     private fun handleStateChange(state: ShareState) {
+        sendBroadcast(Intent(Action.HOTSPOT_SHARE_STATE).setPackage(packageName))
         when (state) {
             is ShareState.Active -> {
-                startTrafficMonitoring(state.method)
+                lastActiveMethod = state.method
+                vpnDropGraceJob?.cancel()
+                vpnDropGraceJob = null
+                PlatformNotifications.cancelHotspotShareDropped(this)
+                if (state.method != ShareMethod.LAN_PROXY) {
+                    startTrafficMonitoring(state.method)
+                } else {
+                    stopTrafficMonitoring()
+                }
                 updateNotification(state, HotspotTrafficMonitor.stats.value)
             }
             is ShareState.Stopped -> {
+                DataStore.hotspotShareEnabled = false
+                vpnDropGraceJob?.cancel()
+                vpnDropGraceJob = null
                 stopTrafficMonitoring()
-                PlatformNotifications.hotspotShareDropped(this)
-                updateNotification(state, HotspotTrafficStats())
+                if (lastActiveMethod == ShareMethod.SHIZUKU || lastActiveMethod == ShareMethod.ROOT) {
+                    PlatformNotifications.hotspotShareDropped(this)
+                }
+                lastActiveMethod = null
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
             }
             is ShareState.Error -> {
+                DataStore.hotspotShareEnabled = false
+                vpnDropGraceJob?.cancel()
+                vpnDropGraceJob = null
+                lastActiveMethod = null
                 stopTrafficMonitoring()
-                updateNotification(state, HotspotTrafficStats())
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
             }
             is ShareState.Off -> {
+                DataStore.hotspotShareEnabled = false
+                vpnDropGraceJob?.cancel()
+                vpnDropGraceJob = null
+                lastActiveMethod = null
+                PlatformNotifications.cancelHotspotShareDropped(this)
                 stopTrafficMonitoring()
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
@@ -209,20 +279,40 @@ class TetherWatchService : Service(), SagerConnection.Callback {
 
     // VPN state listener from SagerConnection
     override fun stateChanged(state: BaseService.State, profileName: String?, msg: String?) {
-        if (!state.connected && lastState is ShareState.Active) {
+        if (state.connected) {
+            vpnDropGraceJob?.cancel()
+            vpnDropGraceJob = null
+            return
+        }
+        val activeState = lastState as? ShareState.Active ?: return
+        val currentGen = sessionGeneration
+        val graceMs = when (state) {
+            BaseService.State.Stopping, BaseService.State.Connecting -> RELOAD_GRACE_MS
+            else -> DISCONNECT_GRACE_MS
+        }
+        vpnDropGraceJob?.cancel()
+        vpnDropGraceJob = serviceScope.launch {
+            delay(graceMs)
+            if (currentGen != sessionGeneration) return@launch
+            val liveState = runCatching {
+                connection.service?.state?.let { BaseService.State.entries.getOrNull(it) }
+            }.getOrNull() ?: DataStore.serviceState
+            if (liveState.connected) return@launch
+            if (lastState !is ShareState.Active) return@launch
+
             val backend = activeBackend
-            val failClosedAction = FailClosedAction.fromCode(DataStore.hotspotShareFailClosed)
-            serviceScope.launch {
-                if (backend is RootBackend) {
-                    backend.handleVpnDropped(failClosedAction)
-                } else if (backend is ShizukuBackend) {
+            if (activeState.method == ShareMethod.LAN_PROXY) {
+                // LAN Proxy has no hotspot leak risk on reload or brief reconnects; only turn off if VPN fully stopped.
+                if (!liveState.started) {
                     controller?.stop()
                 }
-                val stoppedState = ShareState.Stopped(ShareFailure.VPN_LOST)
-                lastState = stoppedState
-                HotspotShareStateStore.publish(stoppedState)
-                PlatformNotifications.hotspotShareDropped(this@TetherWatchService)
-                updateNotification(stoppedState, HotspotTrafficStats())
+                return@launch
+            }
+
+            val failClosedAction = FailClosedAction.fromCode(DataStore.hotspotShareFailClosed)
+            when (backend) {
+                is RootBackend -> backend.handleVpnDropped(failClosedAction)
+                else -> controller?.stopDueToFailure(ShareFailure.VPN_LOST)
             }
         }
     }
@@ -232,16 +322,16 @@ class TetherWatchService : Service(), SagerConnection.Callback {
     private fun registerSystemNetReceiver() {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                val active = intent?.getStringArrayListExtra("activeArray")
+                if (intent?.action != TETHER_STATE_CHANGED) return
+                val activeMethod = (lastState as? ShareState.Active)?.method ?: return
+                if (activeMethod != ShareMethod.ROOT && activeMethod != ShareMethod.SHIZUKU) return
+
+                val active = intent.getStringArrayListExtra("activeArray")
+                    ?: intent.getStringArrayListExtra("tetherArray")
                 val tetherActive = active?.isNotEmpty() == true
-                if (intent?.action == TETHER_STATE_CHANGED && !tetherActive && lastState is ShareState.Active) {
+                if (!tetherActive) {
                     serviceScope.launch {
-                        controller?.stop()
-                        val stoppedState = ShareState.Stopped(ShareFailure.TETHER_LOST)
-                        lastState = stoppedState
-                        HotspotShareStateStore.publish(stoppedState)
-                        PlatformNotifications.hotspotShareDropped(this@TetherWatchService)
-                        updateNotification(stoppedState, HotspotTrafficStats())
+                        controller?.stopDueToFailure(ShareFailure.TETHER_LOST)
                     }
                 }
             }
@@ -272,22 +362,32 @@ class TetherWatchService : Service(), SagerConnection.Callback {
 
     private fun buildNotification(state: ShareState, stats: HotspotTrafficStats): Notification {
         val title = when (state) {
-            is ShareState.Active -> getString(R.string.hotspot_share_service_active) + " (${state.method.code})"
+            is ShareState.Active -> when (state.method) {
+                ShareMethod.LAN_PROXY -> getString(R.string.hotspot_share_lan_proxy_active)
+                ShareMethod.SHIZUKU -> "${getString(R.string.hotspot_share_service_active)} (Shizuku)"
+                ShareMethod.ROOT -> "${getString(R.string.hotspot_share_service_active)} (Root)"
+            }
             is ShareState.Starting -> getString(R.string.hotspot_share_status_starting)
-            is ShareState.Stopped -> getString(R.string.hotspot_share_leak_warn)
-            is ShareState.Error -> getString(R.string.hotspot_share_status_error, state.reason.code)
+            is ShareState.Stopped -> getString(R.string.hotspot_share_status_stopped_clean)
+            is ShareState.Error -> getString(R.string.hotspot_share_status_unavailable)
             ShareState.Off -> getString(R.string.hotspot_share_service_name)
         }
 
         val text = when (state) {
-            is ShareState.Active -> {
+            is ShareState.Active -> if (state.method == ShareMethod.LAN_PROXY) {
+                getString(R.string.hotspot_share_method_lan_proxy)
+            } else {
                 val down = Formatter.formatFileSize(this, stats.rxSpeedBps) + "/s"
                 val up = Formatter.formatFileSize(this, stats.txSpeedBps) + "/s"
                 val total = Formatter.formatShortFileSize(this, stats.sessionRxBytes + stats.sessionTxBytes)
                 getString(R.string.hotspot_share_speed_format, down, up) + " • " + getString(R.string.hotspot_share_traffic_format, total)
             }
-            is ShareState.Stopped -> getString(R.string.hotspot_share_leak_warn)
-            is ShareState.Error -> state.detail ?: state.reason.code
+            is ShareState.Stopped -> if (state.cause == ShareFailure.TETHER_LOST) {
+                getString(R.string.hotspot_share_tether_lost_warn)
+            } else {
+                getString(R.string.hotspot_share_vpn_dropped_warn)
+            }
+            is ShareState.Error -> state.detail ?: getString(R.string.hotspot_share_err_generic)
             else -> getString(R.string.hotspot_share_card_summary)
         }
 
