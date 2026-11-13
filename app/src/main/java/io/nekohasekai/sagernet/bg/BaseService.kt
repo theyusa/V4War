@@ -397,9 +397,6 @@ class BaseService {
          * from the notification or a widget never needs another foreground-service start from the background.
          */
         fun stopRunner(restart: Boolean = false, msg: String? = null) {
-            DataStore.baseService = null
-            DataStore.vpnService = null
-
             val serviceId = Integer.toHexString(System.identityHashCode(data))
             val proxy = data.proxy
             val proxyId = proxy?.let { Integer.toHexString(System.identityHashCode(it)) } ?: "none"
@@ -486,6 +483,11 @@ class BaseService {
                     }
                 }
                 val finishRestart = restart && !stopInstead
+
+                if (!finishRestart && !keepNotification) {
+                    if (DataStore.baseService === this@Interface) DataStore.baseService = null
+                    if (DataStore.vpnService === this@Interface) DataStore.vpnService = null
+                }
 
                 if (!keepNotification) {
                     try {

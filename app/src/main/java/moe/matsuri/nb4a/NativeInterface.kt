@@ -35,7 +35,6 @@ import java.net.InetSocketAddress
 import java.net.InterfaceAddress
 import java.net.NetworkInterface
 import java.util.Collections
-import java.util.WeakHashMap
 import io.throneproj.mobile.NetworkInterface as CoreNetworkInterface
 import io.throneproj.mobile.Notification as CoreNotification
 
@@ -92,18 +91,28 @@ class NativeInterface : PlatformInterface {
         return PackageCache.snapshot().packagesOf(uid)
     }
 
+    private fun monitorKey(listener: InterfaceUpdateListener): Any {
+        val ref = runCatching { listener.javaClass.getField("refnum").getInt(listener) }.getOrNull()
+        return if (ref != null) "go-iface:$ref" else listener
+    }
+
     // Registered synchronously so DefaultInterface() is populated before the box's first dial.
     override fun startDefaultInterfaceMonitor(listener: InterfaceUpdateListener) {
+        val key = monitorKey(listener)
         runBlocking {
-            DefaultNetworkListener.start(listener) { network ->
-                checkDefaultInterfaceUpdate(listener, network)
+            DefaultNetworkListener.start(key) { network ->
+                checkDefaultInterfaceUpdate(key, listener, network)
             }
         }
     }
 
     override fun closeDefaultInterfaceMonitor(listener: InterfaceUpdateListener) {
+        val key = monitorKey(listener)
         runBlocking {
-            DefaultNetworkListener.stop(listener)
+            DefaultNetworkListener.stop(key)
+        }
+        synchronized(ifaceReportStates) {
+            ifaceReportStates.remove(key)
         }
     }
 
@@ -118,15 +127,15 @@ class NativeInterface : PlatformInterface {
     }
 
     private val ifaceReportStates = Collections.synchronizedMap(
-        WeakHashMap<InterfaceUpdateListener, IfaceReportState>()
+        HashMap<Any, IfaceReportState>()
     )
 
     @Volatile
     private var lastResetNetwork: Network? = null
 
-    private fun reportState(listener: InterfaceUpdateListener): IfaceReportState =
+    private fun reportState(key: Any): IfaceReportState =
         synchronized(ifaceReportStates) {
-            ifaceReportStates.getOrPut(listener) { IfaceReportState() }
+            ifaceReportStates.getOrPut(key) { IfaceReportState() }
         }
 
     private fun clearInterface(listener: InterfaceUpdateListener, state: IfaceReportState) {
@@ -137,8 +146,8 @@ class NativeInterface : PlatformInterface {
         listener.updateDefaultInterface("", -1, false, false)
     }
 
-    private fun checkDefaultInterfaceUpdate(listener: InterfaceUpdateListener, network: Network?) {
-        val state = reportState(listener)
+    private fun checkDefaultInterfaceUpdate(key: Any, listener: InterfaceUpdateListener, network: Network?) {
+        val state = reportState(key)
         if (network == null) {
             clearInterface(listener, state)
             return

@@ -43,4 +43,7 @@ interface ICoreService {
   // Rule tester: walks the running instance's route rules, or a routing profile's config started stripped; blocks up
   // to 30 s plus the build. Request and reply are JSON (see RouteTester).
   String testRoute(String requestJson);
+
+  // Resolves A/AAAA records for domain through the running :bg instance (or a transient core); returns JSON {"ips":[...],"error":"..."}.
+  String resolveDomain(String domain);
 }

@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.text.SpannableStringBuilder
 import android.text.format.Formatter
+import android.text.method.LinkMovementMethod
 import android.view.View
 import android.widget.Button
 import android.widget.Toast
@@ -51,6 +52,8 @@ class UpdateActivity : ThemedActivity() {
         theme.applyStyle(R.style.ThemeOverlay_SagerNet_Dialog_WrapHeight, true)
         binding = LayoutUpdateBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        binding.message.movementMethod = LinkMovementMethod.getInstance()
+        binding.message.linksClickable = true
         setFinishOnTouchOutside(false)
         if (savedInstanceState == null) {
             val state = UpdateManager.state.value

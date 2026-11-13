@@ -10,6 +10,7 @@ import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.bg.ProxyService
 import io.nekohasekai.sagernet.bg.VpnService
 import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.hotspotshare.ShizukuBackend
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.USER_AGENT
 import io.nekohasekai.sagernet.ktx.app
@@ -120,6 +121,14 @@ object UpdateManager {
                 _state.value = State.Installing(offer)
                 if (isServiceRunning()) DataStore.resumeAfterUpdate = DataStore.selectedProxy
                 UpdateNotifications.cancelProgress(app)
+                if (DataStore.updateInstallShizuku && ShizukuBackend.isShizukuGranted(app)) {
+                    val shizukuError = UpdateInstaller.installViaShizuku(app, file)
+                    if (shizukuError == null) {
+                        _state.value = State.Idle
+                        return@launch
+                    }
+                    Logs.w("Update: Shizuku install fell back to PackageInstaller: $shizukuError")
+                }
                 UpdateInstaller.install(app, file)
             } catch (e: Exception) {
                 // cancel() aborts the HTTP call too, which surfaces as an IOException

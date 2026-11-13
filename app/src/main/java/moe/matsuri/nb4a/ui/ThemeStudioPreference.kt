@@ -6,9 +6,12 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.RippleDrawable
 import android.os.Build
 import android.text.TextUtils
+import android.transition.AutoTransition
+import android.transition.TransitionManager
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
@@ -30,13 +33,14 @@ import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
+import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
+import io.nekohasekai.sagernet.ui.settings.ExpressiveShape
 import io.nekohasekai.sagernet.utils.Theme
 
 /**
- * Modern Material 3 Expressive appearance studio at the top of Appearance Settings:
- * 1) Live miniature mockup showing active background, card surface tones, stroke weight, & seed accent.
- * 2) Visual surface-mode selector strip (Pure AMOLED, AMOLED, Dark, Light, System).
- * 3) Monochrome special theme chips (Black, White, Light Gray) with conflict-free switching.
+ * Collapsible Material 3 Expressive appearance studio at the top of Appearance Settings:
+ * - Box 1: Collapsible Live Interactive Preview (Turn 1/2/3 miniature mockup).
+ * - Box 2: Collapsible Görünüm Modu (Pure AMOLED, AMOLED, Dark, Light, System) + Özel Temalar chips.
  */
 class ThemeStudioPreference @JvmOverloads constructor(
     context: Context,
@@ -122,8 +126,10 @@ class ThemeStudioPreference @JvmOverloads constructor(
         val activeTheme = Theme.activeThemeId()
         val seedColor = resolveEffectiveAccent(activeTheme)
         val isNight = Theme.usingNightMode(context)
+        val isAmoled = Theme.isBlackTheme(context)
         val textPrimary = context.getColorAttr(android.R.attr.textColorPrimary)
         val textSecondary = context.getColorAttr(android.R.attr.textColorSecondary)
+        val activeLabel = resolveActiveModeBadgeText(activeTheme, isNight)
 
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -131,20 +137,245 @@ class ThemeStudioPreference @JvmOverloads constructor(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             )
-            setPadding(0, dp2px(4), 0, dp2px(6))
+            setPadding(0, dp2px(4), 0, dp2px(4))
         }
         root.addView(container)
 
-        // 1. Live Interactive Preview Card
-        container.addView(buildLivePreviewSection(activeTheme, seedColor, isNight, textSecondary))
+        // Box 1: Always-open Live Preview Card (non-collapsible)
+        val previewCanvas = buildLivePreviewCanvas(activeTheme, seedColor, isNight, activeLabel)
+        container.addView(
+            buildCollapsibleExpressiveBox(
+                animRoot = container,
+                iconRes = R.drawable.ic_baseline_contrast_24,
+                iconShape = ExpressiveShape.SQUIRCLE,
+                title = context.getString(R.string.theme_studio_preview),
+                subtitle = activeLabel,
+                expanded = true,
+                collapsible = false,
+                onToggle = {},
+                isNight = isNight,
+                isAmoled = isAmoled,
+                textPrimary = textPrimary,
+                textSecondary = textSecondary,
+                seedColor = seedColor,
+                bodyContent = previewCanvas,
+                bottomMarginPx = dp2px(8),
+            ),
+        )
 
-        // 2. Surface Mode Cards Strip
-        container.addView(sectionHeader(context.getString(R.string.theme_studio_mode), textSecondary))
-        container.addView(buildModeStrip(activeTheme, seedColor, textPrimary, textSecondary))
+        // Box 2: Collapsible Surface Mode & Special Themes Card (collapsed by default)
+        val modeAndSpecialBody = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(buildModeStrip(activeTheme, seedColor, textPrimary, textSecondary))
+            addView(TextView(context).apply {
+                text = context.getString(R.string.theme_studio_special)
+                textSize = 12f
+                setTypeface(null, Typeface.BOLD)
+                letterSpacing = 0.04f
+                setTextColor(textSecondary)
+                setPadding(dp2px(2), dp2px(12), dp2px(2), dp2px(6))
+            })
+            addView(buildSpecialThemeRow(activeTheme, seedColor, textPrimary, isNight))
+        }
+        container.addView(
+            buildCollapsibleExpressiveBox(
+                animRoot = container,
+                iconRes = R.drawable.ic_baseline_layers_24,
+                iconShape = ExpressiveShape.SQUIRCLE,
+                title = context.getString(R.string.theme_studio_mode),
+                subtitle = activeLabel,
+                expanded = DataStore.appearanceModeExpanded,
+                collapsible = true,
+                onToggle = { DataStore.appearanceModeExpanded = it },
+                isNight = isNight,
+                isAmoled = isAmoled,
+                textPrimary = textPrimary,
+                textSecondary = textSecondary,
+                seedColor = seedColor,
+                bodyContent = modeAndSpecialBody,
+                bottomMarginPx = 0,
+            ),
+        )
+    }
 
-        // 3. Monochrome Special Themes (Black / White / Light Gray)
-        container.addView(sectionHeader(context.getString(R.string.theme_studio_special), textSecondary))
-        container.addView(buildSpecialThemeRow(activeTheme, seedColor, textPrimary, isNight))
+    private fun resolveActiveModeBadgeText(activeTheme: Int, isNight: Boolean): String {
+        val isPure = Theme.isPureAmoled(context)
+        val isTinted = Theme.isTintedAmoled(context)
+        val isWhite = Theme.isWhiteTheme(context)
+        val isLightGray = Theme.isLightGrayTheme(context)
+        return when {
+            activeTheme == Theme.BLACK -> context.getString(R.string.theme_special_black)
+            isWhite -> context.getString(R.string.theme_special_white)
+            isLightGray -> context.getString(R.string.theme_special_light_gray)
+            isPure -> context.getString(R.string.night_mode_pure_amoled)
+            isTinted -> context.getString(R.string.night_mode_amoled)
+            isNight -> context.getString(R.string.night_mode_dark)
+            else -> context.getString(R.string.night_mode_light)
+        }
+    }
+
+    private fun buildCollapsibleExpressiveBox(
+        animRoot: ViewGroup,
+        iconRes: Int,
+        iconShape: ExpressiveShape,
+        title: String,
+        subtitle: String,
+        expanded: Boolean,
+        collapsible: Boolean,
+        onToggle: (Boolean) -> Unit,
+        isNight: Boolean,
+        isAmoled: Boolean,
+        textPrimary: Int,
+        textSecondary: Int,
+        seedColor: Int,
+        bodyContent: View,
+        bottomMarginPx: Int,
+    ): LinearLayout {
+        val isAmoledBorder = Theme.isAnyAmoled(context) || Theme.isMonochromeBlack(context)
+        val cardBg = Theme.resolveCardBackground(context)
+        val cardStrokeCol = Theme.resolveCardStrokeColor(context, selected = false)
+        val cardStrokePx = Theme.resolveCardStrokeWidthPx(context, selected = false).toInt().coerceAtLeast(1)
+
+        val card = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                bottomMargin = bottomMarginPx
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp2px(20).toFloat()
+                setColor(cardBg)
+                if (isAmoledBorder) {
+                    setStroke(cardStrokePx, cardStrokeCol)
+                }
+            }
+            clipToOutline = true
+        }
+
+        val isExpandedState = if (collapsible) expanded else true
+        val bodyWrap = FrameLayout(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            )
+            setPadding(dp2px(14), 0, dp2px(14), dp2px(14))
+            visibility = if (isExpandedState) View.VISIBLE else View.GONE
+            addView(bodyContent)
+        }
+
+        val chevron = ImageView(context).apply {
+            layoutParams = FrameLayout.LayoutParams(dp2px(18), dp2px(18), Gravity.CENTER)
+        }
+
+        fun updateChevron(isExpanded: Boolean) {
+            val resId = if (isExpanded) R.drawable.ic_baseline_expand_less_24 else R.drawable.ic_baseline_expand_more_24
+            val d = ResourcesCompat.getDrawable(context.resources, resId, null)?.mutate()
+            if (d != null) {
+                DrawableCompat.setTint(d, textSecondary)
+                chevron.setImageDrawable(d)
+            }
+        }
+        if (collapsible) updateChevron(isExpandedState)
+
+        var currentExpanded = isExpandedState
+        val header = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            minimumHeight = dp2px(58)
+            setPadding(dp2px(16), dp2px(12), dp2px(14), dp2px(12))
+            if (collapsible) {
+                isClickable = true
+                isFocusable = true
+                val mask = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp2px(20).toFloat()
+                    setColor(Color.WHITE)
+                }
+                background = RippleDrawable(
+                    ColorStateList.valueOf(ColorUtils.setAlphaComponent(seedColor, if (isNight) 38 else 24)),
+                    null,
+                    mask,
+                )
+                setOnClickListener {
+                    currentExpanded = !currentExpanded
+                    onToggle(currentExpanded)
+                    updateChevron(currentExpanded)
+                    TransitionManager.endTransitions(animRoot)
+                    if (animRoot.isAttachedToWindow && animRoot.isLaidOut) {
+                        TransitionManager.beginDelayedTransition(
+                            animRoot,
+                            AutoTransition().apply { duration = 150L },
+                        )
+                    }
+                    bodyWrap.visibility = if (currentExpanded) View.VISIBLE else View.GONE
+                }
+            }
+        }
+
+        val (badgeContainer, badgeIconCol) = ExpressiveSettingsHelper.resolveBadgeColors(context, isNight, isAmoled)
+        val rawIcon = ResourcesCompat.getDrawable(context.resources, iconRes, null)
+        if (rawIcon != null) {
+            val badgeDrawable = ExpressiveSettingsHelper.createMaskedIcon(
+                context = context,
+                originalDrawable = rawIcon,
+                containerColor = badgeContainer,
+                iconColor = badgeIconCol,
+                sizeDp = 40,
+                iconSizeDp = 20,
+                shape = iconShape,
+            )
+            header.addView(ImageView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(dp2px(40), dp2px(40)).apply {
+                    marginEnd = dp2px(14)
+                }
+                setImageDrawable(badgeDrawable)
+            })
+        }
+
+        val titleCol = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginEnd = dp2px(8)
+            }
+        }
+        titleCol.addView(TextView(context).apply {
+            text = title
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15.5f)
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(textPrimary)
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+        })
+        titleCol.addView(TextView(context).apply {
+            text = subtitle
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+            setTextColor(textSecondary)
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+        })
+        header.addView(titleCol)
+
+        if (collapsible) {
+            val chevronPill = FrameLayout(context).apply {
+                layoutParams = LinearLayout.LayoutParams(dp2px(30), dp2px(30))
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(Theme.resolveNestedBoxBackground(context))
+                    if (isAmoledBorder) {
+                        setStroke(cardStrokePx, cardStrokeCol)
+                    }
+                }
+                addView(chevron)
+            }
+            header.addView(chevronPill)
+        }
+
+        card.addView(header)
+        card.addView(bodyWrap)
+        return card
     }
 
     private fun resolveEffectiveAccent(activeTheme: Int): Int {
@@ -156,22 +387,11 @@ class ThemeStudioPreference @JvmOverloads constructor(
         }
     }
 
-    private fun sectionHeader(title: String, color: Int): TextView {
-        return TextView(context).apply {
-            text = title
-            textSize = 12f
-            setTypeface(null, Typeface.BOLD)
-            letterSpacing = 0.04f
-            setTextColor(color)
-            setPadding(dp2px(4), dp2px(12), dp2px(4), dp2px(6))
-        }
-    }
-
-    private fun buildLivePreviewSection(
+    private fun buildLivePreviewCanvas(
         activeTheme: Int,
         seedColor: Int,
         isNight: Boolean,
-        textSecondary: Int,
+        modeBadgeText: String,
     ): View {
         val isMonoBlack = Theme.isMonochromeBlack(context)
         val isPure = Theme.isPureAmoled(context)
@@ -199,22 +419,13 @@ class ThemeStudioPreference @JvmOverloads constructor(
             Color.WHITE
         }
         val mutedLine = ColorUtils.setAlphaComponent(onCanvasText, if (ColorUtils.calculateLuminance(canvasBg) > 0.45) 38 else 46)
-        val modeBadgeText = when {
-            activeTheme == Theme.BLACK -> context.getString(R.string.theme_special_black)
-            isWhite -> context.getString(R.string.theme_special_white)
-            isLightGray -> context.getString(R.string.theme_special_light_gray)
-            isPure -> context.getString(R.string.night_mode_pure_amoled)
-            isTinted -> context.getString(R.string.night_mode_amoled)
-            isNight -> context.getString(R.string.night_mode_dark)
-            else -> context.getString(R.string.night_mode_light)
-        }
 
         val outerCard = MaterialCardView(context).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
             )
-            radius = dp2px(22).toFloat()
+            radius = dp2px(16).toFloat()
             cardElevation = 0f
             setCardBackgroundColor(canvasBg)
             strokeWidth = thinStrokePx
@@ -223,7 +434,7 @@ class ThemeStudioPreference @JvmOverloads constructor(
 
         val inner = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp2px(14), dp2px(12), dp2px(14), dp2px(12))
+            setPadding(dp2px(12), dp2px(11), dp2px(12), dp2px(11))
         }
         outerCard.addView(inner)
 
@@ -231,11 +442,11 @@ class ThemeStudioPreference @JvmOverloads constructor(
         val topBar = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp2px(2), 0, dp2px(2), dp2px(10))
+            setPadding(dp2px(2), 0, dp2px(2), dp2px(9))
         }
         topBar.addView(TextView(context).apply {
             text = context.getString(R.string.app_name)
-            textSize = 14f
+            textSize = 13.5f
             setTypeface(null, Typeface.BOLD)
             setTextColor(onCanvasText)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
@@ -248,7 +459,7 @@ class ThemeStudioPreference @JvmOverloads constructor(
         val badgeTextColor = if (isMonoBlack) Color.WHITE else seedColor
         topBar.addView(TextView(context).apply {
             text = modeBadgeText
-            textSize = 11f
+            textSize = 10.5f
             setTypeface(null, Typeface.BOLD)
             setTextColor(badgeTextColor)
             setPadding(dp2px(9), dp2px(3), dp2px(9), dp2px(3))
@@ -270,7 +481,6 @@ class ThemeStudioPreference @JvmOverloads constructor(
             )
         }
 
-        // Selected Box (Card 1)
         cardsRow.addView(buildMockupProfileCard(
             bgColor = if (isPure) ColorUtils.blendARGB(Color.BLACK, seedColor, 0.07f) else nestedBg,
             cardStrokeColor = selectedStrokeCol,
@@ -281,7 +491,6 @@ class ThemeStudioPreference @JvmOverloads constructor(
             marginEndPx = dp2px(8),
         ))
 
-        // Unselected Box (Card 2)
         cardsRow.addView(buildMockupProfileCard(
             bgColor = boxBg,
             cardStrokeColor = boxStrokeCol,
@@ -297,7 +506,7 @@ class ThemeStudioPreference @JvmOverloads constructor(
         val bottomRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp2px(10), 0, 0)
+            setPadding(0, dp2px(9), 0, 0)
         }
         val statsPillBg = when {
             isMonoBlack || isPure -> Color.BLACK
@@ -362,18 +571,7 @@ class ThemeStudioPreference @JvmOverloads constructor(
         bottomRow.addView(fabCard)
         inner.addView(bottomRow)
 
-        return LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            addView(TextView(context).apply {
-                text = context.getString(R.string.theme_studio_preview)
-                textSize = 12f
-                setTypeface(null, Typeface.BOLD)
-                letterSpacing = 0.04f
-                setTextColor(textSecondary)
-                setPadding(dp2px(4), 0, dp2px(4), dp2px(6))
-            })
-            addView(outerCard)
-        }
+        return outerCard
     }
 
     private fun buildMockupProfileCard(
@@ -419,7 +617,7 @@ class ThemeStudioPreference @JvmOverloads constructor(
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             }
             lines.addView(View(context).apply {
-                layoutParams = LinearLayout.LayoutParams(dp2px(64), dp2px(7)).apply {
+                layoutParams = LinearLayout.LayoutParams(dp2px(56), dp2px(7)).apply {
                     bottomMargin = dp2px(5)
                 }
                 background = GradientDrawable().apply {
@@ -428,7 +626,7 @@ class ThemeStudioPreference @JvmOverloads constructor(
                 }
             })
             lines.addView(View(context).apply {
-                layoutParams = LinearLayout.LayoutParams(dp2px(42), dp2px(5))
+                layoutParams = LinearLayout.LayoutParams(dp2px(38), dp2px(5))
                 background = GradientDrawable().apply {
                     cornerRadius = dp2px(4).toFloat()
                     setColor(lineColor)
@@ -525,34 +723,47 @@ class ThemeStudioPreference @JvmOverloads constructor(
         val ringAccent = if (isSpecialBlack) Color.WHITE else if (isSpecialLight) Color.parseColor("#1F2937") else seedColor
         for (spec in modes) {
             val isSelected = !isSpecialBlack && !isSpecialLight && activeNight == spec.nightMode
-            val card = MaterialCardView(context).apply {
-                layoutParams = LinearLayout.LayoutParams(dp2px(92), ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                    marginEnd = dp2px(8)
-                }
-                radius = dp2px(16).toFloat()
-                cardElevation = 0f
-                setCardBackgroundColor(
-                    if (isSelected) ColorUtils.setAlphaComponent(ringAccent, 22)
-                    else Theme.resolveCardBackground(context),
-                )
-                strokeColor = if (isSelected) ringAccent else Theme.resolveCardStrokeColor(context, selected = false)
-                strokeWidth = if (isSelected) dp2px(1.5f) else Theme.resolveCardStrokeWidthPx(context, selected = false).toInt().coerceAtLeast(1)
-                isClickable = true
-                isFocusable = true
-                setOnClickListener { selectSurfaceMode(spec.nightMode) }
+            val cardBg = if (isSelected) {
+                ColorUtils.setAlphaComponent(ringAccent, 24)
+            } else {
+                Theme.resolveNestedBoxBackground(context)
             }
+            val strokeCol = if (isSelected) ringAccent else Theme.resolveCardStrokeColor(context, selected = false)
+            val strokePx = if (isSelected) dp2px(1.5f) else Theme.resolveCardStrokeWidthPx(context, selected = false).toInt().coerceAtLeast(1)
 
-            val col = LinearLayout(context).apply {
+            val card = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER_HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(dp2px(90), ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                    marginEnd = dp2px(8)
+                }
                 setPadding(dp2px(7), dp2px(7), dp2px(7), dp2px(8))
+                isClickable = true
+                isFocusable = true
+                val bgShape = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp2px(15).toFloat()
+                    setColor(cardBg)
+                    setStroke(strokePx, strokeCol)
+                }
+                val mask = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp2px(15).toFloat()
+                    setColor(Color.WHITE)
+                }
+                background = RippleDrawable(
+                    ColorStateList.valueOf(ColorUtils.setAlphaComponent(ringAccent, 38)),
+                    bgShape,
+                    mask,
+                )
+                setOnClickListener { selectSurfaceMode(spec.nightMode) }
             }
 
             // Miniature phone-canvas thumbnail inside mode card
             val thumb = FrameLayout(context).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    dp2px(52),
+                    dp2px(50),
                 ).apply { bottomMargin = dp2px(6) }
                 background = GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
@@ -564,7 +775,6 @@ class ThemeStudioPreference @JvmOverloads constructor(
             }
 
             if (spec.isSplit) {
-                // Left half light, right half dark for System mode
                 val halves = LinearLayout(context).apply {
                     orientation = LinearLayout.HORIZONTAL
                     layoutParams = FrameLayout.LayoutParams(
@@ -583,20 +793,19 @@ class ThemeStudioPreference @JvmOverloads constructor(
                 thumb.addView(halves)
             }
 
-            // Two mini preview boxes inside the thumbnail
             val miniBoxes = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
                 layoutParams = FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.MATCH_PARENT,
                 )
-                setPadding(dp2px(7), dp2px(7), dp2px(7), dp2px(7))
+                setPadding(dp2px(6), dp2px(6), dp2px(6), dp2px(6))
             }
             val miniStrokePx = (spec.boxStrokeWidthDp * context.resources.displayMetrics.density).toInt().coerceAtLeast(1)
             miniBoxes.addView(View(context).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    dp2px(17),
+                    dp2px(16),
                 ).apply { bottomMargin = dp2px(4) }
                 background = GradientDrawable().apply {
                     cornerRadius = dp2px(5).toFloat()
@@ -607,7 +816,7 @@ class ThemeStudioPreference @JvmOverloads constructor(
             miniBoxes.addView(View(context).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    dp2px(15),
+                    dp2px(14),
                 )
                 background = GradientDrawable().apply {
                     cornerRadius = dp2px(5).toFloat()
@@ -617,7 +826,6 @@ class ThemeStudioPreference @JvmOverloads constructor(
             })
             thumb.addView(miniBoxes)
 
-            // Active accent dot in thumbnail corner
             thumb.addView(View(context).apply {
                 layoutParams = FrameLayout.LayoutParams(dp2px(9), dp2px(9), Gravity.BOTTOM or Gravity.END).apply {
                     setMargins(0, 0, dp2px(5), dp2px(5))
@@ -627,9 +835,9 @@ class ThemeStudioPreference @JvmOverloads constructor(
                     setColor(seedForSample)
                 }
             })
-            col.addView(thumb)
+            card.addView(thumb)
 
-            col.addView(TextView(context).apply {
+            card.addView(TextView(context).apply {
                 text = context.getString(spec.labelRes)
                 textSize = 11.5f
                 maxLines = 1
@@ -639,7 +847,6 @@ class ThemeStudioPreference @JvmOverloads constructor(
                 setTextColor(if (isSelected) textPrimary else textSecondary)
             })
 
-            card.addView(col)
             strip.addView(card)
         }
         return scroll
@@ -677,46 +884,59 @@ class ThemeStudioPreference @JvmOverloads constructor(
             activeTheme in setOf(Theme.WHITE, Theme.LIGHT_GRAY) -> Color.parseColor("#1F2937")
             else -> seedColor
         }
+        val unselectedChipBg = Theme.resolveNestedBoxBackground(context)
+        val unselectedStroke = Theme.resolveCardStrokeColor(context, selected = false)
+        val thinStrokePx = Theme.resolveCardStrokeWidthPx(context, selected = false).toInt().coerceAtLeast(1)
 
         specials.forEachIndexed { idx, spec ->
             val selected = activeTheme == spec.themeId &&
                 (spec.themeId == Theme.BLACK || !isNight)
-            val card = MaterialCardView(context).apply {
+            val chipBg = if (selected) {
+                ColorUtils.setAlphaComponent(activeRing, if (isNight) 32 else 20)
+            } else {
+                unselectedChipBg
+            }
+            val chipStroke = if (selected) activeRing else unselectedStroke
+            val chipStrokePx = if (selected) dp2px(1.4f) else thinStrokePx
+
+            // Use LinearLayout + GradientDrawable + RippleDrawable directly so borders NEVER get overwritten!
+            val chip = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
                     if (idx < specials.lastIndex) marginEnd = dp2px(8)
                 }
-                radius = dp2px(14).toFloat()
-                cardElevation = 0f
-                setCardBackgroundColor(
-                    if (selected) ColorUtils.setAlphaComponent(activeRing, if (isNight) 28 else 18)
-                    else Theme.resolveCardBackground(context),
-                )
-                strokeColor = if (selected) activeRing else Theme.resolveCardStrokeColor(context, selected = false)
-                strokeWidth = if (selected) dp2px(1.4f) else Theme.resolveCardStrokeWidthPx(context, selected = false).toInt().coerceAtLeast(1)
+                setPadding(dp2px(8), dp2px(10), dp2px(8), dp2px(10))
                 isClickable = true
                 isFocusable = true
-                foreground = RippleDrawable(
+                val bgShape = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp2px(14).toFloat()
+                    setColor(chipBg)
+                    setStroke(chipStrokePx, chipStroke)
+                }
+                val mask = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp2px(14).toFloat()
+                    setColor(Color.WHITE)
+                }
+                background = RippleDrawable(
                     ColorStateList.valueOf(ColorUtils.setAlphaComponent(activeRing, 38)),
-                    null,
-                    null,
+                    bgShape,
+                    mask,
                 )
                 setOnClickListener { selectSpecialTheme(spec.themeId) }
             }
 
-            val inner = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER
-                setPadding(dp2px(8), dp2px(10), dp2px(8), dp2px(10))
-            }
-            inner.addView(View(context).apply {
-                layoutParams = LinearLayout.LayoutParams(dp2px(16), dp2px(16)).apply { marginEnd = dp2px(7) }
+            chip.addView(View(context).apply {
+                layoutParams = LinearLayout.LayoutParams(dp2px(15), dp2px(15)).apply { marginEnd = dp2px(7) }
                 background = GradientDrawable().apply {
                     shape = GradientDrawable.OVAL
                     setColor(spec.dotColor)
                     setStroke(dp2px(1), spec.dotBorder)
                 }
             })
-            inner.addView(TextView(context).apply {
+            chip.addView(TextView(context).apply {
                 text = spec.label
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
                 maxLines = 1
@@ -724,8 +944,7 @@ class ThemeStudioPreference @JvmOverloads constructor(
                 setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
                 setTextColor(textPrimary)
             })
-            card.addView(inner)
-            row.addView(card)
+            row.addView(chip)
         }
         return row
     }

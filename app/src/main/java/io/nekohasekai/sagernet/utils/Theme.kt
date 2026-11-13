@@ -8,12 +8,89 @@ import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
+import androidx.preference.PreferenceDataStore
+import io.nekohasekai.sagernet.Key
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.database.preference.OnPreferenceDataStoreChangeListener
 import io.nekohasekai.sagernet.ktx.app
 import io.nekohasekai.sagernet.ktx.getColorAttr
 
 object Theme {
+
+    @Volatile
+    private var cacheListenerRegistered = false
+    @Volatile
+    private var cachedAppTheme: Int = -1
+    @Volatile
+    private var cachedAmoledTheme: Boolean? = null
+    @Volatile
+    private var cachedUseSystemTheme: Boolean? = null
+    @Volatile
+    private var cachedCustomThemeColor: Int? = null
+
+    private fun ensureCacheListener() {
+        if (cacheListenerRegistered) return
+        synchronized(this) {
+            if (cacheListenerRegistered) return
+            cacheListenerRegistered = true
+            runCatching {
+                DataStore.configurationStore.registerChangeListener(
+                    object : OnPreferenceDataStoreChangeListener {
+                        override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
+                            when (key) {
+                                Key.APP_THEME -> cachedAppTheme = -1
+                                Key.NIGHT_THEME -> currentNightMode = -1
+                                Key.AMOLED_THEME -> cachedAmoledTheme = null
+                                Key.USE_SYSTEM_THEME -> cachedUseSystemTheme = null
+                                "custom_theme_color" -> cachedCustomThemeColor = null
+                            }
+                        }
+                    }
+                )
+            }
+        }
+    }
+
+    fun invalidateCache() {
+        cachedAppTheme = -1
+        currentNightMode = -1
+        cachedAmoledTheme = null
+        cachedUseSystemTheme = null
+        cachedCustomThemeColor = null
+    }
+
+    private fun appTheme(): Int {
+        ensureCacheListener()
+        val cached = cachedAppTheme
+        if (cached != -1) return cached
+        return DataStore.appTheme.also { cachedAppTheme = it }
+    }
+
+    private fun nightTheme(): Int {
+        ensureCacheListener()
+        val cached = currentNightMode
+        if (cached != -1) return cached
+        return DataStore.nightTheme.also { currentNightMode = it }
+    }
+
+    private fun amoledTheme(): Boolean {
+        ensureCacheListener()
+        cachedAmoledTheme?.let { return it }
+        return DataStore.amoledTheme.also { cachedAmoledTheme = it }
+    }
+
+    private fun useSystemTheme(): Boolean {
+        ensureCacheListener()
+        cachedUseSystemTheme?.let { return it }
+        return DataStore.useSystemTheme.also { cachedUseSystemTheme = it }
+    }
+
+    private fun customThemeColor(): Int {
+        ensureCacheListener()
+        cachedCustomThemeColor?.let { return it }
+        return DataStore.customThemeColor.also { cachedCustomThemeColor = it }
+    }
 
     const val MONET = 0
     const val RED = 1
@@ -51,10 +128,10 @@ object Theme {
     const val NIGHT_PURE_AMOLED = 4
 
     fun activeThemeId(): Int {
-        return if (DataStore.useSystemTheme && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        return if (useSystemTheme() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             MONET
         } else {
-            DataStore.appTheme
+            appTheme()
         }
     }
 
@@ -123,9 +200,10 @@ object Theme {
     }
 
     fun apply(context: Context) {
+        invalidateCache()
         context.setTheme(getTheme(context))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            (DataStore.appTheme == MONET || DataStore.useSystemTheme) &&
+            (appTheme() == MONET || useSystemTheme()) &&
             !isWhiteTheme(context) && !isLightGrayTheme(context) && !isBlackTheme(context) &&
             context is android.app.Activity
         ) {
@@ -136,7 +214,7 @@ object Theme {
     fun applyDialog(context: Context) {
         context.setTheme(getDialogTheme(context))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            (DataStore.appTheme == MONET || DataStore.useSystemTheme) &&
+            (appTheme() == MONET || useSystemTheme()) &&
             !isWhiteTheme(context) && !isLightGrayTheme(context) && !isBlackTheme(context) &&
             context is android.app.Activity
         ) {
@@ -145,7 +223,7 @@ object Theme {
     }
 
     fun usingMonetTheme(): Boolean {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && (DataStore.useSystemTheme || DataStore.appTheme == MONET)
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && (useSystemTheme() || appTheme() == MONET)
     }
 
     private data class AmoledStyleQuad(
@@ -244,7 +322,7 @@ object Theme {
 
     private fun resolveAmoledStyle(themeId: Int, isDialog: Boolean, isPure: Boolean): Int {
         val resolvedId = when (themeId) {
-            CUSTOM -> getClosestThemeForColor(0xFF000000.toInt() or DataStore.customThemeColor)
+            CUSTOM -> getClosestThemeForColor(0xFF000000.toInt() or customThemeColor())
             MONET -> {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     return when {
@@ -282,12 +360,13 @@ object Theme {
             return R.style.Theme_SagerNet_Black
         }
         if (usingNightMode(ctx)) {
-            if (DataStore.nightTheme == NIGHT_PURE_AMOLED ||
-                (DataStore.nightTheme != NIGHT_AMOLED && DataStore.amoledTheme)
+            val mode = nightTheme()
+            if (mode == NIGHT_PURE_AMOLED ||
+                (mode != NIGHT_AMOLED && amoledTheme())
             ) {
                 return resolveAmoledStyle(themeId, isDialog = false, isPure = true)
             }
-            if (DataStore.nightTheme == NIGHT_AMOLED) {
+            if (mode == NIGHT_AMOLED) {
                 return resolveAmoledStyle(themeId, isDialog = false, isPure = false)
             }
         }
@@ -304,12 +383,13 @@ object Theme {
             return R.style.Theme_SagerNet_Dialog_Black
         }
         if (usingNightMode(ctx)) {
-            if (DataStore.nightTheme == NIGHT_PURE_AMOLED ||
-                (DataStore.nightTheme != NIGHT_AMOLED && DataStore.amoledTheme)
+            val mode = nightTheme()
+            if (mode == NIGHT_PURE_AMOLED ||
+                (mode != NIGHT_AMOLED && amoledTheme())
             ) {
                 return resolveAmoledStyle(themeId, isDialog = true, isPure = true)
             }
-            if (DataStore.nightTheme == NIGHT_AMOLED) {
+            if (mode == NIGHT_AMOLED) {
                 return resolveAmoledStyle(themeId, isDialog = true, isPure = false)
             }
         }
@@ -317,16 +397,16 @@ object Theme {
     }
 
     fun getAmoledTheme(themeId: Int): Int {
-        return resolveAmoledStyle(themeId, isDialog = false, isPure = DataStore.nightTheme == NIGHT_PURE_AMOLED)
+        return resolveAmoledStyle(themeId, isDialog = false, isPure = nightTheme() == NIGHT_PURE_AMOLED)
     }
 
     fun getAmoledDialogTheme(themeId: Int): Int {
-        return resolveAmoledStyle(themeId, isDialog = true, isPure = DataStore.nightTheme == NIGHT_PURE_AMOLED)
+        return resolveAmoledStyle(themeId, isDialog = true, isPure = nightTheme() == NIGHT_PURE_AMOLED)
     }
 
     fun getTheme(theme: Int, context: Context? = null): Int {
         return when (theme) {
-            CUSTOM -> getTheme(getClosestThemeForColor(0xFF000000.toInt() or DataStore.customThemeColor), context)
+            CUSTOM -> getTheme(getClosestThemeForColor(0xFF000000.toInt() or customThemeColor()), context)
             MONET -> R.style.Theme_SagerNet_Monet
             RED -> R.style.Theme_SagerNet_Red
             PINK_SSR -> R.style.Theme_SagerNet_Pink_SSR
@@ -358,7 +438,7 @@ object Theme {
 
     fun getDialogTheme(theme: Int, context: Context? = null): Int {
         return when (theme) {
-            CUSTOM -> getDialogTheme(getClosestThemeForColor(0xFF000000.toInt() or DataStore.customThemeColor), context)
+            CUSTOM -> getDialogTheme(getClosestThemeForColor(0xFF000000.toInt() or customThemeColor()), context)
             MONET -> R.style.Theme_SagerNet_Dialog_Monet
             RED -> R.style.Theme_SagerNet_Dialog_Red
             PINK_SSR -> R.style.Theme_SagerNet_Dialog_Pink_SSR
@@ -400,42 +480,44 @@ object Theme {
 
     fun isWhiteTheme(context: Context? = null): Boolean {
         val ctx = context ?: app
-        return !usingNightMode(ctx) && DataStore.appTheme == WHITE
+        return !usingNightMode(ctx) && appTheme() == WHITE
     }
 
     fun isLightGrayTheme(context: Context? = null): Boolean {
         val ctx = context ?: app
-        return !usingNightMode(ctx) && DataStore.appTheme == LIGHT_GRAY
+        return !usingNightMode(ctx) && appTheme() == LIGHT_GRAY
     }
 
     fun isTintedAmoled(context: Context? = null): Boolean {
         val ctx = context ?: app
-        val mode = if (currentNightMode != -1) currentNightMode else DataStore.nightTheme
+        val mode = nightTheme()
         return usingNightMode(ctx) && mode == NIGHT_AMOLED && !isMonochromeBlack(ctx)
     }
 
     fun isPureAmoled(context: Context? = null): Boolean {
         val ctx = context ?: app
-        val mode = if (currentNightMode != -1) currentNightMode else DataStore.nightTheme
-        val pureFlag = mode == NIGHT_PURE_AMOLED || (mode != NIGHT_AMOLED && DataStore.amoledTheme)
+        val mode = nightTheme()
+        val pureFlag = mode == NIGHT_PURE_AMOLED || (mode != NIGHT_AMOLED && amoledTheme())
         return usingNightMode(ctx) && pureFlag && !isMonochromeBlack(ctx)
     }
 
     fun isAnyAmoled(context: Context? = null): Boolean {
         val ctx = context ?: app
-        val mode = if (currentNightMode != -1) currentNightMode else DataStore.nightTheme
-        return usingNightMode(ctx) && (mode in setOf(NIGHT_AMOLED, NIGHT_PURE_AMOLED) || DataStore.amoledTheme)
+        val mode = nightTheme()
+        return usingNightMode(ctx) && (mode in setOf(NIGHT_AMOLED, NIGHT_PURE_AMOLED) || amoledTheme())
     }
 
     fun isBlackTheme(context: Context? = null): Boolean {
         val ctx = context ?: app
-        val mode = if (currentNightMode != -1) currentNightMode else DataStore.nightTheme
-        return DataStore.appTheme == BLACK ||
-            (usingNightMode(ctx) && (DataStore.amoledTheme || mode in setOf(NIGHT_AMOLED, NIGHT_PURE_AMOLED) || DataStore.appTheme in setOf(WHITE, LIGHT_GRAY)))
+        val mode = nightTheme()
+        val t = appTheme()
+        return t == BLACK ||
+            (usingNightMode(ctx) && (amoledTheme() || mode in setOf(NIGHT_AMOLED, NIGHT_PURE_AMOLED) || t in setOf(WHITE, LIGHT_GRAY)))
     }
 
     fun getPrimaryColor(context: Context): Int {
-        if (DataStore.appTheme == BLACK || (isBlackTheme(context) && DataStore.appTheme in setOf(BLACK, WHITE, LIGHT_GRAY))) {
+        val t = appTheme()
+        if (t == BLACK || (isBlackTheme(context) && t in setOf(BLACK, WHITE, LIGHT_GRAY))) {
             return Color.WHITE
         }
         if (isWhiteTheme(context)) {
@@ -444,7 +526,7 @@ object Theme {
         if (isLightGrayTheme(context)) {
             return Color.parseColor("#1F2937")
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && (DataStore.appTheme == MONET || DataStore.useSystemTheme)) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && (t == MONET || useSystemTheme())) {
             val wallpaperColor = getSystemWallpaperColor(context)
             if (wallpaperColor != null) {
                 return wallpaperColor
@@ -505,7 +587,7 @@ object Theme {
         return when {
             isPureAmoled(context) -> {
                 if (selected) ColorUtils.setAlphaComponent(accentStroke, 240)
-                else ColorUtils.setAlphaComponent(accentStroke, 155)
+                else ColorUtils.setAlphaComponent(accentStroke, 130)
             }
             isTintedAmoled(context) -> {
                 if (selected) accentStroke else ContextCompat.getColor(context, R.color.card_stroke)
@@ -531,8 +613,8 @@ object Theme {
     }
 
     fun getSeedPrimaryColor(context: Context): Int {
-        if (DataStore.appTheme == CUSTOM) {
-            return 0xFF000000.toInt() or DataStore.customThemeColor
+        if (appTheme() == CUSTOM) {
+            return 0xFF000000.toInt() or customThemeColor()
         }
         val attr = context.getColorAttr(R.attr.colorPrimary)
         return if (attr != 0) attr else getPrimaryColor(context)
@@ -540,10 +622,7 @@ object Theme {
 
     var currentNightMode = -1
     fun getNightMode(): Int {
-        if (currentNightMode == -1) {
-            currentNightMode = DataStore.nightTheme
-        }
-        return getNightMode(currentNightMode)
+        return getNightMode(nightTheme())
     }
 
     fun getNightMode(mode: Int): Int {
@@ -557,9 +636,8 @@ object Theme {
 
     fun usingNightMode(context: Context? = null): Boolean {
         val ctx = context ?: app
-        if (DataStore.appTheme == BLACK) return true
-        val mode = if (currentNightMode != -1) currentNightMode else DataStore.nightTheme
-        return when (mode) {
+        if (appTheme() == BLACK) return true
+        return when (nightTheme()) {
             NIGHT_DARK, NIGHT_AMOLED, NIGHT_PURE_AMOLED -> true
             NIGHT_LIGHT -> false
             else -> isSystemNight(ctx)
@@ -568,10 +646,12 @@ object Theme {
 
     fun isMonochromeBlack(context: Context? = null): Boolean {
         val ctx = context ?: app
-        return DataStore.appTheme == BLACK || (usingNightMode(ctx) && DataStore.appTheme in setOf(BLACK, WHITE, LIGHT_GRAY))
+        val t = appTheme()
+        return t == BLACK || (usingNightMode(ctx) && t in setOf(BLACK, WHITE, LIGHT_GRAY))
     }
 
     fun applyNightTheme() {
+        invalidateCache()
         if (DataStore.nightTheme == NIGHT_DARK && DataStore.amoledTheme) {
             DataStore.nightTheme = NIGHT_PURE_AMOLED
         }
