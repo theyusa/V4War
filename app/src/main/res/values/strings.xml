@@ -2929,4 +2929,16 @@
     <string name="hotspot_share_status_label">Status</string>
     <string name="hotspot_share_clients_format">Connected clients: %d</string>
     <string name="hotspot_share_lan_inbound_title">LAN Proxy Inbound</string>
+    <string name="hotspot_share_status_unavailable">Unavailable</string>
+    <string name="hotspot_share_status_stopped_clean">Stopped</string>
+    <string name="hotspot_share_err_unsupported">Hotspot sharing via Shizuku requires Android 13 or newer.</string>
+    <string name="hotspot_share_err_shizuku_perm">Shizuku permission was not granted. Tap Grant Shizuku Permission first.</string>
+    <string name="hotspot_share_err_root">Root access was denied or unavailable on this device.</string>
+    <string name="hotspot_share_err_hotspot_off">Could not start or find an active Wi-Fi Hotspot. Turn on Hotspot and try again.</string>
+    <string name="hotspot_share_err_died">Hotspot sharing service disconnected unexpectedly.</string>
+    <string name="hotspot_share_err_generic">Hotspot sharing failed to start. Check VPN and sharing settings.</string>
+    <string name="hotspot_share_vpn_dropped_warn">VPN connection dropped — hotspot sharing was stopped.</string>
+    <string name="hotspot_share_tether_lost_warn">Wi-Fi Hotspot turned off — sharing stopped.</string>
+    <string name="hotspot_share_lan_proxy_active">LAN Proxy sharing is active</string>
+    <string name="hotspot_share_lan_proxy_dropped_text">VPN connection dropped. Restart VPN to continue LAN proxy sharing.</string>
 </resources>

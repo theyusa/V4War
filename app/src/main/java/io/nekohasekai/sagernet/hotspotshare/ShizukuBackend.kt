@@ -98,11 +98,12 @@ class ShizukuBackend(
         _state.value = ShareState.Starting
 
         // 1. Verify Shizuku availability and permission
-        if (!isShizukuAvailableAndGranted()) {
-            _state.value = ShareState.Error(
-                ShareFailure.SHIZUKU_PERMISSION_DENIED,
-                "Shizuku çalışmıyor veya izin verilmedi"
-            )
+        if (!isShizukuRunning()) {
+            _state.value = ShareState.Error(ShareFailure.SHIZUKU_NOT_RUNNING)
+            return@withContext
+        }
+        if (!isShizukuGranted(context)) {
+            _state.value = ShareState.Error(ShareFailure.SHIZUKU_PERMISSION_DENIED)
             return@withContext
         }
 
@@ -221,7 +222,6 @@ class ShizukuBackend(
                     safeCleanup(service)
                     unbindService()
                     activeInterfaceName = null
-                    PlatformNotifications.hotspotShareDropped(context)
                     _state.value = ShareState.Stopped(ShareFailure.TETHER_LOST)
                     break
                 }
@@ -270,7 +270,10 @@ class ShizukuBackend(
 
     private suspend fun ensureLoopbackSocksReady(): Boolean {
         if (isLoopbackPortOpen(socksPort)) return true
-        if (!DataStore.serviceState.connected) return false
+        val vpnRunning = DataStore.serviceState.connected ||
+            DataStore.serviceState.started ||
+            isLoopbackPortOpen(DataStore.inboundSocksPort)
+        if (!vpnRunning) return false
 
         Log.i(TAG, "Loopback port $socksPort not open yet; reloading VPN core to bind share inbound")
         withContext(Dispatchers.Main) {

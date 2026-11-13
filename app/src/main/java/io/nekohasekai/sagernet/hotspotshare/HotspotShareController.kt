@@ -1,6 +1,7 @@
 package io.nekohasekai.sagernet.hotspotshare
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -8,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 /**
  * Owns the one running [HotspotShare] backend: resolves which method to use, mirrors the backend's state into [state]
@@ -31,18 +33,42 @@ class HotspotShareController(
 
     suspend fun start() = mutex.withLock {
         if (backend != null) return@withLock
+        startInternal()
+    }
+
+    /** Tears down any running backend and starts fresh with the current preference and environment. */
+    suspend fun restart() = mutex.withLock {
+        teardown()
+        startInternal()
+    }
+
+    private suspend fun startInternal() {
         publish(ShareState.Starting)
-        val method = when (val selection = HotspotShareSelector.resolve(preference(), environment())) {
-            is ShareSelection.Unavailable -> return@withLock publish(ShareState.Error(selection.reason))
+        val pref = preference()
+        val env = withContext(Dispatchers.IO) { environment() }
+        val method = when (val selection = HotspotShareSelector.resolve(pref, env)) {
+            is ShareSelection.Unavailable -> return publish(ShareState.Error(selection.reason))
             is ShareSelection.Chosen -> selection.method
         }
+        startBackend(method, allowAutoFallback = (pref == SharePreference.AUTO && method != ShareMethod.LAN_PROXY))
+    }
+
+    private suspend fun startBackend(method: ShareMethod, allowAutoFallback: Boolean) {
         val created = backendFactory(method)
-            ?: return@withLock publish(ShareState.Error(ShareFailure.BACKEND_NOT_IMPLEMENTED, method.code))
+            ?: return publish(ShareState.Error(ShareFailure.BACKEND_NOT_IMPLEMENTED, method.code))
         backend = created
+        var startingBackend = true
+        var pendingFallback = false
         mirror = scope.launch {
             created.state.collect { backendState ->
                 // Off is the backend's idle value; this controller publishes Off itself when the user stops.
                 if (backendState == ShareState.Off) return@collect
+                if (startingBackend && allowAutoFallback &&
+                    backendState is ShareState.Error && backendState.reason in AUTO_FALLBACK_REASONS
+                ) {
+                    pendingFallback = true
+                    return@collect
+                }
                 publish(backendState)
                 if (backendState is ShareState.Error || backendState is ShareState.Stopped) {
                     scope.launch { mutex.withLock { if (backend === created) teardown() } }
@@ -51,9 +77,22 @@ class HotspotShareController(
         }
         try {
             created.start()
+            startingBackend = false
+            val currentState = created.state.value
+            if (allowAutoFallback && (pendingFallback ||
+                    (currentState is ShareState.Error && currentState.reason in AUTO_FALLBACK_REASONS))
+            ) {
+                teardown()
+                startBackend(ShareMethod.LAN_PROXY, allowAutoFallback = false)
+            }
         } catch (e: Exception) {
-            publish(ShareState.Error(ShareFailure.BACKEND_FAILED, e.message))
+            startingBackend = false
             teardown()
+            if (allowAutoFallback) {
+                startBackend(ShareMethod.LAN_PROXY, allowAutoFallback = false)
+            } else {
+                publish(ShareState.Error(ShareFailure.BACKEND_FAILED, e.message))
+            }
         }
     }
 
@@ -63,10 +102,18 @@ class HotspotShareController(
         teardown()
         // If Root fail-closed held DROP rules after a VPN drop (so backend was already cleared),
         // user turning sharing OFF explicitly removes those firewall rules too.
-        if (currentBackend == null && environment().rootAvailable) {
+        val hasRoot = withContext(Dispatchers.IO) { environment().rootAvailable }
+        if (currentBackend == null && hasRoot) {
             runCatching { RootBackend.cleanupLegacyRules() }
         }
         publish(ShareState.Off)
+    }
+
+    /** Tears down the active backend after an external failure (e.g. VPN or hotspot drop) and publishes [ShareState.Stopped]. */
+    suspend fun stopDueToFailure(failure: ShareFailure) = mutex.withLock {
+        if (backend == null && _state.value !is ShareState.Active) return@withLock
+        teardown()
+        publish(ShareState.Stopped(failure))
     }
 
     /**
@@ -75,7 +122,7 @@ class HotspotShareController(
      */
     suspend fun recoverDirtyState() = mutex.withLock {
         try {
-            val env = environment()
+            val env = withContext(Dispatchers.IO) { environment() }
             if (env.sdkInt >= 33 && env.shizukuGranted && env.shizukuRunning) {
                 val backend = backendFactory(ShareMethod.SHIZUKU)
                 if (backend is ShizukuBackend) {
@@ -107,5 +154,14 @@ class HotspotShareController(
     private fun publish(state: ShareState) {
         _state.value = state
         publisher(state)
+    }
+
+    companion object {
+        private val AUTO_FALLBACK_REASONS = setOf(
+            ShareFailure.UNSUPPORTED_ANDROID,
+            ShareFailure.SHIZUKU_NOT_RUNNING,
+            ShareFailure.SHIZUKU_PERMISSION_DENIED,
+            ShareFailure.ROOT_UNAVAILABLE,
+        )
     }
 }

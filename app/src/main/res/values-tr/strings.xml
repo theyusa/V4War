@@ -2714,4 +2714,16 @@
     <string name="hotspot_share_status_label">Durum</string>
     <string name="hotspot_share_clients_format">Bağlı cihazlar: %d</string>
     <string name="hotspot_share_lan_inbound_title">Yerel Ağ (LAN) Proxy Girişi</string>
+    <string name="hotspot_share_status_unavailable">Başlatılamadı</string>
+    <string name="hotspot_share_status_stopped_clean">Durduruldu</string>
+    <string name="hotspot_share_err_unsupported">Shizuku ile hotspot paylaşımı Android 13 ve üzeri gerektirir.</string>
+    <string name="hotspot_share_err_shizuku_perm">Shizuku izni verilmedi. Önce Shizuku İzni Ver düğmesine dokunun.</string>
+    <string name="hotspot_share_err_root">Bu cihazda Root erişimi yok veya izin verilmedi.</string>
+    <string name="hotspot_share_err_hotspot_off">Aktif Wi-Fi Hotspot bulunamadı veya başlatılamadı. Hotspot\'u açıp tekrar deneyin.</string>
+    <string name="hotspot_share_err_died">Hotspot paylaşım servisi beklenmedik şekilde kapandı.</string>
+    <string name="hotspot_share_err_generic">Hotspot paylaşımı başlatılamadı. VPN ve paylaşım ayarlarını kontrol edin.</string>
+    <string name="hotspot_share_vpn_dropped_warn">VPN bağlantısı kesildi — hotspot paylaşımı durduruldu.</string>
+    <string name="hotspot_share_tether_lost_warn">Wi-Fi Hotspot kapatıldı — paylaşım durduruldu.</string>
+    <string name="hotspot_share_lan_proxy_active">Yerel Proxy paylaşımı aktif</string>
+    <string name="hotspot_share_lan_proxy_dropped_text">VPN bağlantısı kesildi. Yerel proxy paylaşımına devam etmek için VPN\'i yeniden başlatın.</string>
 </resources>
