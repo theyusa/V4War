@@ -1,14 +1,24 @@
 package io.nekohasekai.sagernet.update
 
 import android.app.PendingIntent
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.PackageInstaller
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.IBinder
+import android.os.ParcelFileDescriptor
+import io.nekohasekai.sagernet.BuildConfig
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import rikka.shizuku.Shizuku
 import java.io.File
 
-/** Hands a verified APK to a PackageInstaller session; the result arrives at [UpdateReceiver]. */
+/** Hands a verified APK to Shizuku silent install or a PackageInstaller session; results arrive at [UpdateReceiver]. */
 object UpdateInstaller {
 
     const val ACTION_STATUS = "io.nekohasekai.sagernet.update.INSTALL_STATUS"
@@ -32,12 +42,61 @@ object UpdateInstaller {
                 val intent = Intent(context, UpdateReceiver::class.java).setAction(ACTION_STATUS)
                 // The installer fills in the status extras, so the intent must stay mutable.
                 val flags = PendingIntent.FLAG_UPDATE_CURRENT or
-                        (if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0)
+                    (if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0)
                 session.commit(PendingIntent.getBroadcast(context, sessionId, intent, flags).intentSender)
             } catch (e: Throwable) {
                 session.abandon()
                 throw e
             }
+        }
+    }
+
+    /**
+     * Attempts a silent update via Shizuku UserService. Returns `null` on success, or an error description on failure
+     * so callers can gracefully fall back to [install].
+     */
+    suspend fun installViaShizuku(context: Context, file: File): String? = withContext(Dispatchers.IO) {
+        val connected = CompletableDeferred<IUpdateUserService?>()
+        val args = Shizuku.UserServiceArgs(
+            ComponentName(context.packageName, UpdateUserService::class.java.name)
+        )
+            .daemon(false)
+            .processNameSuffix("update_installer")
+            .debuggable(BuildConfig.DEBUG)
+            .version(BuildConfig.VERSION_CODE)
+            .tag("update_installer")
+
+        val conn = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+                val service = binder?.let(IUpdateUserService.Stub::asInterface)
+                connected.complete(service)
+            }
+
+            override fun onServiceDisconnected(name: ComponentName?) {
+                if (!connected.isCompleted) {
+                    connected.complete(null)
+                }
+            }
+        }
+
+        try {
+            Shizuku.bindUserService(args, conn)
+            val service = withTimeoutOrNull(10_000) { connected.await() }
+                ?: return@withContext "Shizuku service bind timeout"
+            val pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            pfd.use { fd ->
+                val errorOut = arrayOf("")
+                val exitCode = service.installApk(fd, file.length(), errorOut)
+                if (exitCode == 0) {
+                    null
+                } else {
+                    errorOut[0].ifEmpty { "pm install failed (exit=$exitCode)" }
+                }
+            }
+        } catch (t: Throwable) {
+            t.message ?: t.javaClass.simpleName
+        } finally {
+            runCatching { Shizuku.unbindUserService(args, conn, true) }
         }
     }
 }

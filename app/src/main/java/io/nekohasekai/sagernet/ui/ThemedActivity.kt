@@ -119,10 +119,26 @@ abstract class ThemedActivity : AppCompatActivity {
         view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text).apply {
             maxLines = 10
         }
-        if (Theme.isBlackTheme(this@ThemedActivity)) {
-            setBackgroundTint(Color.parseColor("#181818"))
+        if (Theme.isAnyAmoled(this@ThemedActivity) || Theme.isMonochromeBlack(this@ThemedActivity)) {
+            val density = resources.displayMetrics.density
+            val bg = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                cornerRadius = 14f * density
+                setColor(
+                    if (Theme.isMonochromeBlack(this@ThemedActivity)) Color.parseColor("#121212")
+                    else Theme.resolveNestedBoxBackground(this@ThemedActivity),
+                )
+                setStroke(
+                    Theme.resolveCardStrokeWidthPx(this@ThemedActivity, selected = false).toInt().coerceAtLeast(1),
+                    Theme.resolveCardStrokeColor(this@ThemedActivity, selected = false),
+                )
+            }
+            view.background = bg
             setTextColor(Color.WHITE)
-            setActionTextColor(getColorAttr(androidx.appcompat.R.attr.colorPrimary))
+            setActionTextColor(
+                if (Theme.isMonochromeBlack(this@ThemedActivity)) Color.WHITE
+                else Theme.getSeedPrimaryColor(this@ThemedActivity),
+            )
         }
     }
 

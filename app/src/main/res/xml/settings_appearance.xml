@@ -13,7 +13,8 @@
             app:icon="@drawable/ic_baseline_color_lens_24"
             app:key="tintPreferenceIcons"
             app:summary="@string/tint_preference_icons_summary"
-            app:title="@string/tint_preference_icons" />
+            app:title="@string/tint_preference_icons"
+            app:widgetLayout="@layout/preference_widget_expressive_switch" />
         <moe.matsuri.nb4a.ui.SimpleMenuPreference
             app:defaultValue=""
             app:entries="@array/language_entries"
@@ -29,22 +30,26 @@
             app:icon="@drawable/ic_baseline_center_focus_weak_24"
             app:key="alwaysShowAddress"
             app:summary="@string/always_show_address_sum"
-            app:title="@string/always_show_address" />
+            app:title="@string/always_show_address"
+            app:widgetLayout="@layout/preference_widget_expressive_switch" />
         <SwitchPreference
             app:icon="@drawable/ic_baseline_format_align_left_24"
             app:key="compactProfileRows"
             app:summary="@string/compact_profile_rows_sum"
-            app:title="@string/compact_profile_rows" />
+            app:title="@string/compact_profile_rows"
+            app:widgetLayout="@layout/preference_widget_expressive_switch" />
         <SwitchPreference
             app:icon="@drawable/ic_baseline_view_list_24"
             app:key="compactGroupCards"
             app:summary="@string/compact_group_cards_sum"
-            app:title="@string/compact_group_cards" />
+            app:title="@string/compact_group_cards"
+            app:widgetLayout="@layout/preference_widget_expressive_switch" />
         <SwitchPreference
             app:icon="@drawable/ic_baseline_security_24"
             app:key="show_config_security"
             app:summary="@string/show_config_security_sum"
-            app:title="@string/show_config_security" />
+            app:title="@string/show_config_security"
+            app:widgetLayout="@layout/preference_widget_expressive_switch" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/cag_notification">
@@ -53,11 +58,13 @@
             app:icon="@drawable/ic_baseline_speed_24"
             app:key="showDirectSpeed"
             app:summary="@string/show_direct_speed_sum"
-            app:title="@string/show_direct_speed" />
+            app:title="@string/show_direct_speed"
+            app:widgetLayout="@layout/preference_widget_expressive_switch" />
         <SwitchPreference
             app:icon="@drawable/ic_baseline_layers_24"
             app:key="showGroupInNotification"
-            app:title="@string/show_group_in_notification" />
+            app:title="@string/show_group_in_notification"
+            app:widgetLayout="@layout/preference_widget_expressive_switch" />
         <MultiSelectListPreference
             app:defaultValue="@array/notification_action_defaults"
             app:entries="@array/notification_action_entries"

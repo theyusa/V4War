@@ -22,6 +22,7 @@ import com.google.android.material.color.MaterialColors
 import androidx.annotation.IdRes
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
+import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.updatePaddingRelative
 import androidx.core.view.WindowCompat
@@ -163,6 +164,13 @@ class MainActivity : ThemedActivity(),
         // The drawer's surface runs under the status bar: the icons follow it while the drawer is mostly open.
         binding.drawerLayout.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
             private var overDrawer = false
+            override fun onDrawerOpened(drawerView: View) {
+                syncDrawerCheckedItem(
+                    supportFragmentManager.findFragmentById(R.id.fragment_holder)
+                        ?: currentMainFragment,
+                )
+            }
+
             override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
                 if ((slideOffset > 0.5f) == overDrawer) return
                 overDrawer = !overDrawer
@@ -176,6 +184,7 @@ class MainActivity : ThemedActivity(),
         } else {
             currentMainFragment =
                 supportFragmentManager.findFragmentById(R.id.fragment_holder) as? ToolbarFragment
+            syncDrawerCheckedItem(currentMainFragment)
         }
         onBackPressedDispatcher.addCallback {
             if (supportFragmentManager.findFragmentById(R.id.fragment_holder) is ConfigurationFragment) {
@@ -252,6 +261,7 @@ class MainActivity : ThemedActivity(),
                 animate = false,
             )
         }
+        syncDrawerCheckedItem(restoredFragment ?: currentMainFragment)
     }
 
     fun applyHideFromRecentApps(hide: Boolean) {
@@ -394,11 +404,70 @@ class MainActivity : ThemedActivity(),
     @SuppressLint("CommitTransaction")
     fun displayFragment(fragment: ToolbarFragment) {
         currentMainFragment = fragment
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.fragment_holder, fragment)
-            .commitAllowingStateLoss()
-        binding.drawerLayout.closeDrawers()
-        syncMainControls(fragment, showWhenConnected = false, animate = true)
+        syncDrawerCheckedItem(fragment)
+        val drawer = if (::binding.isInitialized) binding.drawerLayout else null
+        if (drawer != null && (drawer.isDrawerOpen(GravityCompat.START) || drawer.isDrawerOpen(GravityCompat.END))) {
+            var committed = false
+            val commitAction = Runnable {
+                if (committed || isFinishing || isDestroyed) return@Runnable
+                committed = true
+                if (currentMainFragment === fragment) {
+                    supportFragmentManager.beginTransaction()
+                        .replace(R.id.fragment_holder, fragment)
+                        .commitAllowingStateLoss()
+                    syncMainControls(fragment, showWhenConnected = false, animate = true)
+                }
+            }
+            val closeListener = object : DrawerLayout.SimpleDrawerListener() {
+                override fun onDrawerClosed(drawerView: View) {
+                    drawer.removeDrawerListener(this)
+                    drawer.removeCallbacks(commitAction)
+                    commitAction.run()
+                }
+            }
+            val fallbackRunnable = Runnable {
+                drawer.removeDrawerListener(closeListener)
+                commitAction.run()
+            }
+            drawer.addDrawerListener(closeListener)
+            drawer.postDelayed(fallbackRunnable, 260L)
+            drawer.closeDrawers()
+        } else {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.fragment_holder, fragment)
+                .commitAllowingStateLoss()
+            drawer?.closeDrawers()
+            syncMainControls(fragment, showWhenConnected = false, animate = true)
+        }
+    }
+
+    private fun clearMenuChecks(menu: android.view.Menu) {
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            if (item.isCheckable) item.isChecked = false
+            item.subMenu?.let { clearMenuChecks(it) }
+        }
+    }
+
+    private fun drawerMenuIdForFragment(fragment: Any?): Int? = when (fragment) {
+        is ConfigurationFragment -> R.id.nav_configuration
+        is GroupFragment -> R.id.nav_group
+        is RouteFragment -> R.id.nav_route
+        is SettingsFragment -> R.id.nav_settings
+        is DashboardFragment -> R.id.nav_traffic
+        is ToolsFragment -> R.id.nav_tools
+        is LogcatFragment -> R.id.nav_logcat
+        is LiveGraphsFragment -> R.id.nav_live_graphs
+        is AboutFragment -> R.id.nav_about
+        else -> null
+    }
+
+    private fun syncDrawerCheckedItem(fragment: Any? = currentMainFragment) {
+        if (!::navigation.isInitialized) return
+        val targetId = drawerMenuIdForFragment(fragment) ?: return
+        clearMenuChecks(navigation.menu)
+        navigation.setCheckedItem(targetId)
+        navigation.menu.findItem(targetId)?.isChecked = true
     }
 
     private fun syncMainControls(
@@ -444,7 +513,7 @@ class MainActivity : ThemedActivity(),
 
     fun displayTools(tab: Int = ToolsFragment.TAB_NETWORK) {
         displayFragment(ToolsFragment.newInstance(tab))
-        navigation.menu.findItem(R.id.nav_tools)?.isChecked = true
+        syncDrawerCheckedItem(currentMainFragment)
     }
 
     fun displayFragmentWithId(@IdRes id: Int, tab: Int = -1): Boolean {
@@ -469,7 +538,9 @@ class MainActivity : ThemedActivity(),
 
             else -> return false
         }
-        navigation.menu.findItem(id).isChecked = true
+        clearMenuChecks(navigation.menu)
+        navigation.setCheckedItem(id)
+        navigation.menu.findItem(id)?.isChecked = true
         return true
     }
 

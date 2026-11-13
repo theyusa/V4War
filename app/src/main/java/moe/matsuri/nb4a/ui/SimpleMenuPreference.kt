@@ -18,17 +18,23 @@ package moe.matsuri.nb4a.ui
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.CheckedTextView
 import android.widget.Spinner
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.ColorUtils
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.preference.DropDownPreference
 import androidx.preference.PreferenceViewHolder
 import io.nekohasekai.sagernet.R
+import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
+import io.nekohasekai.sagernet.utils.Theme
 
 /**
  * Bend [DropDownPreference] to support
@@ -50,6 +56,7 @@ open class SimpleMenuPreference
         super.onBindViewHolder(holder)
         val mSpinner = holder.itemView.findViewById<Spinner>(R.id.spinner)
         mSpinner.layoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT
+        mSpinner.dropDownVerticalOffset = dp2px(4)
         mSpinner.setPopupBackgroundResource(R.drawable.bg_popup_menu)
     }
 
@@ -72,40 +79,55 @@ open class SimpleMenuPreference
 
         var currentPosition = -1
 
-        private val radius = context.resources.getDimension(R.dimen.popup_corner_radius)
+        private val pillRadius = dp2px(14).toFloat()
         private val selectedColor = selectedFill(context)
+        private val textPrimary = context.getColorAttr(android.R.attr.textColorPrimary)
+        private val accentColor = Theme.resolveCardStrokeColor(context, selected = true)
+        private val isAmoledBorder = Theme.isAnyAmoled(context) || Theme.isMonochromeBlack(context)
+        private val strokePx = dp2px(1)
 
-        private val topDrawable = GradientDrawable().apply {
+        private val selectedPillDrawable = GradientDrawable().apply {
             setColor(selectedColor)
-            cornerRadii = floatArrayOf(radius, radius, radius, radius, 0f, 0f, 0f, 0f)
-        }
-
-        private val bottomDrawable = GradientDrawable().apply {
-            setColor(selectedColor)
-            cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, radius, radius, radius, radius)
-        }
-
-        private val middleDrawable = GradientDrawable().apply {
-            setColor(selectedColor)
-        }
-
-        private val singleDrawable = GradientDrawable().apply {
-            setColor(selectedColor)
-            cornerRadii = floatArrayOf(radius, radius, radius, radius, radius, radius, radius, radius)
+            cornerRadius = pillRadius
+            if (isAmoledBorder) {
+                setStroke(strokePx, ColorUtils.setAlphaComponent(accentColor, 140))
+            }
         }
 
         override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
             val view: View = super.getDropDownView(position, convertView, parent)
+            val checkedView = view as? CheckedTextView
 
             if (position == currentPosition) {
-                view.background = when {
-                    position == 0 && count == 1 -> singleDrawable
-                    position == 0 -> topDrawable
-                    position == count - 1 -> bottomDrawable
-                    else -> middleDrawable
+                view.background = selectedPillDrawable
+                checkedView?.apply {
+                    isChecked = true
+                    setTypeface(null, Typeface.BOLD)
+                    setTextColor(textPrimary)
+                    val checkIcon = ResourcesCompat.getDrawable(
+                        context.resources,
+                        R.drawable.ic_baseline_check_circle_24,
+                        null,
+                    )?.mutate()
+                    if (checkIcon != null) {
+                        val size = dp2px(18)
+                        checkIcon.setBounds(0, 0, size, size)
+                        DrawableCompat.setTint(checkIcon, accentColor)
+                        setCompoundDrawablesRelative(null, null, checkIcon, null)
+                        compoundDrawablePadding = dp2px(10)
+                    } else {
+                        checkMarkDrawable = null
+                    }
                 }
             } else {
                 view.background = null
+                checkedView?.apply {
+                    isChecked = false
+                    setTypeface(null, Typeface.NORMAL)
+                    setTextColor(textPrimary)
+                    checkMarkDrawable = null
+                    setCompoundDrawablesRelative(null, null, null, null)
+                }
             }
             return view
         }
@@ -118,7 +140,9 @@ open class SimpleMenuPreference
  * 4.5:1. It stays translucent, so the popup's border still shows along the row.
  */
 private fun selectedFill(context: Context): Int {
-    val surface = ColorUtils.setAlphaComponent(context.getColorAttr(R.attr.colorSurface), 0xFF)
+    val elevated = context.getColorAttr(R.attr.cardElevatedSurfaceColor)
+    val baseSurface = if (elevated != 0) elevated else context.getColorAttr(R.attr.colorSurface)
+    val surface = ColorUtils.setAlphaComponent(baseSurface, 0xFF)
     val text = context.getColorAttr(android.R.attr.textColorPrimary)
     val dark = ColorUtils.calculateLuminance(surface) < 0.5
     var fill = ColorUtils.setAlphaComponent(context.getColorAttr(R.attr.colorPrimary), if (dark) 0x66 else 0x48)

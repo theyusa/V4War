@@ -12,22 +12,38 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/group_tab"
+    <FrameLayout
+        android:id="@+id/group_tab_container"
         android:layout_width="match_parent"
-        android:layout_height="36dp"
-        android:background="?android:attr/colorBackground"
-        android:elevation="0dp"
-        android:visibility="gone"
-        app:tabIndicatorColor="?tabIndicatorColor"
-        app:tabIndicatorFullWidth="false"
-        app:tabMode="scrollable"
-        app:tabPaddingStart="16dp"
-        app:tabRippleColor="?tabRippleColor"
-        app:tabSelectedTextColor="?tabSelectedTextColor"
-        app:tabTextAppearance="@style/TextAppearance.SagerNet.Tab"
-        app:tabTextColor="?tabTextColor"
-        app:tabUnboundedRipple="false" />
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="6dp"
+        android:padding="4dp"
+        android:visibility="gone">
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/group_tab"
+            android:layout_width="match_parent"
+            android:layout_height="38dp"
+            android:background="@android:color/transparent"
+            android:elevation="0dp"
+            app:tabGravity="start"
+            app:tabIndicator="@drawable/bg_expressive_tab_indicator"
+            app:tabIndicatorFullWidth="true"
+            app:tabIndicatorGravity="stretch"
+            app:tabMinWidth="0dp"
+            app:tabMode="scrollable"
+            app:tabPaddingEnd="12dp"
+            app:tabPaddingStart="12dp"
+            app:tabRippleColor="@android:color/transparent"
+            app:tabSelectedTextColor="?attr/primaryOrTextPrimary"
+            app:tabTextAppearance="@style/Widget.SagerNet.TabLayout.TextAppearance.Compact"
+            app:tabTextColor="?android:attr/textColorSecondary"
+            app:tabUnboundedRipple="false" />
+
+    </FrameLayout>
 
     <com.google.android.material.progressindicator.LinearProgressIndicator
         android:id="@+id/group_progress"

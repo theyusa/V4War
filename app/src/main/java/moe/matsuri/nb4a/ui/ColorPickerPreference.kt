@@ -6,12 +6,15 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
 import android.graphics.drawable.RippleDrawable
 import android.os.Build
 import android.text.Editable
 import android.text.InputType
 import android.text.TextUtils
 import android.text.TextWatcher
+import android.transition.AutoTransition
+import android.transition.TransitionManager
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
@@ -36,11 +39,14 @@ import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
+import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
+import io.nekohasekai.sagernet.ui.settings.ExpressiveShape
 import io.nekohasekai.sagernet.utils.Theme
 
 /**
- * Inline Material 3 Expressive seed-color palette card.
- * Displays an instant 6-column grid of circular color swatches + Monet + Custom HEX/RGB builder.
+ * Collapsible Material 3 Expressive seed-color palette box.
+ * Header carries an M3 Expressive geometric badge, active seed chip, compact Custom HEX button,
+ * and expand/collapse toggle; body expands/collapses the 6-column color swatch grid smoothly.
  */
 class ColorPickerPreference
 @JvmOverloads
@@ -176,7 +182,12 @@ constructor(
         return list
     }
 
+    private var recreateScheduled = false
+
     private fun applyTheme(themeId: Int) {
+        if (themeId != Theme.CUSTOM && themeId == Theme.activeThemeId()) return
+        if (recreateScheduled) return
+        recreateScheduled = true
         if (Theme.isColorfulSeed(themeId)) {
             Theme.rememberSeedTheme(themeId)
         }
@@ -201,6 +212,8 @@ constructor(
         val activeThemeId = Theme.activeThemeId()
         val isTr = context.resources.configuration.locales[0].language == "tr"
         val isNight = Theme.usingNightMode(context)
+        val isAmoled = Theme.isBlackTheme(context)
+        val isAmoledBorder = Theme.isAnyAmoled(context) || Theme.isMonochromeBlack(context)
         val textPrimary = context.getColorAttr(android.R.attr.textColorPrimary)
         val textSecondary = context.getColorAttr(android.R.attr.textColorSecondary)
         val activeColor = resolveSwatchColor(activeThemeId)
@@ -214,11 +227,108 @@ constructor(
             )
         }
 
-        // Top header row: Title + Active seed badge + Custom button
+        // Collapsible swatch grid container
+        val gridContainer = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            )
+            setPadding(0, dp2px(12), 0, 0)
+            visibility = if (DataStore.appearancePaletteExpanded) View.VISIBLE else View.GONE
+        }
+
+        val presets = buildPresets(isTr)
+        val columns = 6
+        val rows = presets.chunked(columns)
+        rows.forEachIndexed { rowIdx, chunk ->
+            val row = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    if (rowIdx < rows.lastIndex) bottomMargin = dp2px(10)
+                }
+            }
+            for (colIdx in 0 until columns) {
+                val cell = FrameLayout(context).apply {
+                    layoutParams = LinearLayout.LayoutParams(0, dp2px(46), 1f)
+                }
+                val preset = chunk.getOrNull(colIdx)
+                if (preset != null) {
+                    val isSelected = activeThemeId == preset.id
+                    cell.addView(buildSwatchItem(preset, isSelected, isNight, textSecondary))
+                }
+                row.addView(cell)
+            }
+            gridContainer.addView(row)
+        }
+
+        val chevronIcon = ImageView(context).apply {
+            layoutParams = FrameLayout.LayoutParams(dp2px(18), dp2px(18), Gravity.CENTER)
+        }
+        fun updateChevron(expanded: Boolean) {
+            val resId = if (expanded) R.drawable.ic_baseline_expand_less_24 else R.drawable.ic_baseline_expand_more_24
+            val d = ResourcesCompat.getDrawable(context.resources, resId, null)?.mutate()
+            if (d != null) {
+                DrawableCompat.setTint(d, textSecondary)
+                chevronIcon.setImageDrawable(d)
+            }
+        }
+        updateChevron(DataStore.appearancePaletteExpanded)
+
+        // Header row: Expressive Icon Badge + Title/Active Seed + Custom pill + Chevron toggle
+        var isExpanded = DataStore.appearancePaletteExpanded
         val header = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, 0, 0, dp2px(12))
+            isClickable = true
+            isFocusable = true
+            val mask = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp2px(14).toFloat()
+                setColor(Color.WHITE)
+            }
+            background = RippleDrawable(
+                ColorStateList.valueOf(ColorUtils.setAlphaComponent(effectiveRing, if (isNight) 34 else 22)),
+                null,
+                mask,
+            )
+            setOnClickListener {
+                isExpanded = !isExpanded
+                DataStore.appearancePaletteExpanded = isExpanded
+                updateChevron(isExpanded)
+                TransitionManager.endTransitions(container)
+                if (container.isAttachedToWindow && container.isLaidOut) {
+                    TransitionManager.beginDelayedTransition(
+                        container,
+                        AutoTransition().apply { duration = 150L },
+                    )
+                }
+                gridContainer.visibility = if (isExpanded) View.VISIBLE else View.GONE
+            }
+        }
+
+        val (badgeContainer, badgeIconCol) = ExpressiveSettingsHelper.resolveBadgeColors(context, isNight, isAmoled)
+        val paletteDrawable = ResourcesCompat.getDrawable(context.resources, R.drawable.ic_baseline_color_lens_24, null)
+        if (paletteDrawable != null) {
+            val badge = ExpressiveSettingsHelper.createMaskedIcon(
+                context = context,
+                originalDrawable = paletteDrawable,
+                containerColor = badgeContainer,
+                iconColor = badgeIconCol,
+                sizeDp = 42,
+                iconSizeDp = 22,
+                shape = ExpressiveShape.SQUIRCLE,
+            )
+            header.addView(ImageView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(dp2px(42), dp2px(42)).apply {
+                    marginEnd = dp2px(14)
+                }
+                setImageDrawable(badge)
+            })
         }
 
         val titleCol = LinearLayout(context).apply {
@@ -234,7 +344,6 @@ constructor(
             setTextColor(textPrimary)
         })
 
-        // Active chip line
         val activeRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -264,7 +373,13 @@ constructor(
         val customPill = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp2px(11), dp2px(6), dp2px(11), dp2px(6))
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                marginEnd = dp2px(8)
+            }
+            setPadding(dp2px(10), dp2px(6), dp2px(10), dp2px(6))
             isClickable = true
             isFocusable = true
             val pillStroke = if (activeThemeId == Theme.CUSTOM) effectiveRing
@@ -274,28 +389,24 @@ constructor(
             } else {
                 Theme.resolveNestedBoxBackground(context)
             }
-            background = GradientDrawable().apply {
+            val bgShape = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = dp2px(99).toFloat()
                 setColor(pillBg)
                 setStroke(dp2px(1), pillStroke)
             }
-            foreground = RippleDrawable(
+            val mask = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp2px(99).toFloat()
+                setColor(Color.WHITE)
+            }
+            background = RippleDrawable(
                 ColorStateList.valueOf(ColorUtils.setAlphaComponent(effectiveRing, 40)),
-                null,
-                null,
+                bgShape,
+                mask,
             )
             setOnClickListener { showCustomColorDialog() }
         }
-        customPill.addView(View(context).apply {
-            layoutParams = LinearLayout.LayoutParams(dp2px(10), dp2px(10)).apply {
-                marginEnd = dp2px(6)
-            }
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(0xFF000000.toInt() or DataStore.customThemeColor)
-            }
-        })
         customPill.addView(TextView(context).apply {
             text = context.getString(R.string.theme_custom_color)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
@@ -303,37 +414,24 @@ constructor(
             setTextColor(textPrimary)
         })
         header.addView(customPill)
+
+        header.addView(FrameLayout(context).apply {
+            layoutParams = LinearLayout.LayoutParams(dp2px(30), dp2px(30))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Theme.resolveNestedBoxBackground(context))
+                if (isAmoledBorder) {
+                    setStroke(
+                        Theme.resolveCardStrokeWidthPx(context, selected = false).toInt().coerceAtLeast(1),
+                        Theme.resolveCardStrokeColor(context, selected = false),
+                    )
+                }
+            }
+            addView(chevronIcon)
+        })
+
         container.addView(header)
-
-        // 6-column swatch grid
-        val presets = buildPresets(isTr)
-        val columns = 6
-        val rows = presets.chunked(columns)
-        rows.forEachIndexed { rowIdx, chunk ->
-            val row = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                ).apply {
-                    if (rowIdx < rows.lastIndex) bottomMargin = dp2px(10)
-                }
-            }
-            for (colIdx in 0 until columns) {
-                val cell = FrameLayout(context).apply {
-                    layoutParams = LinearLayout.LayoutParams(0, dp2px(46), 1f)
-                }
-                val preset = chunk.getOrNull(colIdx)
-                if (preset != null) {
-                    val isSelected = activeThemeId == preset.id
-                    cell.addView(buildSwatchItem(preset, isSelected, isNight, textSecondary))
-                }
-                row.addView(cell)
-            }
-            container.addView(row)
-        }
-
+        container.addView(gridContainer)
         root.addView(container)
     }
 
@@ -364,7 +462,6 @@ constructor(
         }
 
         if (isSelected) {
-            // Outer M3 active halo ring
             item.addView(View(context).apply {
                 layoutParams = FrameLayout.LayoutParams(dp2px(43), dp2px(43), Gravity.CENTER)
                 background = GradientDrawable().apply {
@@ -381,7 +478,6 @@ constructor(
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 if (preset.id == Theme.MONET) {
-                    // Subtle dynamic dual-tone sheen for Material You swatch
                     colors = intArrayOf(
                         preset.color,
                         ColorUtils.blendARGB(preset.color, Color.WHITE, 0.25f),
@@ -439,70 +535,145 @@ constructor(
         var updatingFromSliders = false
         var updatingFromText = false
 
-        val dialogLayout = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp2px(22), dp2px(16), dp2px(22), dp2px(4))
+        val isNight = Theme.usingNightMode(context)
+        val isAmoledBorder = Theme.isAnyAmoled(context) || Theme.isMonochromeBlack(context)
+        val cardBg = Theme.resolveCardBackground(context)
+        val nestedBg = Theme.resolveNestedBoxBackground(context)
+        val strokeCol = Theme.resolveCardStrokeColor(context, selected = false)
+        val strokePx = Theme.resolveCardStrokeWidthPx(context, selected = false).toInt().coerceAtLeast(1)
+        val textPrimary = context.getColorAttr(android.R.attr.textColorPrimary)
+        val textSecondary = context.getColorAttr(android.R.attr.textColorSecondary)
+        val accentColor = when {
+            Theme.isMonochromeBlack(context) -> Color.WHITE
+            Theme.isWhiteTheme(context) -> Color.parseColor("#212121")
+            Theme.isLightGrayTheme(context) -> Color.parseColor("#2563EB")
+            else -> Theme.getSeedPrimaryColor(context)
         }
 
-        // Preview banner with large circle + live hex
-        val previewRow = LinearLayout(context).apply {
+        val dialogLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp2px(20), dp2px(12), dp2px(20), dp2px(4))
+        }
+
+        // Theme-harmonized preview + HEX box
+        val previewCard = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, 0, 0, dp2px(14))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                bottomMargin = dp2px(12)
+            }
+            setPadding(dp2px(14), dp2px(12), dp2px(14), dp2px(12))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp2px(18).toFloat()
+                setColor(nestedBg)
+                setStroke(
+                    strokePx,
+                    if (isAmoledBorder) strokeCol else ColorUtils.setAlphaComponent(textSecondary, 45),
+                )
+            }
         }
         val previewDot = View(context).apply {
-            layoutParams = LinearLayout.LayoutParams(dp2px(48), dp2px(48)).apply {
+            layoutParams = LinearLayout.LayoutParams(dp2px(44), dp2px(44)).apply {
                 marginEnd = dp2px(14)
             }
         }
-        previewRow.addView(previewDot)
+        previewCard.addView(previewDot)
 
+        val inputCorner = dp2px(14).toFloat()
+        val focusedStroke = accentColor
+        val unfocusedStroke = ColorUtils.setAlphaComponent(textSecondary, if (isNight) 125 else 95)
+        val strokeStates = ColorStateList(
+            arrayOf(intArrayOf(android.R.attr.state_focused), intArrayOf()),
+            intArrayOf(focusedStroke, unfocusedStroke),
+        )
         val hexLayout = TextInputLayout(context).apply {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             hint = context.getString(R.string.custom_color_hex_hint)
             boxBackgroundMode = TextInputLayout.BOX_BACKGROUND_OUTLINE
+            boxBackgroundColor = cardBg
+            setBoxCornerRadii(inputCorner, inputCorner, inputCorner, inputCorner)
+            setBoxStrokeColorStateList(strokeStates)
+            defaultHintTextColor = ColorStateList.valueOf(textSecondary)
+            hintTextColor = ColorStateList.valueOf(accentColor)
         }
         val hexInput = TextInputEditText(hexLayout.context).apply {
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
             maxLines = 1
+            typeface = Typeface.MONOSPACE
+            setTextColor(textPrimary)
+            setHintTextColor(textSecondary)
             setText(String.format("#%06X", 0xFFFFFF and initialColor))
         }
         hexLayout.addView(hexInput)
-        previewRow.addView(hexLayout)
-        dialogLayout.addView(previewRow)
+        previewCard.addView(hexLayout)
+        dialogLayout.addView(previewCard)
 
         fun updatePreviewDot(color: Int) {
             previewDot.background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(color)
-                setStroke(dp2px(1.5f).coerceAtLeast(1), ColorUtils.setAlphaComponent(Color.GRAY, 120))
+                setStroke(dp2px(1.5f).coerceAtLeast(1), ColorUtils.setAlphaComponent(textPrimary, 110))
             }
         }
         updatePreviewDot(initialColor)
+
+        val slidersCard = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            )
+            setPadding(dp2px(14), dp2px(10), dp2px(14), dp2px(10))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp2px(18).toFloat()
+                setColor(nestedBg)
+                setStroke(
+                    strokePx,
+                    if (isAmoledBorder) strokeCol else ColorUtils.setAlphaComponent(textSecondary, 45),
+                )
+            }
+        }
+
+        val trackBgTint = ColorStateList.valueOf(ColorUtils.setAlphaComponent(textSecondary, 80))
 
         fun buildChannelSlider(label: String, tint: Int, initial: Int, onChange: (Int) -> Unit): SeekBar {
             val row = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                setPadding(0, dp2px(4), 0, dp2px(4))
+                setPadding(0, dp2px(5), 0, dp2px(5))
             }
             val nameView = TextView(context).apply {
-                layoutParams = LinearLayout.LayoutParams(dp2px(22), ViewGroup.LayoutParams.WRAP_CONTENT)
+                layoutParams = LinearLayout.LayoutParams(dp2px(26), dp2px(26)).apply {
+                    marginEnd = dp2px(8)
+                }
+                gravity = Gravity.CENTER
                 text = label
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                 setTypeface(null, Typeface.BOLD)
                 setTextColor(tint)
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(ColorUtils.setAlphaComponent(tint, if (isNight) 38 else 26))
+                }
             }
             val valueView = TextView(context).apply {
-                layoutParams = LinearLayout.LayoutParams(dp2px(34), ViewGroup.LayoutParams.WRAP_CONTENT)
+                layoutParams = LinearLayout.LayoutParams(dp2px(36), ViewGroup.LayoutParams.WRAP_CONTENT)
                 text = initial.toString()
                 gravity = Gravity.END
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
-                setTextColor(context.getColorAttr(android.R.attr.textColorSecondary))
+                typeface = Typeface.MONOSPACE
+                setTextColor(textSecondary)
             }
             val seek = SeekBar(context).apply {
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
                 max = 255
                 progress = initial
+                progressBackgroundTintList = trackBgTint
                 progressTintList = ColorStateList.valueOf(tint)
                 thumbTintList = ColorStateList.valueOf(tint)
                 setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -520,9 +691,10 @@ constructor(
             row.addView(nameView)
             row.addView(seek)
             row.addView(valueView)
-            dialogLayout.addView(row)
+            slidersCard.addView(row)
             return seek
         }
+        dialogLayout.addView(slidersCard)
 
         lateinit var redSeek: SeekBar
         lateinit var greenSeek: SeekBar
@@ -573,7 +745,7 @@ constructor(
             }
         })
 
-        MaterialAlertDialogBuilder(context)
+        val dialog = MaterialAlertDialogBuilder(context)
             .setTitle(context.getString(R.string.custom_color_title))
             .setView(dialogLayout)
             .setPositiveButton(context.getString(R.string.custom_color_apply)) { _, _ ->
@@ -589,7 +761,30 @@ constructor(
                 applyTheme(Theme.CUSTOM)
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .create()
+
+        dialog.setOnShowListener {
+            val inset = context.resources.getDimensionPixelSize(R.dimen.dialog_background_inset)
+            val surfaceBg = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = context.resources.getDimension(R.dimen.dialog_corner_radius)
+                setColor(cardBg)
+                setStroke(
+                    dp2px(0.8f).coerceAtLeast(1),
+                    if (isAmoledBorder) strokeCol else ColorUtils.setAlphaComponent(textSecondary, 55),
+                )
+            }
+            dialog.window?.setBackgroundDrawable(InsetDrawable(surfaceBg, inset))
+            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)?.apply {
+                isAllCaps = false
+                setTextColor(accentColor)
+            }
+            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE)?.apply {
+                isAllCaps = false
+                setTextColor(textSecondary)
+            }
+        }
+        dialog.show()
     }
 
     private fun dp2px(dp: Float): Int = (dp * context.resources.displayMetrics.density).toInt()

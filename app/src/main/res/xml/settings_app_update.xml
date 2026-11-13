@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+    <SwitchPreference
+        app:defaultValue="true"
+        app:icon="@drawable/ic_baseline_update_24"
+        app:key="updateCheckAuto"
+        app:summary="@string/app_update_auto_sum"
+        app:title="@string/app_update_auto_title"
+        app:widgetLayout="@layout/preference_widget_expressive_switch" />
+
+    <SwitchPreference
+        app:defaultValue="false"
+        app:icon="@drawable/ic_baseline_bug_report_24"
+        app:key="allow_beta_update"
+        app:summary="@string/allow_beta_update_sum"
+        app:title="@string/app_update_prerelease_title"
+        app:widgetLayout="@layout/preference_widget_expressive_switch" />
+
+    <Preference
+        app:icon="@drawable/ic_settings_password"
+        app:key="updateGithubToken"
+        app:summary="@string/app_update_github_token_not_set"
+        app:title="@string/app_update_github_token_title" />
+
+    <Preference
+        app:icon="@drawable/ic_baseline_security_24"
+        app:key="allowInstallingApps"
+        app:persistent="false"
+        app:title="@string/app_update_allow_install_title" />
+
+    <SwitchPreference
+        app:defaultValue="false"
+        app:icon="@drawable/ic_baseline_lock_24"
+        app:key="updateInstallShizuku"
+        app:summary="@string/app_update_shizuku_not_installed"
+        app:title="@string/app_update_shizuku_title"
+        app:widgetLayout="@layout/preference_widget_expressive_switch" />
+
+    <Preference
+        app:icon="@drawable/ic_baseline_refresh_24"
+        app:key="checkUpdatesNow"
+        app:persistent="false"
+        app:summary="@string/app_update_never_checked"
+        app:title="@string/app_update_check_now_title" />
+
+    <Preference
+        app:icon="@drawable/ic_baseline_grid_view_24"
+        app:key="trackInObtainium"
+        app:persistent="false"
+        app:summary="@string/app_update_obtainium_copy_sum"
+        app:title="@string/app_update_obtainium_title" />
+</PreferenceScreen>

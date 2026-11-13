@@ -4,6 +4,8 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.Intent
 import android.content.ActivityNotFoundException
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.text.format.DateUtils
@@ -19,6 +21,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.content.FileProvider
 import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
+import androidx.core.widget.CompoundButtonCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -37,14 +40,17 @@ import io.nekohasekai.sagernet.databinding.LayoutProgressBinding
 import io.nekohasekai.sagernet.databinding.LayoutWebdavBackupItemBinding
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.app
+import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.ktx.onMainDispatcher
 import io.nekohasekai.sagernet.ktx.readableMessage
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
 import io.nekohasekai.sagernet.ktx.snackbar
 import io.nekohasekai.sagernet.ktx.startFilesForResult
 import io.nekohasekai.sagernet.ktx.triggerFullRestart
+import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
 import io.nekohasekai.sagernet.utils.HotspotGatewayManager
 import io.nekohasekai.sagernet.utils.HotspotGatewayPolicy
+import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.widget.applyListInsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -97,6 +103,7 @@ class BackupFragment : Fragment(R.layout.layout_backup) {
         val binding = LayoutBackupBinding.bind(view)
         this.binding = binding
         view.applyListInsets()
+        styleExpressiveUi(binding, view)
 
         binding.backupCreate.setOnClickListener {
             if (selection() != null) startFilesForResult(saveBackup, fileName())
@@ -114,6 +121,39 @@ class BackupFragment : Fragment(R.layout.layout_backup) {
             arguments?.remove(ARG_RESTORE)
             if (savedInstanceState == null) openBackup(Uri.parse(restore))
         }
+    }
+
+    private fun styleExpressiveUi(binding: LayoutBackupBinding, root: View) {
+        val ctx = requireContext()
+        val isAmoled = Theme.isBlackTheme(ctx)
+        val screenBg = if (isAmoled) Color.BLACK else ctx.getColorAttr(android.R.attr.colorBackground)
+        root.setBackgroundColor(screenBg)
+
+        ExpressiveSettingsHelper.styleExpressiveCard(binding.backupLocalCard, cornerRadiusDp = 20f)
+        ExpressiveSettingsHelper.styleExpressiveCard(binding.backupWebdavCard, cornerRadiusDp = 20f)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.backupLocalIcon, R.drawable.ic_baseline_folder_open_24)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.backupWebdavIcon, R.drawable.ic_file_cloud_queue)
+        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.backupPartsBox, cornerRadiusDp = 16f)
+        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.backupInfoBox, cornerRadiusDp = 14f, strokeAlpha = 140)
+
+        val seedAccent = ExpressiveSettingsHelper.resolveAccentColor(ctx)
+        val textSecondary = ctx.getColorAttr(android.R.attr.textColorSecondary)
+        val checkTint = ColorStateList(
+            arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+            intArrayOf(seedAccent, textSecondary),
+        )
+        listOf(binding.backupProfiles, binding.backupRoutes, binding.backupSettings).forEach { cb ->
+            CompoundButtonCompat.setButtonTintList(cb, checkTint)
+        }
+
+        ExpressiveSettingsHelper.stylePrimaryButton(binding.backupCreate)
+        ExpressiveSettingsHelper.stylePrimaryButton(binding.backupToWebdav)
+        listOf(
+            binding.backupShare,
+            binding.backupRestore,
+            binding.restoreFromWebdav,
+            binding.webdavSettings,
+        ).forEach(ExpressiveSettingsHelper::styleOutlinedButton)
     }
 
     override fun onDestroyView() {

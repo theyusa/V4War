@@ -20,26 +20,24 @@ import io.nekohasekai.sagernet.ktx.onMainDispatcher
 import io.nekohasekai.sagernet.ktx.readableMessage
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
 import io.nekohasekai.sagernet.ktx.snackbar
+import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
+import io.nekohasekai.sagernet.ui.settings.applyExpressiveSettingsStyle
 import io.nekohasekai.sagernet.widget.applyListInsets
 import kotlinx.coroutines.launch
 import com.google.android.material.snackbar.Snackbar
 
 class WebDAVSettingsActivity : ThemedActivity() {
-    
-    private lateinit var toolbar: Toolbar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         setContentView(R.layout.layout_webdav_settings)
-        toolbar = findViewById(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.apply {
-            setTitle(R.string.webdav_settings)
-            setDisplayHomeAsUpEnabled(true)
-            setHomeAsUpIndicator(R.drawable.ic_navigation_close)
-        }
-        
+        ExpressiveSettingsHelper.attachActivityFloatingHeader(
+            this,
+            findViewById(android.R.id.content),
+            getString(R.string.webdav_settings),
+        )
+
         supportFragmentManager.beginTransaction()
             .replace(R.id.settings, WebDAVSettingsFragment())
             .commit()
@@ -72,6 +70,7 @@ class WebDAVSettingsActivity : ThemedActivity() {
         override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
             super.onViewCreated(view, savedInstanceState)
             listView.applyListInsets()
+            applyExpressiveSettingsStyle()
         }
 
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {

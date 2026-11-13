@@ -1,23 +1,29 @@
 package io.nekohasekai.sagernet.ui
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
-import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+import com.google.android.material.appbar.AppBarLayout
 import io.nekohasekai.sagernet.R
+import io.nekohasekai.sagernet.ktx.getColorAttr
+import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
 import io.nekohasekai.sagernet.ui.settings.SettingsScreenFragment
 import io.nekohasekai.sagernet.ui.settings.applyExpressiveSettingsStyle
 import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.widget.applyListInsets
 
-/** Hosts the settings root and its sub-screens; back and the toolbar arrow return to the previous screen. */
+/** Hosts the settings root and its sub-screens; back and the floating pill arrow return to the previous screen. */
 class SettingsFragment : ToolbarFragment(R.layout.layout_config_settings),
     PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
+
+    private var floatingHeader: ExpressiveSettingsHelper.FloatingPillHeader? = null
 
     private val backCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -45,6 +51,15 @@ class SettingsFragment : ToolbarFragment(R.layout.layout_config_settings),
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val ctx = requireContext()
+        val isAmoled = Theme.isBlackTheme(ctx)
+        val screenBg = if (isAmoled) Color.BLACK else ctx.getColorAttr(android.R.attr.colorBackground)
+        view.setBackgroundColor(screenBg)
+
+        val appbar = view.findViewById<AppBarLayout>(R.id.appbar)
+        appbar?.setBackgroundColor(screenBg)
+        floatingHeader = ExpressiveSettingsHelper.attachFloatingPillHeader(appbar, ctx)
+
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, backCallback)
         childFragmentManager.addOnBackStackChangedListener(backStackListener)
 
@@ -61,6 +76,7 @@ class SettingsFragment : ToolbarFragment(R.layout.layout_config_settings),
     }
 
     override fun onDestroyView() {
+        floatingHeader = null
         childFragmentManager.removeOnBackStackChangedListener(backStackListener)
         super.onDestroyView()
     }
@@ -101,23 +117,45 @@ class SettingsFragment : ToolbarFragment(R.layout.layout_config_settings),
         val nested = childFragmentManager.backStackEntryCount > 0
         backCallback.isEnabled = nested
         val current = childFragmentManager.findFragmentById(R.id.settings)
-        toolbar.title = current?.arguments?.getCharSequence(SettingsScreenFragment.ARG_TITLE)
+        val screenTitle = current?.arguments?.getCharSequence(SettingsScreenFragment.ARG_TITLE)
             ?.takeIf { nested } ?: getString(R.string.settings)
-        if (nested) {
-            toolbar.setNavigationIcon(R.drawable.baseline_arrow_back_24)
-            toolbar.setNavigationContentDescription(R.string.navigation_back)
-            toolbar.setNavigationOnClickListener { childFragmentManager.popBackStack() }
+
+        val header = floatingHeader
+        if (header != null) {
+            val iconRes = if (nested) R.drawable.baseline_arrow_back_24 else R.drawable.ic_navigation_menu
+            val iconDesc = getString(if (nested) R.string.navigation_back else R.string.navigation_open_drawer)
+
+            toolbar.visibility = View.GONE
+            header.update(
+                context = requireContext(),
+                title = screenTitle,
+                iconRes = iconRes,
+                contentDescription = iconDesc,
+            ) {
+                if (nested) {
+                    childFragmentManager.popBackStack()
+                } else {
+                    (activity as? MainActivity)?.binding?.drawerLayout?.openDrawer(GravityCompat.START)
+                }
+            }
         } else {
-            toolbar.setNavigationIcon(R.drawable.ic_navigation_menu)
-            toolbar.setNavigationContentDescription(R.string.navigation_open_drawer)
-            toolbar.setNavigationOnClickListener {
-                (activity as? MainActivity)?.binding?.drawerLayout?.openDrawer(GravityCompat.START)
+            toolbar.visibility = View.VISIBLE
+            toolbar.title = screenTitle
+            if (nested) {
+                toolbar.setNavigationIcon(R.drawable.baseline_arrow_back_24)
+                toolbar.setNavigationContentDescription(R.string.navigation_back)
+                toolbar.setNavigationOnClickListener { childFragmentManager.popBackStack() }
+            } else {
+                toolbar.setNavigationIcon(R.drawable.ic_navigation_menu)
+                toolbar.setNavigationContentDescription(R.string.navigation_open_drawer)
+                toolbar.setNavigationOnClickListener {
+                    (activity as? MainActivity)?.binding?.drawerLayout?.openDrawer(GravityCompat.START)
+                }
+            }
+            // White theme: the toolbar is white, so the navigation icon turns dark
+            if (Theme.isWhiteTheme()) {
+                toolbar.navigationIcon?.setTint(ContextCompat.getColor(requireContext(), R.color.black))
             }
         }
-        // White theme: the toolbar is white, so the navigation icon turns dark
-        if (Theme.isWhiteTheme()) {
-            toolbar.navigationIcon?.setTint(ContextCompat.getColor(requireContext(), R.color.black))
-        }
     }
-
 }

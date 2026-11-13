@@ -16,6 +16,7 @@
 
         <item name="android:colorBackground">@color/md3_background</item>
         <item name="android:windowBackground">@color/md3_background</item>
+        <item name="android:fontFamily">sans-serif</item>
         <item name="colorSurface">@color/md3_surface</item>
         <item name="android:textColorPrimary">@color/md3_text_primary</item>
         <item name="android:textColorSecondary">@color/md3_text_secondary</item>
@@ -42,6 +43,8 @@
 
         <!-- 立体卡片提升表面色，默认遵循 MD3 规范使用标准表面色 -->
         <item name="cardElevatedSurfaceColor">@color/md3_surface</item>
+        <item name="popupStrokeColor">@color/popup_dropdown_stroke</item>
+        <item name="drawerCardStrokeColor">@color/card_stroke</item>
         <item name="cardStrokeWidth">@dimen/card_stroke_width</item>
 
         <item name="accentOrTextSecondary">?colorAccent</item>
@@ -97,6 +100,10 @@
         <item name="materialCardViewStyle">@style/Widget.SagerNet.CardView</item>
         <item name="textInputStyle">@style/Widget.SagerNet.TextInputLayout</item>
         <item name="popupMenuStyle">@style/Widget.SagerNet.PopupMenu</item>
+        <item name="android:popupMenuStyle">@style/Widget.SagerNet.PopupMenu</item>
+        <item name="popupWindowStyle">@style/Widget.SagerNet.PopupWindow</item>
+        <item name="android:popupWindowStyle">@style/Widget.SagerNet.PopupWindow</item>
+        <item name="listPopupWindowStyle">@style/Widget.SagerNet.ListPopupWindow</item>
         <item name="actionOverflowMenuStyle">@style/Widget.SagerNet.PopupMenu.Overflow</item>
         <item name="bottomSheetDialogTheme">@style/ThemeOverlay.SagerNet.BottomSheetDialog</item>
         <item name="materialButtonStyle">@style/Widget.SagerNet.Button</item>
@@ -117,6 +124,7 @@
 
         <item name="android:colorBackground">@color/md3_background</item>
         <item name="android:windowBackground">@color/md3_background</item>
+        <item name="android:fontFamily">sans-serif</item>
         <item name="colorSurface">@color/md3_surface</item>
         <item name="android:textColorPrimary">@color/md3_text_primary</item>
         <item name="android:textColorSecondary">@color/md3_text_secondary</item>
@@ -140,6 +148,8 @@
 
         <!-- 立体卡片提升表面色，默认遵循 MD3 规范使用标准表面色 -->
         <item name="cardElevatedSurfaceColor">@color/md3_surface</item>
+        <item name="popupStrokeColor">@color/popup_dropdown_stroke</item>
+        <item name="drawerCardStrokeColor">@color/card_stroke</item>
         <item name="cardStrokeWidth">@dimen/card_stroke_width</item>
 
         <item name="accentOrTextSecondary">?colorAccent</item>
@@ -183,6 +193,10 @@
         <item name="materialCardViewStyle">@style/Widget.SagerNet.CardView</item>
         <item name="textInputStyle">@style/Widget.SagerNet.TextInputLayout</item>
         <item name="popupMenuStyle">@style/Widget.SagerNet.PopupMenu</item>
+        <item name="android:popupMenuStyle">@style/Widget.SagerNet.PopupMenu</item>
+        <item name="popupWindowStyle">@style/Widget.SagerNet.PopupWindow</item>
+        <item name="android:popupWindowStyle">@style/Widget.SagerNet.PopupWindow</item>
+        <item name="listPopupWindowStyle">@style/Widget.SagerNet.ListPopupWindow</item>
         <item name="actionOverflowMenuStyle">@style/Widget.SagerNet.PopupMenu.Overflow</item>
         <item name="bottomSheetDialogTheme">@style/ThemeOverlay.SagerNet.BottomSheetDialog</item>
         <item name="materialButtonStyle">@style/Widget.SagerNet.Button</item>
@@ -200,15 +214,17 @@
 
     <style name="ThemeOverlay.MaterialComponents.MaterialAlertDialog.SagerNet">
         <item name="colorSurface">?attr/cardElevatedSurfaceColor</item>
+        <item name="android:colorBackgroundFloating">?attr/cardElevatedSurfaceColor</item>
+        <item name="colorControlActivated">?attr/primaryOrTextPrimary</item>
         <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.SagerNet.Dialog</item>
         <item name="buttonBarPositiveButtonStyle">
-            @style/Widget.MaterialComponents.Button.TextButton.Dialog.Primary
+            @style/Widget.SagerNet.Button.TextButton.Dialog
         </item>
         <item name="buttonBarNegativeButtonStyle">
-            @style/Widget.MaterialComponents.Button.TextButton.Dialog.Primary
+            @style/Widget.SagerNet.Button.TextButton.Dialog
         </item>
         <item name="buttonBarNeutralButtonStyle">
-            @style/Widget.MaterialComponents.Button.TextButton.Dialog.Flush.Primary
+            @style/Widget.SagerNet.Button.TextButton.Dialog.Flush
         </item>
     </style>
 
@@ -350,6 +366,9 @@
     </style>
 
     <style name="TextAppearance.SagerNet.Toolbar.Title" parent="TextAppearance.MaterialComponents.Headline6">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
+        <item name="android:letterSpacing">0</item>
         <item name="android:textSize">16sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:includeFontPadding">false</item>
@@ -366,14 +385,21 @@
     </style>
 
     <style name="Widget.SagerNet.TabLayout.TextAppearance" parent="TextAppearance.MaterialComponents.Button">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
         <item name="android:textAllCaps">false</item>
         <item name="textAllCaps">false</item>
+        <item name="android:letterSpacing">0</item>
         <item name="android:textSize">14sp</item>
+        <item name="android:includeFontPadding">false</item>
     </style>
 
     <style name="Widget.SagerNet.TabLayout.TextAppearance.Compact" parent="TextAppearance.MaterialComponents.Button">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
         <item name="android:textAllCaps">false</item>
         <item name="textAllCaps">false</item>
+        <item name="android:letterSpacing">0</item>
         <item name="android:textSize">13sp</item>
         <item name="android:includeFontPadding">false</item>
     </style>
@@ -416,10 +442,24 @@
         <item name="android:popupBackground">@drawable/bg_popup_menu</item>
         <item name="android:popupAnimationStyle">@style/PopupMenuAnimation</item>
     </style>
+    <style name="Widget.SagerNet.PopupWindow" parent="Widget.AppCompat.PopupWindow">
+        <item name="android:popupBackground">@drawable/bg_popup_menu</item>
+        <item name="android:popupAnimationStyle">@style/PopupMenuAnimation</item>
+        <item name="android:popupElevation">6dp</item>
+    </style>
+    <style name="Widget.SagerNet.ListPopupWindow" parent="Widget.AppCompat.ListPopupWindow">
+        <item name="android:popupBackground">@drawable/bg_popup_menu</item>
+        <item name="android:dropDownVerticalOffset">4dp</item>
+    </style>
 
     <style name="ThemeOverlay.SagerNet.Popup" parent="ThemeOverlay.AppCompat.DayNight">
+        <item name="colorSurface">?attr/cardElevatedSurfaceColor</item>
+        <item name="android:colorBackground">?attr/cardElevatedSurfaceColor</item>
         <item name="android:popupBackground">@drawable/bg_popup_menu</item>
         <item name="popupMenuStyle">@style/Widget.SagerNet.PopupMenu</item>
+        <item name="popupWindowStyle">@style/Widget.SagerNet.PopupWindow</item>
+        <item name="android:popupWindowStyle">@style/Widget.SagerNet.PopupWindow</item>
+        <item name="listPopupWindowStyle">@style/Widget.SagerNet.ListPopupWindow</item>
         <item name="actionOverflowMenuStyle">@style/Widget.SagerNet.PopupMenu.Overflow</item>
     </style>
 
@@ -444,6 +484,12 @@
     </style>
     <style name="Widget.SagerNet.Button" parent="Widget.MaterialComponents.Button">
         <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.SagerNet.Button</item>
+        <item name="android:textAppearance">@style/TextAppearance.SagerNet.Button</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:includeFontPadding">false</item>
         <item name="android:textColor">?attr/colorOnPrimary</item>
         <item name="iconTint">?attr/colorOnPrimary</item>
     </style>
@@ -471,7 +517,18 @@
     </style>
 
     <style name="ThemeOverlay.SagerNet.AlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog.SagerNet">
+        <item name="colorSurface">?attr/cardElevatedSurfaceColor</item>
+        <item name="android:colorBackgroundFloating">?attr/cardElevatedSurfaceColor</item>
+        <item name="colorControlActivated">?attr/primaryOrTextPrimary</item>
         <item name="android:windowBackground">@drawable/bg_dialog</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.SagerNet.Button.TextButton.Dialog</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.SagerNet.Button.TextButton.Dialog</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.SagerNet.Button.TextButton.Dialog.Flush</item>
+    </style>
+
+    <style name="ThemeOverlay.SagerNet.AlertDialog.Amoled" parent="ThemeOverlay.SagerNet.AlertDialog">
+        <item name="colorSurface">?attr/cardElevatedSurfaceColor</item>
+        <item name="android:colorBackgroundFloating">?attr/cardElevatedSurfaceColor</item>
     </style>
 
     <style name="Theme.SagerNet.Pink_SSR" parent="Theme.SagerNet">
@@ -884,6 +941,8 @@
         <item name="whiteOrTextPrimary">@color/white</item>
         <item name="elevationOverlayEnabled">false</item>
         <item name="dialogButtonColor">@color/white</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.SagerNet.AlertDialog.Amoled</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.SagerNet.AlertDialog.Amoled</item>
         <item name="actionBarTheme">@style/ThemeOverlay.SagerNet.Toolbar.Black</item>
         <item name="actionBarPopupTheme">@style/ThemeOverlay.SagerNet.Popup</item>
         <item name="appBarLayoutStyle">@style/Widget.SagerNet.AppBarLayout.Black</item>
@@ -973,6 +1032,7 @@
         <item name="appBarLayoutStyle">@style/Widget.SagerNet.AppBarLayout.LightGray</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Black" parent="Theme.SagerNet.Dialog">
+        <item name="android:windowBackground">@drawable/bg_dialog</item>
         <item name="elevationOverlayEnabled">false</item>
         <item name="dialogButtonColor">@color/white</item>
         <item name="colorPrimary">@color/white</item>
@@ -1114,6 +1174,8 @@
         <item name="colorControlActivated">?colorPrimary</item>
 
         <item name="elevationOverlayEnabled">false</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.SagerNet.AlertDialog.Amoled</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.SagerNet.AlertDialog.Amoled</item>
         <item name="actionBarTheme">@style/ThemeOverlay.SagerNet.Toolbar.Amoled</item>
         <item name="actionBarPopupTheme">@style/ThemeOverlay.SagerNet.Popup</item>
         <item name="appBarLayoutStyle">@style/Widget.SagerNet.AppBarLayout.Black</item>
@@ -1125,6 +1187,8 @@
         <item name="cardElevatedSurfaceColor">@color/black</item>
         <item name="colorOutline">?attr/colorPrimary</item>
         <item name="profileCardStrokeColor">?attr/colorPrimary</item>
+        <item name="popupStrokeColor">@color/pure_amoled_outline_soft</item>
+        <item name="drawerCardStrokeColor">@color/pure_amoled_hairline</item>
         <item name="cardStrokeWidth">@dimen/card_stroke_width_amoled</item>
     </style>
 
@@ -1427,6 +1491,7 @@
 
     <!-- Dialog AMOLED (Normal) base & seed variants -->
     <style name="Theme.SagerNet.Dialog.Amoled" parent="Theme.SagerNet.Dialog">
+        <item name="android:windowBackground">@drawable/bg_dialog</item>
         <item name="colorSurface">@color/black</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_black</item>
         <item name="colorOutline">@color/card_stroke</item>
@@ -1448,6 +1513,8 @@
         <item name="cardElevatedSurfaceColor">@color/black</item>
         <item name="colorOutline">?attr/colorPrimary</item>
         <item name="profileCardStrokeColor">?attr/colorPrimary</item>
+        <item name="popupStrokeColor">@color/pure_amoled_outline_soft</item>
+        <item name="drawerCardStrokeColor">@color/pure_amoled_hairline</item>
         <item name="cardStrokeWidth">@dimen/card_stroke_width_amoled</item>
     </style>
 
@@ -1694,13 +1761,16 @@
     </style>
 
     <style name="TextAppearance.SagerNet.Button" parent="TextAppearance.MaterialComponents.Button">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
         <item name="android:textAllCaps">false</item>
         <item name="textAllCaps">false</item>
-        <item name="android:letterSpacing">0.00714</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:includeFontPadding">false</item>
     </style>
 
     <style name="TextAppearance.SagerNet.Tab" parent="TextAppearance.SagerNet.Button">
-        <item name="android:textSize">16sp</item>
+        <item name="android:textSize">15sp</item>
     </style>
 
     <style name="ThemeOverlay.SagerNet.Dialog.WrapHeight" parent="">
@@ -1710,6 +1780,12 @@
 
     <style name="Widget.SagerNet.Button.OutlinedButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
         <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.SagerNet.Button</item>
+        <item name="android:textAppearance">@style/TextAppearance.SagerNet.Button</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:includeFontPadding">false</item>
         <item name="android:textColor">@color/dialog_button_text</item>
         <item name="iconTint">@color/dialog_button_text</item>
         <item name="strokeColor">@color/dialog_button_text</item>
@@ -1718,6 +1794,12 @@
 
     <style name="Widget.SagerNet.Button.TextButton" parent="Widget.MaterialComponents.Button.TextButton">
         <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.SagerNet.Button</item>
+        <item name="android:textAppearance">@style/TextAppearance.SagerNet.Button</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:includeFontPadding">false</item>
         <item name="android:textColor">@color/dialog_button_text</item>
         <item name="iconTint">@color/dialog_button_text</item>
         <item name="rippleColor">@color/dialog_button_ripple</item>

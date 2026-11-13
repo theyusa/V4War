@@ -2,17 +2,31 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:paddingTop="6dp"
+    android:paddingBottom="64dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingTop="2dp"
+        android:paddingBottom="16dp">
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/backup_local_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="8dp">
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="6dp"
+            app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:strokeColor="?attr/colorOutline"
+            app:strokeWidth="?attr/cardStrokeWidth">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -20,85 +34,180 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/backup_local"
-                    android:textAppearance="?attr/textAppearanceHeadline6" />
-
-                <CheckBox
-                    android:id="@+id/backup_profiles"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:checked="true"
-                    android:text="@string/backup_part_profiles" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                <CheckBox
-                    android:id="@+id/backup_routes"
+                    <ImageView
+                        android:id="@+id/backup_local_icon"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="@null" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="@string/backup_local"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="16sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/backup_parts_box"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:checked="true"
-                    android:text="@string/backup_part_routes" />
+                    android:layout_marginTop="14dp"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="4dp">
 
-                <CheckBox
-                    android:id="@+id/backup_settings"
+                    <CheckBox
+                        android:id="@+id/backup_profiles"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="44dp"
+                        android:checked="true"
+                        android:paddingStart="6dp"
+                        android:text="@string/backup_part_profiles"
+                        android:textSize="14.5sp" />
+
+                    <View
+                        android:id="@+id/backup_divider_1"
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:alpha="0.22"
+                        android:background="?attr/colorOutline" />
+
+                    <CheckBox
+                        android:id="@+id/backup_routes"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="44dp"
+                        android:checked="true"
+                        android:paddingStart="6dp"
+                        android:text="@string/backup_part_routes"
+                        android:textSize="14.5sp" />
+
+                    <View
+                        android:id="@+id/backup_divider_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:alpha="0.22"
+                        android:background="?attr/colorOutline" />
+
+                    <CheckBox
+                        android:id="@+id/backup_settings"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="44dp"
+                        android:checked="true"
+                        android:paddingStart="6dp"
+                        android:text="@string/backup_part_settings"
+                        android:textSize="14.5sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/backup_info_box"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:checked="true"
-                    android:text="@string/backup_part_settings" />
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="10dp">
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/backup_local_summary"
-                    android:textAppearance="?attr/textAppearanceBody2"
-                    android:textColor="?android:attr/textColorSecondary" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:lineSpacingMultiplier="1.15"
+                        android:text="@string/backup_local_summary"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="12.5sp" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/backup_hotspot_note"
-                    android:textAppearance="?attr/textAppearanceBody2"
-                    android:textColor="?android:attr/textColorSecondary" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:lineSpacingMultiplier="1.15"
+                        android:text="@string/backup_hotspot_note"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="12.5sp" />
+                </LinearLayout>
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/backup_create"
                     style="@style/Widget.SagerNet.Button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="14dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:minHeight="48dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
                     android:text="@string/backup_create"
-                    app:cornerRadius="24dp" />
+                    android:textAllCaps="false"
+                    android:textSize="13.5sp"
+                    app:cornerRadius="16dp"
+                    app:icon="@drawable/ic_baseline_download_24"
+                    app:iconGravity="textStart" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal">
 
-                    <Button
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/backup_share"
                         style="@style/Widget.SagerNet.Button.OutlinedButton"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minHeight="48dp"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="10dp"
                         android:text="@string/share"
-                        app:cornerRadius="24dp" />
+                        android:textAllCaps="false"
+                        android:textSize="13sp"
+                        app:cornerRadius="16dp"
+                        app:icon="@drawable/ic_social_share"
+                        app:iconGravity="textStart"
+                        app:iconPadding="6dp" />
 
                     <Space
-                        android:layout_width="12dp"
+                        android:layout_width="10dp"
                         android:layout_height="wrap_content" />
 
-                    <Button
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/backup_restore"
                         style="@style/Widget.SagerNet.Button.OutlinedButton"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minHeight="48dp"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="10dp"
                         android:text="@string/backup_restore"
-                        app:cornerRadius="24dp" />
+                        android:textAllCaps="false"
+                        android:textSize="13sp"
+                        app:cornerRadius="16dp"
+                        app:icon="@drawable/ic_baseline_upload_24"
+                        app:iconGravity="textStart"
+                        app:iconPadding="6dp" />
 
                 </LinearLayout>
 
@@ -107,9 +216,18 @@
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/backup_webdav_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="8dp">
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="6dp"
+            app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:strokeColor="?attr/colorOutline"
+            app:strokeWidth="?attr/cardStrokeWidth">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -117,36 +235,86 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/backup_webdav"
-                    android:textAppearance="?attr/textAppearanceHeadline6" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                <Button
+                    <ImageView
+                        android:id="@+id/backup_webdav_icon"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="@null" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="@string/backup_webdav"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="16sp" />
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/backup_to_webdav"
                     style="@style/Widget.SagerNet.Button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="14dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:minHeight="48dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
                     android:text="@string/backup_to_webdav"
-                    app:cornerRadius="24dp" />
+                    android:textAllCaps="false"
+                    android:textSize="13.5sp"
+                    app:cornerRadius="16dp"
+                    app:icon="@drawable/ic_baseline_upload_24"
+                    app:iconGravity="textStart" />
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/restore_from_webdav"
                     style="@style/Widget.SagerNet.Button.OutlinedButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:maxLines="1"
+                    android:minHeight="48dp"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="10dp"
                     android:text="@string/restore_from_webdav"
-                    app:cornerRadius="24dp" />
+                    android:textAllCaps="false"
+                    android:textSize="13.5sp"
+                    app:cornerRadius="16dp"
+                    app:icon="@drawable/ic_baseline_download_24"
+                    app:iconGravity="textStart"
+                    app:iconPadding="8dp" />
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/webdav_settings"
-                    style="@style/Widget.SagerNet.Button.TextButton"
+                    style="@style/Widget.SagerNet.Button.OutlinedButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:maxLines="1"
+                    android:minHeight="48dp"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="10dp"
                     android:text="@string/webdav_settings"
-                    app:cornerRadius="24dp" />
+                    android:textAllCaps="false"
+                    android:textSize="13.5sp"
+                    app:cornerRadius="16dp"
+                    app:icon="@drawable/ic_action_settings"
+                    app:iconGravity="textStart"
+                    app:iconPadding="8dp" />
 
             </LinearLayout>
 

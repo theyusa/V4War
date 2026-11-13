@@ -6,9 +6,14 @@ import android.os.IBinder
 import io.nekohasekai.sagernet.aidl.ICoreService
 import io.nekohasekai.sagernet.aidl.ISubscriptionCallback
 import io.nekohasekai.sagernet.aidl.ITestSessionCallback
+import io.nekohasekai.sagernet.bg.proto.CoreConfigs
 import io.nekohasekai.sagernet.bg.test.TestEngine
 import io.nekohasekai.sagernet.bg.test.TestSpec
 import io.nekohasekai.sagernet.group.SubscriptionQueue
+import io.throneproj.mobile.Mobile
+import io.throneproj.mobile.ResolveRequest
+import org.json.JSONArray
+import org.json.JSONObject
 
 // Always-bindable :bg host for the probe boxes, so the main process never loads the core.
 class CoreService : Service() {
@@ -56,6 +61,43 @@ class CoreService : Service() {
         )
 
         override fun stopDiagnostics() = CoreDiagnostics.stop()
+
+        override fun resolveDomain(domain: String?): String {
+            val target = domain.orEmpty().trim()
+            val out = JSONObject()
+            val arr = JSONArray()
+            if (target.isEmpty()) {
+                out.put("ips", arr)
+                out.put("error", "Empty domain")
+                return out.toString()
+            }
+            val err = runCatching {
+                val running = CoreRuntime.running?.instance
+                val req = ResolveRequest().apply {
+                    if (running == null) {
+                        val probe = CoreConfigs.buildTest(emptyList())
+                        if (!probe.ok) error(probe.error.orEmpty())
+                        coreConfig = probe.coreConfig
+                    }
+                    addDomain(target)
+                }
+                val iter = Mobile.resolveDomains(running, CoreRuntime.platform, req)
+                var resolveErr = ""
+                if (iter.hasNext()) {
+                    val res = iter.next()
+                    resolveErr = res.error.orEmpty()
+                    val addrs = res.addresses()
+                    while (addrs.hasNext()) {
+                        val ip = addrs.next()
+                        if (ip.isNotBlank()) arr.put(ip)
+                    }
+                }
+                resolveErr
+            }.getOrElse { it.message ?: "Resolve failed" }
+            out.put("ips", arr)
+            out.put("error", err)
+            return out.toString()
+        }
     }
 
     override fun onCreate() {

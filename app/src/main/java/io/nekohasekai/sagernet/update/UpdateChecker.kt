@@ -78,10 +78,22 @@ object UpdateChecker {
 
     /** [withNotes]: also fetch the release notes, which only the updater UI shows. */
     fun check(context: Context, withNotes: Boolean = false): Result = try {
-        find(context, withNotes)
+        find(context, withNotes).also { result ->
+            if (result is Result.UpToDate || result is Result.Available) {
+                DataStore.updateLastCheckTime = System.currentTimeMillis()
+            }
+        }
     } catch (e: Exception) {
         Logs.w("Update check failed", e)
         Result.Failed(e.readableMessage)
+    }
+
+    private fun Request.Builder.applyGithubAuth(): Request.Builder {
+        val token = DataStore.updateGithubToken.trim()
+        if (token.isNotEmpty()) {
+            header("Authorization", "Bearer $token")
+        }
+        return this
     }
 
     private fun find(context: Context, withNotes: Boolean): Result {
@@ -162,6 +174,7 @@ object UpdateChecker {
         val request = Request.Builder().url(url)
             .header("Accept", "application/vnd.github.raw+json")
             .header("User-Agent", USER_AGENT)
+            .applyGithubAuth()
             .build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
@@ -187,6 +200,7 @@ object UpdateChecker {
         val request = Request.Builder().url(RELEASES_API)
             .header("Accept", "application/vnd.github+json")
             .header("User-Agent", USER_AGENT)
+            .applyGithubAuth()
             .apply { cached?.optString("etag")?.takeIf { it.isNotEmpty() }?.let { header("If-None-Match", it) } }
             .build()
         val body = client.newCall(request).execute().use { response ->
