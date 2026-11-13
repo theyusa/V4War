@@ -32,7 +32,7 @@ class RootBackend(
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
     private val shellExecutor: ShellExecutor = LibsuShellExecutor,
     private val failClosedAction: () -> FailClosedAction = { FailClosedAction.BLOCK_TRAFFIC },
-) : HotspotShare {
+) : PausableHotspotShare, HotspotControllingBackend {
 
     override val method: ShareMethod = ShareMethod.ROOT
 
@@ -130,17 +130,22 @@ class RootBackend(
         _state.value = ShareState.Active(ShareMethod.ROOT)
     }
 
-    override suspend fun stop(): Unit = withContext(Dispatchers.IO) {
+    override suspend fun stop(): Unit = stopInternal(stopHotspot = false)
+
+    override suspend fun stopHotspotByUser(): Unit = stopInternal(stopHotspot = true)
+
+    private suspend fun stopInternal(stopHotspot: Boolean): Unit = withContext(Dispatchers.IO) {
         stopWatcher()
         unregisterTetherReceiver()
 
-        // Preserve fail-closed DROP rules during controller mirror auto-teardown;
-        // explicit user stop in HotspotShareController calls RootBackend.cleanupLegacyRules().
-        if (!isFailClosedBlocked) {
+        // Preserve fail-closed DROP rules during internal/controller teardown unless
+        // user explicitly turned sharing OFF (stopHotspot = true).
+        if (stopHotspot) {
+            isFailClosedBlocked = false
+            stopHotspot()
             shellExecutor.exec(RootRules.buildTeardownCommands())
-            if (autoStartedHotspot) {
-                stopHotspot()
-            }
+        } else if (!isFailClosedBlocked) {
+            shellExecutor.exec(RootRules.buildTeardownCommands())
         }
         autoStartedHotspot = false
         activeVpn = null
@@ -226,7 +231,7 @@ class RootBackend(
             shellExecutor.exec(RootRules.buildTeardownCommands())
             stopHotspot()
         } else {
-            // Default: BLOCK_TRAFFIC — stays armed across controller teardown until user turns sharing off
+            // Default: BLOCK_TRAFFIC — keep Hotspot up behind DROP lock so we can auto-resume when VPN returns
             isFailClosedBlocked = true
             val ifacesToBlock = appliedIfaces.ifEmpty { resolveTetheredInterfaces().toSet() }
             shellExecutor.exec(RootRules.buildBlockTrafficCommands(ifacesToBlock))
@@ -235,6 +240,44 @@ class RootBackend(
         _state.value = ShareState.Stopped(
             ShareFailure.VPN_LOST,
         )
+    }
+
+    override suspend fun pauseForVpnDrop() {
+        handleVpnDropped(FailClosedAction.BLOCK_TRAFFIC)
+    }
+
+    /**
+     * Re-arms NAT & FORWARD rules after VPN reconnects from a fail-closed BLOCK_TRAFFIC pause.
+     */
+    override suspend fun resumeAfterVpnDrop(): Boolean = withContext(Dispatchers.IO) {
+        val ifaces = appliedIfaces.ifEmpty { resolveTetheredInterfaces().toSet() }
+        if (ifaces.isEmpty()) return@withContext false
+
+        var routeOut: List<String> = emptyList()
+        var vpnRoute: VpnRouteInfo? = null
+        repeat(8) {
+            val res = shellExecutor.exec("ip route show table all")
+            vpnRoute = RootRules.parseVpnRoute(res.out)
+            if (vpnRoute != null) {
+                routeOut = res.out
+                return@repeat
+            }
+            delay(500L)
+        }
+        val resolvedVpn = vpnRoute ?: return@withContext false
+        val subnets = RootRules.parseHotspotSubnets(routeOut, ifaces)
+        val cmds = RootRules.buildSetupCommands(resolvedVpn, ifaces, subnets)
+        if (!shellExecutor.exec(cmds).isSuccess) {
+            return@withContext false
+        }
+
+        isFailClosedBlocked = false
+        activeVpn = resolvedVpn
+        appliedIfaces = ifaces
+        registerTetherReceiver()
+        startWatcher()
+        _state.value = ShareState.Active(ShareMethod.ROOT)
+        true
     }
 
     private fun stopHotspot() {
@@ -271,7 +314,10 @@ class RootBackend(
                         ?: emptyList()
 
                     if (activeList.isEmpty() && _state.value is ShareState.Active) {
-                        _state.value = ShareState.Stopped(ShareFailure.TETHER_LOST)
+                        delay(TETHER_LOSS_DEBOUNCE_MS)
+                        if (_state.value is ShareState.Active && resolveTetheredInterfaces().isEmpty()) {
+                            _state.value = ShareState.Stopped(ShareFailure.TETHER_LOST)
+                        }
                     }
                 }
             }
@@ -294,13 +340,31 @@ class RootBackend(
     companion object {
         private const val WATCHER_INTERVAL_MS = 3_000L
         private const val TETHER_WAIT_TIMEOUT_MS = 10_000L
+        private const val TETHER_LOSS_DEBOUNCE_MS = 2_000L
+        private const val ROOT_CACHE_TTL_MS = 30_000L
 
-        fun isRootAvailable(): Boolean {
-            return try {
+        @Volatile
+        private var cachedRootResult: Boolean? = null
+
+        @Volatile
+        private var cachedRootCheckedAtMs: Long = 0L
+
+        fun isRootAvailable(forceRefresh: Boolean = false): Boolean {
+            if (!forceRefresh) {
+                val cached = cachedRootResult
+                val ageMs = (System.nanoTime() / 1_000_000L) - cachedRootCheckedAtMs
+                if (cached != null && (cached || ageMs < ROOT_CACHE_TTL_MS)) {
+                    return cached
+                }
+            }
+            val result = try {
                 com.topjohnwu.superuser.Shell.isAppGrantedRoot() == true || LibsuShellExecutor.isRoot()
             } catch (_: Throwable) {
                 false
             }
+            cachedRootResult = result
+            cachedRootCheckedAtMs = System.nanoTime() / 1_000_000L
+            return result
         }
 
         fun cleanupLegacyRules(executor: ShellExecutor = LibsuShellExecutor) {

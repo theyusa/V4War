@@ -19,7 +19,7 @@ interface LanProxyControl {
  * same switch as LanSharingActivity; clients still enter the proxy by hand (or use auto connect). It never touches the
  * hotspot or the routing tables.
  */
-class LanProxyBackend(private val control: LanProxyControl = DataStoreLanProxyControl) : HotspotShare {
+class LanProxyBackend(private val control: LanProxyControl = DataStoreLanProxyControl) : PausableHotspotShare {
 
     override val method = ShareMethod.LAN_PROXY
 
@@ -33,6 +33,20 @@ class LanProxyBackend(private val control: LanProxyControl = DataStoreLanProxyCo
             _state.value = ShareState.Active(ShareMethod.LAN_PROXY)
         } catch (e: Exception) {
             _state.value = ShareState.Error(ShareFailure.BACKEND_FAILED, e.message)
+        }
+    }
+
+    override suspend fun pauseForVpnDrop() {
+        _state.value = ShareState.Stopped(ShareFailure.VPN_LOST)
+    }
+
+    override suspend fun resumeAfterVpnDrop(): Boolean {
+        return try {
+            control.setLanAccess(true)
+            _state.value = ShareState.Active(ShareMethod.LAN_PROXY)
+            true
+        } catch (_: Exception) {
+            false
         }
     }
 

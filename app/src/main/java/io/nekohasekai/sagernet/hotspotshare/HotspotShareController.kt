@@ -31,14 +31,24 @@ class HotspotShareController(
     private var backend: HotspotShare? = null
     private var mirror: Job? = null
 
+    @Volatile
+    var isPausedForVpnDrop: Boolean = false
+        private set
+
     suspend fun start() = mutex.withLock {
         if (backend != null) return@withLock
+        isPausedForVpnDrop = false
         startInternal()
     }
 
     /** Tears down any running backend and starts fresh with the current preference and environment. */
     suspend fun restart() = mutex.withLock {
+        val hadPausedRoot = isPausedForVpnDrop && backend is RootBackend
+        isPausedForVpnDrop = false
         teardown()
+        if (hadPausedRoot) {
+            runCatching { RootBackend.cleanupLegacyRules() }
+        }
         startInternal()
     }
 
@@ -71,7 +81,17 @@ class HotspotShareController(
                 }
                 publish(backendState)
                 if (backendState is ShareState.Error || backendState is ShareState.Stopped) {
-                    scope.launch { mutex.withLock { if (backend === created) teardown() } }
+                    if (isPausedForVpnDrop && backendState == ShareState.Stopped(ShareFailure.VPN_LOST)) {
+                        return@collect
+                    }
+                    scope.launch {
+                        mutex.withLock {
+                            if (backend === created) {
+                                isPausedForVpnDrop = false
+                                teardown()
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -96,23 +116,77 @@ class HotspotShareController(
         }
     }
 
-    /** The user turned sharing off: tear down and report [ShareState.Off]. */
-    suspend fun stop() = mutex.withLock {
+    /** The user turned sharing off: tear down (and close hotspot if requested) and report [ShareState.Off]. */
+    suspend fun stop(stopHotspot: Boolean = false) = mutex.withLock {
         val currentBackend = backend
-        teardown()
-        // If Root fail-closed held DROP rules after a VPN drop (so backend was already cleared),
+        val wasPaused = isPausedForVpnDrop
+        isPausedForVpnDrop = false
+        teardown(stopHotspot = stopHotspot)
+        // If Root fail-closed held DROP rules after a VPN drop,
         // user turning sharing OFF explicitly removes those firewall rules too.
         val hasRoot = withContext(Dispatchers.IO) { environment().rootAvailable }
-        if (currentBackend == null && hasRoot) {
+        if ((currentBackend == null || (wasPaused && currentBackend is RootBackend)) && hasRoot) {
             runCatching { RootBackend.cleanupLegacyRules() }
         }
         publish(ShareState.Off)
     }
 
-    /** Tears down the active backend after an external failure (e.g. VPN or hotspot drop) and publishes [ShareState.Stopped]. */
+    /**
+     * Pauses sharing fail-closed (`BLOCK_TRAFFIC`) on VPN drop while keeping Hotspot + leak lock
+     * alive so sharing can auto-resume when VPN reconnects.
+     */
+    suspend fun suspendForVpnDrop() = mutex.withLock {
+        val current = backend ?: return@withLock
+        if (current is PausableHotspotShare) {
+            isPausedForVpnDrop = true
+            current.pauseForVpnDrop()
+            publish(ShareState.Stopped(ShareFailure.VPN_LOST))
+        } else {
+            isPausedForVpnDrop = false
+            teardown()
+            publish(ShareState.Stopped(ShareFailure.VPN_LOST))
+        }
+    }
+
+    /**
+     * Resumes a fail-closed paused backend once the VPN comes back up.
+     */
+    suspend fun resumeFromVpnDrop(): Boolean = mutex.withLock {
+        if (!isPausedForVpnDrop) return@withLock false
+        val current = backend ?: run {
+            isPausedForVpnDrop = false
+            return@withLock false
+        }
+        val resumed = if (current is PausableHotspotShare) {
+            current.resumeAfterVpnDrop()
+        } else {
+            false
+        }
+        if (resumed) {
+            isPausedForVpnDrop = false
+            publish(ShareState.Active(current.method))
+            true
+        } else {
+            isPausedForVpnDrop = false
+            teardown()
+            publish(ShareState.Stopped(ShareFailure.VPN_LOST))
+            false
+        }
+    }
+
+    /** Tears down the active backend after an external failure (e.g. VPN or hotspot drop) without closing hotspot, and publishes [ShareState.Stopped]. */
     suspend fun stopDueToFailure(failure: ShareFailure) = mutex.withLock {
-        if (backend == null && _state.value !is ShareState.Active) return@withLock
-        teardown()
+        if (backend == null && _state.value !is ShareState.Active && !isPausedForVpnDrop) return@withLock
+        val current = backend
+        val wasPausedRoot = isPausedForVpnDrop && current is RootBackend
+        isPausedForVpnDrop = false
+        if (failure == ShareFailure.VPN_LOST && current is RootBackend) {
+            runCatching { current.handleVpnDropped(FailClosedAction.BLOCK_TRAFFIC) }
+        }
+        teardown(stopHotspot = false)
+        if (wasPausedRoot) {
+            runCatching { RootBackend.cleanupLegacyRules() }
+        }
         publish(ShareState.Stopped(failure))
     }
 
@@ -139,13 +213,17 @@ class HotspotShareController(
     }
 
     /** Ends the backend without touching the published state, so an Error or Stopped stays visible. */
-    private suspend fun teardown() {
+    private suspend fun teardown(stopHotspot: Boolean = false) {
         val current = backend ?: return
         backend = null
         mirror?.cancel()
         mirror = null
         try {
-            current.stop()
+            if (stopHotspot && current is HotspotControllingBackend) {
+                current.stopHotspotByUser()
+            } else {
+                current.stop()
+            }
         } catch (_: Exception) {
             // The backend is gone either way; its own cleanup must be idempotent for the next start.
         }

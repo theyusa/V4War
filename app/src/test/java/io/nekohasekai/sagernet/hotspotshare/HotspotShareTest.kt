@@ -155,6 +155,44 @@ class HotspotShareControllerTest {
         }
     }
 
+    private class FakePausableBackend(
+        override val method: ShareMethod,
+        var allowResume: Boolean = true,
+    ) : PausableHotspotShare {
+        private val _state = MutableStateFlow<ShareState>(ShareState.Off)
+        override val state: StateFlow<ShareState> = _state.asStateFlow()
+        var startCalls = 0
+        var pauseCalls = 0
+        var resumeCalls = 0
+        var stopCalls = 0
+
+        override suspend fun start() {
+            startCalls++
+            _state.value = ShareState.Active(method)
+        }
+
+        override suspend fun pauseForVpnDrop() {
+            pauseCalls++
+            _state.value = ShareState.Stopped(ShareFailure.VPN_LOST)
+        }
+
+        override suspend fun resumeAfterVpnDrop(): Boolean {
+            resumeCalls++
+            if (!allowResume) return false
+            _state.value = ShareState.Active(method)
+            return true
+        }
+
+        override suspend fun stop() {
+            stopCalls++
+            _state.value = ShareState.Off
+        }
+
+        fun drop(cause: ShareFailure) {
+            _state.value = ShareState.Stopped(cause)
+        }
+    }
+
     private val job = SupervisorJob()
     private val scope = CoroutineScope(job + Dispatchers.Unconfined)
     private val published = mutableListOf<ShareState>()
@@ -320,5 +358,158 @@ class HotspotShareControllerTest {
         ctrl.stopDueToFailure(ShareFailure.TETHER_LOST)
         assertEquals(ShareState.Stopped(ShareFailure.TETHER_LOST), ctrl.state.value)
         assertEquals(1, backend.stopCalls)
+    }
+
+    @Test
+    fun suspendForVpnDropKeepsBackendAliveAndResumesOnReconnect() = runBlocking {
+        val backend = FakePausableBackend(ShareMethod.SHIZUKU)
+        val ctrl = controller(
+            pref = SharePreference.SHIZUKU,
+            env = ShareEnvironment(34, shizukuRunning = true, shizukuGranted = true, rootAvailable = false),
+        ) { backend }
+        ctrl.start()
+        assertEquals(ShareState.Active(ShareMethod.SHIZUKU), ctrl.state.value)
+
+        ctrl.suspendForVpnDrop()
+        assertTrue(ctrl.isPausedForVpnDrop)
+        assertEquals(1, backend.pauseCalls)
+        assertEquals(0, backend.stopCalls)
+        assertEquals(ShareState.Stopped(ShareFailure.VPN_LOST), ctrl.state.value)
+
+        assertTrue(ctrl.resumeFromVpnDrop())
+        assertFalse(ctrl.isPausedForVpnDrop)
+        assertEquals(1, backend.resumeCalls)
+        assertEquals(0, backend.stopCalls)
+        assertEquals(ShareState.Active(ShareMethod.SHIZUKU), ctrl.state.value)
+    }
+
+    @Test
+    fun suspendForVpnDropCleansUpIfTetherDropsOrUserStops() = runBlocking {
+        val backend = FakePausableBackend(ShareMethod.SHIZUKU)
+        val ctrl = controller(
+            pref = SharePreference.SHIZUKU,
+            env = ShareEnvironment(34, shizukuRunning = true, shizukuGranted = true, rootAvailable = false),
+        ) { backend }
+        ctrl.start()
+        ctrl.suspendForVpnDrop()
+        assertTrue(ctrl.isPausedForVpnDrop)
+
+        backend.drop(ShareFailure.TETHER_LOST)
+        assertFalse(ctrl.isPausedForVpnDrop)
+        assertEquals(1, backend.stopCalls)
+        assertEquals(ShareState.Stopped(ShareFailure.TETHER_LOST), ctrl.state.value)
+
+        // Start again, pause, then explicit stop cleans up
+        ctrl.start()
+        ctrl.suspendForVpnDrop()
+        assertTrue(ctrl.isPausedForVpnDrop)
+        ctrl.stop()
+        assertFalse(ctrl.isPausedForVpnDrop)
+        assertEquals(2, backend.stopCalls)
+        assertEquals(ShareState.Off, ctrl.state.value)
+    }
+
+    private class FakeControllingBackend(
+        override val method: ShareMethod,
+    ) : HotspotControllingBackend, PausableHotspotShare {
+        private val _state = MutableStateFlow<ShareState>(ShareState.Off)
+        override val state: StateFlow<ShareState> = _state.asStateFlow()
+        var stopCalls = 0
+        var stopHotspotByUserCalls = 0
+        var pauseCalls = 0
+        var resumeCalls = 0
+
+        override suspend fun start() {
+            _state.value = ShareState.Active(method)
+        }
+
+        override suspend fun pauseForVpnDrop() {
+            pauseCalls++
+            _state.value = ShareState.Stopped(ShareFailure.VPN_LOST)
+        }
+
+        override suspend fun resumeAfterVpnDrop(): Boolean {
+            resumeCalls++
+            _state.value = ShareState.Active(method)
+            return true
+        }
+
+        override suspend fun stop() {
+            stopCalls++
+            _state.value = ShareState.Off
+        }
+
+        override suspend fun stopHotspotByUser() {
+            stopHotspotByUserCalls++
+            _state.value = ShareState.Off
+        }
+    }
+
+    @Test
+    fun stopWithHotspotClosesHotspotOnlyWhenUserStops() = runBlocking {
+        val backend = FakeControllingBackend(ShareMethod.SHIZUKU)
+        val ctrl = controller(
+            pref = SharePreference.SHIZUKU,
+            env = ShareEnvironment(34, shizukuRunning = true, shizukuGranted = true, rootAvailable = false),
+        ) { backend }
+
+        ctrl.start()
+        ctrl.stopDueToFailure(ShareFailure.TETHER_LOST)
+        assertEquals(1, backend.stopCalls)
+        assertEquals(0, backend.stopHotspotByUserCalls)
+
+        ctrl.start()
+        ctrl.stop(stopHotspot = false)
+        assertEquals(2, backend.stopCalls)
+        assertEquals(0, backend.stopHotspotByUserCalls)
+
+        ctrl.start()
+        ctrl.stop(stopHotspot = true)
+        assertEquals(2, backend.stopCalls)
+        assertEquals(1, backend.stopHotspotByUserCalls)
+        assertEquals(ShareState.Off, ctrl.state.value)
+    }
+
+    @Test
+    fun lanProxyBackendPausesOnVpnDropAndResumesOnReconnect() = runBlocking {
+        var lan = false
+        val backend = LanProxyBackend(object : LanProxyControl {
+            override fun isLanAccess() = lan
+            override fun setLanAccess(enabled: Boolean) { lan = enabled }
+        })
+        val ctrl = controller { backend }
+
+        ctrl.start()
+        assertTrue(lan)
+        assertEquals(ShareState.Active(ShareMethod.LAN_PROXY), ctrl.state.value)
+
+        ctrl.suspendForVpnDrop()
+        assertTrue(ctrl.isPausedForVpnDrop)
+        assertTrue(lan)
+        assertEquals(ShareState.Stopped(ShareFailure.VPN_LOST), ctrl.state.value)
+
+        assertTrue(ctrl.resumeFromVpnDrop())
+        assertFalse(ctrl.isPausedForVpnDrop)
+        assertTrue(lan)
+        assertEquals(ShareState.Active(ShareMethod.LAN_PROXY), ctrl.state.value)
+
+        ctrl.stop(stopHotspot = true)
+        assertFalse(lan)
+        assertEquals(ShareState.Off, ctrl.state.value)
+    }
+
+    @Test
+    fun failureTeardownPreservesHotspotAndNeverCallsStopHotspotByUser() = runBlocking {
+        val backend = FakeControllingBackend(ShareMethod.SHIZUKU)
+        val ctrl = controller(
+            pref = SharePreference.SHIZUKU,
+            env = ShareEnvironment(34, shizukuRunning = true, shizukuGranted = true, rootAvailable = false),
+        ) { backend }
+
+        ctrl.start()
+        ctrl.stopDueToFailure(ShareFailure.BACKEND_FAILED)
+        assertEquals(1, backend.stopCalls)
+        assertEquals(0, backend.stopHotspotByUserCalls)
+        assertEquals(ShareState.Stopped(ShareFailure.BACKEND_FAILED), ctrl.state.value)
     }
 }

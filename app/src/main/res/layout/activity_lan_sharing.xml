@@ -12,8 +12,10 @@
         android:layout_height="wrap_content" />
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollLanSharing"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:clipToPadding="false"
         android:fillViewport="true"
         android:scrollbars="none">
 
@@ -22,56 +24,75 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="24dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="28dp"
             tools:context=".ui.LanSharingActivity">
 
-            <!-- Hero: status circle + title + subtitle -->
-            <LinearLayout
+            <!-- Hero overview card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardHero"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <FrameLayout
-                    android:id="@+id/iconCircleContainer"
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:background="@drawable/bg_circle_soft">
-
-                    <ImageView
-                        android:id="@+id/imgHeroStatus"
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:layout_gravity="center"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_communication_phonelink_ring"
-                        app:tint="?attr/primaryOrTextPrimary" />
-                </FrameLayout>
+                app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="?attr/cardStrokeWidth">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:orientation="vertical">
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
 
-                    <TextView
-                        android:id="@+id/textHeroTitle"
-                        style="@style/TextAppearance.MaterialComponents.Headline5"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/lan_sharing"
-                        android:textStyle="bold" />
+                    <ImageView
+                        android:id="@+id/imgHeroStatus"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
+                        android:layout_marginEnd="12dp"
+                        android:importantForAccessibility="no" />
 
-                    <TextView
-                        android:id="@+id/textHeroSubtitle"
-                        style="@style/TextAppearance.MaterialComponents.Body2"
-                        android:layout_width="match_parent"
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="@string/lan_sharing_inactive"
-                        android:textColor="?android:attr/textColorSecondary" />
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/textHeroTitle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="@string/lan_sharing"
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textSize="15.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/textHeroSubtitle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/lan_sharing_inactive"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="12.5sp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRefreshLan"
+                        style="@style/Widget.SagerNet.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minHeight="40dp"
+                        android:paddingHorizontal="14dp"
+                        android:text="@string/ip_lookup_refresh"
+                        android:textSize="12.5sp" />
                 </LinearLayout>
-            </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Service category -->
             <LinearLayout
@@ -189,22 +210,21 @@
                         android:id="@+id/rowShareMethod"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:layout_marginTop="12dp"
+                        android:orientation="vertical">
 
                         <TextView
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
                             android:text="@string/hotspot_share_method_label"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
 
                         <androidx.appcompat.widget.AppCompatSpinner
                             android:id="@+id/spinnerShareMethod"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp" />
                     </LinearLayout>
 
                     <!-- Fail-closed action row -->
@@ -213,21 +233,20 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:orientation="vertical">
 
                         <TextView
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
                             android:text="@string/hotspot_share_fail_closed_label"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
 
                         <androidx.appcompat.widget.AppCompatSpinner
                             android:id="@+id/spinnerFailClosed"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp" />
                     </LinearLayout>
 
                     <!-- Traffic stats layout -->
@@ -611,10 +630,10 @@
 
                     <!-- Hotspot SOCKS5 Share Link section -->
                     <LinearLayout
+                        android:id="@+id/boxHotspotSocksLink"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:background="@drawable/bg_badge_soft"
                         android:orientation="vertical"
                         android:padding="12dp">
 
@@ -820,10 +839,10 @@
 
                     <!-- Wi-Fi SOCKS5 Share Link section -->
                     <LinearLayout
+                        android:id="@+id/boxWifiSocksLink"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:background="@drawable/bg_badge_soft"
                         android:orientation="vertical"
                         android:padding="12dp">
 

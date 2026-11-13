@@ -106,17 +106,54 @@ class UpstreamTolerance(
  */
 class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
 
+    @Volatile
+    private var procArpBlocked: Boolean = false
+
     fun observeTethering(): UpstreamObservation = runDumpsys("tethering")
 
     fun observeWifiClientCount(): Int {
-        val obs = runDumpsys("wifi")
-        if (obs.didTimeout) return 0
-        return parseWifiClientCount(obs.rawOutput)
+        // Stream dumpsys wifi line-by-line with a tight deadline instead of buffering
+        // multi-megabyte Wi-Fi logs in memory; extract max getConnectedClientList().size().
+        val process = runCatching { ProcessBuilder("dumpsys", "wifi").start() }.getOrNull()
+            ?: return 0
+        var maxClients = 0
+        val drainThread = Thread {
+            runCatching {
+                process.inputStream.bufferedReader().useLines { lines ->
+                    for (line in lines) {
+                        val match = CONNECTED_CLIENTS_PATTERN.find(line) ?: continue
+                        val count = match.groupValues[1].toIntOrNull() ?: continue
+                        if (count > maxClients) maxClients = count
+                    }
+                }
+            }
+        }.apply {
+            isDaemon = true
+            start()
+        }
+        runCatching { process.errorStream.close() }
+        val completed = runCatching {
+            process.waitFor(WIFI_COUNT_DEADLINE_MS, TimeUnit.MILLISECONDS)
+        }.getOrDefault(false)
+        if (!completed) {
+            runCatching { process.destroyForcibly() }
+        }
+        runCatching { drainThread.join(200) }
+        return maxClients
     }
 
     fun observeNeighbors(): String {
         val neigh = runShellCommand(listOf("ip", "-4", "neigh", "show")).rawOutput
-        val arp = runCatching { File("/proc/net/arp").readText() }.getOrDefault("")
+        val arp = if (procArpBlocked) {
+            ""
+        } else {
+            try {
+                File("/proc/net/arp").readText()
+            } catch (_: Throwable) {
+                procArpBlocked = true
+                ""
+            }
+        }
         return buildString {
             if (neigh.isNotBlank()) {
                 append(neigh)
@@ -164,6 +201,7 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
 
     companion object {
         const val DEFAULT_DEADLINE_MS = 3_000L
+        const val WIFI_COUNT_DEADLINE_MS = 1_200L
 
         private val UPSTREAM_HINTS = listOf(
             "current upstream interface(s):",
@@ -174,10 +212,10 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
         )
 
         private val INTERFACE_PATTERN =
-            Regex("""\b(testtun\d+|wlan\d+|rmnet[a-z_]*\d*|eth\d+|ap\d+|swlan\d+)\b""")
+            Regex("""\b(testtun\d+|v4-[a-z0-9_]+|wlan\d+|rmnet[a-z_]*\d*|ccmni[a-z_]*\d*|eth\d+|ap\d+|swlan\d+|softap\d*|rndis\d*|usb\d+)\b""")
 
         private val TETHERED_STATE_PATTERN =
-            Regex("""^\s*([\w.-]+)\s+-\s+TetheredState\s+-""")
+            Regex("""^\s*([\w.-]+)\s+-\s+TetheredState(?:\s+-|\b)""")
 
         private val CONNECTED_CLIENTS_PATTERN =
             Regex("""getConnectedClientList\(\)\.size\(\):\s*(\d+)""")
@@ -207,6 +245,34 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
             return CONNECTED_CLIENTS_PATTERN.findAll(output)
                 .mapNotNull { match -> match.groupValues[1].toIntOrNull() }
                 .maxOrNull() ?: 0
+        }
+
+        /**
+         * Translates a single tethering observation into the IPC health status string.
+         * Never reports DOWNSTREAM_OFF while Wi-Fi SoftAp is still active, even if
+         * dumpsys tethering omits TetheredState lines on OEM firmware (e.g. HyperOS/MIUI).
+         */
+        @JvmStatic
+        fun evaluateUpstreamHealth(
+            obs: UpstreamObservation,
+            expectedIface: String,
+            existsCheck: ((String) -> Boolean)? = null,
+            isWifiHotspotActive: () -> Boolean,
+        ): String {
+            val live = if (existsCheck != null) {
+                obs.liveInterfaceNames(expectedIface, existsCheck)
+            } else {
+                obs.liveInterfaceNames(expectedIface)
+            }
+            return when (classifyUpstream(live, expectedIface, obs.didTimeout)) {
+                UpstreamReading.HEALTHY -> "HEALTHY"
+                UpstreamReading.ABSENT -> when {
+                    obs.tetheredDownstreams.isNotEmpty() || isWifiHotspotActive() -> "AWAITING"
+                    else -> "DOWNSTREAM_OFF"
+                }
+                UpstreamReading.TIMED_OUT -> "TIMED_OUT"
+                UpstreamReading.DRIFTED -> "DRIFTED:${live.joinToString(",")}"
+            }
         }
     }
 }

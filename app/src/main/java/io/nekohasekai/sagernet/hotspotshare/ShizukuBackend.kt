@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.ServiceConnection
 import android.os.IBinder
+import android.os.ParcelFileDescriptor
 import android.util.Log
 import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.SagerNet
@@ -30,24 +31,24 @@ import kotlinx.coroutines.withTimeoutOrNull
 import rikka.shizuku.Shizuku
 import java.net.InetSocketAddress
 import java.net.Socket
-import kotlin.math.max
 
 /**
  * Rootless HotspotShare backend using Shizuku UserService to control AOSP
  * TestNetworkManager and TetheringManager under shell UID (2000).
  *
- * Incorporates carlelieser/shizzi's production reliability mechanisms:
+ * Includes full lifecycle hardening:
  * - Contract version check & stale daemon replacement
- * - Dual-stack TUN + keep-alive NetworkRequest in ShareUserService
+ * - IPv4-only TUN + IPv4 routes/DNS + keep-alive NetworkRequest in ShareUserService
+ * - Preserves already-active hotspot on attach; starts SoftAp only when closed
  * - Upstream verification (`verifyUpstream`) after tethering starts
- * - Periodic `UpstreamTolerance` watchdog to prevent cellular/Wi-Fi drift leaks
- * - Actual `testtunN` interface name tracking for `/proc/net/dev` counters
+ * - Periodic `UpstreamTolerance` + debounced downstream watchdog
+ * - Stops hotspot ONLY when user explicitly turns sharing off ([stopHotspotByUser])
  */
 class ShizukuBackend(
     private val context: Context,
     private val hevTunnel: HevTunnel = HevTunnel(context),
     private val socksPort: Int = 2088,
-) : HotspotShare {
+) : PausableHotspotShare, HotspotControllingBackend {
 
     override val method: ShareMethod = ShareMethod.SHIZUKU
 
@@ -58,13 +59,24 @@ class ShizukuBackend(
     private var watchdogJob: Job? = null
 
     private var userService: IShareUserService? = null
+    @Volatile
+    private var userServiceBinder: IBinder? = null
     private var boundArgs: Shizuku.UserServiceArgs? = null
+    private var sessionTunPfd: ParcelFileDescriptor? = null
+
+    @Volatile
+    private var pausedForVpnDrop = false
+    @Volatile
+    private var intentionalUnbind = false
+    @Volatile
+    private var linkDeathOnConnect = true
 
     @Volatile
     var activeInterfaceName: String? = null
         private set
 
     private val deathRecipient = IBinder.DeathRecipient {
+        if (intentionalUnbind) return@DeathRecipient
         backendScope.launch {
             handleUnexpectedServiceDeath()
         }
@@ -74,20 +86,29 @@ class ShizukuBackend(
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val stub = IShareUserService.Stub.asInterface(service)
             userService = stub
+            userServiceBinder = service
             activeServiceInstance = stub
-            try {
-                service?.linkToDeath(deathRecipient, 0)
-            } catch (_: Throwable) {
+            if (linkDeathOnConnect && !intentionalUnbind) {
+                runCatching { service?.linkToDeath(deathRecipient, 0) }
             }
             connectDeferred?.complete(stub)
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
+            unlinkDeathRecipient()
             if (activeServiceInstance === userService) {
                 activeServiceInstance = null
             }
             userService = null
             connectDeferred = null
+        }
+    }
+
+    private fun unlinkDeathRecipient() {
+        val binder = userServiceBinder
+        userServiceBinder = null
+        if (binder != null) {
+            runCatching { binder.unlinkToDeath(deathRecipient, 0) }
         }
     }
 
@@ -122,82 +143,99 @@ class ShizukuBackend(
         // 2.5. Ensure sing-box loopback SOCKS inbound (2088) is actually listening
         // (critical if VPN started before Hotspot Share was enabled).
         if (!ensureLoopbackSocksReady()) {
-            _state.value = ShareState.Error(
+            abortStartSession(
+                service,
                 ShareFailure.VPN_NOT_RUNNING,
                 "127.0.0.1:$socksPort dahili SOCKS girişi hazır değil. Lütfen VPN bağlantısını başlatın."
             )
             return@withContext
         }
 
-        // 3. Create dual-stack test network TUN + TRANSPORT_TEST keep-alive
+        // 3. Record whether SoftAp is already open, create dual-stack test network TUN +
+        // TRANSPORT_TEST keep-alive, and start hev-socks5-tunnel FIRST so packets arriving on
+        // upstream attachment already have a live datapath (mirrors carlelieser/shizzi).
+        val hotspotWasAlreadyOpen = runCatching { service.isWifiHotspotActive() }.getOrDefault(false)
+
         val tunPfd = try {
-            service.createTestNetwork(listOf("1.1.1.1", "8.8.8.8"))
-        } catch (t: Throwable) {
-            safeCleanup(service)
-            _state.value = ShareState.Error(
-                ShareFailure.BACKEND_FAILED,
-                "Failed to create Test Network: ${t.message}"
+            service.createTestNetwork(
+                listOf("1.1.1.1", "8.8.8.8", "2606:4700:4700::1111", "2001:4860:4860::8888"),
             )
+        } catch (t: Throwable) {
+            abortStartSession(service, ShareFailure.BACKEND_FAILED, "Failed to create Test Network: ${t.message}")
             return@withContext
         }
 
         val ifaceName = runCatching { service.interfaceName }.getOrNull() ?: "testtun0"
         activeInterfaceName = ifaceName
+        sessionTunPfd = tunPfd
 
-        // 4. Start hev-socks5-tunnel (MTU 1500 matching TestNetworkManager)
+        // 4. Start hev-socks5-tunnel with a duplicated FD (sessionTunPfd stays owned by ShizukuBackend
+        // across VPN-drop pauses so testtun0 remains up as a zero-leak blackhole when paused).
+        val hevPfd = runCatching { tunPfd.dup() }.getOrElse { t ->
+            abortStartSession(service, ShareFailure.BACKEND_FAILED, "Failed to duplicate TUN FD: ${t.message}")
+            return@withContext
+        }
         val hevStarted = try {
-            hevTunnel.start(tunPfd, socksPort, HevTunnel.DEFAULT_TUN_MTU)
+            hevTunnel.start(hevPfd, socksPort, HevTunnel.DEFAULT_TUN_MTU)
         } catch (t: Throwable) {
-            runCatching { tunPfd.close() }
-            safeCleanup(service)
-            _state.value = ShareState.Error(
-                ShareFailure.BACKEND_FAILED,
-                "hev-socks5-tunnel start failed: ${t.message}"
-            )
+            runCatching { hevPfd.close() }
+            abortStartSession(service, ShareFailure.BACKEND_FAILED, "hev-socks5-tunnel start failed: ${t.message}")
             return@withContext
         }
 
         if (!hevStarted) {
-            runCatching { tunPfd.close() }
-            safeCleanup(service)
-            _state.value = ShareState.Error(
-                ShareFailure.BACKEND_FAILED,
-                "hev-socks5-tunnel start returned false"
-            )
+            abortStartSession(service, ShareFailure.BACKEND_FAILED, "hev-socks5-tunnel start returned false")
             return@withContext
         }
 
-        // 5. Prefer test networks (false -> true reset) & start Wi-Fi tethering (with multi-fallback)
+        // 5. Arm preferTestNetworks AFTER testtunN and HevTunnel are up, then ensure Wi-Fi tethering is active.
         try {
             service.setPreferTestNetworks(true)
+
             val tetherStarted = service.startTethering()
             if (!tetherStarted) {
-                runCatching { tunPfd.close() }
-                hevTunnel.stop()
-                safeCleanup(service)
-                _state.value = ShareState.Error(
+                abortStartSession(
+                    service,
                     ShareFailure.BACKEND_FAILED,
                     "Wi-Fi hotspot failed to start via TetheringManager / WifiManager"
                 )
                 return@withContext
             }
 
-            // 6. Verify via dumpsys tethering that testtunN is selected as upstream
-            val verified = runCatching { service.verifyUpstream(UPSTREAM_SETTLE_MS) }.getOrDefault(true)
+            // 6. Verify via dumpsys tethering that testtunN is selected as sole upstream.
+            // If an already-open SoftAp retained cellular/wifi upstream (common on OEM tethering stacks),
+            // re-arm preferTestNetworks and restart the Wi-Fi tethering downstream so upstream selection re-runs.
+            var verified = runCatching { service.verifyUpstream(INITIAL_UPSTREAM_SETTLE_MS) }.getOrDefault(false)
+            if (!verified && !hotspotWasAlreadyOpen) {
+                verified = runCatching { service.verifyUpstream(UPSTREAM_SETTLE_MS) }.getOrDefault(false)
+            }
             if (!verified) {
-                Log.w(TAG, "verifyUpstream did not confirm $ifaceName within ${UPSTREAM_SETTLE_MS}ms; watchdog will monitor")
+                runCatching { service.setPreferTestNetworks(true) }
+                val restarted = runCatching { service.restartWifiTethering() }.getOrDefault(false)
+                if (!restarted && !runCatching { service.isWifiHotspotActive() }.getOrDefault(false)) {
+                    abortStartSession(
+                        service,
+                        ShareFailure.BACKEND_FAILED,
+                        "Wi-Fi hotspot failed to restart onto test-network upstream ($ifaceName)"
+                    )
+                    return@withContext
+                }
+                verified = runCatching { service.verifyUpstream(UPSTREAM_SETTLE_MS) }.getOrDefault(false)
+            }
+            if (!verified) {
+                abortStartSession(
+                    service,
+                    ShareFailure.BACKEND_FAILED,
+                    "Upstream failed to attach to $ifaceName (another upstream remained selected)"
+                )
+                return@withContext
             }
         } catch (t: Throwable) {
-            runCatching { tunPfd.close() }
-            hevTunnel.stop()
-            safeCleanup(service)
-            _state.value = ShareState.Error(
-                ShareFailure.BACKEND_FAILED,
-                "Exception starting tethering: ${t.message}"
-            )
+            abortStartSession(service, ShareFailure.BACKEND_FAILED, "Exception starting tethering: ${t.message}")
             return@withContext
         }
 
+        pausedForVpnDrop = false
         _state.value = ShareState.Active(ShareMethod.SHIZUKU)
         startUpstreamWatchdog(service, ifaceName)
     }
@@ -207,22 +245,46 @@ class ShizukuBackend(
         val tolerance = UpstreamTolerance(expectedIface) { strike ->
             Log.w(TAG, strike)
         }
+        val startElapsedMs = android.os.SystemClock.elapsedRealtime()
+        var downstreamOffStrikes = 0
         watchdogJob = backendScope.launch {
-            while (isActive && _state.value is ShareState.Active) {
+            while (isActive && (_state.value is ShareState.Active || pausedForVpnDrop)) {
                 delay(WATCHDOG_INTERVAL_MS)
-                if (_state.value !is ShareState.Active) break
+                if (_state.value !is ShareState.Active && !pausedForVpnDrop) break
 
                 val rawHealth = runCatching { service.checkUpstreamHealth() }.getOrNull()
                     ?: break
-                val (reading, names) = parseHealthString(rawHealth, expectedIface)
-                val verdict = tolerance.judge(reading, names)
+                var effectiveHealth = rawHealth
+                if (effectiveHealth == "DOWNSTREAM_OFF") {
+                    if (android.os.SystemClock.elapsedRealtime() - startElapsedMs < STARTUP_DOWNSTREAM_GRACE_MS) {
+                        continue
+                    }
+                    val hotspotStillUp = runCatching { service.isWifiHotspotActive() }.getOrDefault(false)
+                    if (hotspotStillUp) {
+                        downstreamOffStrikes = 0
+                        effectiveHealth = "AWAITING"
+                    } else {
+                        downstreamOffStrikes++
+                        if (downstreamOffStrikes < DOWNSTREAM_OFF_STRIKES) {
+                            Log.w(TAG, "Downstream reported off ($downstreamOffStrikes/$DOWNSTREAM_OFF_STRIKES); waiting before drop")
+                            continue
+                        }
+                        Log.i(TAG, "Downstream hotspot stayed off; stopping Shizuku share cleanly")
+                        teardownSession(service, stopHotspot = false)
+                        _state.value = ShareState.Stopped(ShareFailure.TETHER_LOST)
+                        break
+                    }
+                } else {
+                    downstreamOffStrikes = 0
+                }
+                val isAwaiting = effectiveHealth == "AWAITING"
+                val (reading, names) = parseHealthString(effectiveHealth, expectedIface)
+                val verdict = tolerance.judge(reading, names, isDownstreamAwaiting = isAwaiting)
                 if (verdict != null) {
                     Log.e(TAG, "Upstream watchdog triggered fail-closed teardown: $verdict")
-                    hevTunnel.stop()
-                    safeCleanup(service)
-                    unbindService()
-                    activeInterfaceName = null
-                    _state.value = ShareState.Stopped(ShareFailure.TETHER_LOST)
+                    val hotspotStillUp = runCatching { service.isWifiHotspotActive() }.getOrDefault(false)
+                    teardownSession(service, stopHotspot = false)
+                    _state.value = resolveWatchdogFailureState(hotspotStillUp, verdict)
                     break
                 }
             }
@@ -232,7 +294,7 @@ class ShizukuBackend(
     private fun parseHealthString(rawHealth: String, expectedIface: String): Pair<UpstreamReading, List<String>> {
         return when {
             rawHealth == "HEALTHY" -> UpstreamReading.HEALTHY to listOf(expectedIface)
-            rawHealth == "ABSENT" -> UpstreamReading.ABSENT to emptyList()
+            rawHealth == "ABSENT" || rawHealth == "AWAITING" -> UpstreamReading.ABSENT to emptyList()
             rawHealth == "TIMED_OUT" -> UpstreamReading.TIMED_OUT to emptyList()
             rawHealth.startsWith("DRIFTED:") -> {
                 val driftedList = rawHealth.removePrefix("DRIFTED:").split(",").filter { it.isNotBlank() }
@@ -242,22 +304,60 @@ class ShizukuBackend(
         }
     }
 
-    override suspend fun stop(): Unit = withContext(Dispatchers.IO) {
+    /**
+     * Pauses forwarding on VPN drop while keeping `testtunN`, `preferTestNetworks`, and
+     * hotspot UP as a zero-leak blackhole so clients cannot fall back to mobile data.
+     */
+    override suspend fun pauseForVpnDrop(): Unit = withContext(Dispatchers.IO) {
+        if (pausedForVpnDrop && _state.value is ShareState.Stopped) return@withContext
+        pausedForVpnDrop = true
+        hevTunnel.stop()
+        _state.value = ShareState.Stopped(ShareFailure.VPN_LOST)
+    }
+
+    /**
+     * Resumes `hev-socks5-tunnel` on the still-held `testtunN` when the VPN reconnects.
+     */
+    override suspend fun resumeAfterVpnDrop(): Boolean = withContext(Dispatchers.IO) {
+        val service = userService ?: return@withContext false
+        val pfd = sessionTunPfd ?: return@withContext false
+        val expectedIface = activeInterfaceName ?: return@withContext false
+
+        if (!ensureLoopbackSocksReady()) return@withContext false
+
+        val hevPfd = runCatching { pfd.dup() }.getOrNull() ?: return@withContext false
+        val started = runCatching {
+            hevTunnel.start(hevPfd, socksPort, HevTunnel.DEFAULT_TUN_MTU)
+        }.getOrElse {
+            runCatching { hevPfd.close() }
+            false
+        }
+        if (!started) {
+            stop()
+            return@withContext false
+        }
+
+        pausedForVpnDrop = false
+        _state.value = ShareState.Active(ShareMethod.SHIZUKU)
+        if (watchdogJob?.isActive != true) {
+            startUpstreamWatchdog(service, expectedIface)
+        }
+        true
+    }
+
+    override suspend fun stop(): Unit = stopInternal(stopHotspot = false)
+
+    override suspend fun stopHotspotByUser(): Unit = stopInternal(stopHotspot = true)
+
+    private suspend fun stopInternal(stopHotspot: Boolean): Unit = withContext(Dispatchers.IO) {
         val current = _state.value
-        if (current is ShareState.Off) return@withContext
+        if (current is ShareState.Off && !pausedForVpnDrop && sessionTunPfd == null && userService == null && !stopHotspot) {
+            return@withContext
+        }
 
         watchdogJob?.cancel()
         watchdogJob = null
-
-        hevTunnel.stop()
-
-        val service = userService
-        if (service != null) {
-            safeCleanup(service)
-            unbindService()
-        }
-        activeInterfaceName = null
-        activeServiceInstance = null
+        teardownSession(userService, stopHotspot = stopHotspot)
 
         if (DataStore.serviceState.connected && !DataStore.hotspotShareEnabled) {
             withContext(Dispatchers.Main) {
@@ -266,6 +366,30 @@ class ShizukuBackend(
         }
 
         _state.value = ShareState.Off
+    }
+
+    private fun abortStartSession(
+        service: IShareUserService,
+        failure: ShareFailure,
+        message: String,
+    ) {
+        teardownSession(service, stopHotspot = false)
+        _state.value = ShareState.Error(failure, message)
+    }
+
+    private fun teardownSession(service: IShareUserService?, stopHotspot: Boolean) {
+        pausedForVpnDrop = false
+        hevTunnel.stop()
+        closeSessionTunPfd()
+        if (service != null) {
+            if (stopHotspot) {
+                runCatching { service.stopTethering() }
+            }
+            safeCleanup(service)
+            unbindService()
+        }
+        activeInterfaceName = null
+        activeServiceInstance = null
     }
 
     private suspend fun ensureLoopbackSocksReady(): Boolean {
@@ -302,26 +426,25 @@ class ShizukuBackend(
     suspend fun recoverDirtyState(): Unit = withContext(Dispatchers.IO) {
         if (!isShizukuAvailableAndGranted()) return@withContext
         try {
-            val service = bindVerifiedService()
-            service.cleanupDirtyState()
-            unbindService()
+            val service = bindVerifiedService(linkDeath = false)
+            try {
+                service.cleanupDirtyState()
+            } finally {
+                unbindService()
+            }
         } catch (_: Throwable) {
+            unbindService()
         }
     }
 
     fun getTrafficStats(): Pair<Long, Long>? {
         val hevStats = hevTunnel.getStats()
-        val hevRx = if (hevStats.size >= 4) hevStats[3] else 0L
-        val hevTx = if (hevStats.size >= 4) hevStats[1] else 0L
+        if (hevStats.size >= 4) {
+            return Pair(hevStats[3].coerceAtLeast(0L), hevStats[1].coerceAtLeast(0L))
+        }
 
         val iface = activeInterfaceName ?: "testtun0"
-        val procStats = ProcNetDevParser.readCurrent(setOf(iface))
-        val procRx = procStats?.first ?: 0L
-        val procTx = procStats?.second ?: 0L
-
-        val rx = max(hevRx, procRx)
-        val tx = max(hevTx, procTx)
-        return Pair(rx, tx)
+        return ProcNetDevParser.readCurrent(setOf(iface))
     }
 
     fun getConnectedClientCount(): Int {
@@ -329,18 +452,29 @@ class ShizukuBackend(
     }
 
     private suspend fun handleUnexpectedServiceDeath() {
+        val current = _state.value
+        if (intentionalUnbind || current is ShareState.Off || current is ShareState.Stopped) {
+            return
+        }
+        unlinkDeathRecipient()
+        pausedForVpnDrop = false
         watchdogJob?.cancel()
         watchdogJob = null
         hevTunnel.stop()
+        closeSessionTunPfd()
         userService = null
         activeInterfaceName = null
         var recovered = false
         try {
-            val recoveryService = bindService()
-            recoveryService.cleanupDirtyState()
-            unbindService()
-            recovered = true
+            val recoveryService = bindService(linkDeath = false)
+            try {
+                recoveryService.cleanupDirtyState()
+                recovered = true
+            } finally {
+                unbindService()
+            }
         } catch (_: Throwable) {
+            unbindService()
         }
 
         if (!recovered) {
@@ -354,6 +488,11 @@ class ShizukuBackend(
         )
     }
 
+    private fun closeSessionTunPfd() {
+        runCatching { sessionTunPfd?.close() }
+        sessionTunPfd = null
+    }
+
     private fun safeCleanup(service: IShareUserService) {
         try {
             service.cleanupDirtyState()
@@ -361,8 +500,8 @@ class ShizukuBackend(
         }
     }
 
-    private suspend fun bindVerifiedService(): IShareUserService {
-        val first = bindService()
+    private suspend fun bindVerifiedService(linkDeath: Boolean = true): IShareUserService {
+        val first = bindService(linkDeath)
         val version = runCatching { first.contractVersion }.getOrDefault(-1)
         if (version == ShareUserService.CONTRACT_VERSION) {
             return first
@@ -370,11 +509,16 @@ class ShizukuBackend(
         Log.w(TAG, "Stale ShareUserService contract version ($version != ${ShareUserService.CONTRACT_VERSION}); restarting")
         unbindService()
         delay(300)
-        return bindService()
+        return bindService(linkDeath)
     }
 
-    private suspend fun bindService(): IShareUserService {
-        userService?.let { return it }
+    private suspend fun bindService(linkDeath: Boolean = true): IShareUserService {
+        if (!intentionalUnbind) {
+            userService?.let { return it }
+        }
+
+        intentionalUnbind = !linkDeath
+        linkDeathOnConnect = linkDeath
 
         val deferred = CompletableDeferred<IShareUserService>()
         connectDeferred = deferred
@@ -393,22 +537,30 @@ class ShizukuBackend(
 
         val service = withTimeoutOrNull(10_000) {
             deferred.await()
-        } ?: throw IllegalStateException("Timeout binding Shizuku UserService")
+        }
+        if (service == null) {
+            connectDeferred = null
+            unbindService()
+            throw IllegalStateException("Timeout binding Shizuku UserService")
+        }
 
         return service
     }
 
     private fun unbindService() {
+        intentionalUnbind = true
+        unlinkDeathRecipient()
+        if (activeServiceInstance === userService) {
+            activeServiceInstance = null
+        }
+        userService = null
+        connectDeferred = null
         val args = boundArgs ?: return
+        boundArgs = null
         try {
             Shizuku.unbindUserService(args, serviceConnection, true)
         } catch (_: Throwable) {
         }
-        if (activeServiceInstance === userService) {
-            activeServiceInstance = null
-        }
-        boundArgs = null
-        userService = null
     }
 
     private suspend fun isShizukuAvailableAndGranted(): Boolean = withContext(Dispatchers.IO) {
@@ -442,9 +594,20 @@ class ShizukuBackend(
 
     companion object {
         private const val TAG = "ShizukuBackend"
+        private const val INITIAL_UPSTREAM_SETTLE_MS = 3_500L
         private const val UPSTREAM_SETTLE_MS = 8_000L
         private const val WATCHDOG_INTERVAL_MS = 5_000L
+        private const val STARTUP_DOWNSTREAM_GRACE_MS = 10_000L
+        private const val DOWNSTREAM_OFF_STRIKES = 3
         private const val SOCKS_WAIT_TIMEOUT_MS = 6_000L
+
+        internal fun resolveWatchdogFailureState(hotspotStillUp: Boolean, verdict: String): ShareState {
+            return if (!hotspotStillUp) {
+                ShareState.Stopped(ShareFailure.TETHER_LOST)
+            } else {
+                ShareState.Error(ShareFailure.BACKEND_FAILED, verdict)
+            }
+        }
 
         @Volatile
         private var activeServiceInstance: IShareUserService? = null

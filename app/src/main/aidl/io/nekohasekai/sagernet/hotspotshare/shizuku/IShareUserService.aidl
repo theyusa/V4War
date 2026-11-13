@@ -10,10 +10,10 @@ interface IShareUserService {
     int getContractVersion();
 
     /**
-     * Creates a dual-stack TUN interface (192.0.2.2/24, 2001:db8::2/64), associates it
+     * Creates an IPv4-only TUN interface (192.0.2.2/24), associates it
      * with a test network (isUp=true), awaits Network availability, registers a
      * TRANSPORT_TEST keep-alive request so ConnectivityService does not linger it away,
-     * and sets IPv4 + IPv6 DNS forwarders.
+     * and sets IPv4 routes + DNS forwarders.
      * Returns the TUN ParcelFileDescriptor to be fed to hev-socks5-tunnel.
      */
     ParcelFileDescriptor createTestNetwork(in List<String> dnsServers);
@@ -29,10 +29,22 @@ interface IShareUserService {
     void setPreferTestNetworks(boolean prefer);
 
     /**
-     * Restarts and starts Wi-Fi tethering (hotspot) with multi-fallback
-     * (exempt=true -> exempt=false -> WifiManager.startTetheredHotspot).
+     * Ensures Wi-Fi tethering (hotspot) is active without stopping an already-open SoftAp.
+     * If closed, starts it with multi-fallback (exempt=true -> exempt=false -> WifiManager).
      */
     boolean startTethering();
+
+    /**
+     * Restarts Wi-Fi tethering downstream (TetheringManager stopTethering -> startTethering with fallback)
+     * so an already-open SoftAp re-runs upstream selection onto testtunN.
+     */
+    boolean restartWifiTethering();
+
+    /**
+     * Returns true if Wi-Fi SoftAp is currently enabled/starting according to WifiManager
+     * or an active downstream interface in dumpsys tethering.
+     */
+    boolean isWifiHotspotActive();
 
     /**
      * Stops Wi-Fi tethering (hotspot) with downstream verification retries.
@@ -67,8 +79,8 @@ interface IShareUserService {
     String checkCompatibility();
 
     /**
-     * Dirty state recovery: restores normal upstream routing, stops tethering,
-     * unregisters keep-alive callback, and tears down the test network.
+     * Dirty state recovery: restores normal upstream routing,
+     * unregisters keep-alive callback, and tears down the test network (preserves hotspot).
      */
     void cleanupDirtyState();
 

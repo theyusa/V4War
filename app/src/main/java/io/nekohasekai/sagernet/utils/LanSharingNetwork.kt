@@ -12,6 +12,7 @@ import java.io.File
 import java.net.Inet4Address
 import java.net.NetworkInterface
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs
 
 /**
@@ -250,8 +251,18 @@ object LanSharingNetwork {
         return null
     }
 
+    private val procArpBlocked = AtomicBoolean(false)
+    private val procTcpBlocked = AtomicBoolean(false)
+    private val localNeighBlocked = AtomicBoolean(false)
+
     fun readArp(): List<String> {
-        val text = runCatching { File("/proc/net/arp").readText() }.getOrNull() ?: return emptyList()
+        if (procArpBlocked.get()) return emptyList()
+        val text = try {
+            File("/proc/net/arp").readText()
+        } catch (_: Throwable) {
+            procArpBlocked.set(true)
+            return emptyList()
+        }
         return LanSharingLogics.parseArpFile(text)
     }
 
@@ -262,11 +273,19 @@ object LanSharingNetwork {
     )
 
     fun readProcNetTcpRemotes(listenPort: Int): List<String> {
-        if (listenPort <= 0) return emptyList()
+        if (listenPort <= 0 || procTcpBlocked.get()) return emptyList()
         val results = linkedSetOf<String>()
-        listOf("/proc/net/tcp", "/proc/net/tcp6").forEach { path ->
-            val text = runCatching { File(path).readText() }.getOrNull() ?: return@forEach
+        var anyReadable = false
+        for (path in listOf("/proc/net/tcp", "/proc/net/tcp6")) {
+            val text = try {
+                File(path).readText().also { anyReadable = true }
+            } catch (_: Throwable) {
+                continue
+            }
             results += LanSharingLogics.parseProcNetTcpRemotes(text, listenPort)
+        }
+        if (results.isEmpty() && !anyReadable) {
+            procTcpBlocked.set(true)
         }
         return results.toList()
     }
@@ -319,16 +338,31 @@ object LanSharingNetwork {
             }
         }
 
-        readArp().filter { isValidHotspotIp(it) }.forEach { allIps += it }
+        if (combinedDumps.isEmpty()) {
+            readArp().filter { isValidHotspotIp(it) }.forEach { allIps += it }
 
-        val localNeigh = runCatching {
-            val p = ProcessBuilder("ip", "-4", "neigh", "show").redirectErrorStream(true).start()
-            val out = p.inputStream.bufferedReader().readText()
-            p.waitFor()
-            out
-        }.getOrNull()
-        if (!localNeigh.isNullOrBlank()) {
-            ingestEntries(LanSharingLogics.parseIpNeigh(localNeigh))
+            if (!localNeighBlocked.get()) {
+                val localNeigh = try {
+                    val p = ProcessBuilder("ip", "-4", "neigh", "show").redirectErrorStream(true).start()
+                    val out = p.inputStream.bufferedReader().readText()
+                    val code = p.waitFor()
+                    if (code != 0 ||
+                        out.contains("Permission denied", ignoreCase = true) ||
+                        out.contains("Cannot bind", ignoreCase = true)
+                    ) {
+                        localNeighBlocked.set(true)
+                        null
+                    } else {
+                        out
+                    }
+                } catch (_: Throwable) {
+                    localNeighBlocked.set(true)
+                    null
+                }
+                if (!localNeigh.isNullOrBlank()) {
+                    ingestEntries(LanSharingLogics.parseIpNeigh(localNeigh))
+                }
+            }
         }
 
         return NeighborSnapshot(

@@ -6,11 +6,14 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.text.format.Formatter
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
+import java.io.File
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageView
@@ -21,6 +24,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -47,6 +51,8 @@ import io.nekohasekai.sagernet.utils.PlatformNotifications
 import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.ktx.needReload
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
+import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
+import io.nekohasekai.sagernet.widget.applyListInsets
 import io.nekohasekai.sagernet.utils.HotspotCandidate
 import io.nekohasekai.sagernet.utils.HotspotGatewayManager
 import io.nekohasekai.sagernet.utils.HotspotGatewaySnapshot
@@ -73,13 +79,50 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
     private var suppressHotspotShareSwitchCallback = false
     private val shizukuPermissionListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
         if (requestCode == SHIZUKU_PERMISSION_REQUEST_CODE) {
-            runOnUiThread { refreshNetworkAndState() }
+            runOnUiThread {
+                val granted = grantResult == PackageManager.PERMISSION_GRANTED
+                cachedShizukuGranted = granted
+                if (pendingStartAfterShizukuPermission) {
+                    pendingStartAfterShizukuPermission = false
+                    if (granted && DataStore.hotspotShareEnabled) {
+                        TetherWatchService.start(this)
+                    } else {
+                        DataStore.hotspotShareEnabled = false
+                        HotspotShareStateStore.publish(ShareState.Error(ShareFailure.SHIZUKU_PERMISSION_DENIED))
+                    }
+                }
+                refreshNetworkAndState()
+            }
         }
     }
 
     private var detectedHotspotCandidate: HotspotCandidate? = null
     private var detectedWifiIp: String? = null
     private var hotspotActive: Boolean = false
+
+    @Volatile
+    private var cachedShizukuRunning: Boolean = false
+
+    @Volatile
+    private var cachedShizukuGranted: Boolean = false
+
+    @Volatile
+    private var cachedRootAvailable: Boolean = false
+
+    @Volatile
+    private var rootCheckedOnce: Boolean = false
+
+    @Volatile
+    private var cachedShizukuClientCount: Int = 0
+
+    private var pendingStartAfterShizukuPermission: Boolean = false
+    private var shareMethodAdapter: ArrayAdapter<String>? = null
+    private var lastHeroBadgeState: String? = null
+    private var lastHotspotBadgeActive: Boolean? = null
+    private var lastWifiBadgeActive: Boolean? = null
+    private var lastDevicesBadgeActive: Boolean? = null
+    private var lastShareBadgeKey: String? = null
+    private var lastRenderedDeviceKey: String? = null
 
     private var netStateReceiver: BroadcastReceiver? = null
 
@@ -96,13 +139,13 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         binding = ActivityLanSharingBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.apply {
-            setTitle(R.string.lan_sharing)
-            setDisplayHomeAsUpEnabled(true)
-            setHomeAsUpIndicator(R.drawable.ic_navigation_close)
-        }
+        ExpressiveSettingsHelper.attachActivityFloatingHeader(
+            this,
+            binding.root,
+            getString(R.string.lan_sharing)
+        )
+        binding.scrollLanSharing.applyListInsets()
+        styleExpressiveViews()
 
         setupViews()
         setupHotspotShareViews()
@@ -135,7 +178,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 true
             }
             R.id.action_refresh -> {
-                refreshNetworkAndState()
+                refreshNetworkAndState(forceRootCheck = true)
                 lifecycleScope.launch { pollClientDevicesOnce() }
                 true
             }
@@ -167,6 +210,10 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
     }
 
     private fun setupViews() {
+        binding.btnRefreshLan.setOnClickListener {
+            refreshNetworkAndState(forceRootCheck = true)
+            lifecycleScope.launch { pollClientDevicesOnce() }
+        }
         setShareSwitchCheckedSilent(DataStore.allowLanAccess)
         setGatewaySwitchCheckedSilent(DataStore.hotspotGatewayEnabled)
 
@@ -193,11 +240,6 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 if (clashDecision.changed) {
                     DataStore.coreBoxClashApi = clashDecision.newRawPort
                 }
-            } else if (DataStore.hotspotShareEnabled &&
-                HotspotShareStateStore.snapshot() == ShareState.Active(ShareMethod.LAN_PROXY)
-            ) {
-                DataStore.hotspotShareEnabled = false
-                TetherWatchService.stop(this)
             }
             needReload()
             refreshNetworkAndState()
@@ -354,14 +396,29 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         }.onSuccess { netStateReceiver = receiver }
     }
 
-    private fun refreshNetworkAndState() {
+    private fun refreshNetworkAndState(forceRootCheck: Boolean = false) {
         lifecycleScope.launch {
+            val prevRoot = cachedRootAvailable
+            val checkRootNow = forceRootCheck || !rootCheckedOnce
             val net = withContext(Dispatchers.IO) {
+                cachedShizukuRunning = ShizukuBackend.isShizukuRunning()
+                cachedShizukuGranted = if (cachedShizukuRunning) {
+                    ShizukuBackend.isShizukuGranted(this@LanSharingActivity)
+                } else {
+                    false
+                }
+                if (checkRootNow) {
+                    cachedRootAvailable = detectRootWithoutPopup()
+                    rootCheckedOnce = true
+                }
                 Triple(
                     LanSharingNetwork.isHotspotActive(this@LanSharingActivity),
                     LanSharingNetwork.findHotspotCandidates(this@LanSharingActivity),
                     LanSharingNetwork.findWifiIp(this@LanSharingActivity),
                 )
+            }
+            if (prevRoot != cachedRootAvailable) {
+                shareMethodAdapter?.notifyDataSetChanged()
             }
             hotspotActive = net.first
             // Show the first candidate; all candidates are in the list for diagnostics.
@@ -369,6 +426,21 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             detectedWifiIp = net.third
             renderUiState()
         }
+    }
+
+    private fun detectRootWithoutPopup(): Boolean {
+        if (runCatching { com.topjohnwu.superuser.Shell.isAppGrantedRoot() == true }.getOrDefault(false)) {
+            return true
+        }
+        val suPaths = arrayOf(
+            "/system/bin/su",
+            "/system/xbin/su",
+            "/sbin/su",
+            "/debug_ramdisk/su",
+            "/su/bin/su",
+            "/vendor/bin/su",
+        )
+        return suPaths.any { path -> runCatching { File(path).exists() }.getOrDefault(false) }
     }
 
     /** The Share (X) inbound port: the mixed inbound's SOCKS port. */
@@ -402,6 +474,8 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         val activeMethodCode = (shareState as? ShareState.Active)?.method?.code?.uppercase()
         val anySharingActive = shareOn || activeMethodCode != null
 
+        val inactiveColor = getColorAttr(android.R.attr.textColorSecondary)
+        val heroBadgeKey = if (anySharingActive) "active" else "inactive"
         if (anySharingActive) {
             binding.textHeroTitle.text = getString(R.string.lan_sharing_active)
             binding.badgeServiceStatus.text = if (activeMethodCode != null) {
@@ -409,13 +483,30 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             } else {
                 getString(R.string.lan_sharing_status_running)
             }
-            binding.badgeServiceStatus.setTextColor(primaryColor)
-            binding.imgHeroStatus.setColorFilter(primaryColor)
+            if (lastHeroBadgeState != heroBadgeKey) {
+                lastHeroBadgeState = heroBadgeKey
+                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeServiceStatus, primaryColor)
+                ExpressiveSettingsHelper.applySquircleIcon(
+                    binding.imgHeroStatus,
+                    R.drawable.ic_hardware_router,
+                    sizeDp = 44,
+                    iconSizeDp = 22
+                )
+            }
         } else {
             binding.textHeroTitle.text = getString(R.string.lan_sharing_inactive)
             binding.badgeServiceStatus.text = getString(R.string.lan_sharing_status_stopped)
-            binding.badgeServiceStatus.setTextColor(secondaryColor)
-            binding.imgHeroStatus.setColorFilter(secondaryColor)
+            if (lastHeroBadgeState != heroBadgeKey) {
+                lastHeroBadgeState = heroBadgeKey
+                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeServiceStatus, inactiveColor)
+                ExpressiveSettingsHelper.applySquircleIcon(
+                    binding.imgHeroStatus,
+                    R.drawable.ic_hardware_router,
+                    sizeDp = 44,
+                    iconSizeDp = 22,
+                    customIconColor = inactiveColor
+                )
+            }
         }
         binding.textHeroSubtitle.text = if (activeMethodCode != null && !shareOn) {
             getString(R.string.hotspot_share_status_active, activeMethodCode)
@@ -440,13 +531,20 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             // Displayed masked; copy/share buttons below send the full link.
             LanSharingLogics.maskSocks5Link(buildSocksLinkForHost(hotspotIp))
         } else ""
-        if (hotspotActive || hotspotIp != null) {
+        val isHotspotOn = hotspotActive || hotspotIp != null
+        if (isHotspotOn) {
             binding.badgeHotspotStatus.text = getString(R.string.lan_sharing_hotspot_detected)
-            binding.badgeHotspotStatus.setTextColor(primaryColor)
+            if (lastHotspotBadgeActive != true) {
+                lastHotspotBadgeActive = true
+                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeHotspotStatus, primaryColor)
+            }
             binding.textHotspotDesc.text = getString(R.string.lan_sharing_hotspot_desc)
         } else {
             binding.badgeHotspotStatus.text = getString(R.string.lan_sharing_hotspot_not_active)
-            binding.badgeHotspotStatus.setTextColor(secondaryColor)
+            if (lastHotspotBadgeActive != false) {
+                lastHotspotBadgeActive = false
+                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeHotspotStatus, secondaryColor)
+            }
             binding.textHotspotDesc.text = getString(R.string.lan_sharing_hotspot_hint_off)
         }
         // Same rule as the Wi-Fi card: no detectable gateway IP, no copy/share.
@@ -461,7 +559,10 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             binding.textWifiIp.text = wifiIp
             binding.textWifiSocksLink.text = LanSharingLogics.maskSocks5Link(buildSocksLinkForHost(wifiIp))
             binding.badgeWifiStatus.text = getString(R.string.lan_sharing_wifi_detected)
-            binding.badgeWifiStatus.setTextColor(primaryColor)
+            if (lastWifiBadgeActive != true) {
+                lastWifiBadgeActive = true
+                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeWifiStatus, primaryColor)
+            }
             binding.textWifiDesc.text = getString(R.string.lan_sharing_wifi_desc)
             binding.btnCopyWifiIp.isEnabled = true
             binding.btnCopyWifiLink.isEnabled = true
@@ -470,7 +571,10 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             binding.textWifiIp.text = getString(R.string.lan_sharing_not_detected)
             binding.textWifiSocksLink.text = LanSharingLogics.maskSocks5Link(buildSocksLinkForHost("0.0.0.0"))
             binding.badgeWifiStatus.text = getString(R.string.lan_sharing_wifi_not_connected)
-            binding.badgeWifiStatus.setTextColor(secondaryColor)
+            if (lastWifiBadgeActive != false) {
+                lastWifiBadgeActive = false
+                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeWifiStatus, secondaryColor)
+            }
             binding.textWifiDesc.text = getString(R.string.lan_sharing_wifi_hint_off)
             binding.btnCopyWifiIp.isEnabled = false
             binding.btnCopyWifiLink.isEnabled = false
@@ -549,7 +653,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 HotspotTrafficMonitor.stats.collect { stats ->
-                    if (DataStore.hotspotShareEnabled) {
+                    if (binding.layoutShareTraffic.visibility == View.VISIBLE) {
                         val down = Formatter.formatFileSize(this@LanSharingActivity, stats.rxSpeedBps) + "/s"
                         val up = Formatter.formatFileSize(this@LanSharingActivity, stats.txSpeedBps) + "/s"
                         val total = Formatter.formatShortFileSize(
@@ -558,7 +662,6 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                         )
                         binding.textShareSpeed.text = getString(R.string.hotspot_share_speed_format, down, up)
                         binding.textShareUsage.text = getString(R.string.hotspot_share_traffic_format, total)
-                        updateShareClientCountLabel()
                     }
                 }
             }
@@ -582,6 +685,20 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
     private suspend fun pollClientDevicesOnce() {
         val now = System.currentTimeMillis()
         val (merged, clashReachable) = withContext(Dispatchers.IO) {
+            val shareSnapshot = HotspotShareStateStore.snapshot()
+            val shizukuRunning = ShizukuBackend.isShizukuRunning()
+            cachedShizukuRunning = shizukuRunning
+            cachedShizukuGranted = if (shizukuRunning) {
+                ShizukuBackend.isShizukuGranted(this@LanSharingActivity)
+            } else {
+                false
+            }
+            cachedShizukuClientCount = if ((shareSnapshot as? ShareState.Active)?.method == ShareMethod.SHIZUKU) {
+                ShizukuBackend.queryActiveClientCount()
+            } else {
+                0
+            }
+
             val arp = LanSharingNetwork.readArp()
             val body = LanSharingNetwork.fetchConnections(
                 url = LanSharingNetwork.clashUrl(),
@@ -589,10 +706,13 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             )
             val clashList = if (body != null) LanSharingLogics.parseConnections(body) else emptyList()
             val tcpRemotes = LanSharingNetwork.readProcNetTcpRemotes(DataStore.inboundSocksPort)
-            val shizukuDump = ShizukuBackend.queryActiveNeighborDump()
-            val activeRootMode = (HotspotShareStateStore.snapshot() as? ShareState.Active)?.method == ShareMethod.ROOT
-            val rootGranted = runCatching { com.topjohnwu.superuser.Shell.isAppGrantedRoot() == true }.getOrDefault(false)
-            val rootDump = if (activeRootMode || rootGranted) RootBackend.queryNeighborDump() else null
+            val shizukuDump = if ((shareSnapshot as? ShareState.Active)?.method == ShareMethod.SHIZUKU) {
+                ShizukuBackend.queryActiveNeighborDump()
+            } else {
+                null
+            }
+            val activeRootMode = (shareSnapshot as? ShareState.Active)?.method == ShareMethod.ROOT
+            val rootDump = if (activeRootMode) RootBackend.queryNeighborDump() else null
             val hotspotIfaces = setOfNotNull(detectedHotspotCandidate?.interfaceName)
             val neighSnapshot = LanSharingNetwork.readPrivilegedNeighbors(
                 shizukuDump = shizukuDump,
@@ -622,13 +742,37 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
 
     private fun renderDeviceList(devices: List<LanClientDevice>, clashReachable: Boolean) {
         val activeCount = devices.count { it.activeConnections > 0 }
-        binding.badgeDevicesCount.text = getString(R.string.lan_sharing_devices_count, activeCount.coerceAtLeast(devices.size))
+        val count = activeCount.coerceAtLeast(devices.size)
+        val hasDevices = count > 0
+        binding.badgeDevicesCount.text = getString(R.string.lan_sharing_devices_count, count)
+        if (lastDevicesBadgeActive != hasDevices) {
+            lastDevicesBadgeActive = hasDevices
+            val badgeColor = if (hasDevices) {
+                getColorAttr(R.attr.primaryOrTextPrimary)
+            } else {
+                getColorAttr(android.R.attr.textColorSecondary)
+            }
+            ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeDevicesCount, badgeColor)
+        }
         binding.textDevicesCount.text = getString(R.string.lan_sharing_devices_count, devices.size)
+
+        val hotspotShareActive = HotspotShareStateStore.snapshot() is ShareState.Active
+        val vpnConnected = DataStore.serviceState.connected
+        val renderKey = buildString {
+            append(hotspotShareActive).append('|').append(vpnConnected).append('|').append(clashReachable)
+            devices.forEach { d ->
+                append(';').append(d.ip).append(',').append(d.isHotspot).append(',')
+                    .append(d.activeConnections).append(',').append(d.lastHost).append(',')
+                    .append(d.uploadBytes).append(',').append(d.downloadBytes)
+            }
+        }
+        if (lastRenderedDeviceKey == renderKey) {
+            return
+        }
+        lastRenderedDeviceKey = renderKey
 
         binding.layoutDevicesList.removeAllViews()
         if (devices.isEmpty()) {
-            val hotspotShareActive = HotspotShareStateStore.snapshot() is ShareState.Active
-            val vpnConnected = DataStore.serviceState.connected
             if (vpnConnected && DataStore.allowLanAccess && !clashReachable) {
                 ensureClashApiForManualLanIfNeeded()
             }
@@ -645,6 +789,8 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         binding.layoutNoDevices.visibility = View.GONE
         for (device in devices) {
             val row = layoutInflater.inflate(R.layout.item_lan_client_device, binding.layoutDevicesList, false)
+            val cardDevice = row.findViewById<MaterialCardView>(R.id.card_lan_device)
+            ExpressiveSettingsHelper.styleExpressiveCard(cardDevice, cornerRadiusDp = 20f)
             val ivIcon = row.findViewById<ImageView>(R.id.iv_device_icon)
             val dotStatus = row.findViewById<View>(R.id.dot_device_status)
             val textIp = row.findViewById<TextView>(R.id.text_device_ip)
@@ -656,6 +802,10 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             badgeType.text = getString(
                 if (device.isHotspot) R.string.lan_sharing_device_hotspot else R.string.lan_sharing_device_wifi
             )
+            val deviceColor = getColorAttr(
+                if (device.activeConnections > 0) R.attr.primaryOrTextPrimary else android.R.attr.textColorSecondary
+            )
+            ExpressiveSettingsHelper.styleExpressiveBadge(badgeType, deviceColor)
             ivIcon.setImageResource(
                 if (device.isHotspot) R.drawable.ic_communication_phonelink_ring else R.drawable.ic_hardware_router
             )
@@ -736,11 +886,30 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 PlatformNotifications.cancelHotspotShareDropped(this)
                 HotspotShareStateStore.publish(ShareState.Starting)
                 DataStore.hotspotShareEnabled = true
-                TetherWatchService.start(this)
+                val pref = SharePreference.fromCode(DataStore.hotspotShareMethod)
+                val needsShizukuPrompt = (pref == SharePreference.SHIZUKU || (pref == SharePreference.AUTO && !cachedRootAvailable)) &&
+                    cachedShizukuRunning && !cachedShizukuGranted
+                if (needsShizukuPrompt) {
+                    pendingStartAfterShizukuPermission = true
+                    runCatching { Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE) }
+                        .onFailure {
+                            pendingStartAfterShizukuPermission = false
+                            TetherWatchService.start(this)
+                        }
+                } else {
+                    pendingStartAfterShizukuPermission = false
+                    TetherWatchService.start(this)
+                }
             } else {
+                pendingStartAfterShizukuPermission = false
                 PlatformNotifications.cancelHotspotShareDropped(this)
                 DataStore.hotspotShareEnabled = false
-                if (TetherWatchService.isRunning) {
+                val currentSnap = HotspotShareStateStore.snapshot()
+                if (TetherWatchService.isRunning ||
+                    currentSnap is ShareState.Active ||
+                    currentSnap is ShareState.Starting ||
+                    (currentSnap as? ShareState.Stopped)?.cause == ShareFailure.VPN_LOST
+                ) {
                     TetherWatchService.stop(this)
                 } else {
                     HotspotShareStateStore.publish(ShareState.Off)
@@ -754,7 +923,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             binding.switchHotspotShare.toggle()
         }
 
-        // Method selector spinner
+        // Method selector spinner (disable Root entry visually & functionally when no root exists)
         val methodEntries = listOf(
             getString(R.string.hotspot_share_method_auto),
             getString(R.string.hotspot_share_method_shizuku),
@@ -762,9 +931,30 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             getString(R.string.hotspot_share_method_lan_proxy),
         )
         val methodCodes = listOf("auto", "shizuku", "root", "lan_proxy")
-        val methodAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, methodEntries).apply {
+        val methodAdapter = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, methodEntries) {
+            override fun areAllItemsEnabled(): Boolean = false
+
+            override fun isEnabled(position: Int): Boolean {
+                return !(position == 2 && !cachedRootAvailable)
+            }
+
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                return super.getView(position, convertView, parent).apply {
+                    alpha = if (position == 2 && !cachedRootAvailable) 0.45f else 1f
+                }
+            }
+
+            override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
+                return super.getDropDownView(position, convertView, parent).apply {
+                    val disabled = position == 2 && !cachedRootAvailable
+                    isEnabled = !disabled
+                    alpha = if (disabled) 0.45f else 1f
+                }
+            }
+        }.apply {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
+        shareMethodAdapter = methodAdapter
         binding.spinnerShareMethod.adapter = methodAdapter
         val currentMethodIndex = methodCodes.indexOf(DataStore.hotspotShareMethod).coerceAtLeast(0)
         binding.spinnerShareMethod.setSelection(currentMethodIndex)
@@ -772,6 +962,13 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         binding.spinnerShareMethod.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val selectedCode = methodCodes.getOrNull(position) ?: "auto"
+                if (selectedCode == "root" && !cachedRootAvailable) {
+                    val fallbackIndex = methodCodes.indexOf(DataStore.hotspotShareMethod)
+                        .takeIf { it >= 0 && it != 2 } ?: 0
+                    binding.spinnerShareMethod.setSelection(fallbackIndex)
+                    Toast.makeText(this@LanSharingActivity, R.string.hotspot_share_err_root, Toast.LENGTH_SHORT).show()
+                    return
+                }
                 if (selectedCode != DataStore.hotspotShareMethod) {
                     DataStore.hotspotShareMethod = selectedCode
                     if (DataStore.hotspotShareEnabled) {
@@ -837,14 +1034,20 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         when (state) {
             is ShareState.Off -> {
                 binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_off)
-                binding.badgeShareStatus.setTextColor(secondaryColor)
+                if (lastShareBadgeKey != "off") {
+                    lastShareBadgeKey = "off"
+                    ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeShareStatus, secondaryColor)
+                }
                 binding.layoutShareTraffic.visibility = View.GONE
                 binding.textShareClients.visibility = View.GONE
                 binding.bannerShareWarning.visibility = View.GONE
             }
             is ShareState.Starting -> {
                 binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_starting)
-                binding.badgeShareStatus.setTextColor(amberColor)
+                if (lastShareBadgeKey != "starting") {
+                    lastShareBadgeKey = "starting"
+                    ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeShareStatus, amberColor)
+                }
                 binding.layoutShareTraffic.visibility = View.GONE
                 binding.textShareClients.visibility = View.GONE
                 binding.bannerShareWarning.visibility = View.GONE
@@ -856,26 +1059,38 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                     ShareMethod.LAN_PROXY -> getString(R.string.hotspot_share_method_lan_proxy)
                 }
                 binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_active, methodLabel)
-                binding.badgeShareStatus.setTextColor(primaryColor)
+                if (lastShareBadgeKey != "active") {
+                    lastShareBadgeKey = "active"
+                    ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeShareStatus, primaryColor)
+                }
                 binding.layoutShareTraffic.visibility = if (state.method == ShareMethod.LAN_PROXY) View.GONE else View.VISIBLE
                 updateShareClientCountLabel()
                 binding.bannerShareWarning.visibility = View.GONE
             }
             is ShareState.Stopped -> {
-                binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_stopped_clean)
-                binding.badgeShareStatus.setTextColor(amberColor)
+                val pref = SharePreference.fromCode(DataStore.hotspotShareMethod)
+                val pausedWaitingVpn = state.cause == ShareFailure.VPN_LOST && DataStore.hotspotShareEnabled
+                binding.badgeShareStatus.text = getString(
+                    if (pausedWaitingVpn) R.string.hotspot_share_waiting_vpn_title
+                    else R.string.hotspot_share_status_stopped_clean
+                )
+                if (lastShareBadgeKey != "stopped") {
+                    lastShareBadgeKey = "stopped"
+                    ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeShareStatus, amberColor)
+                }
                 binding.layoutShareTraffic.visibility = View.GONE
                 binding.textShareClients.visibility = View.GONE
                 binding.bannerShareWarning.visibility = View.VISIBLE
-                val pref = SharePreference.fromCode(DataStore.hotspotShareMethod)
                 val failClosed = FailClosedAction.fromCode(DataStore.hotspotShareFailClosed)
                 binding.textShareWarning.text = when (state.cause) {
                     ShareFailure.TETHER_LOST -> getString(R.string.hotspot_share_tether_lost_warn)
                     ShareFailure.VPN_LOST -> {
-                        if (pref == SharePreference.ROOT && failClosed == FailClosedAction.BLOCK_TRAFFIC) {
-                            getString(R.string.hotspot_share_traffic_blocked_warn)
-                        } else {
-                            getString(R.string.hotspot_share_vpn_dropped_warn)
+                        when {
+                            pausedWaitingVpn && pref != SharePreference.LAN_PROXY ->
+                                getString(R.string.hotspot_share_waiting_vpn_warn)
+                            pref == SharePreference.ROOT && failClosed == FailClosedAction.BLOCK_TRAFFIC ->
+                                getString(R.string.hotspot_share_traffic_blocked_warn)
+                            else -> getString(R.string.hotspot_share_vpn_dropped_warn)
                         }
                     }
                     else -> getString(R.string.hotspot_share_leak_warn)
@@ -883,7 +1098,10 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             }
             is ShareState.Error -> {
                 binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_unavailable)
-                binding.badgeShareStatus.setTextColor(redColor)
+                if (lastShareBadgeKey != "error") {
+                    lastShareBadgeKey = "error"
+                    ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeShareStatus, redColor)
+                }
                 binding.layoutShareTraffic.visibility = View.GONE
                 binding.textShareClients.visibility = View.GONE
                 binding.bannerShareWarning.visibility = View.VISIBLE
@@ -891,13 +1109,11 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             }
         }
 
-        // Shizuku status & permission UI
+        // Shizuku status & permission UI (uses IO-cached flags — zero Main-thread Binder IPC)
         val pref = SharePreference.fromCode(DataStore.hotspotShareMethod)
         val considersShizuku = pref == SharePreference.SHIZUKU || pref == SharePreference.AUTO
         if (considersShizuku) {
-            val shizukuRunning = ShizukuBackend.isShizukuRunning()
-            val shizukuGranted = ShizukuBackend.isShizukuGranted(this)
-            if (!shizukuRunning) {
+            if (!cachedShizukuRunning) {
                 if (pref == SharePreference.SHIZUKU) {
                     binding.layoutShizukuAction.visibility = View.VISIBLE
                     binding.textShizukuHint.visibility = View.VISIBLE
@@ -906,7 +1122,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 } else {
                     binding.layoutShizukuAction.visibility = View.GONE
                 }
-            } else if (!shizukuGranted) {
+            } else if (!cachedShizukuGranted) {
                 binding.layoutShizukuAction.visibility = View.VISIBLE
                 binding.textShizukuHint.visibility = View.GONE
                 binding.btnShizukuPermission.visibility = View.VISIBLE
@@ -917,9 +1133,8 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             binding.layoutShizukuAction.visibility = View.GONE
         }
 
-        // Fail-closed row visibility (relevant when Root backend may be used)
-        val rootGranted = com.topjohnwu.superuser.Shell.isAppGrantedRoot() == true
-        binding.rowFailClosed.visibility = if (pref == SharePreference.ROOT || (pref == SharePreference.AUTO && rootGranted)) {
+        // Fail-closed row visibility (relevant for both Shizuku and Root modes)
+        binding.rowFailClosed.visibility = if (pref != SharePreference.LAN_PROXY) {
             View.VISIBLE
         } else {
             View.GONE
@@ -957,19 +1172,61 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         }
     }
 
+    private fun styleExpressiveViews() {
+        listOf(
+            binding.cardHero,
+            binding.cardHotspotShare,
+            binding.cardGateway,
+            binding.cardHotspot,
+            binding.cardWifi,
+            binding.cardAuth
+        ).forEach { ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 20f) }
+
+        listOf(
+            binding.layoutShareTraffic,
+            binding.bannerShareWarning,
+            binding.boxHotspotSocksLink,
+            binding.boxWifiSocksLink
+        ).forEach { ExpressiveSettingsHelper.styleExpressiveNestedBox(it) }
+
+        listOf(
+            binding.btnRefreshLan,
+            binding.btnShizukuPermission,
+            binding.btnGatewayConfigure,
+            binding.btnCopyHotspotIp,
+            binding.btnCopyHotspotPort,
+            binding.btnCopyHotspotLink,
+            binding.btnShareHotspotLink,
+            binding.btnCopyWifiIp,
+            binding.btnCopyWifiPort,
+            binding.btnCopyWifiLink,
+            binding.btnShareWifiLink,
+            binding.btnAuthAction
+        ).forEach { ExpressiveSettingsHelper.styleOutlinedButton(it) }
+
+        val mutedColor = getColorAttr(android.R.attr.textColorSecondary)
+        ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeServiceStatus, mutedColor)
+        ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeShareStatus, mutedColor)
+        ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeHotspotStatus, mutedColor)
+        ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeWifiStatus, mutedColor)
+        ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeDevicesCount, mutedColor)
+        ExpressiveSettingsHelper.applySquircleIcon(
+            binding.imgHeroStatus,
+            R.drawable.ic_hardware_router,
+            sizeDp = 44,
+            iconSizeDp = 22
+        )
+    }
+
     private fun updateShareClientCountLabel() {
         val state = HotspotShareStateStore.snapshot()
         if (state !is ShareState.Active) {
             binding.textShareClients.visibility = View.GONE
             return
         }
-        val shizukuCount = if (state.method == ShareMethod.SHIZUKU) {
-            ShizukuBackend.queryActiveClientCount()
-        } else {
-            null
-        }
+        val shizukuCount = if (state.method == ShareMethod.SHIZUKU) cachedShizukuClientCount else 0
         val discoveredCount = clientHistory.count { it.value.isHotspot || it.value.activeConnections > 0 }
-        val count = maxOf(shizukuCount ?: 0, discoveredCount)
+        val count = maxOf(shizukuCount, discoveredCount)
         binding.textShareClients.visibility = View.VISIBLE
         binding.textShareClients.text = getString(R.string.hotspot_share_clients_format, count)
     }
