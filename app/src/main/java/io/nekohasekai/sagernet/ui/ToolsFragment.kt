@@ -1,13 +1,19 @@
 package io.nekohasekai.sagernet.ui
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import androidx.core.view.GravityCompat
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
+import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.database.backup.BackupEntry
 import io.nekohasekai.sagernet.databinding.LayoutToolsBinding
+import io.nekohasekai.sagernet.ktx.getColorAttr
+import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
+import io.nekohasekai.sagernet.utils.Theme
 
 class ToolsFragment : ToolbarFragment(R.layout.layout_tools) {
 
@@ -27,7 +33,23 @@ class ToolsFragment : ToolbarFragment(R.layout.layout_tools) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        toolbar?.setTitle(R.string.menu_tools)
+
+        val ctx = requireContext()
+        val isAmoled = Theme.isBlackTheme(ctx)
+        val screenBg = if (isAmoled) Color.BLACK else ctx.getColorAttr(android.R.attr.colorBackground)
+        view.setBackgroundColor(screenBg)
+
+        val appbar = view.findViewById<AppBarLayout>(R.id.appbar)
+        appbar?.setBackgroundColor(screenBg)
+        toolbar?.visibility = View.GONE
+        ExpressiveSettingsHelper.attachFloatingPillHeader(appbar, ctx)?.update(
+            context = ctx,
+            title = getString(R.string.menu_tools),
+            iconRes = R.drawable.ic_navigation_menu,
+            contentDescription = getString(R.string.navigation_open_drawer),
+        ) {
+            (activity as? MainActivity)?.binding?.drawerLayout?.openDrawer(GravityCompat.START)
+        }
 
         val pendingBackup = BackupEntry.takePending()
         val tools = listOf(
@@ -36,13 +58,24 @@ class ToolsFragment : ToolbarFragment(R.layout.layout_tools) {
         )
 
         val binding = LayoutToolsBinding.bind(view)
+        ExpressiveSettingsHelper.styleExpressiveTabs(
+            binding.toolsTabContainer,
+            binding.toolsTab,
+            cornerRadiusDp = 14f,
+        )
         binding.toolsPager.adapter = ToolsAdapter(tools)
 
         TabLayoutMediator(binding.toolsTab, binding.toolsPager) { tab, position ->
-            tab.text = when (position) {
-                0 -> getString(R.string.tools_tab_network)
-                1 -> getString(R.string.tools_tab_backup)
-                else -> null
+            when (position) {
+                TAB_NETWORK -> {
+                    tab.text = getString(R.string.tools_tab_network)
+                    tab.setIcon(R.drawable.baseline_public_24)
+                }
+
+                TAB_BACKUP -> {
+                    tab.text = getString(R.string.tools_tab_backup)
+                    tab.setIcon(R.drawable.ic_file_cloud_queue)
+                }
             }
             tab.view.setOnLongClickListener { true }
         }.attach()

@@ -97,6 +97,34 @@ class StunNatTesterTest {
     }
 
     @Test
+    fun testQualityBurstCollectsMetrics() = runBlocking {
+        val server = FakeStunServer(
+            provideOtherAddress = true,
+            respondToChangeBoth = true,
+            respondToChangePort = true,
+            simulateSymmetric = false,
+        )
+        try {
+            server.start()
+            val tester = StunNatTester()
+            val results = tester.test(
+                servers = listOf(server.primaryEndpoint),
+                enableQualityBurst = true,
+            )
+
+            assertEquals(1, results.size)
+            val res = results[0]
+            assertTrue(res.bindingSuccess)
+            assertTrue(res.medianRttMs >= 0.0)
+            assertTrue(res.packetLossPercent in 0.0..50.0)
+            assertTrue(res.localAddress.isNotBlank())
+            assertTrue(res.localPort > 0)
+        } finally {
+            server.close()
+        }
+    }
+
+    @Test
     fun testTimeoutFailsGracefully() = runBlocking {
         // Point to an unused loopback port that does not answer
         val unusedSocket = DatagramSocket(InetSocketAddress("127.0.0.1", 0))

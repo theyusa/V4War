@@ -98,6 +98,31 @@
             android:configChanges="uiMode"
             android:exported="false"
             android:label="@string/network_interfaces_title" />
+        <activity
+            android:name="io.nekohasekai.sagernet.ui.IpLookupActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/tools_ip_lookup" />
+        <activity
+            android:name="io.nekohasekai.sagernet.ui.DnsLookupActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/tools_dns_lookup" />
+        <activity
+            android:name="io.nekohasekai.sagernet.ui.LocalPingActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/tools_local_ping" />
+        <activity
+            android:name="io.nekohasekai.sagernet.ui.ConnectivityTestActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/tools_connectivity_test" />
+        <activity
+            android:name="io.nekohasekai.sagernet.ui.TrafficUsageActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/tools_traffic_usage" />
 
         <activity
             android:name="io.nekohasekai.sagernet.ui.MainActivity"

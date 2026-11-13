@@ -12,8 +12,10 @@
         android:layout_height="wrap_content" />
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollStun"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:clipToPadding="false"
         android:fillViewport="true"
         android:scrollbars="none">
 
@@ -22,62 +24,16 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="24dp">
-
-            <!-- Hero -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <FrameLayout
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:background="@drawable/bg_circle_soft">
-
-                    <ImageView
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:layout_gravity="center"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_hardware_router"
-                        app:tint="?attr/primaryOrTextPrimary" />
-                </FrameLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/textHeroTitle"
-                        style="@style/TextAppearance.MaterialComponents.Headline5"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/stun_test"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/textHeroSubtitle"
-                        style="@style/TextAppearance.MaterialComponents.Body2"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/stun_test_summary"
-                        android:textColor="?android:attr/textColorSecondary" />
-                </LinearLayout>
-            </LinearLayout>
+            android:paddingTop="8dp"
+            android:paddingBottom="28dp">
 
             <!-- Preset suite card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardPreset"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
                 app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
-                app:cardCornerRadius="12dp"
+                app:cardCornerRadius="20dp"
                 app:cardElevation="0dp"
                 app:strokeColor="?attr/colorOutline"
                 app:strokeWidth="?attr/cardStrokeWidth">
@@ -88,51 +44,100 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/stun_server_preset"
-                        android:textAppearance="?attr/textAppearanceSubtitle1"
-                        android:textStyle="bold" />
-
-                    <RadioGroup
-                        android:id="@+id/radioGroupPreset"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp">
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-                        <RadioButton
-                            android:id="@+id/radioPresetBalanced"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/stun_preset_balanced" />
+                        <ImageView
+                            android:id="@+id/iconPresetBadge"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginEnd="12dp"
+                            android:importantForAccessibility="no" />
 
-                        <RadioButton
-                            android:id="@+id/radioPresetFull"
-                            android:layout_width="match_parent"
+                        <LinearLayout
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="@string/stun_preset_full" />
+                            android:layout_weight="1"
+                            android:orientation="vertical">
 
-                        <RadioButton
-                            android:id="@+id/radioPresetFast"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/stun_preset_fast" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-medium"
+                                android:text="@string/stun_server_preset"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="15.5sp" />
 
-                        <RadioButton
-                            android:id="@+id/radioPresetCustom"
+                            <TextView
+                                android:id="@+id/textHeroSubtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/stun_test_summary"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="13sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/boxPresetRadios"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="4dp">
+
+                        <RadioGroup
+                            android:id="@+id/radioGroupPreset"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/stun_preset_custom" />
-                    </RadioGroup>
+                            android:layout_height="wrap_content">
+
+                            <RadioButton
+                                android:id="@+id/radioPresetBalanced"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:minHeight="42dp"
+                                android:text="@string/stun_preset_balanced"
+                                android:textSize="14.5sp" />
+
+                            <RadioButton
+                                android:id="@+id/radioPresetFull"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:minHeight="42dp"
+                                android:text="@string/stun_preset_full"
+                                android:textSize="14.5sp" />
+
+                            <RadioButton
+                                android:id="@+id/radioPresetFast"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:minHeight="42dp"
+                                android:text="@string/stun_preset_fast"
+                                android:textSize="14.5sp" />
+
+                            <RadioButton
+                                android:id="@+id/radioPresetCustom"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:minHeight="42dp"
+                                android:text="@string/stun_preset_custom"
+                                android:textSize="14.5sp" />
+                        </RadioGroup>
+                    </LinearLayout>
 
                     <TextView
                         android:id="@+id/textPresetDescription"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:textAppearance="?attr/textAppearanceBody2"
+                        android:layout_marginTop="10dp"
+                        android:lineSpacingMultiplier="1.15"
                         android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="13.5sp"
                         tools:text="Runs two full behaviour servers and two widely available fallback servers." />
 
                     <!-- Custom servers container -->
@@ -145,10 +150,10 @@
                         android:visibility="gone">
 
                         <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="@string/stun_custom_servers"
-                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                            android:hint="@string/stun_custom_servers">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/editCustomServers"
@@ -157,7 +162,8 @@
                                 android:gravity="top|start"
                                 android:inputType="textMultiLine"
                                 android:minLines="3"
-                                android:scrollbars="vertical" />
+                                android:scrollbars="vertical"
+                                android:textSize="14sp" />
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <TextView
@@ -165,8 +171,8 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="@string/stun_custom_servers_helper"
-                            android:textAppearance="?attr/textAppearanceCaption"
-                            android:textColor="?android:attr/textColorSecondary" />
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="12.5sp" />
 
                         <TextView
                             android:id="@+id/textCustomServersError"
@@ -174,7 +180,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:textColor="@color/material_red_500"
-                            android:textAppearance="?attr/textAppearanceCaption"
+                            android:textSize="12.5sp"
                             android:visibility="gone"
                             tools:text="Invalid server: test. Use host:port." />
                     </LinearLayout>
@@ -182,10 +188,11 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="10dp"
+                        android:lineSpacingMultiplier="1.15"
                         android:text="@string/stun_privacy_notice"
-                        android:textAppearance="?attr/textAppearanceCaption"
-                        android:textColor="?android:attr/textColorSecondary" />
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="12.5sp" />
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -195,9 +202,9 @@
                 android:id="@+id/cardNetworkOptions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
-                app:cardCornerRadius="12dp"
+                app:cardCornerRadius="20dp"
                 app:cardElevation="0dp"
                 app:strokeColor="?attr/colorOutline"
                 app:strokeWidth="?attr/cardStrokeWidth">
@@ -214,7 +221,6 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:background="@drawable/bg_badge_soft"
                         android:orientation="vertical"
                         android:padding="12dp"
                         android:visibility="gone">
@@ -222,18 +228,19 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-medium"
                             android:text="@string/stun_vpn_warning_title"
-                            android:textAppearance="?attr/textAppearanceSubtitle2"
                             android:textColor="@color/material_amber_700"
-                            android:textStyle="bold" />
+                            android:textSize="14sp" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
+                            android:lineSpacingMultiplier="1.15"
                             android:text="@string/stun_vpn_warning_summary"
-                            android:textAppearance="?attr/textAppearanceBody2"
-                            android:textColor="?android:attr/textColorSecondary" />
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="13sp" />
                     </LinearLayout>
 
                     <!-- Physical network switch row -->
@@ -242,6 +249,13 @@
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
+
+                        <ImageView
+                            android:id="@+id/iconNetworkOptionBadge"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginEnd="12dp"
+                            android:importantForAccessibility="no" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -252,23 +266,32 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-medium"
                                 android:text="@string/stun_test_physical_network"
-                                android:textAppearance="?attr/textAppearanceSubtitle1" />
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="15.5sp" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
+                                android:lineSpacingMultiplier="1.15"
                                 android:text="@string/stun_test_physical_network_summary"
-                                android:textAppearance="?attr/textAppearanceBody2"
-                                android:textColor="?android:attr/textColorSecondary" />
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="13.5sp" />
                         </LinearLayout>
 
                         <androidx.appcompat.widget.SwitchCompat
                             android:id="@+id/switchPhysicalNetwork"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp" />
+                            android:layout_marginStart="12dp"
+                            android:minWidth="36dp"
+                            android:minHeight="22dp"
+                            android:thumb="@drawable/switch_expressive_thumb"
+                            app:showText="false"
+                            app:switchMinWidth="36dp"
+                            app:track="@drawable/switch_expressive_track" />
                     </LinearLayout>
 
                 </LinearLayout>
@@ -279,9 +302,9 @@
                 android:id="@+id/cardAction"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
-                app:cardCornerRadius="12dp"
+                app:cardCornerRadius="20dp"
                 app:cardElevation="0dp"
                 app:strokeColor="?attr/colorOutline"
                 app:strokeWidth="?attr/cardStrokeWidth">
@@ -297,16 +320,25 @@
                         style="@style/Widget.SagerNet.Button"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/stun_action_start" />
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minHeight="48dp"
+                        android:paddingVertical="10dp"
+                        android:text="@string/stun_action_start"
+                        android:textAllCaps="false"
+                        android:textSize="13.5sp"
+                        app:cornerRadius="16dp"
+                        app:icon="@drawable/ic_hardware_router"
+                        app:iconGravity="textStart" />
 
-                    <ProgressBar
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
                         android:id="@+id/progressBarStun"
-                        style="?android:attr/progressBarStyleHorizontal"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:indeterminate="true"
-                        android:visibility="gone" />
+                        android:visibility="gone"
+                        app:trackCornerRadius="4dp" />
 
                     <TextView
                         android:id="@+id/textProgress"
@@ -314,8 +346,8 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
                         android:gravity="center"
-                        android:textAppearance="?attr/textAppearanceBody2"
                         android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="13sp"
                         android:visibility="gone"
                         tools:text="Testing 4 servers…" />
 
@@ -327,10 +359,10 @@
                 android:id="@+id/cardResult"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="10dp"
                 android:visibility="gone"
                 app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
-                app:cardCornerRadius="12dp"
+                app:cardCornerRadius="20dp"
                 app:cardElevation="0dp"
                 app:strokeColor="?attr/colorOutline"
                 app:strokeWidth="?attr/cardStrokeWidth"
@@ -342,30 +374,192 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <TextView
-                        android:id="@+id/textAssessmentTitle"
-                        style="@style/TextAppearance.MaterialComponents.Headline6"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textStyle="bold"
-                        tools:text="Direct connections should work well" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:id="@+id/iconResultBadge"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginEnd="12dp"
+                            android:importantForAccessibility="no" />
+
+                        <TextView
+                            android:id="@+id/textAssessmentTitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:fontFamily="sans-serif-medium"
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textSize="16sp"
+                            tools:text="Direct connections should work well" />
+
+                        <TextView
+                            android:id="@+id/badgeNatType"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:fontFamily="sans-serif-medium"
+                            android:fontFeatureSettings="tnum"
+                            android:includeFontPadding="false"
+                            android:paddingHorizontal="10dp"
+                            android:paddingVertical="4dp"
+                            android:textSize="12sp"
+                            android:visibility="gone"
+                            tools:text="NAT1"
+                            tools:visibility="visible" />
+                    </LinearLayout>
 
                     <TextView
                         android:id="@+id/textAssessmentImpact"
-                        style="@style/TextAppearance.MaterialComponents.Body2"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="10dp"
+                        android:lineSpacingMultiplier="1.15"
                         android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="13.5sp"
                         tools:text="Endpoint-independent behaviour is friendly to calls, WebRTC, and peer-to-peer games." />
+
+                    <!-- Bettbox-inspired UDP Quality & Socket Telemetry strip -->
+                    <LinearLayout
+                        android:id="@+id/boxQualityMetrics"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:visibility="gone"
+                        tools:visibility="visible">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/stun_metric_rtt"
+                                    android:textColor="?android:attr/textColorSecondary"
+                                    android:textSize="11.5sp" />
+
+                                <TextView
+                                    android:id="@+id/textMetricRtt"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:fontFeatureSettings="tnum"
+                                    android:textColor="?android:attr/textColorPrimary"
+                                    android:textSize="14sp"
+                                    tools:text="28 ms" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/stun_metric_jitter"
+                                    android:textColor="?android:attr/textColorSecondary"
+                                    android:textSize="11.5sp" />
+
+                                <TextView
+                                    android:id="@+id/textMetricJitter"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:fontFeatureSettings="tnum"
+                                    android:textColor="?android:attr/textColorPrimary"
+                                    android:textSize="14sp"
+                                    tools:text="3.2 ms" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/stun_metric_loss"
+                                    android:textColor="?android:attr/textColorSecondary"
+                                    android:textSize="11.5sp" />
+
+                                <TextView
+                                    android:id="@+id/textMetricLoss"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:fontFeatureSettings="tnum"
+                                    android:textColor="?android:attr/textColorPrimary"
+                                    android:textSize="14sp"
+                                    tools:text="0%" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/stun_metric_port_preserved"
+                                    android:textColor="?android:attr/textColorSecondary"
+                                    android:textSize="11.5sp" />
+
+                                <TextView
+                                    android:id="@+id/textMetricPortPreserved"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:textColor="?android:attr/textColorPrimary"
+                                    android:textSize="14sp"
+                                    tools:text="Yes" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/textEndpointSummary"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:fontFeatureSettings="tnum"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="12.5sp"
+                            android:visibility="gone"
+                            tools:text="192.168.1.25:51420 -> 185.157.217.124:51420"
+                            tools:visibility="visible" />
+                    </LinearLayout>
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="8dp"
+                        android:lineSpacingMultiplier="1.15"
                         android:text="@string/stun_result_disclaimer"
-                        android:textAppearance="?attr/textAppearanceCaption"
-                        android:textColor="?android:attr/textColorSecondary" />
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="12.5sp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnToggleDetails"
@@ -373,7 +567,14 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minHeight="46dp"
+                        android:paddingVertical="10dp"
                         android:text="@string/stun_show_details"
+                        android:textAllCaps="false"
+                        android:textSize="13sp"
+                        app:cornerRadius="16dp"
                         app:icon="@drawable/ic_baseline_expand_more_24"
                         app:iconGravity="textEnd" />
 
@@ -386,30 +587,41 @@
                         android:orientation="vertical"
                         android:visibility="gone">
 
-                        <TextView
+                        <LinearLayout
+                            android:id="@+id/boxTechnicalSummary"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="@string/stun_technical_summary"
-                            android:textAppearance="?attr/textAppearanceSubtitle1"
-                            android:textStyle="bold" />
+                            android:orientation="vertical"
+                            android:padding="12dp">
 
-                        <TextView
-                            android:id="@+id/textTechnicalSummary"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:textAppearance="?attr/textAppearanceBody2"
-                            android:textColor="?android:attr/textColorSecondary"
-                            tools:text="Mapping: Endpoint-independent\nFiltering: Endpoint-independent\nClassic NAT type: Full-cone NAT" />
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-medium"
+                                android:text="@string/stun_technical_summary"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="15sp" />
+
+                            <TextView
+                                android:id="@+id/textTechnicalSummary"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="6dp"
+                                android:lineSpacingMultiplier="1.18"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="13.5sp"
+                                tools:text="Mapping: Endpoint-independent\nFiltering: Endpoint-independent" />
+                        </LinearLayout>
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="14dp"
                             android:layout_marginBottom="8dp"
+                            android:fontFamily="sans-serif-medium"
                             android:text="@string/stun_server_results"
-                            android:textAppearance="?attr/textAppearanceSubtitle1"
-                            android:textStyle="bold" />
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textSize="15sp" />
 
                         <androidx.recyclerview.widget.RecyclerView
                             android:id="@+id/recyclerServerResults"
@@ -421,13 +633,21 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnCopyResult"
-                        style="@style/Widget.SagerNet.Button.TextButton"
+                        style="@style/Widget.SagerNet.Button.OutlinedButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="end"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="10dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
                         android:minWidth="0dp"
+                        android:minHeight="42dp"
+                        android:paddingHorizontal="16dp"
+                        android:paddingVertical="8dp"
                         android:text="@string/stun_copy_result"
+                        android:textAllCaps="false"
+                        android:textSize="13sp"
+                        app:cornerRadius="14dp"
                         app:icon="@drawable/ic_content_copy" />
 
                 </LinearLayout>

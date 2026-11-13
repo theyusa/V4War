@@ -4,6 +4,8 @@ package io.nekohasekai.sagernet.ui
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -13,7 +15,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.viewModels
-import androidx.appcompat.widget.Toolbar
+import androidx.core.graphics.ColorUtils
+import androidx.core.widget.CompoundButtonCompat
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -25,6 +28,9 @@ import io.nekohasekai.sagernet.bg.BaseService
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.databinding.ActivityStunBinding
 import io.nekohasekai.sagernet.databinding.ItemStunServerResultBinding
+import io.nekohasekai.sagernet.ktx.getColorAttr
+import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
+import io.nekohasekai.sagernet.widget.applyListInsets
 import io.nekohasekai.sagernet.utils.stun.AndroidStunSocketFactory
 import io.nekohasekai.sagernet.utils.stun.DefaultStunSocketFactory
 import io.nekohasekai.sagernet.utils.stun.StunAssessment
@@ -55,13 +61,12 @@ class StunActivity : ThemedActivity() {
         binding = ActivityStunBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.apply {
-            setTitle(R.string.stun_test)
-            setDisplayHomeAsUpEnabled(true)
-            setHomeAsUpIndicator(R.drawable.baseline_arrow_back_24)
-        }
+        ExpressiveSettingsHelper.attachActivityFloatingHeader(
+            this,
+            binding.root,
+            getString(R.string.stun_test),
+        )
+        styleExpressiveCards()
 
         setupViews()
         observeViewModel()
@@ -131,6 +136,45 @@ class StunActivity : ThemedActivity() {
         binding.btnCopyResult.setOnClickListener {
             copyResultToClipboard()
         }
+    }
+
+    private fun styleExpressiveCards() {
+        binding.scrollStun.applyListInsets()
+        listOf(
+            binding.cardPreset,
+            binding.cardNetworkOptions,
+            binding.cardAction,
+            binding.cardResult,
+        ).forEach { ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 20f) }
+
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconPresetBadge, R.drawable.ic_baseline_nat_24)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconNetworkOptionBadge, R.drawable.ic_hardware_router)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconResultBadge, R.drawable.ic_baseline_check_circle_24)
+
+        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.boxPresetRadios, cornerRadiusDp = 16f, strokeAlpha = 160)
+        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.layoutVpnWarning, cornerRadiusDp = 14f, strokeAlpha = 160)
+        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.boxQualityMetrics, cornerRadiusDp = 14f, strokeAlpha = 160)
+        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.boxTechnicalSummary, cornerRadiusDp = 14f, strokeAlpha = 160)
+
+        val accent = ExpressiveSettingsHelper.resolveAccentColor(this)
+        val textSecondary = getColorAttr(android.R.attr.textColorSecondary)
+        val radioTint = ColorStateList(
+            arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+            intArrayOf(accent, textSecondary),
+        )
+        listOf(
+            binding.radioPresetBalanced,
+            binding.radioPresetFull,
+            binding.radioPresetFast,
+            binding.radioPresetCustom,
+        ).forEach { CompoundButtonCompat.setButtonTintList(it, radioTint) }
+
+        binding.progressBarStun.setIndicatorColor(accent)
+        binding.progressBarStun.trackColor = ColorUtils.setAlphaComponent(accent, 45)
+
+        ExpressiveSettingsHelper.stylePrimaryButton(binding.btnAction)
+        ExpressiveSettingsHelper.styleOutlinedButton(binding.btnToggleDetails)
+        ExpressiveSettingsHelper.styleOutlinedButton(binding.btnCopyResult)
     }
 
     private fun updatePresetUi(preset: StunPreset) {
@@ -240,6 +284,7 @@ class StunActivity : ThemedActivity() {
                         state.totalServers,
                     )
                 }
+                updateQualityTelemetry(state.results, state.assessment)
                 binding.textTechnicalSummary.text = buildTechnicalSummary(state.results, state.assessment)
                 serverResultsAdapter.submitList(state.results)
             }
@@ -268,9 +313,98 @@ class StunActivity : ThemedActivity() {
         binding.cardResult.visibility = View.VISIBLE
         binding.textAssessmentTitle.setText(assessmentTitleRes(assessment.kind))
         binding.textAssessmentImpact.setText(assessmentImpactRes(assessment.kind))
-
+        updateQualityTelemetry(results, assessment)
         binding.textTechnicalSummary.text = buildTechnicalSummary(results, assessment)
         serverResultsAdapter.submitList(results)
+    }
+
+    private fun updateQualityTelemetry(results: List<StunServerUiResult>, assessment: StunAssessment?) {
+        val rep = assessment?.representative ?: results.firstOrNull { it.bindingSuccess }
+        if (rep == null) {
+            binding.badgeNatType.visibility = View.GONE
+            binding.boxQualityMetrics.visibility = View.GONE
+            return
+        }
+
+        val badgeText = natCodeBadge(rep.natType, assessment?.kind)
+        if (badgeText.isNotEmpty()) {
+            binding.badgeNatType.visibility = View.VISIBLE
+            binding.badgeNatType.text = badgeText
+            ExpressiveSettingsHelper.styleExpressiveBadge(
+                binding.badgeNatType,
+                natBadgeColor(rep.natType, assessment?.kind),
+            )
+        } else {
+            binding.badgeNatType.visibility = View.GONE
+        }
+
+        binding.boxQualityMetrics.visibility = View.VISIBLE
+        val effectiveRtt = when {
+            rep.medianRttMs >= 0.0 -> "${rep.medianRttMs.toInt().coerceAtLeast(1)} ms"
+            rep.rttMs > 0 -> "${rep.rttMs} ms"
+            else -> getString(R.string.stun_unknown_short)
+        }
+        binding.textMetricRtt.text = effectiveRtt
+        binding.textMetricJitter.text = if (rep.jitterMs >= 0.0) {
+            String.format(java.util.Locale.US, "%.1f ms", rep.jitterMs)
+        } else {
+            getString(R.string.stun_unknown_short)
+        }
+        binding.textMetricLoss.text = if (rep.packetLossPercent >= 0.0) {
+            String.format(java.util.Locale.US, "%.0f%%", rep.packetLossPercent)
+        } else {
+            getString(R.string.stun_unknown_short)
+        }
+        binding.textMetricPortPreserved.text = when (rep.portPreserved) {
+            true -> getString(R.string.stun_yes)
+            false -> getString(R.string.stun_no)
+            null -> getString(R.string.stun_unknown_short)
+        }
+
+        val extEndpoint = if (rep.externalAddress.isNotEmpty()) {
+            if (rep.externalAddress.contains(':')) "[${rep.externalAddress}]:${rep.externalPort}"
+            else "${rep.externalAddress}:${rep.externalPort}"
+        } else ""
+        val localEndpoint = if (rep.localAddress.isNotEmpty() && rep.localPort > 0) {
+            if (rep.localAddress.contains(':')) "[${rep.localAddress}]:${rep.localPort}"
+            else "${rep.localAddress}:${rep.localPort}"
+        } else ""
+        if (localEndpoint.isNotEmpty() && extEndpoint.isNotEmpty()) {
+            binding.textEndpointSummary.visibility = View.VISIBLE
+            binding.textEndpointSummary.text = "$localEndpoint  ->  $extEndpoint"
+        } else if (extEndpoint.isNotEmpty()) {
+            binding.textEndpointSummary.visibility = View.VISIBLE
+            binding.textEndpointSummary.text = extEndpoint
+        } else {
+            binding.textEndpointSummary.visibility = View.GONE
+        }
+    }
+
+    private fun natCodeBadge(natType: Int, kind: StunAssessmentKind?): String = when (natType) {
+        StunProtocolCodes.NAT_NONE -> "OPEN"
+        StunProtocolCodes.NAT_FULL -> "NAT1"
+        StunProtocolCodes.NAT_RESTRICTED -> "NAT2"
+        StunProtocolCodes.NAT_PORT_RESTRICTED -> "NAT3"
+        StunProtocolCodes.NAT_SYMMETRIC -> "NAT4"
+        StunProtocolCodes.NAT_CONE -> "NAT1-3"
+        StunProtocolCodes.NAT_BLOCKED -> "BLOCKED"
+        StunProtocolCodes.NAT_SYMMETRIC_UDP_FIREWALL -> "FW"
+        else -> when (kind) {
+            StunAssessmentKind.INCONSISTENT -> "MIXED"
+            StunAssessmentKind.BASIC_ONLY -> "UDP"
+            else -> ""
+        }
+    }
+
+    private fun natBadgeColor(natType: Int, kind: StunAssessmentKind?): Int = when (natType) {
+        StunProtocolCodes.NAT_NONE, StunProtocolCodes.NAT_FULL -> Color.parseColor("#10B981")
+        StunProtocolCodes.NAT_RESTRICTED -> Color.parseColor("#22C55E")
+        StunProtocolCodes.NAT_PORT_RESTRICTED -> Color.parseColor("#F59E0B")
+        StunProtocolCodes.NAT_SYMMETRIC -> Color.parseColor("#EF4444")
+        StunProtocolCodes.NAT_CONE -> ExpressiveSettingsHelper.resolveAccentColor(this)
+        StunProtocolCodes.NAT_BLOCKED -> Color.parseColor("#EF4444")
+        else -> if (kind == StunAssessmentKind.FAILED) Color.parseColor("#EF4444")
+        else ExpressiveSettingsHelper.resolveAccentColor(this)
     }
 
     private fun buildTechnicalSummary(results: List<StunServerUiResult>, assessment: StunAssessment?): String {
@@ -279,6 +413,12 @@ class StunActivity : ThemedActivity() {
             lines += getString(R.string.stun_mapping_value, behaviorLabel(rep.mappingBehavior))
             lines += getString(R.string.stun_filtering_value, behaviorLabel(rep.filteringBehavior))
             lines += getString(R.string.stun_nat_type_value, natLabel(rep.natType))
+            if (rep.localAddress.isNotEmpty() && rep.localPort > 0) {
+                lines += getString(R.string.stun_local_endpoint_value, "${rep.localAddress}:${rep.localPort}")
+            }
+            if (rep.serverSoftware.isNotEmpty()) {
+                lines += getString(R.string.stun_software_value, rep.serverSoftware)
+            }
         }
 
         val endpoints = results.filter { it.bindingSuccess }
@@ -311,6 +451,7 @@ class StunActivity : ThemedActivity() {
         StunProtocolCodes.NAT_RESTRICTED -> getString(R.string.stun_nat_restricted)
         StunProtocolCodes.NAT_PORT_RESTRICTED -> getString(R.string.stun_nat_port_restricted)
         StunProtocolCodes.NAT_SYMMETRIC_UDP_FIREWALL -> getString(R.string.stun_nat_symmetric_firewall)
+        StunProtocolCodes.NAT_CONE -> getString(R.string.stun_nat_cone)
         else -> getString(R.string.stun_value_unknown)
     }
 
@@ -371,6 +512,8 @@ class StunActivity : ThemedActivity() {
     ) : RecyclerView.ViewHolder(itemBinding.root) {
 
         fun bind(item: StunServerUiResult) {
+            ExpressiveSettingsHelper.styleExpressiveCard(itemBinding.cardServerItem, cornerRadiusDp = 16f)
+            ExpressiveSettingsHelper.styleExpressiveBadge(itemBinding.badgeServerRtt)
             itemBinding.textServerName.text = item.server.ifBlank { getString(R.string.stun_unknown_server) }
 
             // RTT Ping indicator
@@ -386,7 +529,10 @@ class StunActivity : ThemedActivity() {
                 StunServerStatus.PENDING -> {
                     itemBinding.progressServer.visibility = View.GONE
                     itemBinding.badgeServerStatus.text = getString(R.string.stun_server_status_pending)
-                    itemBinding.badgeServerStatus.setTextColor(ContextCompat.getColor(this@StunActivity, R.color.material_grey_500))
+                    ExpressiveSettingsHelper.styleExpressiveBadge(
+                        itemBinding.badgeServerStatus,
+                        ContextCompat.getColor(this@StunActivity, R.color.material_grey_500),
+                    )
                     itemBinding.textServerDuration.visibility = View.GONE
                     itemBinding.textServerDetails.text = getString(R.string.stun_server_pending_details)
                     return
@@ -394,7 +540,10 @@ class StunActivity : ThemedActivity() {
                 StunServerStatus.RUNNING -> {
                     itemBinding.progressServer.visibility = View.VISIBLE
                     itemBinding.badgeServerStatus.text = getString(R.string.stun_server_status_running)
-                    itemBinding.badgeServerStatus.setTextColor(ContextCompat.getColor(this@StunActivity, R.color.material_blue_500))
+                    ExpressiveSettingsHelper.styleExpressiveBadge(
+                        itemBinding.badgeServerStatus,
+                        ContextCompat.getColor(this@StunActivity, R.color.material_blue_500),
+                    )
                     itemBinding.textServerDuration.visibility = View.GONE
                     if (item.bindingSuccess) {
                         val ep = if (item.externalAddress.contains(':')) "[${item.externalAddress}]:${item.externalPort}" else "${item.externalAddress}:${item.externalPort}"
@@ -407,22 +556,34 @@ class StunActivity : ThemedActivity() {
                 StunServerStatus.COMPLETED -> {
                     itemBinding.progressServer.visibility = View.GONE
                     itemBinding.badgeServerStatus.text = getString(R.string.stun_server_status_complete)
-                    itemBinding.badgeServerStatus.setTextColor(ContextCompat.getColor(this@StunActivity, R.color.material_green_500))
+                    ExpressiveSettingsHelper.styleExpressiveBadge(
+                        itemBinding.badgeServerStatus,
+                        ContextCompat.getColor(this@StunActivity, R.color.material_green_500),
+                    )
                 }
                 StunServerStatus.PARTIAL -> {
                     itemBinding.progressServer.visibility = View.GONE
                     itemBinding.badgeServerStatus.text = getString(R.string.stun_server_status_partial)
-                    itemBinding.badgeServerStatus.setTextColor(ContextCompat.getColor(this@StunActivity, R.color.material_amber_500))
+                    ExpressiveSettingsHelper.styleExpressiveBadge(
+                        itemBinding.badgeServerStatus,
+                        ContextCompat.getColor(this@StunActivity, R.color.material_amber_500),
+                    )
                 }
                 StunServerStatus.CANCELLED -> {
                     itemBinding.progressServer.visibility = View.GONE
                     itemBinding.badgeServerStatus.text = getString(R.string.stun_server_status_cancelled)
-                    itemBinding.badgeServerStatus.setTextColor(ContextCompat.getColor(this@StunActivity, R.color.material_grey_500))
+                    ExpressiveSettingsHelper.styleExpressiveBadge(
+                        itemBinding.badgeServerStatus,
+                        ContextCompat.getColor(this@StunActivity, R.color.material_grey_500),
+                    )
                 }
                 StunServerStatus.FAILED -> {
                     itemBinding.progressServer.visibility = View.GONE
                     itemBinding.badgeServerStatus.text = getString(R.string.stun_server_status_failed)
-                    itemBinding.badgeServerStatus.setTextColor(ContextCompat.getColor(this@StunActivity, R.color.color_route_block))
+                    ExpressiveSettingsHelper.styleExpressiveBadge(
+                        itemBinding.badgeServerStatus,
+                        ContextCompat.getColor(this@StunActivity, R.color.color_route_block),
+                    )
                 }
             }
 
@@ -444,6 +605,21 @@ class StunActivity : ThemedActivity() {
             }
             if (item.filteringBehavior != StunProtocolCodes.BEHAVIOR_UNKNOWN) {
                 details += getString(R.string.stun_filtering_value, behaviorLabel(item.filteringBehavior))
+            }
+            if (item.medianRttMs >= 0.0 && item.packetLossPercent >= 0.0) {
+                details += String.format(
+                    java.util.Locale.US,
+                    "%s: %d ms • %s: %.1f ms • %s: %.0f%%",
+                    getString(R.string.stun_metric_rtt),
+                    item.medianRttMs.toInt().coerceAtLeast(1),
+                    getString(R.string.stun_metric_jitter),
+                    item.jitterMs.coerceAtLeast(0.0),
+                    getString(R.string.stun_metric_loss),
+                    item.packetLossPercent.coerceAtLeast(0.0),
+                )
+            }
+            if (item.serverSoftware.isNotEmpty()) {
+                details += getString(R.string.stun_software_value, item.serverSoftware)
             }
             if (item.errorCode.isNotBlank()) {
                 val errLabel = when (item.errorCode) {

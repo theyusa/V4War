@@ -124,6 +124,15 @@ data class StunServerUiResult(
     val externalAddress: String = "",
     val externalPort: Int = 0,
     val ipFamily: Int = 0,
+    val localAddress: String = "",
+    val localPort: Int = 0,
+    val portPreserved: Boolean? = null,
+    val serverSoftware: String = "",
+    val otherAddress: String = "",
+    val medianRttMs: Double = -1.0,
+    val jitterMs: Double = -1.0,
+    val packetLossPercent: Double = -1.0,
+    val mappingProbeServer: String = "",
     val durationMilliseconds: Long = 0,
     val errorCode: String = "",
     val errorMessage: String = "",
@@ -140,6 +149,7 @@ object StunProtocolCodes {
     const val NAT_RESTRICTED = 6
     const val NAT_PORT_RESTRICTED = 7
     const val NAT_SYMMETRIC_UDP_FIREWALL = 8
+    const val NAT_CONE = 9
 
     const val BEHAVIOR_UNKNOWN = 0
     const val BEHAVIOR_ENDPOINT = 1
@@ -170,12 +180,29 @@ object StunAssessmentPolicy {
         }
         val complete = results.filter { it.behaviorComplete }
         if (complete.isEmpty()) {
+            val crossServerSymmetric = results.firstOrNull {
+                it.bindingSuccess &&
+                    it.mappingProbeServer.isNotEmpty() &&
+                    it.natType == StunProtocolCodes.NAT_SYMMETRIC
+            }
+            if (crossServerSymmetric != null) {
+                return StunAssessment(StunAssessmentKind.RESTRICTIVE, crossServerSymmetric)
+            }
+            val crossServerCone = results.firstOrNull {
+                it.bindingSuccess &&
+                    it.natType == StunProtocolCodes.NAT_CONE
+            }
+            if (crossServerCone != null) {
+                return StunAssessment(StunAssessmentKind.MODERATE, crossServerCone)
+            }
+            val basic = results.firstOrNull { it.bindingSuccess }
             return StunAssessment(
-                if (results.any { it.bindingSuccess }) {
+                if (basic != null) {
                     StunAssessmentKind.BASIC_ONLY
                 } else {
                     StunAssessmentKind.FAILED
                 },
+                basic,
             )
         }
         val behaviors = complete.map {

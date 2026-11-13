@@ -2,11 +2,12 @@
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cardServerItem"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="8dp"
     app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
-    app:cardCornerRadius="12dp"
+    app:cardCornerRadius="16dp"
     app:cardElevation="0dp"
     app:strokeColor="?attr/colorOutline"
     app:strokeWidth="?attr/cardStrokeWidth">
@@ -15,21 +16,21 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="14dp">
 
         <TextView
             android:id="@+id/textServerName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceSubtitle1"
+            android:fontFamily="sans-serif-medium"
             android:textColor="?android:attr/textColorPrimary"
-            android:textStyle="bold"
+            android:textSize="14.5sp"
             tools:text="stun.voipgate.com:3478" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -50,11 +51,13 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/bg_badge_soft"
+                android:fontFamily="sans-serif-medium"
+                android:fontFeatureSettings="tnum"
+                android:includeFontPadding="false"
                 android:paddingHorizontal="8dp"
-                android:paddingVertical="2dp"
-                android:textAppearance="?attr/textAppearanceCaption"
+                android:paddingVertical="3dp"
                 android:textColor="?attr/primaryOrTextPrimary"
-                android:textStyle="bold"
+                android:textSize="12sp"
                 android:visibility="gone"
                 tools:text="Ping: 42 ms"
                 tools:visibility="visible" />
@@ -65,11 +68,12 @@
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_badge_soft"
                 android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:includeFontPadding="false"
                 android:maxLines="1"
                 android:paddingHorizontal="8dp"
-                android:paddingVertical="2dp"
-                android:textAppearance="?attr/textAppearanceCaption"
-                android:textStyle="bold"
+                android:paddingVertical="3dp"
+                android:textSize="12sp"
                 tools:text="Tamamlandı" />
         </LinearLayout>
 
@@ -77,9 +81,10 @@
             android:id="@+id/textServerDuration"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="?attr/textAppearanceCaption"
+            android:layout_marginTop="6dp"
+            android:fontFeatureSettings="tnum"
             android:textColor="?android:attr/textColorSecondary"
+            android:textSize="12.5sp"
             tools:text="Süre: 142 ms" />
 
         <TextView
@@ -87,8 +92,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:textAppearance="?attr/textAppearanceBody2"
+            android:lineSpacingMultiplier="1.15"
             android:textColor="?android:attr/textColorSecondary"
+            android:textSize="13sp"
             tools:text="Genel uç nokta: 198.51.100.1:45120\nMapping: Uç noktadan bağımsız\nFiltering: Uç noktadan bağımsız" />
 
     </LinearLayout>
