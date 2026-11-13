@@ -157,4 +157,18 @@ class StunMessageTest {
         lengthMismatch[3] = 8 // Claimed 8 bytes, but only 4 bytes follow header
         assertNull(StunMessage.decode(lengthMismatch))
     }
+
+    @Test
+    fun softwareAttributeRoundTrip() {
+        val transId = ByteArray(12) { (it + 1).toByte() }
+        val softAttr = StunAttribute.Software("V4War-STUN/1.0")
+        val msg = StunMessage(
+            type = StunMessage.BINDING_RESPONSE,
+            transactionId = transId,
+            attributes = listOf(softAttr),
+        )
+        val decoded = StunMessage.decode(msg.encode())
+        assertNotNull(decoded)
+        assertEquals("V4War-STUN/1.0", decoded!!.getSoftware())
+    }
 }

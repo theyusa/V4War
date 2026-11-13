@@ -195,4 +195,112 @@
     <string name="dns_leak_rec_fakeip">Sızıntısız internet için Rota Ayarları bölümünde Fake-IP özelliğini açık tutun.</string>
     <string name="dns_leak_rec_fix">Ayar &gt; Gelen &gt; TUN Ayarları bölümünden Katı Rota (Strict Route) seçeneğini açarak yerel DNS kaçaklarını engelleyin.</string>
     <string name="dns_leak_rec_safe">Mevcut bağlantı yapılandırmanız DNS sızıntılarına karşı tamamen korumalıdır.</string>
+
+    <!-- STUN / NAT Merger -->
+    <string name="stun_metric_rtt">Ortanca RTT</string>
+    <string name="stun_metric_jitter">Titreşim (Jitter)</string>
+    <string name="stun_metric_loss">Paket Kaybı</string>
+    <string name="stun_metric_port_preserved">Port Korundu</string>
+    <string name="stun_yes">Evet</string>
+    <string name="stun_no">Hayır</string>
+    <string name="stun_unknown_short">Bilinmiyor</string>
+    <string name="stun_local_endpoint_value">Yerel soket: %1$s</string>
+    <string name="stun_software_value">Sunucu yazılımı: %1$s</string>
+    <string name="stun_nat_cone">Koni NAT (NAT1–3)</string>
+
+    <!-- Shared Toolbox -->
+    <string name="toolbox_via_proxy">Proxy üzerinden</string>
+    <string name="toolbox_unavailable">Kullanılamıyor</string>
+
+    <!-- IP Lookup -->
+    <string name="tools_ip_lookup">IP Sorgulama</string>
+    <string name="tools_ip_lookup_summary">Proxy ve doğrudan çıkış IP adreslerini kıyaslayın; ASN, ülke ve İSS bilgisini inceleyin.</string>
+    <string name="ip_lookup_current_exits">Çıkış Karşılaştırması</string>
+    <string name="ip_lookup_compare_summary">Aktif tünel çıkışı ile fiziksel ağ çıkışı</string>
+    <string name="ip_lookup_refresh">Yenile</string>
+    <string name="ip_lookup_proxy_exit">Proxy Çıkışı</string>
+    <string name="ip_lookup_direct_exit">Doğrudan Fiziksel Çıkış</string>
+    <string name="ip_lookup_vpn_disconnected_hint">VPN bağlı değil</string>
+    <string name="ip_lookup_target_title">IP veya Alan Adı Sorgula</string>
+    <string name="ip_lookup_input_hint">IP, alan adı veya URL (örn. 1.1.1.1 veya openai.com)</string>
+    <string name="ip_lookup_action">Sorgula</string>
+    <string name="ip_lookup_empty_error">Bir IP adresi, alan adı veya URL girin</string>
+    <string name="ip_lookup_timezone">Saat Dilimi</string>
+    <string name="ip_lookup_source">Kaynak</string>
+    <string name="ip_lookup_cat_public">Genel</string>
+    <string name="ip_lookup_cat_private">Özel</string>
+    <string name="ip_lookup_cat_reserved">Ayrılmış</string>
+    <string name="ip_lookup_category_format">Aralık: %1$s</string>
+
+    <!-- DNS Lookup -->
+    <string name="tools_dns_lookup">DNS Sorgulama</string>
+    <string name="tools_dns_lookup_summary">Çekirdek, Sistem, UDP, DoH ve DoT üzerinden A, AAAA, CNAME, HTTPS, TXT, MX, NS ve PTR kayıtlarını sorgulayın.</string>
+    <string name="dns_lookup_domain_hint">Alan adı veya PTR için IP</string>
+    <string name="dns_lookup_record_type">Kayıt Türü</string>
+    <string name="dns_lookup_resolver_mode">Çözümleyici</string>
+    <string name="dns_lookup_mode_core">Çekirdek</string>
+    <string name="dns_lookup_mode_system">Sistem</string>
+    <string name="dns_lookup_mode_custom">Özel</string>
+    <string name="dns_lookup_server_hint">https://..., tls://... veya IP:port</string>
+    <string name="dns_lookup_compare_all">Çözümleyicileri kıyasla</string>
+    <string name="dns_lookup_run">DNS Sorgula</string>
+    <string name="dns_lookup_empty_error">Bir alan adı girin</string>
+    <string name="dns_lookup_no_records">Kayıt döndürülmedi</string>
+
+    <!-- Local Ping -->
+    <string name="tools_local_ping">Yerel Ping</string>
+    <string name="tools_local_ping_summary">Canlı RTT grafiği, titreşim ve paket kaybıyla TCP, UDP ve ICMP gecikmesini ölçün.</string>
+    <string name="ping_target_hint">Sunucu veya IP</string>
+    <string name="ping_port_hint">Port</string>
+    <string name="ping_bypass_vpn">Doğrudan fiziksel</string>
+    <string name="ping_start">Ping Başlat</string>
+    <string name="ping_stop">Durdur</string>
+    <string name="ping_clear">Temizle</string>
+    <string name="ping_empty_host_error">Hedef sunucu veya IP girin</string>
+    <string name="ping_live_rtt_chart">Canlı Gecikme Grafiği</string>
+    <string name="ping_stat_avg">Ortalama</string>
+    <string name="ping_stat_min_max">En Az / En Çok</string>
+    <string name="ping_samples_log">Son Ölçümler</string>
+
+    <!-- Connectivity Test -->
+    <string name="tools_connectivity_test">Erişilebilirlik Testi</string>
+    <string name="tools_connectivity_test_summary">Yapay zeka, yayın, sosyal medya ve geliştirici servislerinin erişim ve bölge durumunu test edin.</string>
+    <string name="connectivity_cat_all">Tümü</string>
+    <string name="connectivity_cat_ai">Yapay Zeka</string>
+    <string name="connectivity_cat_streaming">Yayın</string>
+    <string name="connectivity_cat_social">Sosyal</string>
+    <string name="connectivity_cat_developer">Geliştirici</string>
+    <string name="connectivity_run">Testi Çalıştır</string>
+    <string name="connectivity_summary_counts">%1$d erişilebilir · %2$d kısmi · %3$d engelli (%4$d toplam)</string>
+    <string name="connectivity_status_ready">HAZIR</string>
+    <string name="connectivity_status_testing">TEST EDİLİYOR</string>
+    <string name="connectivity_status_ok">AÇIK</string>
+    <string name="connectivity_status_partial">KISMİ</string>
+    <string name="connectivity_status_blocked">ENGELLİ</string>
+    <string name="connectivity_status_error">HATA</string>
+
+    <!-- Traffic Usage -->
+    <string name="tools_traffic_usage">Trafik Kullanımı</string>
+    <string name="tools_traffic_usage_summary">Canlı tünel hızı, oturum kullanımı ve profil/grup bazlı veri istatistiklerini inceleyin.</string>
+    <string name="traffic_session_title">Canlı Tünel &amp; Cihaz Trafiği</string>
+    <string name="traffic_proxy_rate">Proxy hızı</string>
+    <string name="traffic_direct_rate">Doğrudan hız</string>
+    <string name="traffic_state_active">AKTİF</string>
+    <string name="traffic_session_totals_line">Oturum: ↓ %1$s · ↑ %2$s · Toplam %3$s</string>
+    <string name="traffic_app_uid_line">Uygulama UID: ↓ %1$s · ↑ %2$s</string>
+    <string name="traffic_device_total_line">Cihaz toplamı: ↓ %1$s · ↑ %2$s</string>
+    <string name="traffic_recorded_title">Kayıtlı Trafik</string>
+    <string name="traffic_recorded_totals_line">↓ %1$s · ↑ %2$s · Toplam %3$s</string>
+    <string name="traffic_reset">Sıfırla</string>
+    <string name="traffic_reset_confirm_title">Kayıtlı trafik sıfırlansın mı?</string>
+    <string name="traffic_reset_confirm_msg">Tüm kayıtlı profillerin indirme ve yükleme sayaçları sıfırlanacaktır.</string>
+    <string name="traffic_reset_done">Trafik sayaçları sıfırlandı</string>
+    <string name="traffic_scope_profiles">Profiller</string>
+    <string name="traffic_scope_groups">Gruplar</string>
+    <string name="traffic_hide_zero">0 B gizle</string>
+    <string name="traffic_empty">Seçili filtreyle eşleşen kayıtlı trafik yok.</string>
+    <plurals name="traffic_group_members">
+        <item quantity="one">%1$d profil</item>
+        <item quantity="other">%1$d profil</item>
+    </plurals>
 </resources>

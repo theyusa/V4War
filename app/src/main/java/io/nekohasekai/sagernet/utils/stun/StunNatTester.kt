@@ -26,6 +26,22 @@ import java.util.concurrent.ConcurrentHashMap
 class StunNatTester(
     private val socketFactory: StunSocketFactory = DefaultStunSocketFactory(),
 ) {
+    companion object {
+        private val FALLBACK_MAPPING_SERVERS = listOf(
+            "stun.cloudflare.com:3478",
+            "stun.l.google.com:19302",
+            "stun.miwifi.com:3478",
+        )
+        private const val BURST_PACKET_COUNT = 16
+        private const val BURST_INTERVAL_MS = 25L
+    }
+
+    private data class BurstQuality(
+        val medianRttMs: Double,
+        val jitterMs: Double,
+        val packetLossPercent: Double,
+    )
+
     private val activeSockets = Collections.newSetFromMap(ConcurrentHashMap<DatagramSocket, Boolean>())
     @Volatile private var isCancelled = false
 
@@ -40,6 +56,8 @@ class StunNatTester(
     suspend fun test(
         servers: List<String>,
         ipv6Mode: Int = 0,
+        enableQualityBurst: Boolean = false,
+        enableCrossServerFallback: Boolean = false,
         onServerProgress: ((StunServerUiResult) -> Unit)? = null,
     ): List<StunServerUiResult> = withContext(Dispatchers.IO) {
         if (isCancelled) {
@@ -57,7 +75,13 @@ class StunNatTester(
         coroutineScope {
             servers.map { server ->
                 async {
-                    testServer(server, ipv6Mode, onServerProgress)
+                    testServer(
+                        address = server,
+                        ipv6Mode = ipv6Mode,
+                        enableQualityBurst = enableQualityBurst,
+                        enableCrossServerFallback = enableCrossServerFallback,
+                        onProgress = onServerProgress,
+                    )
                 }
             }.map { it.await() }
         }
@@ -66,6 +90,8 @@ class StunNatTester(
     private fun testServer(
         address: String,
         ipv6Mode: Int,
+        enableQualityBurst: Boolean,
+        enableCrossServerFallback: Boolean,
         onProgress: ((StunServerUiResult) -> Unit)? = null,
     ): StunServerUiResult {
         val started = System.currentTimeMillis()
@@ -107,9 +133,10 @@ class StunNatTester(
             }
 
             // Step 1: Binding Test 1 to primary target
-            val bindingStart = System.currentTimeMillis()
+            val bindingStartNanos = System.nanoTime()
             val resp1 = sendBindingRequest(socket, target, changeIp = false, changePort = false)
-            rttMs = if (resp1 != null) (System.currentTimeMillis() - bindingStart).coerceAtLeast(1) else 0L
+            val initialRttMs = ((System.nanoTime() - bindingStartNanos) / 1_000_000.0).coerceAtLeast(0.5)
+            rttMs = if (resp1 != null) initialRttMs.toLong().coerceAtLeast(1L) else 0L
 
             if (resp1 == null) {
                 val res = currentResult.copy(
@@ -141,9 +168,17 @@ class StunNatTester(
                     it.address != target.address || it.port != target.port
                 } == true) "response_address_mismatch" else ""
 
-            val localAddress = socket.localAddress
-            val identical = (localAddress != null && !localAddress.isAnyLocalAddress &&
-                mappedAddr.address == localAddress && mappedAddr.port == socket.localPort)
+            val resolvedLocalIp = resolveLocalIpForTarget(socket, target)
+            val localIpStr = resolvedLocalIp?.hostAddress.orEmpty()
+            val localPort = socket.localPort.coerceAtLeast(0)
+            val identical = resolvedLocalIp != null &&
+                !resolvedLocalIp.isAnyLocalAddress &&
+                !resolvedLocalIp.isLoopbackAddress &&
+                !mappedAddr.address.isLoopbackAddress &&
+                mappedAddr.address == resolvedLocalIp &&
+                mappedAddr.port == localPort
+            val portPreserved = if (localPort > 0) (localPort == mappedAddr.port) else null
+            val software = resp1.getSoftware().orEmpty()
 
             val isUsableAlternate = otherAddr != null &&
                 otherAddr.address != target.address &&
@@ -155,20 +190,63 @@ class StunNatTester(
                 externalAddress = mappedAddr.address.hostAddress ?: "",
                 externalPort = mappedAddr.port,
                 ipFamily = if (mappedAddr.isIpv6) 2 else 1,
+                localAddress = localIpStr,
+                localPort = localPort,
+                portPreserved = portPreserved,
+                serverSoftware = software,
+                otherAddress = otherAddr?.toString().orEmpty(),
             )
             onProgress?.invoke(currentResult)
 
+            if (enableQualityBurst && !isCancelled) {
+                val quality = measureUdpQualityBurst(socket, target, initialRttMs)
+                if (quality != null) {
+                    currentResult = currentResult.copy(
+                        medianRttMs = quality.medianRttMs,
+                        jitterMs = quality.jitterMs,
+                        packetLossPercent = quality.packetLossPercent,
+                    )
+                    onProgress?.invoke(currentResult)
+                }
+            }
+
             if (!isUsableAlternate) {
+                var fallbackMapping = StunProtocolCodes.BEHAVIOR_UNKNOWN
+                var fallbackNatType = StunProtocolCodes.NAT_UNKNOWN
+                var fallbackServer = ""
+                if (enableCrossServerFallback && !isCancelled) {
+                    val primaryHost = parseHostPort(address).first.lowercase()
+                    for (candidate in FALLBACK_MAPPING_SERVERS) {
+                        if (isCancelled) break
+                        val candidateHost = parseHostPort(candidate).first.lowercase()
+                        if (candidateHost == primaryHost) continue
+                        val altEndpoint = runCatching { resolveServer(candidate, ipv6Mode) }.getOrNull() ?: continue
+                        val probeResp = runCatching {
+                            sendBindingRequest(socket, altEndpoint, changeIp = false, changePort = false, maxRetries = 2, initialTimeoutMs = 600)
+                        }.getOrNull()
+                        val altMapped = probeResp?.preferredMappedAddress() ?: continue
+                        fallbackServer = candidate
+                        if (altMapped.address == mappedAddr.address && altMapped.port == mappedAddr.port) {
+                            fallbackMapping = StunProtocolCodes.BEHAVIOR_ENDPOINT
+                            fallbackNatType = StunProtocolCodes.NAT_CONE
+                        } else {
+                            fallbackMapping = StunProtocolCodes.BEHAVIOR_ADDRESS_AND_PORT
+                            fallbackNatType = StunProtocolCodes.NAT_SYMMETRIC
+                        }
+                        break
+                    }
+                }
                 val res = currentResult.copy(
                     status = StunServerStatus.PARTIAL,
                     behaviorSupported = false,
                     behaviorComplete = false,
-                    natType = StunProtocolCodes.NAT_UNKNOWN,
-                    mappingBehavior = StunProtocolCodes.BEHAVIOR_UNKNOWN,
+                    natType = fallbackNatType,
+                    mappingBehavior = fallbackMapping,
                     filteringBehavior = StunProtocolCodes.BEHAVIOR_UNKNOWN,
+                    mappingProbeServer = fallbackServer,
                     durationMilliseconds = System.currentTimeMillis() - started,
-                    errorCode = "behavior_unsupported",
-                    errorMessage = "Server does not support RFC 5780 behavior discovery",
+                    errorCode = if (fallbackServer.isEmpty()) "behavior_unsupported" else "",
+                    errorMessage = if (fallbackServer.isEmpty()) "Server does not support RFC 5780 behavior discovery" else "",
                     warningCode = warningCode,
                 )
                 onProgress?.invoke(res)
@@ -399,5 +477,97 @@ class StunNatTester(
             }
         }
         return null
+    }
+
+    private fun resolveLocalIpForTarget(socket: DatagramSocket, target: InetSocketAddress): InetAddress? {
+        val bound = socket.localAddress
+        if (bound != null && !bound.isAnyLocalAddress) return bound
+        return runCatching {
+            socketFactory.createDatagramSocket().use { probe ->
+                probe.connect(target)
+                probe.localAddress?.takeIf { !it.isAnyLocalAddress }
+            }
+        }.getOrNull()
+    }
+
+    private fun measureUdpQualityBurst(
+        socket: DatagramSocket,
+        target: InetSocketAddress,
+        fallbackRttMs: Double,
+    ): BurstQuality? {
+        val sentTimes = linkedMapOf<String, Long>()
+        val rtts = mutableListOf<Double>()
+        var sentCount = 0
+
+        for (i in 0 until BURST_PACKET_COUNT) {
+            if (isCancelled || socket.isClosed) break
+            val req = StunMessage.createBindingRequest()
+            val reqBytes = req.encode()
+            val key = req.transactionId.joinToString("") { "%02x".format(it) }
+            val t0 = System.nanoTime()
+            val sendOk = runCatching {
+                socket.send(DatagramPacket(reqBytes, reqBytes.size, target))
+            }.isSuccess
+            if (sendOk) {
+                sentTimes[key] = t0
+                sentCount++
+            }
+            val nextSendAt = System.nanoTime() + BURST_INTERVAL_MS * 1_000_000L
+            while (System.nanoTime() < nextSendAt && !isCancelled && !socket.isClosed) {
+                val remainMs = ((nextSendAt - System.nanoTime()) / 1_000_000L).toInt().coerceAtLeast(1)
+                if (!tryReceiveBurstReply(socket, remainMs, sentTimes, rtts)) break
+            }
+        }
+
+        if (sentCount == 0) return null
+
+        val drainDeadline = System.nanoTime() + 650_000_000L
+        while (rtts.size < sentCount && System.nanoTime() < drainDeadline && !isCancelled && !socket.isClosed) {
+            val remainMs = ((drainDeadline - System.nanoTime()) / 1_000_000L).toInt().coerceAtLeast(1)
+            if (!tryReceiveBurstReply(socket, remainMs, sentTimes, rtts)) break
+        }
+
+        val samples = if (rtts.isNotEmpty()) rtts else listOf(fallbackRttMs)
+        val sorted = samples.sorted()
+        val median = if (sorted.size % 2 == 1) {
+            sorted[sorted.size / 2]
+        } else {
+            (sorted[sorted.size / 2 - 1] + sorted[sorted.size / 2]) / 2.0
+        }
+        var jitter = 0.0
+        if (samples.size > 1) {
+            for (i in 1 until samples.size) {
+                jitter += kotlin.math.abs(samples[i] - samples[i - 1])
+            }
+            jitter /= (samples.size - 1)
+        }
+        val lossPct = ((sentCount - rtts.size).coerceAtLeast(0).toDouble() / sentCount.toDouble()) * 100.0
+        return BurstQuality(medianRttMs = median, jitterMs = jitter, packetLossPercent = lossPct)
+    }
+
+    private fun tryReceiveBurstReply(
+        socket: DatagramSocket,
+        timeoutMs: Int,
+        sentTimes: MutableMap<String, Long>,
+        rtts: MutableList<Double>,
+    ): Boolean {
+        val buf = ByteArray(1500)
+        val packet = DatagramPacket(buf, buf.size)
+        return try {
+            socket.soTimeout = timeoutMs
+            socket.receive(packet)
+            val now = System.nanoTime()
+            val msg = StunMessage.decode(packet.data.copyOf(packet.length)) ?: return true
+            val key = msg.transactionId.joinToString("") { "%02x".format(it) }
+            val sentAt = sentTimes.remove(key)
+            if (sentAt != null) {
+                rtts += ((now - sentAt) / 1_000_000.0).coerceAtLeast(0.1)
+            }
+            true
+        } catch (_: SocketTimeoutException) {
+            false
+        } catch (_: Exception) {
+            false
+        }
     }
 }

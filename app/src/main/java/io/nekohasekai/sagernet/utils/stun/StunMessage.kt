@@ -39,6 +39,10 @@ sealed class StunAttribute(val type: Int) {
         val reason: String,
     ) : StunAttribute(StunMessage.ATTR_ERROR_CODE)
 
+    class Software(
+        val name: String,
+    ) : StunAttribute(StunMessage.ATTR_SOFTWARE)
+
     class Raw(
         type: Int,
         val data: ByteArray,
@@ -195,6 +199,12 @@ data class StunMessage(
                     } else ""
                     StunAttribute.ErrorCode(code, reason)
                 }
+                ATTR_SOFTWARE -> {
+                    val name = String(data, offset, length, Charsets.UTF_8)
+                        .trimEnd('\u0000')
+                        .trim()
+                    StunAttribute.Software(name)
+                }
                 else -> {
                     val rawData = data.copyOfRange(offset, offset + length)
                     StunAttribute.Raw(type, rawData)
@@ -330,6 +340,7 @@ data class StunMessage(
                 System.arraycopy(reasonBytes, 0, buf, 4, reasonBytes.size)
                 buf
             }
+            is StunAttribute.Software -> attr.name.toByteArray(Charsets.UTF_8)
             is StunAttribute.Raw -> attr.data
         }
 
@@ -406,6 +417,12 @@ data class StunMessage(
         attributes.filterIsInstance<StunAttribute.MappedAddress>()
             .firstOrNull { it.type == ATTR_RESPONSE_ORIGIN }
             ?.endpoint
+
+    fun getSoftware(): String? =
+        attributes.filterIsInstance<StunAttribute.Software>()
+            .firstOrNull()
+            ?.name
+            ?.takeIf { it.isNotEmpty() }
 
     /**
      * Prefers XOR-MAPPED-ADDRESS over legacy MAPPED-ADDRESS as mandated by RFC 5389.

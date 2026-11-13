@@ -12,21 +12,37 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/tools_tab"
+    <FrameLayout
+        android:id="@+id/tools_tab_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?android:attr/colorBackground"
-        app:tabIndicatorColor="?attr/primaryOrTextPrimary"
-        app:tabIndicatorFullWidth="false"
-        app:tabIndicatorHeight="3dp"
-        app:tabMode="fixed"
-        app:tabPaddingEnd="16dp"
-        app:tabPaddingStart="16dp"
-        app:tabSelectedTextColor="?attr/primaryOrTextPrimary"
-        app:tabTextAppearance="@style/TextAppearance.SagerNet.Tab"
-        app:tabTextColor="?android:attr/textColorSecondary"
-        app:tabUnboundedRipple="false" />
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="6dp"
+        android:padding="4dp">
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tools_tab"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            app:tabGravity="fill"
+            app:tabIconTint="?android:attr/textColorSecondary"
+            app:tabIndicator="@drawable/bg_expressive_tab_indicator"
+            app:tabIndicatorFullWidth="true"
+            app:tabIndicatorGravity="stretch"
+            app:tabInlineLabel="true"
+            app:tabMode="fixed"
+            app:tabPaddingEnd="12dp"
+            app:tabPaddingStart="12dp"
+            app:tabRippleColor="@android:color/transparent"
+            app:tabSelectedTextColor="?attr/primaryOrTextPrimary"
+            app:tabTextAppearance="@style/TextAppearance.MaterialComponents.Subtitle2"
+            app:tabTextColor="?android:attr/textColorSecondary"
+            app:tabUnboundedRipple="false" />
+
+    </FrameLayout>
 
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/tools_pager"
