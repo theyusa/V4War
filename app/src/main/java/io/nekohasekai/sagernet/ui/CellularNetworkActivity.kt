@@ -7,9 +7,10 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.MenuItem
 import android.widget.Toast
-import androidx.appcompat.widget.Toolbar
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.databinding.ActivityCellularNetworkBinding
+import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
+import io.nekohasekai.sagernet.widget.applyListInsets
 
 class CellularNetworkActivity : ThemedActivity() {
 
@@ -20,13 +21,12 @@ class CellularNetworkActivity : ThemedActivity() {
         binding = ActivityCellularNetworkBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.apply {
-            setTitle(R.string.cellular_network_title)
-            setDisplayHomeAsUpEnabled(true)
-            setHomeAsUpIndicator(R.drawable.baseline_arrow_back_24)
-        }
+        ExpressiveSettingsHelper.attachActivityFloatingHeader(
+            this,
+            binding.root,
+            getString(R.string.cellular_network_title),
+        )
+        styleExpressiveCards()
 
         binding.btnRadioInfoModern.setOnClickListener {
             openFirstAvailable(
@@ -70,6 +70,25 @@ class CellularNetworkActivity : ThemedActivity() {
                 Intent(Settings.ACTION_WIRELESS_SETTINGS),
             )
         }
+    }
+
+    private fun styleExpressiveCards() {
+        binding.scrollCellular.applyListInsets()
+        listOf(
+            binding.cardDescription,
+            binding.cardPinNetworkType,
+            binding.cardMethods,
+        ).forEach { ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 20f) }
+
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconCellularBadge, R.drawable.ic_device_data_usage)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconPinNetworkBadge, R.drawable.ic_baseline_push_pin_24)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconMethodsBadge, R.drawable.ic_action_settings)
+        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.boxCellularDesc, cornerRadiusDp = 14f, strokeAlpha = 160)
+
+        ExpressiveSettingsHelper.stylePrimaryButton(binding.btnRadioInfoModern)
+        ExpressiveSettingsHelper.styleOutlinedButton(binding.btnRadioInfoLegacy)
+        ExpressiveSettingsHelper.styleOutlinedButton(binding.btnTestingMenu)
+        ExpressiveSettingsHelper.styleOutlinedButton(binding.btnStandardSettings)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

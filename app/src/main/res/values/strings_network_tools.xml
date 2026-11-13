@@ -195,4 +195,112 @@
     <string name="dns_leak_rec_fakeip">Keep Fake-IP enabled in Route Settings for leak-proof browsing.</string>
     <string name="dns_leak_rec_fix">In Settings > Inbound > TUN settings, enable Strict Route to prevent local DNS bypassing.</string>
     <string name="dns_leak_rec_safe">Your current connection setup is completely secure against DNS leaks.</string>
+
+    <!-- STUN / NAT Merger (Bettbox parity) -->
+    <string name="stun_metric_rtt">Median RTT</string>
+    <string name="stun_metric_jitter">Jitter</string>
+    <string name="stun_metric_loss">Packet loss</string>
+    <string name="stun_metric_port_preserved">Port preserved</string>
+    <string name="stun_yes">Yes</string>
+    <string name="stun_no">No</string>
+    <string name="stun_unknown_short">Unknown</string>
+    <string name="stun_local_endpoint_value">Local socket: %1$s</string>
+    <string name="stun_software_value">Server software: %1$s</string>
+    <string name="stun_nat_cone">Cone NAT (NAT1–3)</string>
+
+    <!-- Shared Toolbox -->
+    <string name="toolbox_via_proxy">Via proxy</string>
+    <string name="toolbox_unavailable">Unavailable</string>
+
+    <!-- IP Lookup -->
+    <string name="tools_ip_lookup">IP Lookup</string>
+    <string name="tools_ip_lookup_summary">Compare proxy vs direct exit IPs and inspect ASN, country, and ISP for any IP or domain.</string>
+    <string name="ip_lookup_current_exits">Exit Comparison</string>
+    <string name="ip_lookup_compare_summary">Live tunnel egress vs physical network exit</string>
+    <string name="ip_lookup_refresh">Refresh</string>
+    <string name="ip_lookup_proxy_exit">Proxy Exit</string>
+    <string name="ip_lookup_direct_exit">Direct Physical Exit</string>
+    <string name="ip_lookup_vpn_disconnected_hint">VPN is disconnected</string>
+    <string name="ip_lookup_target_title">Query IP or Domain</string>
+    <string name="ip_lookup_input_hint">IP, domain, or URL (e.g. 1.1.1.1 or openai.com)</string>
+    <string name="ip_lookup_action">Lookup</string>
+    <string name="ip_lookup_empty_error">Enter an IP address, domain, or URL</string>
+    <string name="ip_lookup_timezone">Timezone</string>
+    <string name="ip_lookup_source">Source</string>
+    <string name="ip_lookup_cat_public">Public</string>
+    <string name="ip_lookup_cat_private">Private</string>
+    <string name="ip_lookup_cat_reserved">Reserved</string>
+    <string name="ip_lookup_category_format">Range: %1$s</string>
+
+    <!-- DNS Lookup -->
+    <string name="tools_dns_lookup">DNS Lookup</string>
+    <string name="tools_dns_lookup_summary">Query A, AAAA, CNAME, HTTPS, TXT, MX, NS, and PTR records over Core, System, UDP, DoH, or DoT.</string>
+    <string name="dns_lookup_domain_hint">Domain or IP for PTR</string>
+    <string name="dns_lookup_record_type">Record Type</string>
+    <string name="dns_lookup_resolver_mode">Resolver</string>
+    <string name="dns_lookup_mode_core">Core</string>
+    <string name="dns_lookup_mode_system">System</string>
+    <string name="dns_lookup_mode_custom">Custom</string>
+    <string name="dns_lookup_server_hint">https://..., tls://..., or IP:port</string>
+    <string name="dns_lookup_compare_all">Compare resolvers</string>
+    <string name="dns_lookup_run">Query DNS</string>
+    <string name="dns_lookup_empty_error">Enter a domain name</string>
+    <string name="dns_lookup_no_records">No records returned</string>
+
+    <!-- Local Ping -->
+    <string name="tools_local_ping">Local Ping</string>
+    <string name="tools_local_ping_summary">Measure TCP, UDP, and ICMP latency with live RTT graph, jitter, and packet loss.</string>
+    <string name="ping_target_hint">Host or IP</string>
+    <string name="ping_port_hint">Port</string>
+    <string name="ping_bypass_vpn">Direct physical</string>
+    <string name="ping_start">Start Ping</string>
+    <string name="ping_stop">Stop</string>
+    <string name="ping_clear">Clear</string>
+    <string name="ping_empty_host_error">Enter a target host or IP</string>
+    <string name="ping_live_rtt_chart">Live RTT Timeline</string>
+    <string name="ping_stat_avg">Average</string>
+    <string name="ping_stat_min_max">Min / Max</string>
+    <string name="ping_samples_log">Recent Samples</string>
+
+    <!-- Connectivity Test -->
+    <string name="tools_connectivity_test">Connectivity Test</string>
+    <string name="tools_connectivity_test_summary">Probe reachability and region access for AI, streaming, social, and developer services.</string>
+    <string name="connectivity_cat_all">All</string>
+    <string name="connectivity_cat_ai">AI</string>
+    <string name="connectivity_cat_streaming">Streaming</string>
+    <string name="connectivity_cat_social">Social</string>
+    <string name="connectivity_cat_developer">Developer</string>
+    <string name="connectivity_run">Run Check</string>
+    <string name="connectivity_summary_counts">%1$d reachable · %2$d partial · %3$d blocked (%4$d total)</string>
+    <string name="connectivity_status_ready">READY</string>
+    <string name="connectivity_status_testing">TESTING</string>
+    <string name="connectivity_status_ok">OK</string>
+    <string name="connectivity_status_partial">PARTIAL</string>
+    <string name="connectivity_status_blocked">BLOCKED</string>
+    <string name="connectivity_status_error">ERROR</string>
+
+    <!-- Traffic Usage -->
+    <string name="tools_traffic_usage">Traffic Usage</string>
+    <string name="tools_traffic_usage_summary">Inspect live tunnel speed, session usage, and per-profile or per-group traffic totals.</string>
+    <string name="traffic_session_title">Live Tunnel &amp; Device Usage</string>
+    <string name="traffic_proxy_rate">Proxy speed</string>
+    <string name="traffic_direct_rate">Direct speed</string>
+    <string name="traffic_state_active">ACTIVE</string>
+    <string name="traffic_session_totals_line">Session: ↓ %1$s · ↑ %2$s · Total %3$s</string>
+    <string name="traffic_app_uid_line">This app UID: ↓ %1$s · ↑ %2$s</string>
+    <string name="traffic_device_total_line">Device total: ↓ %1$s · ↑ %2$s</string>
+    <string name="traffic_recorded_title">Recorded Traffic</string>
+    <string name="traffic_recorded_totals_line">↓ %1$s · ↑ %2$s · Total %3$s</string>
+    <string name="traffic_reset">Reset</string>
+    <string name="traffic_reset_confirm_title">Reset recorded traffic?</string>
+    <string name="traffic_reset_confirm_msg">This will zero upload and download counters on all saved profiles.</string>
+    <string name="traffic_reset_done">Traffic counters reset</string>
+    <string name="traffic_scope_profiles">Profiles</string>
+    <string name="traffic_scope_groups">Groups</string>
+    <string name="traffic_hide_zero">Hide 0 B</string>
+    <string name="traffic_empty">No recorded traffic matching the current filter.</string>
+    <plurals name="traffic_group_members">
+        <item quantity="one">%1$d profile</item>
+        <item quantity="other">%1$d profiles</item>
+    </plurals>
 </resources>
