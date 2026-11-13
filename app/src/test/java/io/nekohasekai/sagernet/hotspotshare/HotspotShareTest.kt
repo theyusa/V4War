@@ -252,4 +252,73 @@ class HotspotShareControllerTest {
         assertFalse(lan)
         assertEquals(ShareState.Off, backend.state.value)
     }
+
+    @Test
+    fun restartSwitchesRunningBackendToNewPreference() = runBlocking {
+        var currentPref = SharePreference.LAN_PROXY
+        val createdMethods = mutableListOf<ShareMethod>()
+        val lanBackend = FakeBackend(ShareMethod.LAN_PROXY)
+        val rootBackend = FakeBackend(ShareMethod.ROOT)
+        val ctrl = HotspotShareController(
+            scope = scope,
+            environment = { ShareEnvironment(34, shizukuRunning = false, shizukuGranted = false, rootAvailable = true) },
+            preference = { currentPref },
+            backendFactory = { method ->
+                createdMethods += method
+                when (method) {
+                    ShareMethod.LAN_PROXY -> lanBackend
+                    ShareMethod.ROOT -> rootBackend
+                    else -> null
+                }
+            },
+            publisher = { published += it },
+        )
+        ctrl.start()
+        assertEquals(ShareState.Active(ShareMethod.LAN_PROXY), ctrl.state.value)
+
+        currentPref = SharePreference.ROOT
+        ctrl.restart()
+        assertEquals(1, lanBackend.stopCalls)
+        assertEquals(ShareState.Active(ShareMethod.ROOT), ctrl.state.value)
+        assertEquals(listOf(ShareMethod.LAN_PROXY, ShareMethod.ROOT), createdMethods)
+    }
+
+    @Test
+    fun autoModeFallsBackToLanProxyWhenSelectedBackendReportsUnavailable() = runBlocking {
+        val failingRoot = FakeBackend(
+            ShareMethod.ROOT,
+            startResult = ShareState.Error(ShareFailure.ROOT_UNAVAILABLE, "not root"),
+        )
+        val lanBackend = FakeBackend(ShareMethod.LAN_PROXY)
+        val ctrl = HotspotShareController(
+            scope = scope,
+            environment = { ShareEnvironment(34, shizukuRunning = false, shizukuGranted = false, rootAvailable = true) },
+            preference = { SharePreference.AUTO },
+            backendFactory = { method ->
+                when (method) {
+                    ShareMethod.ROOT -> failingRoot
+                    ShareMethod.LAN_PROXY -> lanBackend
+                    else -> null
+                }
+            },
+            publisher = { published += it },
+        )
+        ctrl.start()
+        assertEquals(ShareState.Active(ShareMethod.LAN_PROXY), ctrl.state.value)
+        assertEquals(1, failingRoot.stopCalls)
+        assertFalse(published.any { it is ShareState.Error })
+    }
+
+    @Test
+    fun stopDueToFailureTearsDownAndKeepsStoppedReason() = runBlocking {
+        val backend = FakeBackend(ShareMethod.SHIZUKU)
+        val ctrl = controller(
+            pref = SharePreference.SHIZUKU,
+            env = ShareEnvironment(34, shizukuRunning = true, shizukuGranted = true, rootAvailable = false),
+        ) { backend }
+        ctrl.start()
+        ctrl.stopDueToFailure(ShareFailure.TETHER_LOST)
+        assertEquals(ShareState.Stopped(ShareFailure.TETHER_LOST), ctrl.state.value)
+        assertEquals(1, backend.stopCalls)
+    }
 }

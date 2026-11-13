@@ -51,14 +51,22 @@ object DataStoreLanProxyControl : LanProxyControl {
     override fun isLanAccess(): Boolean = DataStore.allowLanAccess
 
     override fun setLanAccess(enabled: Boolean) {
-        DataStore.inboundAddress = if (enabled) SettingsRegistry.LAN_ADDRESS else SettingsRegistry.LOOPBACK_ADDRESS
+        val targetAddr = if (enabled) SettingsRegistry.LAN_ADDRESS else SettingsRegistry.LOOPBACK_ADDRESS
+        var changed = DataStore.inboundAddress != targetAddr
+        if (changed) {
+            DataStore.inboundAddress = targetAddr
+        }
         if (enabled) {
             if (LanSharingLogics.clashApiSecretShouldBeGenerated(DataStore.coreBoxClashApiSecret)) {
                 DataStore.coreBoxClashApiSecret = LanSharingLogics.generateClashApiSecret()
+                changed = true
             }
             val clash = LanSharingLogics.ensureClashApiEnabledPort(DataStore.coreBoxClashApi)
-            if (clash.changed) DataStore.coreBoxClashApi = clash.newRawPort
+            if (clash.changed) {
+                DataStore.coreBoxClashApi = clash.newRawPort
+                changed = true
+            }
         }
-        if (DataStore.serviceState.started) SagerNet.reloadService()
+        if (changed && DataStore.serviceState.started) SagerNet.reloadService()
     }
 }

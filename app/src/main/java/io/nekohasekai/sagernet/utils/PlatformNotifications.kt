@@ -7,6 +7,7 @@ import androidx.annotation.StringRes
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import io.nekohasekai.sagernet.R
+import io.nekohasekai.sagernet.ui.LanSharingActivity
 import io.nekohasekai.sagernet.ui.MainActivity
 
 /** The warnings the service posts next to its own notification (channel [CHANNEL_WARNINGS]). */
@@ -39,7 +40,7 @@ object PlatformNotifications {
 
     fun hotspotShareDropped(context: Context) = post(
         context, ID_HOTSPOT_SHARE_DROPPED, R.string.hotspot_share_dropped_title,
-        R.string.hotspot_share_dropped_text, mainIntent(context),
+        R.string.hotspot_share_dropped_text, lanSharingIntent(context),
     )
 
     fun cancelHotspotShareDropped(context: Context) = cancel(context, ID_HOTSPOT_SHARE_DROPPED)
@@ -55,6 +56,9 @@ object PlatformNotifications {
     )
 
     private fun mainIntent(context: Context) = Intent(context, MainActivity::class.java)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+
+    private fun lanSharingIntent(context: Context) = Intent(context, LanSharingActivity::class.java)
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
 
     private fun post(context: Context, id: Int, @StringRes title: Int, @StringRes text: Int, intent: Intent) {
@@ -79,6 +83,9 @@ object PlatformNotifications {
     }
 
     private fun cancel(context: Context, id: Int) {
-        NotificationManagerCompat.from(context).cancel(TAG, id)
+        try {
+            NotificationManagerCompat.from(context).cancel(TAG, id)
+        } catch (_: Throwable) {
+        }
     }
 }

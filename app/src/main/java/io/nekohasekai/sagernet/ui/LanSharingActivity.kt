@@ -43,6 +43,7 @@ import io.nekohasekai.sagernet.bg.SagerConnection
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.SettingsRegistry
 import io.nekohasekai.sagernet.databinding.ActivityLanSharingBinding
+import io.nekohasekai.sagernet.utils.PlatformNotifications
 import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.ktx.needReload
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
@@ -177,6 +178,11 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             DataStore.inboundAddress =
                 if (isChecked) SettingsRegistry.LAN_ADDRESS else SettingsRegistry.LOOPBACK_ADDRESS
             if (isChecked) {
+                // Clear stale stopped/error banner when user enables manual LAN proxy sharing
+                if (!DataStore.hotspotShareEnabled && HotspotShareStateStore.snapshot() !is ShareState.Active) {
+                    HotspotShareStateStore.publish(ShareState.Off)
+                    PlatformNotifications.cancelHotspotShareDropped(this)
+                }
                 // The live client list reads the Clash API /connections endpoint: make sure the API
                 // is switched on, and that a secret exists. An existing secret is never overwritten;
                 // the needReload() below makes the core pick up both values.
@@ -187,6 +193,11 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 if (clashDecision.changed) {
                     DataStore.coreBoxClashApi = clashDecision.newRawPort
                 }
+            } else if (DataStore.hotspotShareEnabled &&
+                HotspotShareStateStore.snapshot() == ShareState.Active(ShareMethod.LAN_PROXY)
+            ) {
+                DataStore.hotspotShareEnabled = false
+                TetherWatchService.stop(this)
             }
             needReload()
             refreshNetworkAndState()
@@ -300,13 +311,20 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 renderUiState()
+                if (intent?.action == Action.HOTSPOT_SHARE_STATE) {
+                    lifecycleScope.launch { pollClientDevicesOnce() }
+                }
             }
+        }
+        val filter = IntentFilter().apply {
+            addAction(Action.HOTSPOT_GATEWAY_STATUS)
+            addAction(Action.HOTSPOT_SHARE_STATE)
         }
         runCatching {
             ContextCompat.registerReceiver(
                 this,
                 receiver,
-                IntentFilter(Action.HOTSPOT_GATEWAY_STATUS),
+                filter,
                 ContextCompat.RECEIVER_NOT_EXPORTED,
             )
         }.onSuccess { statusReceiver = receiver }
@@ -610,7 +628,11 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         binding.layoutDevicesList.removeAllViews()
         if (devices.isEmpty()) {
             val hotspotShareActive = HotspotShareStateStore.snapshot() is ShareState.Active
-            val sharingReady = (DataStore.serviceState.connected && clashReachable) || hotspotShareActive
+            val vpnConnected = DataStore.serviceState.connected
+            if (vpnConnected && DataStore.allowLanAccess && !clashReachable) {
+                ensureClashApiForManualLanIfNeeded()
+            }
+            val sharingReady = vpnConnected || hotspotShareActive
             binding.layoutNoDevices.visibility = View.VISIBLE
             binding.textNoDevicesHint.text = if (!sharingReady) {
                 getString(R.string.lan_sharing_not_connected)
@@ -711,18 +733,25 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 if (!DataStore.serviceState.connected) {
                     Toast.makeText(this, R.string.hotspot_share_vpn_not_running, Toast.LENGTH_LONG).show()
                 }
+                PlatformNotifications.cancelHotspotShareDropped(this)
+                HotspotShareStateStore.publish(ShareState.Starting)
                 DataStore.hotspotShareEnabled = true
                 TetherWatchService.start(this)
             } else {
+                PlatformNotifications.cancelHotspotShareDropped(this)
                 DataStore.hotspotShareEnabled = false
-                TetherWatchService.stop(this)
+                if (TetherWatchService.isRunning) {
+                    TetherWatchService.stop(this)
+                } else {
+                    HotspotShareStateStore.publish(ShareState.Off)
+                }
             }
             refreshNetworkAndState()
             lifecycleScope.launch { pollClientDevicesOnce() }
         }
 
         binding.rowSwitchHotspotShare.setOnClickListener {
-            binding.switchHotspotShare.isChecked = !DataStore.hotspotShareEnabled
+            binding.switchHotspotShare.toggle()
         }
 
         // Method selector spinner
@@ -746,7 +775,9 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 if (selectedCode != DataStore.hotspotShareMethod) {
                     DataStore.hotspotShareMethod = selectedCode
                     if (DataStore.hotspotShareEnabled) {
-                        TetherWatchService.start(this@LanSharingActivity)
+                        TetherWatchService.restart(this@LanSharingActivity)
+                    } else if (HotspotShareStateStore.snapshot() !is ShareState.Active) {
+                        HotspotShareStateStore.publish(ShareState.Off)
                     }
                     refreshNetworkAndState()
                 }
@@ -819,31 +850,44 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 binding.bannerShareWarning.visibility = View.GONE
             }
             is ShareState.Active -> {
-                binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_active, state.method.code.uppercase())
+                val methodLabel = when (state.method) {
+                    ShareMethod.SHIZUKU -> "Shizuku"
+                    ShareMethod.ROOT -> "Root"
+                    ShareMethod.LAN_PROXY -> getString(R.string.hotspot_share_method_lan_proxy)
+                }
+                binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_active, methodLabel)
                 binding.badgeShareStatus.setTextColor(primaryColor)
-                binding.layoutShareTraffic.visibility = View.VISIBLE
+                binding.layoutShareTraffic.visibility = if (state.method == ShareMethod.LAN_PROXY) View.GONE else View.VISIBLE
                 updateShareClientCountLabel()
                 binding.bannerShareWarning.visibility = View.GONE
             }
             is ShareState.Stopped -> {
-                binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_stopped, state.cause.code)
+                binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_stopped_clean)
                 binding.badgeShareStatus.setTextColor(amberColor)
                 binding.layoutShareTraffic.visibility = View.GONE
                 binding.textShareClients.visibility = View.GONE
                 binding.bannerShareWarning.visibility = View.VISIBLE
-                binding.textShareWarning.text = if (state.cause == ShareFailure.VPN_LOST) {
-                    getString(R.string.hotspot_share_traffic_blocked_warn)
-                } else {
-                    getString(R.string.hotspot_share_leak_warn)
+                val pref = SharePreference.fromCode(DataStore.hotspotShareMethod)
+                val failClosed = FailClosedAction.fromCode(DataStore.hotspotShareFailClosed)
+                binding.textShareWarning.text = when (state.cause) {
+                    ShareFailure.TETHER_LOST -> getString(R.string.hotspot_share_tether_lost_warn)
+                    ShareFailure.VPN_LOST -> {
+                        if (pref == SharePreference.ROOT && failClosed == FailClosedAction.BLOCK_TRAFFIC) {
+                            getString(R.string.hotspot_share_traffic_blocked_warn)
+                        } else {
+                            getString(R.string.hotspot_share_vpn_dropped_warn)
+                        }
+                    }
+                    else -> getString(R.string.hotspot_share_leak_warn)
                 }
             }
             is ShareState.Error -> {
-                binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_error, state.reason.code)
+                binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_unavailable)
                 binding.badgeShareStatus.setTextColor(redColor)
                 binding.layoutShareTraffic.visibility = View.GONE
                 binding.textShareClients.visibility = View.GONE
                 binding.bannerShareWarning.visibility = View.VISIBLE
-                binding.textShareWarning.text = state.detail ?: state.reason.code
+                binding.textShareWarning.text = formatShareError(state.reason, state.detail)
             }
         }
 
@@ -873,12 +917,28 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             binding.layoutShizukuAction.visibility = View.GONE
         }
 
-        // Fail-closed row visibility (relevant for ROOT or AUTO)
-        binding.rowFailClosed.visibility = if (pref == SharePreference.ROOT || pref == SharePreference.AUTO) {
+        // Fail-closed row visibility (relevant when Root backend may be used)
+        val rootGranted = com.topjohnwu.superuser.Shell.isAppGrantedRoot() == true
+        binding.rowFailClosed.visibility = if (pref == SharePreference.ROOT || (pref == SharePreference.AUTO && rootGranted)) {
             View.VISIBLE
         } else {
             View.GONE
         }
+    }
+
+    private fun formatShareError(reason: ShareFailure, detail: String?): String = when (reason) {
+        ShareFailure.UNSUPPORTED_ANDROID -> getString(R.string.hotspot_share_err_unsupported)
+        ShareFailure.SHIZUKU_NOT_RUNNING -> getString(R.string.hotspot_share_shizuku_not_running)
+        ShareFailure.SHIZUKU_PERMISSION_DENIED -> getString(R.string.hotspot_share_err_shizuku_perm)
+        ShareFailure.ROOT_UNAVAILABLE -> getString(R.string.hotspot_share_err_root)
+        ShareFailure.VPN_NOT_RUNNING -> getString(R.string.hotspot_share_vpn_not_running)
+        ShareFailure.HOTSPOT_NOT_ACTIVE,
+        ShareFailure.TETHER_LOST -> getString(R.string.hotspot_share_err_hotspot_off)
+        ShareFailure.BACKEND_DIED -> getString(R.string.hotspot_share_err_died)
+        ShareFailure.VPN_LOST -> getString(R.string.hotspot_share_vpn_dropped_warn)
+        ShareFailure.BACKEND_NOT_IMPLEMENTED,
+        ShareFailure.BACKEND_FAILED -> detail?.takeIf { it.isNotBlank() }
+            ?: getString(R.string.hotspot_share_err_generic)
     }
     private fun ensureClashApiForManualLanIfNeeded() {
         if (!DataStore.allowLanAccess) return
