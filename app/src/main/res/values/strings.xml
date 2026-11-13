@@ -1909,8 +1909,34 @@
 
     <!-- Settings › General › Updates -->
     <string name="cag_updates">Updates</string>
+    <string name="settings_app_update">App Update</string>
+    <string name="settings_app_update_sum">Auto-check, pre-releases, Shizuku install, Obtainium</string>
+    <string name="app_update_auto_title">Check for updates automatically</string>
+    <string name="app_update_auto_sum">Check once a day when the app starts</string>
+    <string name="app_update_prerelease_title">Receive pre-releases</string>
     <string name="allow_beta_update">Allow updating to beta versions</string>
-    <string name="allow_beta_update_sum">Also offer pre-releases when checking for updates</string>
+    <string name="allow_beta_update_sum">Offer alpha, beta and release candidate builds</string>
+    <string name="app_update_github_token_title">GitHub token</string>
+    <string name="app_update_github_token_not_set">Not set</string>
+    <string name="app_update_github_token_set">Set (•••%s)</string>
+    <string name="app_update_clear">Clear</string>
+    <string name="app_update_github_token_hint">github_pat_… or ghp_…</string>
+    <string name="app_update_github_token_dialog_message">Optional personal access token to avoid GitHub API rate limits when checking for V4War updates.</string>
+    <string name="app_update_allow_install_title">Allow installing apps</string>
+    <string name="app_update_allow_install_granted">Allowed for V4War</string>
+    <string name="app_update_allow_install_denied">Tap to allow unknown app installs</string>
+    <string name="app_update_shizuku_title">Install silently with Shizuku</string>
+    <string name="app_update_shizuku_not_installed">Shizuku is not installed</string>
+    <string name="app_update_shizuku_not_running">Shizuku is installed but not running</string>
+    <string name="app_update_shizuku_needs_permission">Tap to grant Shizuku permission</string>
+    <string name="app_update_shizuku_ready">Shizuku is active and authorized</string>
+    <string name="app_update_check_now_title">Check for updates now</string>
+    <string name="app_update_last_checked">Last checked on %s</string>
+    <string name="app_update_never_checked">Never checked</string>
+    <string name="app_update_obtainium_title">Track in Obtainium</string>
+    <string name="app_update_obtainium_installed_sum">Hand the release source to the installed Obtainium</string>
+    <string name="app_update_obtainium_copy_sum">Copy V4War GitHub releases URL for Obtainium</string>
+    <string name="app_update_obtainium_copied">V4War GitHub releases URL copied to clipboard</string>
     <string name="update_check_auto">Check for updates daily</string>
     <string name="update_check_auto_sum">Show a notification when a new version is available</string>
 
@@ -2941,4 +2967,6 @@
     <string name="hotspot_share_tether_lost_warn">Wi-Fi Hotspot turned off — sharing stopped.</string>
     <string name="hotspot_share_lan_proxy_active">LAN Proxy sharing is active</string>
     <string name="hotspot_share_lan_proxy_dropped_text">VPN connection dropped. Restart VPN to continue LAN proxy sharing.</string>
+    <string name="hotspot_share_waiting_vpn_title">Waiting for VPN (Traffic Blocked)</string>
+    <string name="hotspot_share_waiting_vpn_warn">VPN disconnected — hotspot remains protected (0 leaks) and will auto-resume when VPN reconnects.</string>
 </resources>

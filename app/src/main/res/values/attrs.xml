@@ -16,6 +16,10 @@
     <attr name="cardElevatedSurfaceColor" format="color" />
     <!-- Outline of the profile cards, set only where their shadow does not show (OLED black); unset means none -->
     <attr name="profileCardStrokeColor" format="color" />
+    <!-- Soft popup/dialog/badge outline color (tinted on Pure AMOLED, neutral hairline otherwise) -->
+    <attr name="popupStrokeColor" format="color" />
+    <!-- Subtle card/drawer item outline color (soft seed hairline on Pure AMOLED, neutral hairline otherwise) -->
+    <attr name="drawerCardStrokeColor" format="color" />
     <!-- Theme-adaptive stroke width for cards and expressive outlines (thinner hairline on AMOLED/Pure AMOLED) -->
     <attr name="cardStrokeWidth" format="dimension" />
 

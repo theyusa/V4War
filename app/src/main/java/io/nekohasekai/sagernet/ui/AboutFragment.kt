@@ -1,27 +1,27 @@
 package io.nekohasekai.sagernet.ui
 
-import android.content.Context
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.text.util.Linkify
 import android.view.View
-import android.view.ViewGroup
-import androidx.core.content.ContextCompat
+import androidx.core.view.GravityCompat
 import androidx.core.view.doOnPreDraw
-import androidx.recyclerview.widget.RecyclerView
-import com.danielstone.materialaboutlibrary.MaterialAboutFragment
-import com.danielstone.materialaboutlibrary.items.MaterialAboutActionItem
-import com.danielstone.materialaboutlibrary.model.MaterialAboutCard
-import com.danielstone.materialaboutlibrary.model.MaterialAboutList
-import com.google.android.material.card.MaterialCardView
+import com.google.android.material.appbar.AppBarLayout
 import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.databinding.LayoutAboutBinding
-import io.nekohasekai.sagernet.ktx.*
+import io.nekohasekai.sagernet.ktx.getColorAttr
+import io.nekohasekai.sagernet.ktx.launchCustomTab
+import io.nekohasekai.sagernet.ktx.onMainDispatcher
+import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
+import io.nekohasekai.sagernet.ktx.snackbar
+import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
 import io.nekohasekai.sagernet.update.UpdateActivity
 import io.nekohasekai.sagernet.update.UpdateChecker
+import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.widget.applyListInsets
 
 class AboutFragment : ToolbarFragment(R.layout.layout_about) {
@@ -29,10 +29,80 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val ctx = requireContext()
         val binding = LayoutAboutBinding.bind(view)
+        val screenBg = if (Theme.isBlackTheme(ctx)) Color.BLACK else ctx.getColorAttr(android.R.attr.colorBackground)
+        view.setBackgroundColor(screenBg)
+
+        val appbar = view.findViewById<AppBarLayout>(R.id.appbar)
+        appbar?.setBackgroundColor(screenBg)
+        toolbar?.visibility = View.GONE
+        ExpressiveSettingsHelper.attachFloatingPillHeader(appbar, ctx)?.update(
+            context = ctx,
+            title = getString(R.string.menu_about),
+            iconRes = R.drawable.ic_navigation_menu,
+            contentDescription = getString(R.string.navigation_open_drawer),
+        ) {
+            (activity as? MainActivity)?.binding?.drawerLayout?.openDrawer(GravityCompat.START)
+        }
 
         binding.aboutScroll.applyListInsets()
-        toolbar?.setTitle(R.string.menu_about)
+
+        listOf(
+            binding.titleCard,
+            binding.cardAboutVersion,
+            binding.cardAboutProject,
+            binding.cardAboutLicense,
+        ).forEach { ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 20f) }
+
+        ExpressiveSettingsHelper.styleExpressiveBadge(binding.aboutVersionBadge)
+        binding.aboutVersionBadge.text = SagerNet.appVersionNameForDisplay
+        binding.textAboutProjectHeader.setTextColor(ExpressiveSettingsHelper.resolveAccentColor(ctx))
+
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutVersion, R.drawable.ic_baseline_update_24)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutUpdate, R.drawable.ic_baseline_download_24)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutCore, R.drawable.ic_baseline_layers_24)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutGithub, R.drawable.ic_baseline_code_24)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutWebsite, R.drawable.baseline_public_24)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutSupport, R.drawable.ic_baseline_favorite_24)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutLicense, R.drawable.ic_baseline_menu_book_24)
+        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.boxLicense, cornerRadiusDp = 14f)
+
+        binding.textAboutVersionValue.text = SagerNet.appVersionNameForDisplay
+        binding.aboutVersionRow.setOnClickListener {
+            requireContext().launchCustomTab(UpdateChecker.RELEASES_PAGE)
+        }
+
+        if (BuildConfig.IN_APP_UPDATER) {
+            binding.aboutUpdateRow.visibility = View.VISIBLE
+            binding.textAboutUpdateChannel.setText(
+                if (DataStore.allowBetaUpdate) R.string.update_channel_beta
+                else R.string.update_channel_stable,
+            )
+            binding.aboutUpdateRow.setOnClickListener {
+                UpdateActivity.start(requireContext())
+            }
+        } else {
+            binding.aboutUpdateRow.visibility = View.GONE
+        }
+
+        binding.textAboutCoreTitle.text = getString(R.string.version_x, "V4War Core")
+        binding.textAboutCoreValue.text = shortRef(BuildConfig.THRONE_CORE_REF)
+        binding.aboutCoreRow.setOnClickListener { copyCoreRef() }
+        binding.aboutCoreRow.setOnLongClickListener {
+            copyCoreRef()
+            true
+        }
+
+        binding.aboutGithubRow.setOnClickListener {
+            requireContext().launchCustomTab("https://github.com/theyusa/V4War")
+        }
+        binding.aboutWebsiteRow.setOnClickListener {
+            requireContext().launchCustomTab("https://github.com/theyusa/V4War#readme")
+        }
+        binding.aboutSupportRow.setOnClickListener {
+            requireContext().launchCustomTab("https://github.com/theyusa/V4War")
+        }
 
         binding.license.maxLines = LICENSE_COLLAPSED_MAX_LINES
         var isLicenseExpanded = false
@@ -44,15 +114,14 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
             } else {
                 LICENSE_COLLAPSED_MAX_LINES
             }
-            binding.licenseIndicator.text = if (isLicenseExpanded) "▲" else "▼"
+            binding.licenseIndicator.animate()
+                .rotation(if (isLicenseExpanded) 180f else 0f)
+                .setDuration(180L)
+                .start()
             binding.aboutScroll.doOnPreDraw {
                 binding.aboutScroll.scrollTo(0, scrollY)
             }
         }
-
-        childFragmentManager.beginTransaction()
-            .replace(R.id.about_fragment_holder, AboutContent())
-            .commitAllowingStateLoss()
 
         runOnDefaultDispatcher {
             val license = view.context.assets.open("LICENSE").bufferedReader().readText()
@@ -63,155 +132,18 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
         }
     }
 
+    /** A commit hash is shortened to 8 characters, a branch or tag name stays as it is. */
+    private fun shortRef(ref: String): String =
+        if (ref.length == 40 && ref.all { it in '0'..'9' || it in 'a'..'f' }) ref.take(8) else ref
+
+    private fun copyCoreRef() {
+        val copied = SagerNet.trySetPrimaryClip(BuildConfig.THRONE_CORE_REF)
+        // Android 13+ confirms a clipboard copy itself
+        if (copied && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) return
+        snackbar(if (copied) R.string.grp_copied else R.string.action_export_err).show()
+    }
+
     companion object {
         private const val LICENSE_COLLAPSED_MAX_LINES = 8
     }
-
-    class AboutContent : MaterialAboutFragment() {
-
-        override fun getMaterialAboutList(activityContext: Context): MaterialAboutList {
-            return MaterialAboutList.Builder()
-                .addCard(
-                    MaterialAboutCard.Builder()
-                        .outline(true)
-                        .addItem(
-                            MaterialAboutActionItem.Builder()
-                                .icon(R.drawable.ic_baseline_update_24)
-                                .text(R.string.app_version)
-                                .subText(SagerNet.appVersionNameForDisplay)
-                                .setOnClickAction {
-                                    requireContext().launchCustomTab(UpdateChecker.RELEASES_PAGE)
-                                }
-                                .build())
-                        .apply {
-                            if (BuildConfig.IN_APP_UPDATER) {
-                                addItem(
-                                    MaterialAboutActionItem.Builder()
-                                        .icon(R.drawable.ic_baseline_download_24)
-                                        .text(R.string.update_check)
-                                        .subText(
-                                            if (DataStore.allowBetaUpdate) R.string.update_channel_beta
-                                            else R.string.update_channel_stable
-                                        )
-                                        .setOnClickAction {
-                                            UpdateActivity.start(requireContext())
-                                        }
-                                        .build())
-                            }
-                        }
-                        .addItem(
-                            MaterialAboutActionItem.Builder()
-                                .icon(R.drawable.ic_baseline_layers_24)
-                                .text(getString(R.string.version_x, "V4War Core"))
-                                .subText(shortRef(BuildConfig.THRONE_CORE_REF))
-                                .setOnClickAction(::copyCoreRef)
-                                .setOnLongClickAction(::copyCoreRef)
-                                .build())
-                        .build())
-                .addCard(
-                    MaterialAboutCard.Builder()
-                        .outline(true)
-                        .title(R.string.project)
-                        .addItem(
-                            MaterialAboutActionItem.Builder()
-                                .icon(R.drawable.ic_baseline_code_24)
-                                .text(R.string.github)
-                                .setOnClickAction {
-                                    requireContext().launchCustomTab(
-                                        "https://github.com/theyusa/V4War"
-
-                                    )
-                                }
-                                .build())
-                        .addItem(
-                            MaterialAboutActionItem.Builder()
-                                .icon(R.drawable.baseline_public_24)
-                                .text(R.string.project_website)
-                                .setOnClickAction {
-                                    requireContext().launchCustomTab(
-                                        "https://github.com/theyusa/V4War#readme"
-                                    )
-                                }
-                                .build())
-                        .addItem(
-                            MaterialAboutActionItem.Builder()
-                                .icon(R.drawable.ic_baseline_favorite_24)
-                                .text(R.string.support_throne)
-                                .setOnClickAction {
-                                    requireContext().launchCustomTab(
-                                        "https://github.com/theyusa/V4War"
-                                    )
-                                }
-                                .build())
-                        .build())
-                .build()
-
-        }
-
-        /** A commit hash is shortened to 8 characters, a branch or tag name stays as it is. */
-        private fun shortRef(ref: String): String =
-            if (ref.length == 40 && ref.all { it in '0'..'9' || it in 'a'..'f' }) ref.take(8) else ref
-
-        private fun copyCoreRef() {
-            val copied = SagerNet.trySetPrimaryClip(BuildConfig.THRONE_CORE_REF)
-            // Android 13+ confirms a clipboard copy itself
-            if (copied && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) return
-            snackbar(if (copied) R.string.grp_copied else R.string.action_export_err).show()
-        }
-
-        override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-            super.onViewCreated(view, savedInstanceState)
-
-            view.layoutParams = (view.layoutParams ?: ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            )).apply {
-                height = ViewGroup.LayoutParams.WRAP_CONTENT
-            }
-            view.findViewById<RecyclerView>(R.id.mal_recyclerview)?.apply {
-                isNestedScrollingEnabled = false
-                overScrollMode = View.OVER_SCROLL_NEVER
-                layoutParams = (layoutParams ?: ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                )).apply {
-                    height = ViewGroup.LayoutParams.WRAP_CONTENT
-                }
-
-                val ctx = requireContext()
-                val cardStrokeWidth = io.nekohasekai.sagernet.utils.Theme
-                    .resolveCardStrokeWidthPx(ctx, selected = false).toInt().coerceAtLeast(1)
-                val cardStrokeColor = io.nekohasekai.sagernet.utils.Theme
-                    .resolveCardStrokeColor(ctx, selected = false)
-                val cardBgColor = io.nekohasekai.sagernet.utils.Theme
-                    .resolveCardBackground(ctx)
-                val cardCornerRadius = resources.getDimension(
-                    R.dimen.card_corner_radius
-                )
-                fun applyApplicationCardStyle(child: View) {
-                    (child as? MaterialCardView)?.apply {
-                        setCardBackgroundColor(cardBgColor)
-                        strokeWidth = cardStrokeWidth
-                        strokeColor = cardStrokeColor
-                        radius = cardCornerRadius
-                        cardElevation = 0f
-                    }
-                }
-
-                addOnChildAttachStateChangeListener(
-                    object : RecyclerView.OnChildAttachStateChangeListener {
-                        override fun onChildViewAttachedToWindow(child: View) {
-                            applyApplicationCardStyle(child)
-                        }
-
-                        override fun onChildViewDetachedFromWindow(child: View) = Unit
-                    }
-                )
-                for (index in 0 until childCount) {
-                    applyApplicationCardStyle(getChildAt(index))
-                }
-            }
-        }
-    }
-
 }

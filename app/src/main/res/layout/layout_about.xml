@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -14,22 +15,27 @@
         android:id="@+id/about_scroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:clipToPadding="false"
         android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="24dp">
 
+            <!-- Hero Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/title_card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginRight="8dp"
-                android:clickable="true"
-                android:focusable="true">
+                app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="?attr/cardStrokeWidth">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -37,35 +43,391 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/app_name_long"
-                        android:textAppearance="?attr/textAppearanceSubtitle2" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.imageview.ShapeableImageView
+                            android:id="@+id/about_app_icon"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:layout_marginEnd="14dp"
+                            android:contentDescription="@null"
+                            android:scaleType="centerCrop"
+                            android:src="@mipmap/ic_launcher"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.SagerNet.IconSquircle" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:includeFontPadding="false"
+                                    android:text="@string/app_name_long"
+                                    android:textColor="?android:attr/textColorPrimary"
+                                    android:textSize="18sp" />
+
+                                <TextView
+                                    android:id="@+id/about_version_badge"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:fontFeatureSettings="tnum"
+                                    android:includeFontPadding="false"
+                                    android:paddingHorizontal="9dp"
+                                    android:paddingVertical="3dp"
+                                    android:textSize="12sp"
+                                    tools:text="2.0.21" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="Sing-box &amp; Xray Core"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="12.5sp" />
+                        </LinearLayout>
+                    </LinearLayout>
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
+                        android:layout_marginTop="14dp"
+                        android:lineSpacingMultiplier="1.2"
                         android:text="@string/app_desc"
-                        android:textAppearance="?attr/textAppearanceBody2"
-                        android:textColor="?android:textColorSecondary" />
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="13.5sp" />
 
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
 
-            <androidx.coordinatorlayout.widget.CoordinatorLayout
-                android:id="@+id/about_fragment_holder"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-
+            <!-- Build & Updates Card -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_about_version"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:layout_marginRight="8dp"
-                android:layout_marginBottom="8dp">
+                android:layout_marginTop="10dp"
+                app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="?attr/cardStrokeWidth">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingVertical="6dp">
+
+                    <!-- Version row -->
+                    <LinearLayout
+                        android:id="@+id/about_version_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="16dp"
+                        android:paddingVertical="10dp">
+
+                        <ImageView
+                            android:id="@+id/icon_about_version"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginEnd="14dp"
+                            android:importantForAccessibility="no" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-medium"
+                                android:text="@string/app_version"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="15sp" />
+
+                            <TextView
+                                android:id="@+id/text_about_version_value"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFeatureSettings="tnum"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="13sp"
+                                tools:text="2.0.21" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Check updates row -->
+                    <LinearLayout
+                        android:id="@+id/about_update_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="16dp"
+                        android:paddingVertical="10dp">
+
+                        <ImageView
+                            android:id="@+id/icon_about_update"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginEnd="14dp"
+                            android:importantForAccessibility="no" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-medium"
+                                android:text="@string/update_check"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="15sp" />
+
+                            <TextView
+                                android:id="@+id/text_about_update_channel"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="13sp"
+                                tools:text="Stable" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Core ref row -->
+                    <LinearLayout
+                        android:id="@+id/about_core_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="16dp"
+                        android:paddingVertical="10dp">
+
+                        <ImageView
+                            android:id="@+id/icon_about_core"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginEnd="14dp"
+                            android:importantForAccessibility="no" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/text_about_core_title"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-medium"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="15sp"
+                                tools:text="Version (V4War Core)" />
+
+                            <TextView
+                                android:id="@+id/text_about_core_value"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFeatureSettings="tnum"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="13sp"
+                                tools:text="a1b2c3d4" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_marginStart="8dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_content_copy"
+                            app:tint="?android:attr/textColorSecondary" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Project Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_about_project"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="?attr/cardStrokeWidth">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="6dp">
+
+                    <TextView
+                        android:id="@+id/text_about_project_header"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:paddingHorizontal="16dp"
+                        android:paddingBottom="4dp"
+                        android:text="@string/project"
+                        android:textColor="?attr/primaryOrTextPrimary"
+                        android:textSize="13.5sp" />
+
+                    <LinearLayout
+                        android:id="@+id/about_github_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="16dp"
+                        android:paddingVertical="10dp">
+
+                        <ImageView
+                            android:id="@+id/icon_about_github"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginEnd="14dp"
+                            android:importantForAccessibility="no" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-medium"
+                                android:text="@string/github"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="15sp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="github.com/theyusa/V4War"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="13sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/about_website_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="16dp"
+                        android:paddingVertical="10dp">
+
+                        <ImageView
+                            android:id="@+id/icon_about_website"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginEnd="14dp"
+                            android:importantForAccessibility="no" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="@string/project_website"
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textSize="15sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/about_support_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="16dp"
+                        android:paddingVertical="10dp">
+
+                        <ImageView
+                            android:id="@+id/icon_about_support"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginEnd="14dp"
+                            android:importantForAccessibility="no" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="@string/support_throne"
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textSize="15sp" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- License Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_about_license"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="?attr/cardStrokeWidth">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -84,32 +446,48 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
+                        <ImageView
+                            android:id="@+id/icon_about_license"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginEnd="14dp"
+                            android:importantForAccessibility="no" />
+
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:fontFamily="sans-serif-medium"
                             android:text="@string/license"
-                            android:textAppearance="?attr/textAppearanceSubtitle2" />
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textSize="15.5sp" />
 
-                        <TextView
+                        <ImageView
                             android:id="@+id/license_indicator"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:text="▼"
-                            android:textAppearance="?attr/textAppearanceSubtitle2" />
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_baseline_expand_more_24"
+                            app:tint="?android:attr/textColorSecondary" />
 
                     </LinearLayout>
 
-                    <TextView
-                        android:id="@+id/license"
-                        android:layout_width="wrap_content"
+                    <FrameLayout
+                        android:id="@+id/box_license"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:textAppearance="?attr/textAppearanceBody2"
-                        android:textColor="?android:textColorSecondary"
-                        android:textIsSelectable="true"
-                        android:textSize="12sp" />
+                        android:layout_marginTop="12dp"
+                        android:padding="12dp">
+
+                        <TextView
+                            android:id="@+id/license"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:lineSpacingMultiplier="1.2"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textIsSelectable="true"
+                            android:textSize="12.5sp" />
+                    </FrameLayout>
 
                 </LinearLayout>
 
@@ -118,6 +496,5 @@
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>
-
 
 </LinearLayout>

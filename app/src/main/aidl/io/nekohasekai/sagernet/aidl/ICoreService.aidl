@@ -31,4 +31,7 @@ interface ICoreService {
   // attachmentPaths by its name and writes the zip to outputPath; returns "" or the error (see CoreDiagnostics).
   String captureDiagnostics(int durationMs, boolean contention, boolean trace, in String[] attachmentPaths, String outputPath);
   void stopDiagnostics();
+
+  // Resolves A/AAAA records for domain through the running :bg instance (or a transient core); returns JSON {"ips":[...],"error":"..."}.
+  String resolveDomain(String domain);
 }

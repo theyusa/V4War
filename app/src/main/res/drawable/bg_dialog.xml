@@ -7,9 +7,9 @@
 
     <shape android:shape="rectangle">
         <corners android:radius="@dimen/dialog_corner_radius" />
-        <solid android:color="?attr/colorSurface" />
+        <solid android:color="?attr/cardElevatedSurfaceColor" />
         <stroke
-            android:width="@dimen/card_stroke_width"
-            android:color="?attr/colorOutline" />
+            android:width="0.75dp"
+            android:color="?attr/popupStrokeColor" />
     </shape>
 </inset>

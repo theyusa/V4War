@@ -13,6 +13,12 @@
             app:key="settingsAppearance"
             app:summary="@string/settings_appearance_sum"
             app:title="@string/settings_appearance" />
+        <Preference
+            app:fragment="io.nekohasekai.sagernet.ui.settings.AppUpdateSettingsFragment"
+            app:icon="@drawable/ic_baseline_update_24"
+            app:key="settingsAppUpdate"
+            app:summary="@string/settings_app_update_sum"
+            app:title="@string/settings_app_update" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/cag_connection">

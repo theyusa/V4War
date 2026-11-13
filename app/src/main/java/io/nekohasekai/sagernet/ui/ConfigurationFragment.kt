@@ -55,6 +55,7 @@ import io.nekohasekai.sagernet.ui.profiles.ProfilesHeader
 import io.nekohasekai.sagernet.ui.profiles.ProfilesPagerAdapter
 import io.nekohasekai.sagernet.ui.profiles.SelectionMode
 import io.nekohasekai.sagernet.ui.profiles.SubscriptionInfoCard
+import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
 import io.nekohasekai.sagernet.ui.test.TestPanelController
 import io.nekohasekai.sagernet.ui.test.TestSessionClient
 import io.nekohasekai.sagernet.ui.test.TestUiState
@@ -145,6 +146,7 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         if (result.data?.getBooleanExtra(GroupSettingsActivity.EXTRA_RESTART_NEEDED, false) == true) needReload()
     }
 
+    private lateinit var tabContainer: View
     private lateinit var tabLayout: TabLayout
     private lateinit var pager: ViewPager2
     private lateinit var pagerAdapter: ProfilesPagerAdapter
@@ -221,12 +223,19 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         readProfileState()
 
         setUpToolbar()
+        tabContainer = view.findViewById(R.id.group_tab_container)
         tabLayout = view.findViewById(R.id.group_tab)
+        ExpressiveSettingsHelper.styleExpressiveTabs(tabContainer, tabLayout, cornerRadiusDp = 14f)
+        tabLayout.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
+            if (right - left != oldRight - oldLeft) {
+                ExpressiveSettingsHelper.fitTabsToContainer(tabLayout)
+            }
+        }
         pager = view.findViewById(R.id.group_pager)
         groupProgress = view.findViewById(R.id.group_progress)
         runtimeStatus = view.findViewById(R.id.runtime_status)
         panelContainer = view.findViewById(R.id.test_panel_container)
-        tabLayout.applyInsetPadding(horizontal = true)
+        tabContainer.applyInsetMargin(horizontal = true)
         runtimeStatus.applyInsetPadding(horizontal = true)
         // the panel keeps its content above the navigation bar, the stats bar and the FAB itself
         panelContainer.applyInsetMargin(horizontal = true)
@@ -234,7 +243,7 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         card.view.applyInsetMargin(horizontal = true)
         infoCard = card
         header = ProfilesHeader(
-            view as ViewGroup, view.findViewById(R.id.toolbar), tabLayout, runtimeStatus, card.view,
+            view as ViewGroup, view.findViewById(R.id.toolbar), tabContainer, runtimeStatus, card.view,
             autoHide = config.screenHeightDp < COMPACT_HEIGHT_DP && !SagerNet.isTv,
             pinned = ::headerPinned,
             frozen = { lists.any { it.adapter.dragging } },
@@ -510,6 +519,7 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         toolbar?.elevation = 0f
         val index = pagerAdapter.indexOf(targetGroupId).takeIf { it >= 0 } ?: 0
         if (pager.currentItem != index) pager.setCurrentItem(index, false)
+        ExpressiveSettingsHelper.fitTabsToContainer(tabLayout)
         onPageShown()
     }
 
@@ -584,7 +594,10 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         onMainDispatcher {
             if (!::pagerAdapter.isInitialized || view == null) return@onMainDispatcher
             val index = pagerAdapter.update(group)
-            if (index >= 0) tabLayout.getTabAt(index)?.text = tabLabel(group)
+            if (index >= 0) {
+                tabLayout.getTabAt(index)?.text = tabLabel(group)
+                ExpressiveSettingsHelper.fitTabsToContainer(tabLayout)
+            }
             if (index >= 0 && index == pager.currentItem) updateInfoCard()
         }
     }

@@ -20,7 +20,6 @@ import io.nekohasekai.sagernet.database.SettingsRegistry
 import io.nekohasekai.sagernet.ktx.needReload
 import io.nekohasekai.sagernet.ktx.remove
 import io.nekohasekai.sagernet.ui.MainActivity
-import io.nekohasekai.sagernet.update.UpdateScheduler
 import io.nekohasekai.sagernet.utils.AlwaysOnVpn
 import io.nekohasekai.sagernet.utils.AppLocale
 import io.nekohasekai.sagernet.utils.BatteryOptimizations
@@ -75,10 +74,6 @@ class GeneralSettingsFragment : SettingsScreenFragment(R.xml.settings_general) {
         }
 
         pref<Preference>(KEY_UPDATES).isVisible = BuildConfig.IN_APP_UPDATER
-        pref<Preference>(Key.UPDATE_CHECK_AUTO).setOnPreferenceChangeListener { _, newValue ->
-            UpdateScheduler.schedule(enabled = newValue as Boolean)
-            true
-        }
     }
 
     override fun onResume() {

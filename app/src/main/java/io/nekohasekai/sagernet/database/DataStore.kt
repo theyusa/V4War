@@ -80,6 +80,12 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var nightTheme by configurationStore.stringToInt(Key.NIGHT_THEME)
     var amoledTheme by configurationStore.boolean(Key.AMOLED_THEME)
     var tintPreferenceIcons by configurationStore.boolean(Key.TINT_PREFERENCE_ICONS) { true }
+    var appearancePreviewExpanded by configurationStore.boolean(Key.APPEARANCE_PREVIEW_EXPANDED) { true }
+    var appearanceModeExpanded by configurationStore.boolean(Key.APPEARANCE_MODE_EXPANDED) { false }
+    var appearancePaletteExpanded by configurationStore.boolean(Key.APPEARANCE_PALETTE_EXPANDED) { false }
+    var updateGithubToken by configurationStore.string(Key.UPDATE_GITHUB_TOKEN) { "" }
+    var updateInstallShizuku by configurationStore.boolean(Key.UPDATE_INSTALL_SHIZUKU) { false }
+    var updateLastCheckTime by configurationStore.long(Key.UPDATE_LAST_CHECK_TIME)
     var customThemeColor by configurationStore.int("custom_theme_color") { 0x00E676 }
     var lastSeedTheme by configurationStore.int("last_seed_theme") { 22 }
     var appLanguage by configurationStore.string(Key.APP_LANGUAGE) { "" }
