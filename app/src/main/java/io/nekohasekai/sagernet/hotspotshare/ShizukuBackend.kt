@@ -3,8 +3,10 @@ package io.nekohasekai.sagernet.hotspotshare
 import android.content.ComponentName
 import android.content.Context
 import android.content.ServiceConnection
+import android.os.Binder
 import android.os.IBinder
 import android.os.ParcelFileDescriptor
+import android.os.RemoteException
 import android.util.Log
 import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.SagerNet
@@ -15,7 +17,9 @@ import io.nekohasekai.sagernet.hotspotshare.shizuku.ShareUserService
 import io.nekohasekai.sagernet.hotspotshare.shizuku.ShizukuWatchdog
 import io.nekohasekai.sagernet.hotspotshare.shizuku.UpstreamReading
 import io.nekohasekai.sagernet.hotspotshare.shizuku.UpstreamTolerance
+import io.nekohasekai.sagernet.utils.LanSharingNetwork
 import io.nekohasekai.sagernet.utils.PlatformNotifications
+import io.nekohasekai.sagernet.utils.TetherKind
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,6 +61,10 @@ class ShizukuBackend(
 
     override val method: ShareMethod = ShareMethod.SHIZUKU
 
+    init {
+        lastAppContext = context.applicationContext ?: context
+    }
+
     private val _state = MutableStateFlow<ShareState>(ShareState.Off)
     override val state: StateFlow<ShareState> = _state.asStateFlow()
 
@@ -70,6 +78,8 @@ class ShizukuBackend(
     private var userServiceBinder: IBinder? = null
     private var boundArgs: Shizuku.UserServiceArgs? = null
     private var sessionTunPfd: ParcelFileDescriptor? = null
+    @Volatile
+    private var sessionLifeBinder: Binder? = null
 
     @Volatile
     private var pausedForVpnDrop = false
@@ -83,7 +93,7 @@ class ShizukuBackend(
         private set
 
     private val deathRecipient = IBinder.DeathRecipient {
-        if (intentionalUnbind) return@DeathRecipient
+        if (intentionalUnbind || _state.value is ShareState.Starting) return@DeathRecipient
         backendScope.launch {
             handleUnexpectedServiceDeath()
         }
@@ -177,7 +187,9 @@ class ShizukuBackend(
         val hotspotWasAlreadyOpen = runCatching { service.isWifiHotspotActive() }.getOrDefault(false)
 
         val tunPfd = try {
-            service.createTestNetwork( DEFAULT_DNS_SERVERS )
+            val lifeBinder = Binder()
+            sessionLifeBinder = lifeBinder
+            service.createTestNetworkWithBinder(DEFAULT_DNS_SERVERS, lifeBinder)
         } catch (t: Throwable) {
             HotspotShareLogger.error(TAG, "createTestNetwork failed: ${t.message}")
             abortStartSession(service, ShareFailure.BACKEND_FAILED, "Failed to create Test Network: ${t.message}")
@@ -210,15 +222,17 @@ class ShizukuBackend(
             return@withContext
         }
 
-        // 5. Arm preferTestNetworks AFTER testtunN and HevTunnel are up, then ensure Wi-Fi tethering is active.
+        // 5. Arm preferTestNetworks AFTER testtunN and HevTunnel are up, then ensure tethering is active.
+        var currentService = service
+        var currentIface = ifaceName
         try {
-            service.setPreferTestNetworks(true)
+            currentService.setPreferTestNetworks(true)
 
-            val tetherStarted = service.startTethering()
+            val tetherStarted = currentService.startTethering()
             if (!tetherStarted) {
                 HotspotShareLogger.error(TAG, "Wi-Fi hotspot failed to start via TetheringManager / WifiManager")
                 abortStartSession(
-                    service,
+                    currentService,
                     ShareFailure.BACKEND_FAILED,
                     "Wi-Fi hotspot failed to start via TetheringManager / WifiManager"
                 )
@@ -226,46 +240,110 @@ class ShizukuBackend(
             }
 
             // 6. Verify via dumpsys tethering that testtunN is selected as sole upstream.
-            var verified = runCatching { service.verifyUpstream(INITIAL_UPSTREAM_SETTLE_MS) }.getOrDefault(false)
+            var verified = runCatching { currentService.verifyUpstream(INITIAL_UPSTREAM_SETTLE_MS) }.getOrDefault(false)
             if (!verified && !hotspotWasAlreadyOpen) {
-                verified = runCatching { service.verifyUpstream(UPSTREAM_SETTLE_MS) }.getOrDefault(false)
+                verified = runCatching { currentService.verifyUpstream(UPSTREAM_SETTLE_MS) }.getOrDefault(false)
             }
             if (!verified) {
-                HotspotShareLogger.warn(TAG, "Initial upstream attach did not settle on $ifaceName; restarting Wi-Fi tethering downstream")
-                runCatching { service.setPreferTestNetworks(true) }
-                val restarted = runCatching { service.restartWifiTethering() }.getOrDefault(false)
-                if (!restarted && !runCatching { service.isWifiHotspotActive() }.getOrDefault(false)) {
+                val preRestartMask = runCatching { currentService.activeTetherMask }
+                    .getOrDefault(TETHER_MASK_WIFI)
+                    .let { if (it != 0) it else TETHER_MASK_WIFI }
+                val preRestartNcm = runCatching {
+                    LanSharingNetwork.hasActiveNcmTetheredIface(context)
+                }.getOrDefault(false)
+                HotspotShareLogger.warn(
+                    TAG,
+                    "Initial upstream attach did not settle on $currentIface (mask=$preRestartMask); restarting active tethering downstream",
+                )
+                runCatching { currentService.setPreferTestNetworks(true) }
+
+                val restartCall = runCatching { currentService.restartWifiTethering() }
+                var restarted = restartCall.getOrDefault(false)
+                val binderLost = restartCall.exceptionOrNull() is RemoteException ||
+                    !runCatching { currentService.asBinder().pingBinder() }.getOrDefault(false)
+
+                if (binderLost) {
+                    HotspotShareLogger.warn(
+                        TAG,
+                        "ShareUserService binder lost during downstream restart (mask=$preRestartMask); waiting for recovery to finish restart",
+                    )
+                    recoverServiceDuringStart(currentIface)?.let { (recoveredSvc, recoveredIface) ->
+                        currentService = recoveredSvc
+                        currentIface = recoveredIface
+                        runCatching { currentService.setPreferTestNetworks(true) }
+                        val ensureCall = runCatching {
+                            currentService.ensureTetherMaskStarted(preRestartMask, preRestartNcm)
+                        }
+                        if (ensureCall.exceptionOrNull() is RemoteException ||
+                            !runCatching { currentService.asBinder().pingBinder() }.getOrDefault(false)
+                        ) {
+                            recoverServiceDuringStart(currentIface)?.let { (reboundSvc, reboundIface) ->
+                                currentService = reboundSvc
+                                currentIface = reboundIface
+                                runCatching { currentService.setPreferTestNetworks(true) }
+                                val currentMask = runCatching { currentService.activeTetherMask }.getOrDefault(0)
+                                restarted = if ((currentMask and preRestartMask) == preRestartMask) {
+                                    true
+                                } else {
+                                    runCatching {
+                                        currentService.ensureTetherMaskStarted(preRestartMask, preRestartNcm)
+                                    }.getOrDefault(false) ||
+                                        runCatching { currentService.activeTetherMask != 0 }.getOrDefault(false)
+                                }
+                            }
+                        } else {
+                            restarted = ensureCall.getOrDefault(false) ||
+                                runCatching { currentService.activeTetherMask != 0 }.getOrDefault(false)
+                        }
+                    }
+                }
+
+                val anyChannelUp = restarted ||
+                    runCatching { currentService.activeTetherMask != 0 }.getOrDefault(false) ||
+                    runCatching { currentService.isWifiHotspotActive() }.getOrDefault(false)
+                if (!anyChannelUp) {
                     abortStartSession(
-                        service,
+                        currentService,
                         ShareFailure.BACKEND_FAILED,
-                        "Wi-Fi hotspot failed to restart onto test-network upstream ($ifaceName)"
+                        "Tethering failed to restart onto test-network upstream ($currentIface)"
                     )
                     return@withContext
                 }
-                verified = runCatching { service.verifyUpstream(UPSTREAM_SETTLE_MS) }.getOrDefault(false)
+
+                val verifyCall = runCatching { currentService.verifyUpstream(UPSTREAM_SETTLE_MS) }
+                if (verifyCall.exceptionOrNull() is RemoteException) {
+                    recoverServiceDuringStart(currentIface)?.let { (reboundSvc, reboundIface) ->
+                        currentService = reboundSvc
+                        currentIface = reboundIface
+                        runCatching { currentService.setPreferTestNetworks(true) }
+                        verified = runCatching { currentService.verifyUpstream(UPSTREAM_SETTLE_MS) }.getOrDefault(false)
+                    }
+                } else {
+                    verified = verifyCall.getOrDefault(false)
+                }
             }
             if (!verified) {
-                HotspotShareLogger.error(TAG, "Upstream failed to attach to $ifaceName")
+                HotspotShareLogger.error(TAG, "Upstream failed to attach to $currentIface")
                 abortStartSession(
-                    service,
+                    currentService,
                     ShareFailure.BACKEND_FAILED,
-                    "Upstream failed to attach to $ifaceName (another upstream remained selected)"
+                    "Upstream failed to attach to $currentIface (another upstream remained selected)"
                 )
                 return@withContext
             }
         } catch (t: Throwable) {
             HotspotShareLogger.error(TAG, "Exception starting tethering: ${t.message}")
-            abortStartSession(service, ShareFailure.BACKEND_FAILED, "Exception starting tethering: ${t.message}")
+            abortStartSession(currentService, ShareFailure.BACKEND_FAILED, "Exception starting tethering: ${t.message}")
             return@withContext
         }
 
         pausedSafetyJob?.cancel()
         pausedSafetyJob = null
         pausedForVpnDrop = false
-        HotspotShareLogger.info(TAG, "Shizuku hotspot share ACTIVE on $ifaceName")
-        mirrorServiceLogs(service)
+        HotspotShareLogger.info(TAG, "Shizuku hotspot share ACTIVE on $currentIface")
+        mirrorServiceLogs(currentService)
         _state.value = ShareState.Active(ShareMethod.SHIZUKU)
-        startUpstreamWatchdog(service, ifaceName)
+        startUpstreamWatchdog(currentService, currentIface)
     }
 
     private fun startUpstreamWatchdog(service: IShareUserService, expectedIface: String) {
@@ -463,7 +541,9 @@ class ShizukuBackend(
 
             // Re-create blackhole testtun0 without starting HevTunnel (packets dropped in kernel)
             closeSessionTunPfd()
-            val newPfd = svc.createTestNetwork(DEFAULT_DNS_SERVERS)
+            val lifeBinder = Binder()
+            sessionLifeBinder = lifeBinder
+            val newPfd = svc.createTestNetworkWithBinder(DEFAULT_DNS_SERVERS, lifeBinder)
             val newIface = runCatching { svc.interfaceName }.getOrNull() ?: "testtun0"
             sessionTunPfd = newPfd
             activeInterfaceName = newIface
@@ -583,6 +663,7 @@ class ShizukuBackend(
             unbindService(terminateDaemon = terminateDaemon)
         }
         activeInterfaceName = null
+        sessionLifeBinder = null
         activeServiceInstance = null
     }
 
@@ -646,6 +727,78 @@ class ShizukuBackend(
         return runCatching { userService?.connectedClientCount ?: 0 }.getOrDefault(0)
     }
 
+    private suspend fun tryBindRecoveredCandidate(
+        previousIface: String?,
+        requireExactAdopt: Boolean,
+    ): Pair<IShareUserService, String?>? {
+        if (!isShizukuRunning()) {
+            runCatching { ShizukuWatchdog.tryReviveShizukuViaLocalAdbOrShell() }
+        }
+        if (!isShizukuRunning()) return null
+
+        val candidate = runCatching { bindVerifiedService(linkDeath = true) }.getOrNull() ?: return null
+        val existingSvcIface = runCatching { candidate.interfaceName }.getOrNull()
+        val adopted = if (existingSvcIface == null && previousIface != null && sessionTunPfd != null) {
+            runCatching { candidate.adoptExistingTestNetwork(previousIface) }.getOrDefault(false)
+        } else {
+            existingSvcIface != null && existingSvcIface == previousIface
+        }
+        if (adopted && previousIface != null && sessionTunPfd != null) {
+            activeInterfaceName = previousIface
+            return candidate to previousIface
+        }
+        return if (requireExactAdopt) candidate to null else candidate to (existingSvcIface ?: previousIface ?: "testtun0")
+    }
+
+    private suspend fun recoverServiceDuringStart(
+        previousIface: String?,
+    ): Pair<IShareUserService, String>? {
+        unlinkDeathRecipient()
+        if (activeServiceInstance === userService) {
+            activeServiceInstance = null
+        }
+        userService = null
+
+        for (attempt in 1..START_RECOVERY_ATTEMPTS) {
+            if (intentionalUnbind || _state.value !is ShareState.Starting) return null
+            delay(START_RECOVERY_DELAY_MS)
+            if (intentionalUnbind || _state.value !is ShareState.Starting) return null
+
+            HotspotShareLogger.info(
+                TAG,
+                "Startup binder recovery attempt $attempt/$START_RECOVERY_ATTEMPTS",
+            )
+            val bound = tryBindRecoveredCandidate(previousIface, requireExactAdopt = true) ?: continue
+            val candidate = bound.first
+            val adoptedIface = bound.second
+            if (adoptedIface != null) {
+                return candidate to adoptedIface
+            }
+
+            // Re-establish testtunN + HevTunnel cleanly if old testtun vanished during binder death
+            hevTunnel.stop()
+            closeSessionTunPfd()
+            val rebuilt = runCatching {
+                val lifeBinder = Binder()
+                sessionLifeBinder = lifeBinder
+                val newPfd = candidate.createTestNetworkWithBinder(DEFAULT_DNS_SERVERS, lifeBinder)
+                val newIface = runCatching { candidate.interfaceName }.getOrNull() ?: "testtun0"
+                sessionTunPfd = newPfd
+                activeInterfaceName = newIface
+                val hevPfd = newPfd.dup()
+                if (!hevTunnel.start(hevPfd, socksPort, HevTunnel.DEFAULT_TUN_MTU)) {
+                    runCatching { hevPfd.close() }
+                    return@runCatching null
+                }
+                candidate to newIface
+            }.getOrNull()
+            if (rebuilt != null) {
+                return rebuilt
+            }
+        }
+        return null
+    }
+
     /**
      * Handles unexpected binder death without EVER stopping the user's Wi-Fi Hotspot.
      * Enters a bounded recovery loop (5 attempts x 3s = ~15s) to allow the UID 2000 watchdog
@@ -654,9 +807,14 @@ class ShizukuBackend(
      */
     private suspend fun handleUnexpectedServiceDeath() {
         if (intentionalUnbind) return
+        if (_state.value is ShareState.Starting) return
         sessionMutex.withLock {
             val current = _state.value
-            if (intentionalUnbind || current is ShareState.Off || (current is ShareState.Stopped && !pausedForVpnDrop)) {
+            if (intentionalUnbind ||
+                current is ShareState.Off ||
+                current is ShareState.Starting ||
+                (current is ShareState.Stopped && !pausedForVpnDrop)
+            ) {
                 return@withLock
             }
             HotspotShareLogger.warn(
@@ -746,9 +904,19 @@ class ShizukuBackend(
         return try {
             val hotspotActive = runCatching { service.isWifiHotspotActive() }.getOrDefault(false)
             val existingServiceIface = runCatching { service.interfaceName }.getOrNull()
+            val adoptedExisting = if (existingServiceIface == null && previousIface != null && sessionTunPfd != null) {
+                runCatching { service.adoptExistingTestNetwork(previousIface) }.getOrDefault(false)
+            } else {
+                false
+            }
+            val liveIface = when {
+                existingServiceIface != null && existingServiceIface == previousIface -> existingServiceIface
+                adoptedExisting -> previousIface
+                else -> null
+            }
 
-            // Case 1: ShareUserService (.daemon(true)) survived in UID 2000 with testtun0 intact!
-            if (existingServiceIface != null && existingServiceIface == previousIface && sessionTunPfd != null) {
+            // Case 1: ShareUserService survived OR we adopted the app-binder-owned testtunN intact!
+            if (liveIface != null && sessionTunPfd != null) {
                 runCatching { service.setPreferTestNetworks(true) }
                 if (!hotspotActive) {
                     runCatching { service.startTethering() }
@@ -757,7 +925,7 @@ class ShizukuBackend(
                 if (verified) {
                     if (!pausedForVpnDrop) {
                         _state.value = ShareState.Active(ShareMethod.SHIZUKU)
-                        startUpstreamWatchdog(service, existingServiceIface)
+                        startUpstreamWatchdog(service, liveIface)
                     } else {
                         startPausedBlackholeSafetyMonitor()
                     }
@@ -765,11 +933,13 @@ class ShizukuBackend(
                 }
             }
 
-            // Case 2: ShareUserService restarted fresh; rebuild testtunN + HevTunnel seamlessly
+            // Case 2: ShareUserService restarted fresh and old testtunN is gone; rebuild testtunN + HevTunnel seamlessly
             hevTunnel.stop()
             closeSessionTunPfd()
 
-            val newTunPfd = service.createTestNetwork(DEFAULT_DNS_SERVERS)
+            val lifeBinder = Binder()
+            sessionLifeBinder = lifeBinder
+            val newTunPfd = service.createTestNetworkWithBinder(DEFAULT_DNS_SERVERS, lifeBinder)
             val newIface = runCatching { service.interfaceName }.getOrNull() ?: "testtun0"
             sessionTunPfd = newTunPfd
             activeInterfaceName = newIface
@@ -785,20 +955,37 @@ class ShizukuBackend(
                 if (!hevStarted) return false
             }
 
+            val preRestartMask = runCatching { service.activeTetherMask }
+                .getOrDefault(TETHER_MASK_WIFI)
+                .let { if (it != 0) it else TETHER_MASK_WIFI }
+            val preRestartNcm = runCatching {
+                LanSharingNetwork.hasActiveNcmTetheredIface(context)
+            }.getOrDefault(false)
             service.setPreferTestNetworks(true)
             if (!service.startTethering()) return false
 
-            var verified = runCatching { service.verifyUpstream(INITIAL_UPSTREAM_SETTLE_MS) }.getOrDefault(false)
+            var activeSvc = service
+            var activeIface = newIface
+            var verified = runCatching { activeSvc.verifyUpstream(INITIAL_UPSTREAM_SETTLE_MS) }.getOrDefault(false)
             if (!verified) {
-                runCatching { service.setPreferTestNetworks(true) }
-                runCatching { service.restartWifiTethering() }
-                verified = runCatching { service.verifyUpstream(UPSTREAM_SETTLE_MS) }.getOrDefault(false)
+                runCatching { activeSvc.setPreferTestNetworks(true) }
+                val restartCall = runCatching { activeSvc.restartWifiTethering() }
+                val restartLostBinder = restartCall.exceptionOrNull() is RemoteException ||
+                    !runCatching { activeSvc.asBinder().pingBinder() }.getOrDefault(false)
+                if (restartLostBinder) {
+                    val rebound = rebindRecoveredService(activeIface) ?: return false
+                    activeSvc = rebound.first
+                    activeIface = rebound.second
+                    runCatching { activeSvc.setPreferTestNetworks(true) }
+                    runCatching { activeSvc.ensureTetherMaskStarted(preRestartMask, preRestartNcm) }
+                }
+                verified = runCatching { activeSvc.verifyUpstream(UPSTREAM_SETTLE_MS) }.getOrDefault(false)
             }
             if (!verified) return false
 
             if (!pausedForVpnDrop) {
                 _state.value = ShareState.Active(ShareMethod.SHIZUKU)
-                startUpstreamWatchdog(service, newIface)
+                startUpstreamWatchdog(activeSvc, activeIface)
             } else {
                 startPausedBlackholeSafetyMonitor()
             }
@@ -807,6 +994,23 @@ class ShizukuBackend(
             HotspotShareLogger.warn(TAG, "tryRestoreSessionOnReboundService failed: ${t.message}")
             false
         }
+    }
+
+    private suspend fun rebindRecoveredService(previousIface: String?): Pair<IShareUserService, String>? {
+        unlinkDeathRecipient()
+        if (activeServiceInstance === userService) {
+            activeServiceInstance = null
+        }
+        userService = null
+        for (attempt in 1..SERVICE_DEATH_RECOVERY_ATTEMPTS) {
+            if (intentionalUnbind) return null
+            delay(START_RECOVERY_DELAY_MS)
+            if (intentionalUnbind) return null
+            val bound = tryBindRecoveredCandidate(previousIface, requireExactAdopt = false) ?: continue
+            val resolvedIface = bound.second ?: previousIface ?: "testtun0"
+            return bound.first to resolvedIface
+        }
+        return null
     }
 
     private fun closeSessionTunPfd() {
@@ -930,6 +1134,21 @@ class ShizukuBackend(
         private const val SOCKS_WAIT_TIMEOUT_MS = 6_000L
         private const val SERVICE_DEATH_RECOVERY_ATTEMPTS = 5
         private const val SERVICE_DEATH_RECOVERY_DELAY_MS = 3_000L
+        private const val START_RECOVERY_ATTEMPTS = 6
+        private const val START_RECOVERY_DELAY_MS = 1_500L
+        private const val USB_REENUMERATION_WAIT_MS = 4_000L
+        private const val USB_REENUMERATION_POLL_MS = 250L
+        private const val USB_RETRY_REVIVE_WAIT_MS = 5_000L
+        private const val TEMP_MASK_REFRESH_INTERVAL_MS = 10_000L
+
+        const val TETHERING_WIFI = ShareUserService.TETHERING_WIFI
+        const val TETHERING_USB = ShareUserService.TETHERING_USB
+        const val TETHERING_BLUETOOTH = ShareUserService.TETHERING_BLUETOOTH
+        const val TETHERING_NCM = ShareUserService.TETHERING_NCM
+
+        const val TETHER_MASK_WIFI = ShareUserService.TETHER_MASK_WIFI
+        const val TETHER_MASK_USB = ShareUserService.TETHER_MASK_USB
+        const val TETHER_MASK_BLUETOOTH = ShareUserService.TETHER_MASK_BLUETOOTH
 
         private val DEFAULT_DNS_SERVERS = listOf(
             "1.1.1.1",
@@ -963,6 +1182,407 @@ class ShizukuBackend(
 
         @Volatile
         private var activeServiceInstance: IShareUserService? = null
+
+        @Volatile
+        private var lastAppContext: Context? = null
+
+        @Volatile
+        private var lastKnownServiceTetherMask: Int = 0
+
+        @Volatile
+        private var lastTempMaskRefreshAtMs: Long = 0L
+
+        private val tempBindMutex = Mutex()
+
+        private fun expectedMaskBitForType(type: Int): Int = when (type) {
+            TETHERING_WIFI -> TETHER_MASK_WIFI
+            TETHERING_USB, TETHERING_NCM -> TETHER_MASK_USB
+            TETHERING_BLUETOOTH -> TETHER_MASK_BLUETOOTH
+            else -> 0
+        }
+
+        /**
+         * Returns the active tethering channel bitmask ([TETHER_MASK_WIFI], [TETHER_MASK_USB],
+         * [TETHER_MASK_BLUETOOTH]). Uses the privileged Shizuku service when bound, otherwise falls
+         * back to [LanSharingNetwork.getActiveTetherKinds] plus cached Bluetooth PAN state.
+         */
+        @JvmOverloads
+        fun getActiveTetherMask(context: Context? = null): Int {
+            val svc = activeServiceInstance
+            if (svc != null && runCatching { svc.asBinder().pingBinder() }.getOrDefault(false)) {
+                val mask = runCatching { svc.activeTetherMask }.getOrNull()
+                if (mask != null) {
+                    lastKnownServiceTetherMask = mask
+                    return mask
+                }
+            }
+            val ctx = context ?: lastAppContext ?: runCatching { SagerNet.application }.getOrNull()
+                ?: return (lastKnownServiceTetherMask and TETHER_MASK_BLUETOOTH)
+            val kinds = runCatching { LanSharingNetwork.getActiveTetherKinds(ctx) }.getOrDefault(emptySet())
+            var mask = lastKnownServiceTetherMask and TETHER_MASK_BLUETOOTH
+            if (TetherKind.WIFI in kinds) mask = mask or TETHER_MASK_WIFI
+            if (TetherKind.USB in kinds) mask = mask or TETHER_MASK_USB
+            if (TetherKind.BLUETOOTH in kinds) mask = mask or TETHER_MASK_BLUETOOTH
+            return mask
+        }
+
+        /**
+         * Refreshes the active tether bitmask from [IShareUserService], temporarily binding
+         * when no Share session is running (throttled unless [force] is true).
+         */
+        suspend fun refreshActiveTetherMask(
+            context: Context? = null,
+            force: Boolean = false,
+        ): Int = withContext(Dispatchers.IO) {
+            val live = activeServiceInstance?.takeIf { svc ->
+                runCatching { svc.asBinder().pingBinder() }.getOrDefault(false)
+            }
+            if (live != null) {
+                val mask = runCatching { live.activeTetherMask }.getOrNull()
+                if (mask != null) {
+                    lastKnownServiceTetherMask = mask
+                    lastTempMaskRefreshAtMs = System.currentTimeMillis()
+                    return@withContext mask
+                }
+            }
+
+            val ctx = context ?: lastAppContext ?: runCatching { SagerNet.application }.getOrNull()
+            val now = System.currentTimeMillis()
+            if (ctx != null &&
+                (force || now - lastTempMaskRefreshAtMs >= TEMP_MASK_REFRESH_INTERVAL_MS) &&
+                isShizukuRunning() &&
+                isShizukuGranted(ctx)
+            ) {
+                val refreshed = tempBindMutex.withLock {
+                    val recheck = activeServiceInstance?.takeIf { svc ->
+                        runCatching { svc.asBinder().pingBinder() }.getOrDefault(false)
+                    }
+                    if (recheck != null) {
+                        val mask = runCatching { recheck.activeTetherMask }.getOrNull()
+                        if (mask != null) {
+                            lastKnownServiceTetherMask = mask
+                            lastTempMaskRefreshAtMs = System.currentTimeMillis()
+                        }
+                        return@withLock mask
+                    }
+                    val args = buildUserServiceArgs(ctx.packageName)
+                    var tempConn: ServiceConnection? = null
+                    try {
+                        val (svc, conn) = bindTempVerifiedService(args)
+                        tempConn = conn
+                        val mask = runCatching { svc.activeTetherMask }.getOrNull()
+                        if (mask != null) {
+                            lastKnownServiceTetherMask = mask
+                            lastTempMaskRefreshAtMs = System.currentTimeMillis()
+                        }
+                        mask
+                    } catch (_: Throwable) {
+                        null
+                    } finally {
+                        tempConn?.let { conn ->
+                            runCatching { Shizuku.unbindUserService(args, conn, false) }
+                        }
+                    }
+                }
+                if (refreshed != null) {
+                    return@withContext refreshed
+                }
+            }
+
+            getActiveTetherMask(ctx)
+        }
+
+        /**
+         * Cleans up any orphaned test network / preferTestNetworks state left behind
+         * by a killed [TetherWatchService] process when no live session is running.
+         */
+        suspend fun cleanupOrphanedServiceState(context: Context): Unit = withContext(Dispatchers.IO) {
+            val appCtx = context.applicationContext ?: context
+            if (TetherWatchService.isRunningOrStarting()) return@withContext
+            if (activeServiceInstance != null) return@withContext
+            if (!isShizukuRunning() || !isShizukuGranted(appCtx)) return@withContext
+            tempBindMutex.withLock {
+                if (TetherWatchService.isRunningOrStarting() || activeServiceInstance != null) return@withLock
+                val args = buildUserServiceArgs(appCtx.packageName)
+                var tempConn: ServiceConnection? = null
+                try {
+                    val (svc, conn) = bindTempVerifiedService(args)
+                    tempConn = conn
+                    val activeTestIface = runCatching { svc.interfaceName }.getOrNull()
+                    if (!activeTestIface.isNullOrBlank()) {
+                        HotspotShareLogger.info(TAG, "Cleaning up orphaned test network ($activeTestIface) after dead service")
+                    }
+                    runCatching { svc.cleanupDirtyState() }
+                    mirrorServiceLogs(svc)
+                } catch (_: Throwable) {
+                } finally {
+                    tempConn?.let { conn ->
+                        runCatching { Shizuku.unbindUserService(args, conn, false) }
+                    }
+                }
+            }
+        }
+
+        /**
+         * Enables or disables a specific tethering channel ([TETHERING_WIFI], [TETHERING_USB],
+         * [TETHERING_BLUETOOTH], [TETHERING_NCM]) via Shizuku [IShareUserService], binding
+         * temporarily if no session is currently running.
+         */
+        suspend fun setTetherTypeEnabled(
+            type: Int,
+            enabled: Boolean,
+            context: Context? = null,
+        ): Result<Unit> = withContext(Dispatchers.IO) {
+            HotspotShareLogger.info(TAG, "setTetherTypeEnabled(type=$type, enabled=$enabled)")
+            val ctx = context ?: lastAppContext ?: runCatching { SagerNet.application }.getOrNull()
+            val liveService = activeServiceInstance?.takeIf { svc ->
+                runCatching {
+                    svc.asBinder().pingBinder() &&
+                        svc.contractVersion == ShareUserService.CONTRACT_VERSION
+                }.getOrDefault(false)
+            }
+            if (liveService != null) {
+                return@withContext executeTetherTypeCommand(liveService, type, enabled, ctx)
+            }
+
+            if (ctx == null) {
+                return@withContext Result.failure(IllegalStateException("Application context unavailable"))
+            }
+
+            if (!isShizukuRunning()) {
+                ShizukuWatchdog.tryReviveShizukuViaLocalAdbOrShell()
+            }
+            if (!isShizukuRunning()) {
+                HotspotShareLogger.warn(TAG, "setTetherTypeEnabled aborted: Shizuku is not running")
+                return@withContext Result.failure(IllegalStateException("Shizuku is not running"))
+            }
+            if (!isShizukuGranted(ctx)) {
+                HotspotShareLogger.warn(TAG, "setTetherTypeEnabled aborted: Shizuku permission denied")
+                return@withContext Result.failure(SecurityException("Shizuku permission denied"))
+            }
+
+            tempBindMutex.withLock {
+                val rechecked = activeServiceInstance?.takeIf { svc ->
+                    runCatching {
+                        svc.asBinder().pingBinder() &&
+                            svc.contractVersion == ShareUserService.CONTRACT_VERSION
+                    }.getOrDefault(false)
+                }
+                if (rechecked != null) {
+                    return@withLock executeTetherTypeCommand(rechecked, type, enabled, ctx)
+                }
+
+                val args = buildUserServiceArgs(ctx.packageName)
+                var tempConn: ServiceConnection? = null
+                val firstResult = try {
+                    val (svc, conn) = bindTempVerifiedService(args)
+                    tempConn = conn
+                    executeTetherTypeCommand(svc, type, enabled, ctx)
+                } catch (t: Throwable) {
+                    HotspotShareLogger.error(TAG, "setTetherTypeEnabled($type, $enabled) failed: ${t.message}")
+                    Result.failure(t)
+                } finally {
+                    tempConn?.let { conn ->
+                        runCatching { Shizuku.unbindUserService(args, conn, false) }
+                    }
+                    tempConn = null
+                }
+
+                // If enabling USB tethering died during resetStuckUsbTethering (after clearing stuck rndis0),
+                // wait briefly for Shizuku revival and retry startTetheringType(type) once cleanly.
+                val shouldRetryAfterReset = firstResult.isFailure &&
+                    enabled &&
+                    (type == TETHERING_USB || type == TETHERING_NCM) &&
+                    firstResult.exceptionOrNull()?.cause is RemoteException
+                if (!shouldRetryAfterReset) {
+                    return@withLock firstResult
+                }
+
+                HotspotShareLogger.info(
+                    TAG,
+                    "USB channel binder reset before activation; waiting for Shizuku to retry startTetheringType($type)",
+                )
+                val reviveDeadline = System.currentTimeMillis() + USB_RETRY_REVIVE_WAIT_MS
+                while (System.currentTimeMillis() < reviveDeadline && !isShizukuRunning()) {
+                    ShizukuWatchdog.tryReviveShizukuViaLocalAdbOrShell()
+                    if (!isShizukuRunning()) {
+                        delay(400L)
+                    }
+                }
+                if (!isShizukuRunning() || !isShizukuGranted(ctx)) {
+                    return@withLock firstResult
+                }
+
+                try {
+                    val (retrySvc, retryConn) = bindTempVerifiedService(args)
+                    tempConn = retryConn
+                    executeTetherTypeCommand(retrySvc, type, enabled, ctx)
+                } catch (t: Throwable) {
+                    HotspotShareLogger.error(TAG, "Retry setTetherTypeEnabled($type, $enabled) failed: ${t.message}")
+                    Result.failure(t)
+                } finally {
+                    tempConn?.let { conn ->
+                        runCatching { Shizuku.unbindUserService(args, conn, false) }
+                    }
+                }
+            }
+        }
+
+        private suspend fun executeTetherTypeCommand(
+            service: IShareUserService,
+            type: Int,
+            enabled: Boolean,
+            context: Context?,
+        ): Result<Unit> {
+            val isUsbChannel = type == TETHERING_USB || type == TETHERING_NCM
+            return try {
+                val expectedBit = expectedMaskBitForType(type)
+                if (enabled) {
+                    val started = service.startTetheringType(type)
+                    val postMask = runCatching { service.activeTetherMask }.getOrDefault(0)
+                    lastKnownServiceTetherMask = postMask
+                    lastTempMaskRefreshAtMs = System.currentTimeMillis()
+                    mirrorServiceLogs(service)
+                    val active = started && (expectedBit == 0 || (postMask and expectedBit) != 0)
+                    if (active) {
+                        HotspotShareLogger.info(TAG, "startTetheringType($type) succeeded (mask=$postMask)")
+                        Result.success(Unit)
+                    } else {
+                        HotspotShareLogger.warn(
+                            TAG,
+                            "startTetheringType($type) did not activate channel (started=$started, mask=$postMask)",
+                        )
+                        Result.failure(
+                            IllegalStateException("Channel $type did not become active (started=$started, mask=$postMask)"),
+                        )
+                    }
+                } else {
+                    service.stopTetheringType(type)
+                    val postMask = runCatching { service.activeTetherMask }.getOrDefault(0)
+                    lastKnownServiceTetherMask = postMask
+                    lastTempMaskRefreshAtMs = System.currentTimeMillis()
+                    mirrorServiceLogs(service)
+                    HotspotShareLogger.info(TAG, "stopTetheringType($type) completed (mask=$postMask)")
+                    Result.success(Unit)
+                }
+            } catch (t: RemoteException) {
+                val ctx = context ?: lastAppContext ?: runCatching { SagerNet.application }.getOrNull()
+                if (isUsbChannel && ctx != null && awaitUsbStateAfterBinderReset(ctx, targetEnabled = enabled)) {
+                    HotspotShareLogger.info(
+                        TAG,
+                        "USB tethering transition (enabled=$enabled) completed across USB/ADB re-enumeration",
+                    )
+                    return Result.success(Unit)
+                }
+                val detail = t.message ?: "${t.javaClass.simpleName} during tether type=$type"
+                HotspotShareLogger.error(TAG, "executeTetherTypeCommand($type, $enabled) threw: $detail")
+                Result.failure(IllegalStateException(detail, t))
+            } catch (t: Throwable) {
+                runCatching { mirrorServiceLogs(service) }
+                val detail = t.message ?: t.javaClass.simpleName
+                HotspotShareLogger.error(TAG, "executeTetherTypeCommand($type, $enabled) threw: $detail")
+                Result.failure(t)
+            }
+        }
+
+        private suspend fun awaitUsbStateAfterBinderReset(
+            ctx: Context,
+            targetEnabled: Boolean,
+        ): Boolean {
+            val deadline = System.currentTimeMillis() + USB_REENUMERATION_WAIT_MS
+            var firstConfirmedAt = 0L
+            while (System.currentTimeMillis() < deadline) {
+                val svcMask = activeServiceInstance?.takeIf { svc ->
+                    runCatching { svc.asBinder().pingBinder() }.getOrDefault(false)
+                }?.let { svc ->
+                    runCatching { svc.activeTetherMask }.getOrNull()
+                }
+                if (svcMask != null) {
+                    lastKnownServiceTetherMask = svcMask
+                }
+                val osConfirmedUsb = runCatching {
+                    LanSharingNetwork.isUsbTetheringConfirmedInOs(ctx)
+                }.getOrDefault(false)
+                val usbActive = if (targetEnabled) {
+                    osConfirmedUsb || ((svcMask ?: 0) and TETHER_MASK_USB) != 0
+                } else {
+                    val anyKindUsb = runCatching {
+                        TetherKind.USB in LanSharingNetwork.getActiveTetherKinds(ctx)
+                    }.getOrDefault(false)
+                    anyKindUsb || ((svcMask ?: 0) and TETHER_MASK_USB) != 0
+                }
+                if (usbActive == targetEnabled) {
+                    if (!targetEnabled) {
+                        if (svcMask == null) {
+                            lastKnownServiceTetherMask = lastKnownServiceTetherMask and TETHER_MASK_USB.inv()
+                        }
+                        return true
+                    }
+                    val now = System.currentTimeMillis()
+                    if (firstConfirmedAt == 0L) {
+                        firstConfirmedAt = now
+                    } else if (now - firstConfirmedAt >= 350L) {
+                        if (svcMask == null) {
+                            lastKnownServiceTetherMask = lastKnownServiceTetherMask or TETHER_MASK_USB
+                        }
+                        return true
+                    }
+                } else {
+                    firstConfirmedAt = 0L
+                }
+                delay(USB_REENUMERATION_POLL_MS)
+            }
+            return false
+        }
+
+        private suspend fun bindTempVerifiedService(
+            args: Shizuku.UserServiceArgs,
+        ): Pair<IShareUserService, ServiceConnection> {
+            val (first, firstConn) = bindTempOnce(args)
+            val version = runCatching { first.contractVersion }.getOrDefault(-1)
+            if (version == ShareUserService.CONTRACT_VERSION) {
+                runCatching { first.setDiagnosticLoggingEnabled(DataStore.hotspotShareLogEnabled) }
+                return first to firstConn
+            }
+            HotspotShareLogger.warn(
+                TAG,
+                "Stale temporary ShareUserService contract ($version != ${ShareUserService.CONTRACT_VERSION}); restarting",
+            )
+            runCatching { Shizuku.unbindUserService(args, firstConn, true) }
+            delay(300)
+            val (second, secondConn) = bindTempOnce(args)
+            runCatching { second.setDiagnosticLoggingEnabled(DataStore.hotspotShareLogEnabled) }
+            return second to secondConn
+        }
+
+        private suspend fun bindTempOnce(
+            args: Shizuku.UserServiceArgs,
+        ): Pair<IShareUserService, ServiceConnection> {
+            val deferred = CompletableDeferred<IShareUserService>()
+            val conn = object : ServiceConnection {
+                override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+                    val stub = IShareUserService.Stub.asInterface(service)
+                    if (stub != null) {
+                        deferred.complete(stub)
+                    } else {
+                        deferred.completeExceptionally(IllegalStateException("Null IShareUserService binder"))
+                    }
+                }
+
+                override fun onServiceDisconnected(name: ComponentName?) {
+                    if (!deferred.isCompleted) {
+                        deferred.completeExceptionally(IllegalStateException("ShareUserService disconnected during bind"))
+                    }
+                }
+            }
+            Shizuku.bindUserService(args, conn)
+            val svc = withTimeoutOrNull(10_000) { deferred.await() }
+            if (svc == null) {
+                runCatching { Shizuku.unbindUserService(args, conn, false) }
+                throw IllegalStateException("Timeout binding Shizuku UserService")
+            }
+            return svc to conn
+        }
 
         fun mirrorServiceLogs(service: IShareUserService? = activeServiceInstance): List<String> {
             val svc = service ?: return emptyList()

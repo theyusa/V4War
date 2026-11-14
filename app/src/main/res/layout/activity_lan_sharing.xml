@@ -339,6 +339,66 @@
                                 android:visibility="gone" />
                         </LinearLayout>
 
+                        <!-- Active Tethering Channels (Wi-Fi / USB / Bluetooth) -->
+                        <LinearLayout
+                            android:id="@+id/tetherChannelsContainer"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/hotspot_share_tether_channels_title"
+                                android:textAppearance="?attr/textAppearanceBody2"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <com.google.android.material.chip.ChipGroup
+                                android:id="@+id/chipGroupTetherChannels"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                app:chipSpacingHorizontal="8dp"
+                                app:chipSpacingVertical="4dp"
+                                app:singleLine="false"
+                                app:singleSelection="false">
+
+                                <com.google.android.material.chip.Chip
+                                    android:id="@+id/chipTetherWifi"
+                                    style="@style/Widget.MaterialComponents.Chip.Filter"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:checkable="true"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:text="@string/hotspot_share_tether_channel_wifi" />
+
+                                <com.google.android.material.chip.Chip
+                                    android:id="@+id/chipTetherUsb"
+                                    style="@style/Widget.MaterialComponents.Chip.Filter"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:checkable="true"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:text="@string/hotspot_share_tether_channel_usb" />
+
+                                <com.google.android.material.chip.Chip
+                                    android:id="@+id/chipTetherBluetooth"
+                                    style="@style/Widget.MaterialComponents.Chip.Filter"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:checkable="true"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:text="@string/hotspot_share_tether_channel_bt" />
+
+                            </com.google.android.material.chip.ChipGroup>
+                        </LinearLayout>
+
                         <!-- System Hotspot Settings shortcut -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnOpenSystemHotspotSettings"

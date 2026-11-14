@@ -3044,4 +3044,43 @@
     <string name="hotspot_share_logs_filter_empty">No log entries match the current filter (%1$d total recorded).</string>
     <string name="hotspot_share_logs_count_total">%1$d entries</string>
     <string name="hotspot_share_logs_count_filtered">%1$d / %2$d</string>
+
+    <!-- Hotspot Share Quick Settings Tile -->
+    <string name="hotspot_share_tile_title">Hotspot Share</string>
+    <string name="hotspot_share_tile_off">Off</string>
+    <string name="hotspot_share_tile_starting">Starting…</string>
+    <string name="hotspot_share_tile_waiting_vpn">Waiting for VPN</string>
+    <string name="hotspot_share_tile_error">Unavailable</string>
+    <string name="hotspot_share_tile_method_shizuku">Shizuku</string>
+    <string name="hotspot_share_tile_method_root">Root</string>
+    <string name="hotspot_share_tile_method_proxy">Proxy</string>
+    <string name="hotspot_share_tile_channel_wifi">Wi-Fi</string>
+    <string name="hotspot_share_tile_channel_usb">USB</string>
+    <string name="hotspot_share_tile_channel_bt">BT</string>
+    <string name="hotspot_share_tile_active_format">%1$s · %2$s</string>
+    <string name="hotspot_share_tile_active_no_channel">%1$s · Active</string>
+
+    <!-- Tethering Channels UI -->
+    <string name="hotspot_share_tether_channels_title">Tethering Channels</string>
+    <string name="hotspot_share_tether_channel_wifi">Wi-Fi</string>
+    <string name="hotspot_share_tether_channel_usb">USB</string>
+    <string name="hotspot_share_tether_channel_bt">Bluetooth</string>
+    <string name="hotspot_share_tether_shizuku_required">Shizuku permission is required to toggle tethering channels directly. You can enable it in System Tethering Settings.</string>
+    <string name="hotspot_share_tether_toggle_failed">Could not toggle %1$s tethering via Shizuku (%2$s). Open System Tethering Settings to change it manually.</string>
+    <string name="hotspot_share_tether_toggle_blocked_rom">This ROM blocked programmatic %1$s tethering control. Open System Tethering Settings to change it.</string>
+    <string name="hotspot_share_tether_enabled">%1$s tethering enabled</string>
+    <string name="hotspot_share_tether_disabled">%1$s tethering disabled</string>
+    <string name="hotspot_share_tether_usb_not_active">USB tethering did not activate — ensure the USB cable is in data transfer mode or enable it in System Settings</string>
+    <string name="hotspot_share_tether_bt_not_active">Bluetooth tethering did not activate — ensure Bluetooth is turned on or enable it in System Settings</string>
+    <string name="hotspot_share_tether_open_settings">Open Settings</string>
+
+    <!-- USB & Bluetooth Client Route Badges -->
+    <string name="lan_sharing_device_route_usb_shizuku">USB Tether (Shizuku)</string>
+    <string name="lan_sharing_device_route_usb_root">USB Tether (Root)</string>
+    <string name="lan_sharing_device_route_usb_proxy">USB Tether (Local Proxy)</string>
+    <string name="lan_sharing_device_route_usb_idle">USB Tether</string>
+    <string name="lan_sharing_device_route_bt_shizuku">Bluetooth Tether (Shizuku)</string>
+    <string name="lan_sharing_device_route_bt_root">Bluetooth Tether (Root)</string>
+    <string name="lan_sharing_device_route_bt_proxy">Bluetooth Tether (Local Proxy)</string>
+    <string name="lan_sharing_device_route_bt_idle">Bluetooth Tether</string>
 </resources>

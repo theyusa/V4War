@@ -19,6 +19,24 @@ interface IShareUserService {
     ParcelFileDescriptor createTestNetwork(in List<String> dnsServers);
 
     /**
+     * Creates a dual-stack test network TUN interface backed by a caller-owned
+     * life binder so transient shell daemon restarts do not immediately destroy testtunN.
+     */
+    ParcelFileDescriptor createTestNetworkWithBinder(in List<String> dnsServers, IBinder lifeBinder);
+
+    /**
+     * Adopts an already-live testtunN interface in ConnectivityManager after a daemon restart,
+     * re-arming TRANSPORT_TEST keep-alive and preferTestNetworks without recreating the TUN.
+     */
+    boolean adoptExistingTestNetwork(String expectedIface);
+
+    /**
+     * Ensures all channels present in targetMask (1=WIFI, 2=USB, 4=BLUETOOTH) are started,
+     * used to finish a downstream restart after a USB ADB reset killed the previous service binder.
+     */
+    boolean ensureTetherMaskStarted(int targetMask, boolean preferNcm);
+
+    /**
      * Returns the active testtunN interface name (or null if none).
      */
     String getInterfaceName();
@@ -103,4 +121,20 @@ interface IShareUserService {
      * Destroys all test networks and stops the service.
      */
     void destroy();
+
+    /**
+     * Starts a specific tethering channel type (0=WIFI, 1=USB, 2=BLUETOOTH, 4=NCM).
+     */
+    boolean startTetheringType(int type);
+
+    /**
+     * Stops a specific tethering channel type (0=WIFI, 1=USB, 2=BLUETOOTH, 4=NCM).
+     */
+    void stopTetheringType(int type);
+
+    /**
+     * Returns bitmask of currently active tethering channels
+     * (1=WIFI, 2=USB, 4=BLUETOOTH).
+     */
+    int getActiveTetherMask();
 }

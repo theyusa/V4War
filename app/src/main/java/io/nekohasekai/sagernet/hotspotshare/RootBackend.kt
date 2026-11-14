@@ -14,6 +14,7 @@ import io.nekohasekai.sagernet.hotspotshare.root.ShellExecutor
 import io.nekohasekai.sagernet.hotspotshare.root.VpnRouteInfo
 import io.nekohasekai.sagernet.hotspotshare.shizuku.UpstreamInspector
 import io.nekohasekai.sagernet.utils.LanSharingNetwork
+import io.nekohasekai.sagernet.utils.TetherKind
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -132,7 +133,11 @@ class RootBackend(
         registerTetherReceiver()
         startWatcher()
 
-        HotspotShareLogger.info(TAG, "Root hotspot share ACTIVE (vpn=${vpn.tunInterface}/${vpn.table}, ifaces=$appliedIfaces)")
+        val kinds = appliedIfaces.map { LanSharingNetwork.getTetherKindForInterface(it) }.distinct()
+        HotspotShareLogger.info(
+            TAG,
+            "Root tether share ACTIVE (vpn=${vpn.tunInterface}/${vpn.table}, ifaces=$appliedIfaces, kinds=$kinds)",
+        )
         _state.value = ShareState.Active(ShareMethod.ROOT)
     }
 
@@ -162,18 +167,17 @@ class RootBackend(
     }
 
     private suspend fun resolveTetheredInterfaces(): List<String> {
-        val fromPlatform = getActiveTetheredInterfaces(context)
-        if (fromPlatform.isNotEmpty()) return fromPlatform
+        val merged = linkedSetOf<String>()
+        merged += getActiveTetheredInterfaces(context)
 
-        // Query dumpsys tethering from root shell (catches USB rndis / OEM ap interfaces)
+        // Query dumpsys tethering from root shell (catches USB rndis/ncm, Bluetooth bt-pan/bnep, and OEM ap interfaces)
         val dumpsysOut = runCatching {
             shellExecutor.exec("dumpsys tethering 2>/dev/null").out.joinToString("\n")
         }.getOrDefault("")
         if (dumpsysOut.isNotBlank()) {
-            val parsed = UpstreamInspector.parseTetheredDownstreams(dumpsysOut)
-            if (parsed.isNotEmpty()) return parsed
+            merged += UpstreamInspector.parseTetheredDownstreams(dumpsysOut)
         }
-        return emptyList()
+        return merged.toList()
     }
 
     private fun tryAutoStartHotspot(): Boolean {
@@ -217,14 +221,22 @@ class RootBackend(
                 }
                 vpnMissingStrikes = 0
 
-                // Self-healing: if Android Netd flushed FORWARD or changed VPN table after cellular/Wi-Fi handoff
-                val ifaces = appliedIfaces
-                if (ifaces.isNotEmpty()) {
+                // Self-healing: if Android Netd flushed FORWARD, changed VPN table, or a USB/BT/Wi-Fi
+                // tether interface was added/removed while sharing is active, re-apply RootRules.
+                val liveIfaces = resolveTetheredInterfaces().toSet()
+                val targetIfaces = if (liveIfaces.isNotEmpty()) liveIfaces else appliedIfaces
+                if (targetIfaces.isNotEmpty()) {
+                    val ifacesChanged = liveIfaces.isNotEmpty() && liveIfaces != appliedIfaces
                     val checkChain = shellExecutor.exec("iptables -C FORWARD -j ${RootRules.CHAIN_FORWARD} 2>/dev/null")
-                    if (!checkChain.isSuccess || currentVpn != activeVpn) {
-                        val subnets = RootRules.parseHotspotSubnets(routeRes.out, ifaces)
-                        shellExecutor.exec(RootRules.buildSetupCommands(currentVpn, ifaces, subnets))
-                        activeVpn = currentVpn
+                    if (ifacesChanged || !checkChain.isSuccess || currentVpn != activeVpn) {
+                        if (ifacesChanged) {
+                            HotspotShareLogger.info(TAG, "Root tethered interfaces updated: $appliedIfaces -> $targetIfaces")
+                        }
+                        val subnets = RootRules.parseHotspotSubnets(routeRes.out, targetIfaces)
+                        if (shellExecutor.exec(RootRules.buildSetupCommands(currentVpn, targetIfaces, subnets)).isSuccess) {
+                            appliedIfaces = targetIfaces
+                            activeVpn = currentVpn
+                        }
                     }
                 }
             }
@@ -303,23 +315,47 @@ class RootBackend(
     }
 
     private fun stopHotspot() {
-        val apkPath = runCatching { context.applicationInfo?.sourceDir }.getOrNull()
-        if (!apkPath.isNullOrBlank()) {
+        val activeKinds = appliedIfaces.map { LanSharingNetwork.getTetherKindForInterface(it) }.toSet()
+        val stopWifi = activeKinds.isEmpty() || TetherKind.WIFI in activeKinds
+        val stopUsb = TetherKind.USB in activeKinds
+        val stopBt = TetherKind.BLUETOOTH in activeKinds
+
+        if (stopWifi) {
+            val apkPath = runCatching { context.applicationInfo?.sourceDir }.getOrNull()
+            if (!apkPath.isNullOrBlank()) {
+                runCatching {
+                    shellExecutor.exec(
+                        "CLASSPATH=\"$apkPath\" /system/bin/app_process /system/bin ${RootTetherHelper::class.java.name} stop"
+                    )
+                }
+            }
             runCatching {
-                shellExecutor.exec(
-                    "CLASSPATH=\"$apkPath\" /system/bin/app_process /system/bin ${RootTetherHelper::class.java.name} stop"
-                )
+                shellExecutor.exec("cmd wifi stop-softap 2>/dev/null || svc wifi disable-hotspot 2>/dev/null || true")
             }
         }
-        runCatching {
-            shellExecutor.exec("cmd wifi stop-softap 2>/dev/null || svc wifi disable-hotspot 2>/dev/null || true")
+        if (stopUsb) {
+            runCatching {
+                shellExecutor.exec("cmd connectivity stop-tethering usb 2>/dev/null || cmd tethering stop-tethering usb 2>/dev/null || true")
+            }
+        }
+        if (stopBt) {
+            runCatching {
+                shellExecutor.exec("cmd connectivity stop-tethering bluetooth 2>/dev/null || cmd tethering stop-tethering bluetooth 2>/dev/null || true")
+            }
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             runCatching {
                 val tm = context.getSystemService("tethering")
                 if (tm != null) {
                     val method = tm.javaClass.getMethod("stopTethering", Int::class.javaPrimitiveType)
-                    method.invoke(tm, 0)
+                    if (stopWifi) runCatching { method.invoke(tm, 0) }
+                    if (stopUsb) {
+                        runCatching { method.invoke(tm, 1) }
+                        if (appliedIfaces.any { it.lowercase().startsWith("ncm") }) {
+                            runCatching { method.invoke(tm, 4) }
+                        }
+                    }
+                    if (stopBt) runCatching { method.invoke(tm, 2) }
                 }
             }
         }
@@ -334,13 +370,28 @@ class RootBackend(
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(c: Context?, intent: Intent?) {
                 if (intent?.action != "android.net.conn.TETHER_STATE_CHANGED") return
-                val activeList = intent.getStringArrayListExtra("tetherArray")
-                    ?: intent.getStringArrayListExtra("activeArray")
-                    ?: emptyList()
+                val activeList = (intent.getStringArrayListExtra("tetherArray").orEmpty() +
+                    intent.getStringArrayListExtra("activeArray").orEmpty()).distinct()
 
                 if (activeList.isNotEmpty()) {
                     tetherDebounceJob?.cancel()
                     tetherDebounceJob = null
+                    if (_state.value is ShareState.Active) {
+                        scope.launch {
+                            val currentVpn = activeVpn ?: return@launch
+                            val liveIfaces = resolveTetheredInterfaces().toSet()
+                            if (liveIfaces.isNotEmpty() && liveIfaces != appliedIfaces) {
+                                HotspotShareLogger.info(TAG, "TETHER_STATE_CHANGED updated Root interfaces: $appliedIfaces -> $liveIfaces")
+                                val routeRes = shellExecutor.exec("ip route show table all")
+                                val vpn = RootRules.parseVpnRoute(routeRes.out) ?: currentVpn
+                                val subnets = RootRules.parseHotspotSubnets(routeRes.out, liveIfaces)
+                                if (shellExecutor.exec(RootRules.buildSetupCommands(vpn, liveIfaces, subnets)).isSuccess) {
+                                    appliedIfaces = liveIfaces
+                                    activeVpn = vpn
+                                }
+                            }
+                        }
+                    }
                     return
                 }
 
@@ -464,9 +515,10 @@ class RootBackend(
             if (tethered.isEmpty()) {
                 runCatching {
                     val ifaces = NetworkInterface.getNetworkInterfaces()?.toList() ?: emptyList()
-                    val candidateRegex = Regex("""^(?:ap\d+|wlan\d+|swlan\d+|softap\d*|rndis\d+|usb\d+|ncm\d+|bt-pan\d*)""")
+                    val candidateRegex = Regex("""^(?:ap\d+|wlan[1-9]\d*|swlan\d+|softap\d*|rndis\d+|usb\d+|ncm\d+|bt-pan\d*|bnep\d*)""")
                     for (nif in ifaces) {
-                        if (nif.isUp && candidateRegex.containsMatchIn(nif.name)) {
+                        val isUp = runCatching { nif.isUp }.getOrDefault(false)
+                        if (isUp && (candidateRegex.containsMatchIn(nif.name) || LanSharingNetwork.isHotspotInterfaceName(nif.name))) {
                             val hasTetherIp = nif.inetAddresses.toList().any { addr ->
                                 val ip = addr.hostAddress ?: ""
                                 LanSharingNetwork.isPrivateIpv4(ip)

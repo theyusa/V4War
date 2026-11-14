@@ -20,10 +20,10 @@ class ShizukuWatchdogTest {
         assertTrue(cmd.contains("echo 1 > \"$flagPath\""))
         // Idempotent PID check via kill -0
         assertTrue(cmd.contains("kill -0 \"\$OLD_PID\""))
-        // Detached setsid loop checking every 4 seconds
+        // Detached setsid loop checking every 2 seconds
         assertTrue(cmd.contains("setsid sh -c"))
         assertTrue(cmd.contains("while [ -f \"$flagPath\" ]; do"))
-        assertTrue(cmd.contains("sleep 4"))
+        assertTrue(cmd.contains("sleep 2"))
         // Checks both shizuku_plus_server and shizuku_server
         assertTrue(cmd.contains("pidof shizuku_plus_server"))
         assertTrue(cmd.contains("pidof shizuku_server"))

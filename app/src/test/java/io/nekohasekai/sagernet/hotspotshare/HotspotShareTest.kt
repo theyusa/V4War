@@ -533,3 +533,70 @@ class HotspotShareControllerTest {
         assertEquals(1, published.count { it == ShareState.Stopped(ShareFailure.VPN_LOST) })
     }
 }
+
+class HotspotShareStateReconcileTest {
+
+    @Test
+    fun deadServiceWithPersistedActiveOrStartingIsStale() {
+        assertTrue(
+            HotspotShareStateStore.isStalePersistedState(
+                snapshot = ShareState.Active(ShareMethod.SHIZUKU),
+                persistedEnabled = true,
+                serviceAlive = false,
+            ),
+        )
+        assertTrue(
+            HotspotShareStateStore.isStalePersistedState(
+                snapshot = ShareState.Starting,
+                persistedEnabled = false,
+                serviceAlive = false,
+            ),
+        )
+        assertTrue(
+            HotspotShareStateStore.isStalePersistedState(
+                snapshot = ShareState.Stopped(ShareFailure.VPN_LOST),
+                persistedEnabled = true,
+                serviceAlive = false,
+            ),
+        )
+        assertTrue(
+            HotspotShareStateStore.isStalePersistedState(
+                snapshot = ShareState.Off,
+                persistedEnabled = true,
+                serviceAlive = false,
+            ),
+        )
+    }
+
+    @Test
+    fun liveServiceOrCleanStoppedErrorStatesAreNotStale() {
+        assertFalse(
+            HotspotShareStateStore.isStalePersistedState(
+                snapshot = ShareState.Active(ShareMethod.SHIZUKU),
+                persistedEnabled = true,
+                serviceAlive = true,
+            ),
+        )
+        assertFalse(
+            HotspotShareStateStore.isStalePersistedState(
+                snapshot = ShareState.Error(ShareFailure.BACKEND_FAILED, "detail"),
+                persistedEnabled = false,
+                serviceAlive = false,
+            ),
+        )
+        assertFalse(
+            HotspotShareStateStore.isStalePersistedState(
+                snapshot = ShareState.Stopped(ShareFailure.TETHER_LOST),
+                persistedEnabled = false,
+                serviceAlive = false,
+            ),
+        )
+        assertFalse(
+            HotspotShareStateStore.isStalePersistedState(
+                snapshot = ShareState.Off,
+                persistedEnabled = false,
+                serviceAlive = false,
+            ),
+        )
+    }
+}
