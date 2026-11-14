@@ -29,7 +29,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import moe.matsuri.nb4a.ui.EditConfigPreference
-import moe.matsuri.nb4a.ui.MTUPreference
 import moe.matsuri.nb4a.ui.SimpleMenuPreference
 import kotlin.math.abs
 
@@ -162,11 +161,14 @@ class TunSettingsFragment : SettingsScreenFragment(R.xml.settings_tun) {
             SettingsRegistry.VPN_MTU.key, SettingsRegistry.VPN_IPV6.key,
             SettingsRegistry.ENABLE_TUN_ROUTING.key,
         )
-        val mtu = pref<MTUPreference>(SettingsRegistry.VPN_MTU.key)
+        val mtu = pref<EditTextPreference>(SettingsRegistry.VPN_MTU.key)
         val vpnIpv6 = pref<SwitchPreference>(SettingsRegistry.VPN_IPV6.key)
+        // A plain numeric field: a typed value outside MIN_MTU..MAX_MTU is refused before it is stored.
+        mtu.setOnBindEditTextListener(EditTextPreferenceModifiers.Number)
+        checkInt(mtu.key, R.string.invalid_number) { it in MIN_MTU..MAX_MTU }
         validation.bind(mtu.key, Validation.Rules.int(MIN_MTU.toLong(), MAX_MTU.toLong(), Empty.Required)).gate()
         validation.addRule(listOf(mtu.key, vpnIpv6.key), Severity.Warning, mtu.title?.toString()) {
-            val value = Validation.toInt(mtu.value.orEmpty())
+            val value = Validation.toInt(mtu.text.orEmpty())
             if (!vpnIpv6.isChecked || value == null || value >= MIN_IPV6_MTU || value < MIN_MTU) ""
             else vtr(R.string.validation_mtu_ipv6, MIN_IPV6_MTU.toString())
         }

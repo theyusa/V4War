@@ -10,6 +10,10 @@ import io.nekohasekai.sagernet.ktx.USER_AGENT
 import io.nekohasekai.sagernet.ktx.appRequestsViaProxy
 import io.nekohasekai.sagernet.ktx.newHttpClient
 import io.nekohasekai.sagernet.ktx.readableMessage
+import io.nekohasekai.sagernet.utils.toolbox.executeCancellable
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -77,15 +81,19 @@ object UpdateChecker {
         newHttpClient(viaProxy = appRequestsViaProxy(), allowInsecure = false, timeoutSeconds = timeoutSeconds)
 
     /** [withNotes]: also fetch the release notes, which only the updater UI shows. */
-    fun check(context: Context, withNotes: Boolean = false): Result = try {
-        find(context, withNotes).also { result ->
-            if (result is Result.UpToDate || result is Result.Available) {
-                DataStore.updateLastCheckTime = System.currentTimeMillis()
+    suspend fun check(context: Context, withNotes: Boolean = false): Result = withContext(Dispatchers.IO) {
+        try {
+            find(context, withNotes).also { result ->
+                if (result is Result.UpToDate || result is Result.Available) {
+                    DataStore.updateLastCheckTime = System.currentTimeMillis()
+                }
             }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logs.w("Update check failed", e)
+            Result.Failed(e.readableMessage)
         }
-    } catch (e: Exception) {
-        Logs.w("Update check failed", e)
-        Result.Failed(e.readableMessage)
     }
 
     private fun Request.Builder.applyGithubAuth(): Request.Builder {
@@ -96,7 +104,7 @@ object UpdateChecker {
         return this
     }
 
-    private fun find(context: Context, withNotes: Boolean): Result {
+    private suspend fun find(context: Context, withNotes: Boolean): Result {
         val client = httpClient()
         val allowBeta = DataStore.allowBetaUpdate
         val installed = Semver.parse(BuildConfig.VERSION_NAME)
@@ -107,12 +115,13 @@ object UpdateChecker {
             .sortedWith { a, b -> Semver.compare(b.second, a.second) }
             .map { it.first }
         if (candidates.isEmpty()) return Result.UpToDate
-        fun notes(release: Release) = if (withNotes) notesOf(client, release) else ""
 
         var best: Pair<Release, JSONObject>? = null
         for (release in candidates.filter { r -> r.assets.any { it.name == MANIFEST } }.take(MAX_MANIFESTS)) {
             val manifest = try {
                 fetchManifest(client, release.assets.first { it.name == MANIFEST })
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logs.w("Update manifest of ${release.tag}: ${e.readableMessage}")
                 continue
@@ -122,14 +131,18 @@ object UpdateChecker {
             if (code <= BuildConfig.VERSION_CODE || manifest.optInt("minSdk", 1) > Build.VERSION.SDK_INT) continue
             if (best == null || code > best.second.optLong("versionCode")) best = release to manifest
         }
-        best?.let { (release, manifest) -> return Result.Available(offerOf(context, release, manifest, notes(release))) }
+        best?.let { (release, manifest) ->
+            val notes = if (withNotes) notesOf(client, release) else ""
+            return Result.Available(offerOf(context, release, manifest, notes))
+        }
 
         // Releases without a manifest predate the in-app updater: open them in the browser.
         val legacy = candidates.firstOrNull { r -> r.assets.none { it.name == MANIFEST } } ?: return Result.UpToDate
+        val notes = if (withNotes) notesOf(client, legacy) else ""
         return Result.Available(
             Offer(
                 legacy, legacy.tag.removePrefix("v"), 0, null, null, null,
-                context.getString(R.string.update_reason_no_manifest), notes(legacy)
+                context.getString(R.string.update_reason_no_manifest), notes
             )
         )
     }
@@ -159,9 +172,11 @@ object UpdateChecker {
     }
 
     /** The CHANGELOG.md sections up to the release, read at its tag; tags that predate the file keep their body. */
-    private fun notesOf(client: OkHttpClient, release: Release): String {
+    private suspend fun notesOf(client: OkHttpClient, release: Release): String {
         val notes = try {
             ReleaseNotes.select(fetchChangelog(client, release.tag), BuildConfig.VERSION_NAME, release.tag)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Logs.w("Changelog of ${release.tag}: ${e.readableMessage}")
             ""
@@ -169,17 +184,17 @@ object UpdateChecker {
         return notes.ifEmpty { release.body.trim() }
     }
 
-    private fun fetchChangelog(client: OkHttpClient, tag: String): String {
+    private suspend fun fetchChangelog(client: OkHttpClient, tag: String): String {
         val url = CHANGELOG_API.toHttpUrl().newBuilder().addQueryParameter("ref", tag).build()
         val request = Request.Builder().url(url)
             .header("Accept", "application/vnd.github.raw+json")
             .header("User-Agent", USER_AGENT)
             .applyGithubAuth()
             .build()
-        client.newCall(request).execute().use { response ->
+        return client.newCall(request).executeCancellable { response ->
             if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
             val stream = response.body?.byteStream() ?: throw IOException("empty response")
-            return String(readLimited(stream, MAX_CHANGELOG_BYTES), Charsets.UTF_8)
+            String(readLimited(stream, MAX_CHANGELOG_BYTES), Charsets.UTF_8)
         }
     }
 
@@ -194,7 +209,7 @@ object UpdateChecker {
         }
     }
 
-    private fun fetchReleases(context: Context, client: OkHttpClient): List<Release> {
+    private suspend fun fetchReleases(context: Context, client: OkHttpClient): List<Release> {
         val cache = File(context.cacheDir, "update/releases.json")
         val cached = runCatching { JSONObject(cache.readText()) }.getOrNull()
         val request = Request.Builder().url(RELEASES_API)
@@ -203,7 +218,7 @@ object UpdateChecker {
             .applyGithubAuth()
             .apply { cached?.optString("etag")?.takeIf { it.isNotEmpty() }?.let { header("If-None-Match", it) } }
             .build()
-        val body = client.newCall(request).execute().use { response ->
+        val body = client.newCall(request).executeCancellable { response ->
             when {
                 response.code == 304 && cached != null -> cached.getString("body")
                 response.isSuccessful -> response.body?.string().orEmpty().also { body ->
@@ -249,12 +264,12 @@ object UpdateChecker {
         return releases
     }
 
-    private fun fetchManifest(client: OkHttpClient, asset: Asset): JSONObject {
+    private suspend fun fetchManifest(client: OkHttpClient, asset: Asset): JSONObject {
         val request = Request.Builder().url(asset.url).header("User-Agent", USER_AGENT).build()
-        client.newCall(request).execute().use { response ->
+        return client.newCall(request).executeCancellable { response ->
             if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
             val stream = response.body?.byteStream() ?: throw IOException("empty response")
-            return JSONObject(String(readLimited(stream, MAX_MANIFEST_BYTES)))
+            JSONObject(String(readLimited(stream, MAX_MANIFEST_BYTES), Charsets.UTF_8))
         }
     }
 

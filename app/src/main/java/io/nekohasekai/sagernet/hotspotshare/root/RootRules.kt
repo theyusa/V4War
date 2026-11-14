@@ -152,6 +152,7 @@ object RootRules {
         // 6. Clean prior rules at our priorities (idempotent)
         cmds.add("while ip rule del pref $PRIORITY_LOCAL_SUBNET 2>/dev/null; do :; done")
         cmds.add("while ip rule del pref $PRIORITY_VPN_ROUTING 2>/dev/null; do :; done")
+        cmds.add("while ip -6 rule del pref $PRIORITY_VPN_ROUTING 2>/dev/null; do :; done")
 
         // 7. Add local subnet rules so client-to-client and client-to-gateway traffic stays in main table
         for (subnet in subnets) {
@@ -186,18 +187,24 @@ object RootRules {
             "ip6tables -X $CHAIN_FORWARD_V6 2>/dev/null || true",
             "while ip rule del pref $PRIORITY_LOCAL_SUBNET 2>/dev/null; do :; done",
             "while ip rule del pref $PRIORITY_VPN_ROUTING 2>/dev/null; do :; done",
+            "while ip -6 rule del pref $PRIORITY_VPN_ROUTING 2>/dev/null; do :; done",
         )
     }
 
     /**
      * Fail-closed defense: when VPN drops, replaces forwarding rules with unconditional DROP
-     * on hotspot interfaces to prevent carrier data leaks.
+     * and kernel blackhole policy rules on hotspot interfaces to prevent carrier data leaks.
      */
     fun buildBlockTrafficCommands(hotspotIfaces: Collection<String>): List<String> {
         val cmds = mutableListOf<String>()
 
-        // 1. Remove policy routing so packets don't get routed to dead VPN or mobile data
+        // 1. Remove prior VPN policy routing and install kernel blackhole rules for IPv4 & IPv6
         cmds.add("while ip rule del pref $PRIORITY_VPN_ROUTING 2>/dev/null; do :; done")
+        cmds.add("while ip -6 rule del pref $PRIORITY_VPN_ROUTING 2>/dev/null; do :; done")
+        for (iface in hotspotIfaces) {
+            cmds.add("ip rule add from all iif $iface blackhole pref $PRIORITY_VPN_ROUTING")
+            cmds.add("ip -6 rule add from all iif $iface blackhole pref $PRIORITY_VPN_ROUTING 2>/dev/null || true")
+        }
 
         // 2. Clear DNS redirect & NAT table
         cmds.add("while iptables -t nat -D PREROUTING -j $CHAIN_DNS 2>/dev/null; do :; done")

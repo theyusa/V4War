@@ -83,4 +83,18 @@ class UpstreamInspectorTest {
         assertNull(tolerance.judge(UpstreamReading.HEALTHY, listOf("testtun0")))
         assertNull(tolerance.judge(UpstreamReading.DRIFTED, listOf("wlan0")))
     }
+
+    @Test
+    fun upstreamToleranceIgnoresAbsentWhenDownstreamAwaiting() {
+        val tolerance = UpstreamTolerance("testtun0")
+        repeat(UpstreamTolerance.ABSENT_STRIKES + 5) {
+            assertNull(
+                tolerance.judge(
+                    UpstreamReading.ABSENT,
+                    emptyList(),
+                    isDownstreamAwaiting = true,
+                )
+            )
+        }
+    }
 }

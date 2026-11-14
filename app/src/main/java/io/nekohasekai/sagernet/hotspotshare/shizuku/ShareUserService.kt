@@ -12,12 +12,15 @@ import android.os.Binder
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.Parcel
 import android.os.ParcelFileDescriptor
 import android.util.Log
+import io.nekohasekai.sagernet.hotspotshare.HotspotShareLogger
 import org.json.JSONObject
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
+import java.net.Inet6Address
 import java.net.InetAddress
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executor
@@ -28,15 +31,15 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * Shizuku UserService implementation executing in a dedicated shell process (UID 2000).
  * Provides privileged network management (TestNetworkManager, TetheringManager) with
- * full lifecycle protections adapted from carlelieser/shizzi:
- * - Dual-stack TUN (192.0.2.2/24 + 2001:db8::2/64) avoiding sing-box FakeIP collision
- * - setupTestNetwork with isUp = true and IPv4 + IPv6 DNS servers via addDnsServer
+ * full lifecycle protections:
+ * - IPv4-only TUN (192.0.2.2/24) avoiding sing-box FakeIP 198.18.0.0/15 collision & IPv6 blackholes
+ * - setupTestNetwork with isUp = true, IPv4 routes, and IPv4 DNS servers via addDnsServer
  * - Network availability wait + ConnectivityManager.requestNetwork(TRANSPORT_TEST) keep-alive
- * - Stale preferTestNetworks(false) -> (true) reset
- * - Existing hotspot stop + settle before start so upstream selection re-runs
+ * - Stale preferTestNetworks(false) -> (true) transition
+ * - Preserves already-active Wi-Fi hotspot without bouncing SoftAp; starts it only if closed
  * - Multi-fallback startTethering (exempt=true -> exempt=false -> WifiManager.startTetheredHotspot)
  * - Upstream verification & drift inspection via dumpsys tethering
- * - Ordered teardown with retry verification, teardownTestNetwork(network), and JVM shutdown hook
+ * - Ordered cleanup on disconnect/error that keeps hotspot alive; explicit stopTethering() only
  */
 class ShareUserService : IShareUserService.Stub {
 
@@ -44,14 +47,14 @@ class ShareUserService : IShareUserService.Stub {
 
     @Suppress("unused")
     constructor() {
+        HotspotShareLogger.markIsolatedServiceProcess()
         this.baseContext = null
-        proactiveInitCleanup()
     }
 
     @Suppress("unused")
     constructor(context: Context) {
+        HotspotShareLogger.markIsolatedServiceProcess()
         this.baseContext = context
-        proactiveInitCleanup()
     }
 
     private val context: Context by lazy {
@@ -69,21 +72,16 @@ class ShareUserService : IShareUserService.Stub {
     private var connectivityManager: ConnectivityManager? = null
 
     private var testTunInterface: Any? = null
+    @Volatile
     private var activeInterfaceName: String? = null
     private var tunPfd: ParcelFileDescriptor? = null
     private var testNetworkBinder: IBinder? = null
     private var acquiredNetwork: Network? = null
     private var keepAliveCallback: ConnectivityManager.NetworkCallback? = null
     private var shutdownHook: Thread? = null
+    private val destroying = AtomicBoolean(false)
 
     private val inspector = UpstreamInspector()
-
-    private fun proactiveInitCleanup() {
-        try {
-            cleanupDirtyState()
-        } catch (_: Throwable) {
-        }
-    }
 
     private fun exemptHiddenApis() {
         try {
@@ -162,28 +160,44 @@ class ShareUserService : IShareUserService.Stub {
 
     @Synchronized
     override fun createTestNetwork(dnsServers: List<String>?): ParcelFileDescriptor {
+        ensureWatchdogAsync()
         val ctx = context
         val tnm = testNetworkManager ?: throw IllegalStateException("TestNetworkManager is not ready")
         val cm = connectivityManager ?: (ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager)
+        HotspotShareLogger.info(TAG, "createTestNetwork requested (dns=${dnsServers?.joinToString(",")})")
 
-        // Build dual-stack LinkAddresses (RFC 5737 192.0.2.2/24 + RFC 3849 2001:db8::2/64)
-        // Avoids colliding with sing-box FakeIP 198.18.0.0/15 and enables IPv6 downstream provisioning
-        val addresses = listOf(
-            buildLinkAddress(InetAddress.getByName(TUN_IPV4_ADDRESS), TUN_IPV4_PREFIX),
-            buildLinkAddress(InetAddress.getByName(TUN_IPV6_ADDRESS), TUN_IPV6_PREFIX),
-        )
+        // Build dual-stack LinkAddresses (RFC 5737 192.0.2.2/24 + non-FakeIP ULA fd00:2:0:2::2/64)
+        // avoiding sing-box FakeIP 198.18.0.0/15 & FakeDNS 2001:db8::/32 collisions.
+        val ipv4Addr = buildLinkAddress(InetAddress.getByName(TUN_IPV4_ADDRESS), TUN_IPV4_PREFIX)
+        val dualStackAddresses = runCatching {
+            listOf(
+                ipv4Addr,
+                buildLinkAddress(InetAddress.getByName(TUN_IPV6_ADDRESS), TUN_IPV6_PREFIX),
+            )
+        }.getOrElse { listOf(ipv4Addr) }
 
-        val ifaceObj = invokeCreateTunInterface(tnm, addresses)
-            ?: throw IllegalStateException("createTunInterface returned null for $addresses")
+        var usedAddresses = dualStackAddresses
+        var ifaceObj = runCatching { invokeCreateTunInterface(tnm, dualStackAddresses) }.getOrNull()
+        if (ifaceObj == null && dualStackAddresses.size > 1) {
+            Log.w(TAG, "Dual-stack createTunInterface unavailable; falling back to IPv4-only")
+            HotspotShareLogger.warn(TAG, "Dual-stack createTunInterface unavailable; falling back to IPv4-only")
+            usedAddresses = listOf(ipv4Addr)
+            ifaceObj = invokeCreateTunInterface(tnm, usedAddresses)
+        }
+        val tunIface = ifaceObj ?: run {
+            HotspotShareLogger.error(TAG, "createTunInterface returned null for $usedAddresses")
+            throw IllegalStateException("createTunInterface returned null for $usedAddresses")
+        }
 
-        testTunInterface = ifaceObj
-        val ifaceName = ifaceObj.javaClass.getMethod("getInterfaceName").invoke(ifaceObj) as String
-        val pfd = ifaceObj.javaClass.getMethod("getFileDescriptor").invoke(ifaceObj) as ParcelFileDescriptor
+        val hasIpv6 = usedAddresses.any { it.address is Inet6Address }
+        testTunInterface = tunIface
+        val ifaceName = tunIface.javaClass.getMethod("getInterfaceName").invoke(tunIface) as String
+        val pfd = tunIface.javaClass.getMethod("getFileDescriptor").invoke(tunIface) as ParcelFileDescriptor
         activeInterfaceName = ifaceName
         tunPfd = pfd
 
-        // Build LinkProperties with interfaceName, linkAddresses, and IPv6 + IPv4 DNS servers
-        val dnsInetList = buildDnsList(dnsServers)
+        // Build LinkProperties with interfaceName, LinkAddresses, routes, and DNS servers
+        val dnsInetList = buildDnsList(dnsServers, includeIpv6 = hasIpv6)
         val lp = LinkProperties().apply {
             runCatching {
                 LinkProperties::class.java.getMethod("setInterfaceName", String::class.java)
@@ -191,8 +205,9 @@ class ShareUserService : IShareUserService.Stub {
             }
             runCatching {
                 LinkProperties::class.java.getMethod("setLinkAddresses", Collection::class.java)
-                    .invoke(this, addresses)
+                    .invoke(this, usedAddresses)
             }
+            addRoutes(this, ifaceName, includeIpv6 = hasIpv6)
             val addDnsMethod = runCatching {
                 LinkProperties::class.java.getMethod("addDnsServer", InetAddress::class.java)
             }.getOrNull()
@@ -208,6 +223,10 @@ class ShareUserService : IShareUserService.Stub {
 
         val binder = Binder()
         testNetworkBinder = binder
+
+        // Register TRANSPORT_TEST keep-alive BEFORE setupTestNetwork so ConnectivityService
+        // never lingers and tears down testtunN immediately after registration.
+        requestKeepAlive(cm)
 
         // CRITICAL FIX (from shizzi): 2nd argument to setupTestNetwork(LinkProperties, boolean, IBinder)
         // is `isUp = true`! Passing `false` marks the test network interface down.
@@ -230,14 +249,20 @@ class ShareUserService : IShareUserService.Stub {
             setupMethod.invoke(tnm, ifaceName, binder)
         }
 
-        // CRITICAL FIX (from shizzi): Await network registration in ConnectivityManager and
-        // hold a TRANSPORT_TEST NetworkRequest keep-alive callback so ConnectivityService
-        // does not linger and tear down testtunN after a few seconds!
         acquiredNetwork = awaitNetworkAvailability(cm, ifaceName, AVAILABILITY_TIMEOUT_MS)
-        requestKeepAlive(cm)
 
         Log.i(TAG, "Test network up: $ifaceName (network=$acquiredNetwork)")
+        HotspotShareLogger.info(TAG, "Test network up: $ifaceName (network=$acquiredNetwork, ipv6=$hasIpv6)")
         return pfd.dup()
+    }
+
+    private fun ensureWatchdogAsync() {
+        Thread {
+            runCatching { ShizukuWatchdog.ensureKeepAliveRunning() }
+        }.apply {
+            isDaemon = true
+            start()
+        }
     }
 
     private fun buildLinkAddress(address: InetAddress, prefixLength: Int): LinkAddress {
@@ -271,21 +296,50 @@ class ShareUserService : IShareUserService.Stub {
         }.getOrNull()
     }
 
-    private fun buildDnsList(dnsServers: List<String>?): List<InetAddress> {
+    private fun addRoutes(lp: LinkProperties, ifaceName: String, includeIpv6: Boolean) {
+        runCatching {
+            val ipPrefixClass = Class.forName("android.net.IpPrefix")
+            val ipPrefixCtor = ipPrefixClass.getDeclaredConstructor(
+                InetAddress::class.java,
+                Int::class.javaPrimitiveType,
+            ).apply { isAccessible = true }
+            val routeInfoClass = Class.forName("android.net.RouteInfo")
+            val routeCtor = routeInfoClass.getDeclaredConstructor(
+                ipPrefixClass,
+                InetAddress::class.java,
+                String::class.java,
+            ).apply { isAccessible = true }
+            val subnetPrefix = ipPrefixCtor.newInstance(InetAddress.getByName("192.0.2.0"), TUN_IPV4_PREFIX)
+            val defaultPrefix = ipPrefixCtor.newInstance(InetAddress.getByName("0.0.0.0"), 0)
+            lp.addRoute(routeCtor.newInstance(subnetPrefix, null, ifaceName) as android.net.RouteInfo)
+            lp.addRoute(routeCtor.newInstance(defaultPrefix, null, ifaceName) as android.net.RouteInfo)
+            if (includeIpv6) {
+                val subnetV6 = ipPrefixCtor.newInstance(InetAddress.getByName("fd00:2:0:2::"), TUN_IPV6_PREFIX)
+                val defaultV6 = ipPrefixCtor.newInstance(InetAddress.getByName("::"), 0)
+                lp.addRoute(routeCtor.newInstance(subnetV6, null, ifaceName) as android.net.RouteInfo)
+                lp.addRoute(routeCtor.newInstance(defaultV6, null, ifaceName) as android.net.RouteInfo)
+            }
+        }
+    }
+
+    private fun buildDnsList(dnsServers: List<String>?, includeIpv6: Boolean): List<InetAddress> {
         val result = mutableListOf<InetAddress>()
-        // Always include IPv6 DNS so Android tethering provisions IPv6 downstream (shizzi R2)
-        runCatching { result.add(InetAddress.getByName(DEFAULT_IPV6_DNS)) }
         if (!dnsServers.isNullOrEmpty()) {
             for (dns in dnsServers) {
                 runCatching {
                     val addr = InetAddress.getByName(dns)
-                    if (addr !in result) result.add(addr)
+                    val allowed = addr.address.size == 4 || (includeIpv6 && addr is Inet6Address)
+                    if (allowed && addr !in result) result.add(addr)
                 }
             }
         }
         if (result.none { it.address.size == 4 }) {
             runCatching { result.add(InetAddress.getByName("1.1.1.1")) }
             runCatching { result.add(InetAddress.getByName("8.8.8.8")) }
+        }
+        if (includeIpv6 && result.none { it is Inet6Address }) {
+            runCatching { result.add(InetAddress.getByName("2606:4700:4700::1111")) }
+            runCatching { result.add(InetAddress.getByName("2001:4860:4860::8888")) }
         }
         return result
     }
@@ -347,42 +401,92 @@ class ShareUserService : IShareUserService.Stub {
             runCatching { setPreferMethod.invoke(tm, false) }
         }
         setPreferMethod.invoke(tm, prefer)
+        HotspotShareLogger.info(TAG, "setPreferTestNetworks($prefer)")
     }
 
     @Synchronized
     override fun startTethering(): Boolean {
+        ensureWatchdogAsync()
         val ctx = context
         val tm = tetheringManager ?: throw IllegalStateException("TetheringManager is not ready")
 
-        // If Wi-Fi hotspot is already tethered, stop and wait for it to settle so
-        // TetheringManager re-runs upstream selection onto testtunN (from shizzi R4.4)
-        val existingDownstreams = runCatching { inspector.observeTethering().tetheredDownstreams }
-            .getOrDefault(emptyList())
-        if (existingDownstreams.isNotEmpty()) {
-            Log.i(TAG, "Stopping already-active downstream ($existingDownstreams) to re-run upstream selection")
-            stopTetheringInternal(tm)
-            Thread.sleep(STOP_SETTLE_MS)
-        }
-
-        // 1. Try TetheringManager.startTethering with setExemptFromEntitlementCheck(true)
-        if (startViaTetheringRequest(tm, isExempt = true)) {
+        // Preserve an already-open Wi-Fi hotspot by default; ShizukuBackend will only
+        // request restartWifiTethering() if upstream selection fails to switch onto testtunN.
+        if (isWifiHotspotActiveInternal(ctx, waitIfEnabling = true)) {
+            Log.i(TAG, "Wi-Fi hotspot is already active; attaching upstream without restarting SoftAp")
+            HotspotShareLogger.info(TAG, "Wi-Fi hotspot is already active; attaching upstream without restarting SoftAp")
             installShutdownHook()
             return true
         }
 
-        // 2. Fallback: TetheringManager.startTethering with setExemptFromEntitlementCheck(false)
-        if (startViaTetheringRequest(tm, isExempt = false)) {
+        if (startWifiTetheringWithFallback(tm, ctx)) {
+            HotspotShareLogger.info(TAG, "Wi-Fi hotspot started via startWifiTetheringWithFallback")
             installShutdownHook()
             return true
         }
-
-        // 3. Fallback: WifiManager.startTetheredHotspot(null) (reaches SoftAp via WifiServiceImpl)
-        if (startViaWifiManager(ctx)) {
-            installShutdownHook()
-            return true
-        }
-
+        HotspotShareLogger.error(TAG, "startTethering failed across all fallbacks")
         return false
+    }
+
+    @Synchronized
+    override fun restartWifiTethering(): Boolean {
+        val ctx = context
+        val tm = tetheringManager ?: throw IllegalStateException("TetheringManager is not ready")
+
+        Log.i(TAG, "Restarting Wi-Fi tethering downstream so upstream selection re-runs onto testtunN")
+        HotspotShareLogger.info(TAG, "Restarting Wi-Fi tethering downstream so upstream selection re-runs onto $activeInterfaceName")
+        runCatching {
+            tm.javaClass.getMethod("stopTethering", Int::class.javaPrimitiveType)
+                .invoke(tm, TETHERING_WIFI)
+        }.onFailure { t ->
+            Log.w(TAG, "TetheringManager.stopTethering(WIFI) failed during restart: ${t.message}")
+            HotspotShareLogger.warn(TAG, "stopTethering(WIFI) failed during restart: ${t.message}")
+        }
+
+        waitForHotspotStopped(ctx)
+
+        var restarted = startWifiTetheringWithFallback(tm, ctx)
+        if (!restarted) {
+            runCatching { Thread.sleep(RESTART_RETRY_DELAY_MS) }
+            restarted = startWifiTetheringWithFallback(tm, ctx) ||
+                isWifiHotspotActiveInternal(ctx, waitIfEnabling = true)
+        }
+        if (restarted) {
+            HotspotShareLogger.info(TAG, "restartWifiTethering succeeded")
+            installShutdownHook()
+        } else {
+            HotspotShareLogger.error(TAG, "restartWifiTethering failed")
+        }
+        return restarted
+    }
+
+    override fun isWifiHotspotActive(): Boolean {
+        val ctx = runCatching { context }.getOrNull() ?: return false
+        return isWifiHotspotActiveInternal(ctx, waitIfEnabling = false)
+    }
+
+    private fun startWifiTetheringWithFallback(tm: Any, ctx: Context): Boolean {
+        if (startViaTetheringRequest(tm, isExempt = true)) return true
+        if (startViaTetheringRequest(tm, isExempt = false)) return true
+        return startViaWifiManager(ctx)
+    }
+
+    private fun waitForHotspotStopped(ctx: Context) {
+        val deadline = System.currentTimeMillis() + STOP_SETTLE_MS
+        while (System.currentTimeMillis() < deadline) {
+            val apState = queryWifiApState(ctx)
+            val apBusyOrOn = apState == WIFI_AP_STATE_ENABLED ||
+                apState == WIFI_AP_STATE_ENABLING ||
+                apState == WIFI_AP_STATE_DISABLING ||
+                isWifiApEnabledReflective(ctx)
+            val hasWifiDownstream = runCatching {
+                inspector.observeTethering().tetheredDownstreams.any { isWifiDownstreamName(it) }
+            }.getOrDefault(false)
+            if (!apBusyOrOn && !hasWifiDownstream) {
+                return
+            }
+            runCatching { Thread.sleep(POLL_INTERVAL_MS) }
+        }
     }
 
     private fun startViaTetheringRequest(tm: Any, isExempt: Boolean): Boolean {
@@ -448,6 +552,53 @@ class ShareUserService : IShareUserService.Stub {
         }
     }
 
+    private fun isWifiHotspotActiveInternal(
+        ctx: Context,
+        waitIfEnabling: Boolean,
+        downstreamsOverride: List<String>? = null,
+    ): Boolean {
+        val wifiState = queryWifiApState(ctx)
+        if (wifiState == WIFI_AP_STATE_ENABLING) {
+            if (!waitIfEnabling) return true
+            val deadline = System.currentTimeMillis() + STOP_SETTLE_MS
+            while (System.currentTimeMillis() < deadline) {
+                Thread.sleep(POLL_INTERVAL_MS)
+                val next = queryWifiApState(ctx)
+                if (next == WIFI_AP_STATE_ENABLED) return true
+                if (next != WIFI_AP_STATE_ENABLING) break
+            }
+        }
+        if (wifiState == WIFI_AP_STATE_ENABLED || isWifiApEnabledReflective(ctx)) {
+            return true
+        }
+        val downstreams = downstreamsOverride
+            ?: runCatching { inspector.observeTethering().tetheredDownstreams }.getOrDefault(emptyList())
+        return downstreams.any { isWifiDownstreamName(it) }
+    }
+
+    private fun queryWifiApState(ctx: Context): Int {
+        return runCatching {
+            val wm = ctx.getSystemService(Context.WIFI_SERVICE) ?: return -1
+            wm.javaClass.getMethod("getWifiApState").invoke(wm) as? Int ?: -1
+        }.getOrDefault(-1)
+    }
+
+    private fun isWifiApEnabledReflective(ctx: Context): Boolean {
+        return runCatching {
+            val wm = ctx.getSystemService(Context.WIFI_SERVICE) ?: return false
+            wm.javaClass.getMethod("isWifiApEnabled").invoke(wm) as? Boolean ?: false
+        }.getOrDefault(false)
+    }
+
+    private fun isWifiDownstreamName(iface: String): Boolean {
+        val lower = iface.lowercase()
+        return lower.startsWith("ap") ||
+            lower.startsWith("swlan") ||
+            lower.startsWith("softap") ||
+            lower.startsWith("wifi") ||
+            lower.startsWith("wlan")
+    }
+
     private fun startViaWifiManager(ctx: Context): Boolean {
         return runCatching {
             val wifiManager = ctx.getSystemService(Context.WIFI_SERVICE) ?: return false
@@ -471,28 +622,34 @@ class ShareUserService : IShareUserService.Stub {
             val live = obs?.liveInterfaceNames(expected).orEmpty()
             if (live.isNotEmpty() && live.all { it == expected }) {
                 Log.i(TAG, "Upstream verified: $expected is sole upstream")
+                HotspotShareLogger.info(TAG, "Upstream verified: $expected is sole upstream")
                 return true
             }
             Thread.sleep(UPSTREAM_POLL_MS)
         }
         val finalObs = runCatching { inspector.observeTethering().liveInterfaceNames(expected) }.getOrDefault(emptyList())
         Log.w(TAG, "verifyUpstream timed out after ${timeoutMs}ms: expected=$expected, observed=$finalObs")
+        HotspotShareLogger.warn(TAG, "verifyUpstream timed out after ${timeoutMs}ms: expected=$expected, observed=$finalObs")
         return false
     }
 
-    @Synchronized
     override fun checkUpstreamHealth(): String {
         val expected = activeInterfaceName ?: return "ABSENT"
         val obs = runCatching { inspector.observeTethering() }.getOrElse {
+            HotspotShareLogger.warn(TAG, "checkUpstreamHealth observeTethering failed: ${it.message}")
             return "TIMED_OUT"
         }
-        val live = obs.liveInterfaceNames(expected)
-        return when (classifyUpstream(live, expected, obs.didTimeout)) {
-            UpstreamReading.HEALTHY -> "HEALTHY"
-            UpstreamReading.ABSENT -> "ABSENT"
-            UpstreamReading.TIMED_OUT -> "TIMED_OUT"
-            UpstreamReading.DRIFTED -> "DRIFTED:${live.joinToString(",")}"
+        val health = UpstreamInspector.evaluateUpstreamHealth(obs, expected) {
+            isWifiHotspotActiveInternal(
+                context,
+                waitIfEnabling = false,
+                downstreamsOverride = obs.tetheredDownstreams,
+            )
         }
+        if (health != "HEALTHY") {
+            HotspotShareLogger.warn(TAG, "checkUpstreamHealth($expected) = $health")
+        }
+        return health
     }
 
     override fun getConnectedClientCount(): Int {
@@ -518,25 +675,66 @@ class ShareUserService : IShareUserService.Stub {
         }.toString()
     }
 
+    override fun getDiagnosticLogs(): List<String> {
+        HotspotShareLogger.markIsolatedServiceProcess()
+        return runCatching {
+            val merged = HotspotShareLogger.readMergedLogs()
+            if (merged.isBlank()) {
+                HotspotShareLogger.getInMemoryLines()
+            } else {
+                merged.lines().filter { it.isNotBlank() }
+            }
+        }.getOrElse {
+            HotspotShareLogger.getInMemoryLines()
+        }
+    }
+
+    override fun clearDiagnosticLogs() {
+        HotspotShareLogger.markIsolatedServiceProcess()
+        runCatching { HotspotShareLogger.clearAll() }
+    }
+
+    override fun setDiagnosticLoggingEnabled(enabled: Boolean) {
+        HotspotShareLogger.markIsolatedServiceProcess()
+        val wasEnabled = HotspotShareLogger.isLoggingEnabled()
+        runCatching { HotspotShareLogger.setLoggingEnabled(enabled) }
+        if (enabled && !wasEnabled) {
+            HotspotShareLogger.info(
+                TAG,
+                "Diagnostic logging enabled in ShareUserService (uid=${android.os.Process.myUid()}, iface=${activeInterfaceName ?: "none"})",
+            )
+        }
+    }
+
     @Synchronized
     override fun stopTethering() {
-        val tm = tetheringManager ?: return
+        HotspotShareLogger.info(TAG, "stopTethering invoked")
+        val tm = tetheringManager ?: run {
+            runCatching { context }
+            tetheringManager ?: return
+        }
         stopTetheringWithRetry(tm)
     }
 
     private fun stopTetheringInternal(tm: Any): Boolean {
-        return runCatching {
+        val tmStopped = runCatching {
             val stopMethod = tm.javaClass.getMethod("stopTethering", Int::class.javaPrimitiveType)
             stopMethod.invoke(tm, TETHERING_WIFI)
             true
         }.getOrDefault(false)
+        val wmStopped = runCatching {
+            val wm = context.getSystemService(Context.WIFI_SERVICE) ?: return@runCatching false
+            wm.javaClass.getMethod("stopSoftAp").invoke(wm) as? Boolean ?: true
+        }.getOrDefault(false)
+        return tmStopped || wmStopped
     }
 
     private fun stopTetheringWithRetry(tm: Any) {
         for (attempt in 1..DOWNSTREAM_STOP_ATTEMPTS) {
             stopTetheringInternal(tm)
             val obs = runCatching { inspector.observeTethering() }.getOrNull()
-            if (obs == null || obs.tetheredDownstreams.isEmpty()) {
+            val hasWifiDownstream = obs?.tetheredDownstreams?.any { isWifiDownstreamName(it) } ?: false
+            if (!hasWifiDownstream && !isWifiApEnabledReflective(context)) {
                 return
             }
             if (attempt < DOWNSTREAM_STOP_ATTEMPTS) {
@@ -562,7 +760,6 @@ class ShareUserService : IShareUserService.Stub {
         removeShutdownHook()
         val hook = Thread {
             runCatching {
-                tetheringManager?.let { stopTetheringInternal(it) }
                 setPreferTestNetworks(false)
             }
         }
@@ -579,23 +776,22 @@ class ShareUserService : IShareUserService.Stub {
 
     @Synchronized
     override fun cleanupDirtyState() {
+        HotspotShareLogger.info(TAG, "cleanupDirtyState (iface=$activeInterfaceName)")
         removeShutdownHook()
 
-        // 1. Stop downstream hotspot with verification retries
-        tetheringManager?.let { stopTetheringWithRetry(it) }
-
-        // 2. Clear preferTestNetworks(false) and wait for upstream to move off testtunN
+        // 1. Clear preferTestNetworks(false) and wait for upstream to move off testtunN
+        //    (Hotspot itself is NEVER stopped here — only explicit user OFF stops SoftAp.)
         val oldIface = activeInterfaceName
         releaseUpstreamSelection(oldIface)
 
-        // 3. Unregister keep-alive NetworkCallback
+        // 2. Unregister keep-alive NetworkCallback
         val cm = connectivityManager
         keepAliveCallback?.let { cb ->
             runCatching { cm?.unregisterNetworkCallback(cb) }
         }
         keepAliveCallback = null
 
-        // 4. Teardown TestNetwork in TestNetworkManager
+        // 3. Teardown TestNetwork in TestNetworkManager
         val tnm = testNetworkManager
         acquiredNetwork?.let { net ->
             runCatching {
@@ -605,7 +801,7 @@ class ShareUserService : IShareUserService.Stub {
         }
         acquiredNetwork = null
 
-        // 5. Close TUN fd
+        // 4. Close TUN fd
         runCatching { tunPfd?.close() }
         tunPfd = null
         testTunInterface = null
@@ -613,28 +809,56 @@ class ShareUserService : IShareUserService.Stub {
         testNetworkBinder = null
     }
 
+    override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {
+        if (code == TRANSACTION_SHIZUKU_DESTROY) {
+            destroy()
+            if ((flags and IBinder.FLAG_ONEWAY) == 0) {
+                reply?.writeNoException()
+            }
+            return true
+        }
+        return super.onTransact(code, data, reply, flags)
+    }
+
     @Synchronized
     override fun destroy() {
+        if (!destroying.compareAndSet(false, true)) return
+        HotspotShareLogger.info(TAG, "destroy() called; disabling keep-alive and cleaning up")
+        runCatching { ShizukuWatchdog.disableKeepAlive() }
         cleanupDirtyState()
-        System.exit(0)
+        // Exit asynchronously after Binder IPC returns so Shizuku unbind doesn't hit
+        // DeadObjectException and no stale :hotspot_share process remains alive.
+        Thread {
+            runCatching { Thread.sleep(80L) }
+            Runtime.getRuntime().halt(0)
+        }.apply {
+            isDaemon = true
+            start()
+        }
     }
 
     companion object {
         private const val TAG = "ShareUserService"
-        const val CONTRACT_VERSION = 3
+        const val CONTRACT_VERSION = 7
+
+        /** Matches rikka.shizuku.ShizukuApiConstants.USER_SERVICE_TRANSACTION_destroy. */
+        private const val TRANSACTION_SHIZUKU_DESTROY = 16777115
 
         const val TUN_IPV4_ADDRESS = "192.0.2.2"
         const val TUN_IPV4_PREFIX = 24
-        const val TUN_IPV6_ADDRESS = "2001:db8::2"
+        const val TUN_IPV6_ADDRESS = "fd00:2:0:2::2"
         const val TUN_IPV6_PREFIX = 64
-        const val DEFAULT_IPV6_DNS = "2001:4860:4860::8888"
 
         private const val TETHERING_WIFI = 0
+        private const val WIFI_AP_STATE_DISABLING = 10
+        private const val WIFI_AP_STATE_ENABLING = 12
+        private const val WIFI_AP_STATE_ENABLED = 13
         private const val TRANSPORT_TEST_FALLBACK = 7
 
         private const val AVAILABILITY_TIMEOUT_MS = 10_000L
         private const val POLL_INTERVAL_MS = 200L
         private const val STOP_SETTLE_MS = 3_000L
+        private const val RESTART_RETRY_DELAY_MS = 500L
         private const val STOP_RETRY_DELAY_MS = 1_000L
         private const val DOWNSTREAM_STOP_ATTEMPTS = 3
         private const val START_TIMEOUT_SEC = 15L

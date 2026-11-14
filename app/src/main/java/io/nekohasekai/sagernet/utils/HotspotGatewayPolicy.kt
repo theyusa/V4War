@@ -269,6 +269,26 @@ object HotspotGatewayPolicy {
     ): Boolean = version == 5 && server == gateway && serverPort == port &&
         username == pairingUsername && password == pairingPassword && uot == pairingUot
 
+    /**
+     * Suppresses redundant [android.net.ConnectivityManager.NetworkCallback.onCapabilitiesChanged]
+     * check triggers (which fire frequently on Wi-Fi RSSI / link-speed / validation updates) when the
+     * network was already tracked on the same `(networkHandle, gateway)`:
+     * - If the last check already verified the gateway, capability updates are ignored until the link
+     *   properties change, the network drops, or the user toggles the switch.
+     * - If the last check did not find/verify a gateway, re-checks are throttled by [cooldownMs].
+     */
+    fun shouldSkipCapabilityCheck(
+        wasTracked: Boolean,
+        sameGateway: Boolean,
+        lastOutcomeVerified: Boolean,
+        lastCheckAgeMs: Long,
+        cooldownMs: Long,
+    ): Boolean {
+        if (!wasTracked || !sameGateway) return false
+        if (lastOutcomeVerified) return true
+        return lastCheckAgeMs in 0L until cooldownMs
+    }
+
     /** SHA-256 of [text] as lowercase hex (the digest style of SubscriptionReconcile.contentKey). */
     private fun sha256Hex(text: String): String {
         val bytes = MessageDigest.getInstance("SHA-256").digest(text.toByteArray(Charsets.UTF_8))

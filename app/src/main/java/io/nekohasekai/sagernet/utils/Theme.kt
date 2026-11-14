@@ -200,7 +200,6 @@ object Theme {
     }
 
     fun apply(context: Context) {
-        invalidateCache()
         context.setTheme(getTheme(context))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             (appTheme() == MONET || useSystemTheme()) &&

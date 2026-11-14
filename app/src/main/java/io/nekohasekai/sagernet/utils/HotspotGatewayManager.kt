@@ -9,21 +9,25 @@ import android.net.NetworkRequest
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import io.nekohasekai.sagernet.Action
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.ProfileManager
 import io.nekohasekai.sagernet.database.ProxyEntity
+import io.nekohasekai.sagernet.hotspotshare.HotspotShareLogger
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
 import io.nekohasekai.sagernet.outbound.types.Socks
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.net.Inet4Address
+import java.util.concurrent.CopyOnWriteArraySet
 
 /**
  * Keeps the managed "Hotspot Gateway" profile on the Wi-Fi gateway that actually speaks SOCKS5.
@@ -49,11 +53,21 @@ object HotspotGatewayManager {
     /** Network callbacks coalesce: capability storms arrive as one check. */
     private const val DEBOUNCE_MS = 500L
 
+    /** Cooldown before re-probing the exact same unchanged Wi-Fi gateway on noisy RSSI/capability updates. */
+    private const val CAPABILITY_RECHECK_COOLDOWN_MS = 30_000L
+
     /**
      * How long a loss may last before the previous profile is restored: the retries of one probe (2/5/10 s) plus the
      * debounce may still bring the gateway back, and a verification inside the window cancels the restore entirely.
      */
     private const val LOSS_GRACE_MS = 10_000L
+
+    private data class LastCapabilityOutcome(
+        val networkHandle: Long,
+        val gateway: String,
+        val verified: Boolean,
+        val checkedAtMs: Long,
+    )
 
     private val debounceHandler = Handler(Looper.getMainLooper())
 
@@ -63,6 +77,8 @@ object HotspotGatewayManager {
      */
     private val lossHandler = Handler(Looper.getMainLooper())
     private val mutex = Mutex()
+    private val writeMutex = Mutex()
+    private val checkJobLock = Any()
 
     /** Epoch-ms of the loss session in progress, 0 when none is armed ([lossRunnable] is the pending restore). */
     @Volatile
@@ -72,19 +88,29 @@ object HotspotGatewayManager {
     @Volatile
     private var lossWarned = false
 
+    @Volatile
+    private var lastCapabilityOutcome: LastCapabilityOutcome? = null
+
     private val lossRunnable = Runnable {
         runOnDefaultDispatcher { finishLossSession() }
     }
 
     /** The coalesced network-event check; [scheduleCheck] removes only this, never [lossRunnable]. */
     private val debounceRunnable = Runnable {
-        runOnDefaultDispatcher {
+        if (!isRegistered) return@Runnable
+        launchCheck {
             checkAndUpdate(forceReload = false)
-            withContext(Dispatchers.Main) {
-                onGatewayChanged?.invoke()
-            }
+            withContext(Dispatchers.Main) { notifyGatewayChanged() }
         }
     }
+
+    /** Latest background check job (from init, switch, debounce, or `:bg` monitor); cancelled on teardown. */
+    @Volatile
+    private var checkJob: Job? = null
+
+    /** Active disable/restore job from [onSwitchChanged](false); never cancelled by network events or init. */
+    @Volatile
+    private var restoreJob: Job? = null
 
     /** The `:bg` service monitor's check job (launched by [startServiceMonitor]); cancelled on teardown. */
     @Volatile
@@ -94,49 +120,116 @@ object HotspotGatewayManager {
     @Volatile
     private var trailingReloadJob: Job? = null
 
-
     /**
      * Wi-Fi networks the callback has seen, minus any carrying VPN transport. The lookup re-reads the live
      * capabilities, so a network that turned into a VPN is never used from a stale record.
      */
     private val trackedNetworks = LinkedHashSet<Network>()
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
+    @Volatile
     private var isRegistered = false
+    private val listeners = CopyOnWriteArraySet<() -> Unit>()
     var onGatewayChanged: (() -> Unit)? = null
 
-    fun init() {
-        if (DataStore.hotspotGatewayEnabled) {
-            cancelLossSession()
-            runOnDefaultDispatcher {
-                checkAndUpdate(forceReload = false)
+    fun addListener(listener: () -> Unit) {
+        listeners.add(listener)
+    }
+
+    fun removeListener(listener: () -> Unit) {
+        listeners.remove(listener)
+    }
+
+    private fun notifyGatewayChanged() {
+        onGatewayChanged?.invoke()
+        for (listener in listeners) {
+            listener.invoke()
+        }
+    }
+
+    private fun launchCheck(
+        cancelExisting: Boolean = true,
+        markAsServiceMonitor: Boolean = false,
+        isRestore: Boolean = false,
+        overrideRestore: Boolean = false,
+        block: suspend () -> Unit,
+    ): Job {
+        synchronized(checkJobLock) {
+            val activeRestore = restoreJob
+            if (!overrideRestore && activeRestore?.isActive == true) {
+                return activeRestore
             }
-            registerCallback()
-        } else {
-            unregisterCallback()
-            cancelLossSession()
-            HotspotGatewayState.publish(HotspotGatewayStatus.DISABLED, gateway = "", port = 0)
+            if (cancelExisting) {
+                checkJob?.cancel()
+                if (overrideRestore) {
+                    activeRestore?.cancel()
+                    restoreJob = null
+                }
+            }
+            val job = runOnDefaultDispatcher { block() }
+            checkJob = job
+            if (isRestore) {
+                restoreJob = job
+            }
+            if (markAsServiceMonitor) {
+                serviceMonitorJob = job
+            }
+            return job
+        }
+    }
+
+    fun init() {
+        launchCheck {
+            if (withContext(Dispatchers.IO) { DataStore.hotspotGatewayEnabled }) {
+                cancelLossSession()
+                registerCallback()
+                checkAndUpdate(forceReload = false)
+                withContext(Dispatchers.Main) { notifyGatewayChanged() }
+            } else {
+                unregisterCallback()
+                cancelLossSession()
+                cancelTrailingReload()
+                withContext(Dispatchers.IO) {
+                    HotspotGatewayState.publish(HotspotGatewayStatus.DISABLED, gateway = "", port = 0)
+                }
+            }
         }
     }
 
     fun onSwitchChanged(enabled: Boolean) {
+        lastCapabilityOutcome = null
         if (enabled) {
             cancelLossSession()
-            runOnDefaultDispatcher {
-                checkAndUpdate(forceReload = true)
-            }
             registerCallback()
+            notifyGatewayChanged()
+            launchCheck(overrideRestore = true) {
+                checkAndUpdate(forceReload = true)
+                withContext(Dispatchers.Main) { notifyGatewayChanged() }
+            }
         } else {
             unregisterCallback()
             cancelLossSession()
             cancelTrailingReload()
             // Switching the feature off restores the previous selection immediately (design 7.3); the DISABLED
             // record below is the one the settings screen keeps, so the restore publishes no status of its own.
-            runOnDefaultDispatcher {
-                applyRestore(HotspotGatewayProfiles.restorePrevious(DataStore.hotspotGatewayStopOnLoss), publish = false)
+            // Wrap mutex acquisition + restore in NonCancellable so concurrent stopServiceMonitor / callbacks never
+            // abort an in-flight restore before DISABLED is published.
+            launchCheck(isRestore = true, overrideRestore = true) {
+                withContext(Dispatchers.IO + NonCancellable) {
+                    mutex.withLock {
+                        if (!DataStore.hotspotGatewayEnabled) {
+                            writeMutex.withLock {
+                                applyRestore(
+                                    HotspotGatewayProfiles.restorePrevious(DataStore.hotspotGatewayStopOnLoss),
+                                    publish = false,
+                                )
+                            }
+                            HotspotGatewayState.publish(HotspotGatewayStatus.DISABLED, gateway = "", port = 0)
+                        }
+                    }
+                }
+                withContext(Dispatchers.Main) { notifyGatewayChanged() }
             }
-            HotspotGatewayState.publish(HotspotGatewayStatus.DISABLED, gateway = "", port = 0)
         }
-        onGatewayChanged?.invoke()
     }
 
     // ---------------------------------------------------------------------------- backup restore
@@ -153,6 +246,7 @@ object HotspotGatewayManager {
         val managedId = DataStore.hotspotGatewayProfileId
         cancelLossSession()
         cancelTrailingReload()
+        lastCapabilityOutcome = null
         DataStore.hotspotGatewayPrevSelected = HotspotGatewayPolicy.PREV_SELECTED_UNKNOWN
         DataStore.hotspotGatewayLast = ""
         DataStore.hotspotGatewayLastPort = 0
@@ -174,11 +268,14 @@ object HotspotGatewayManager {
      * by [registerCallback]. The main process keeps its own monitor (started by [init]) for the settings screen.
      */
     fun startServiceMonitor() {
-        if (!DataStore.hotspotGatewayEnabled) return
-        if (serviceMonitorJob?.isActive == true) return
+        synchronized(checkJobLock) {
+            if (serviceMonitorJob?.isActive == true) return
+        }
         cancelLossSession()
-        registerCallback()
-        serviceMonitorJob = runOnDefaultDispatcher {
+        lastCapabilityOutcome = null
+        launchCheck(cancelExisting = false, markAsServiceMonitor = true) {
+            if (!withContext(Dispatchers.IO) { DataStore.hotspotGatewayEnabled }) return@launchCheck
+            registerCallback()
             checkAndUpdate(forceReload = false)
         }
     }
@@ -189,11 +286,18 @@ object HotspotGatewayManager {
      * re-arms it through [startServiceMonitor].
      */
     fun stopServiceMonitor() {
-        serviceMonitorJob?.cancel()
-        serviceMonitorJob = null
+        synchronized(checkJobLock) {
+            if (checkJob !== restoreJob) {
+                checkJob?.cancel()
+                checkJob = null
+            }
+            serviceMonitorJob?.cancel()
+            serviceMonitorJob = null
+        }
         unregisterCallback()
         cancelLossSession()
         cancelTrailingReload()
+        lastCapabilityOutcome = null
     }
 
     /**
@@ -212,6 +316,13 @@ object HotspotGatewayManager {
     suspend fun beforeCoreConnect(profileId: Long): ProxyEntity? {
         if (!DataStore.hotspotGatewayEnabled) return null
         if (profileId <= 0L || profileId != DataStore.hotspotGatewayProfileId) return null
+
+        // The start path verifies the managed profile itself; cancel any preInit serviceMonitorJob
+        // check so it does not double-probe or fire a competing reload during startup.
+        synchronized(checkJobLock) {
+            serviceMonitorJob?.cancel()
+            serviceMonitorJob = null
+        }
 
         var fresh = ProfileManager.getProfile(profileId)
         val pairing = HotspotGatewayState.pairing()
@@ -379,10 +490,17 @@ object HotspotGatewayManager {
 
     /** The grace expired: restore once, on the default dispatcher (the transaction is disk work). */
     private suspend fun finishLossSession() {
-        if (lossSince == 0L) return // cancelled by a verification or a disable in the meantime
-        if (!DataStore.hotspotGatewayEnabled) return
-        applyRestore(HotspotGatewayProfiles.restorePrevious(DataStore.hotspotGatewayStopOnLoss), publish = true)
-        lossSince = 0L
+        mutex.withLock {
+            if (lossSince == 0L) return@withLock // cancelled by a verification or a disable in the meantime
+            if (!withContext(Dispatchers.IO) { DataStore.hotspotGatewayEnabled }) return@withLock
+            withContext(Dispatchers.IO) {
+                writeMutex.withLock {
+                    applyRestore(HotspotGatewayProfiles.restorePrevious(DataStore.hotspotGatewayStopOnLoss), publish = true)
+                }
+            }
+            lossSince = 0L
+        }
+        withContext(Dispatchers.Main) { notifyGatewayChanged() }
     }
 
     /**
@@ -436,6 +554,7 @@ object HotspotGatewayManager {
         )
     }
 
+    @Synchronized
     private fun registerCallback() {
         if (isRegistered) return
         val cm = SagerNet.connectivity
@@ -445,16 +564,40 @@ object HotspotGatewayManager {
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 if (!track(network, cm.getNetworkCapabilities(network))) return
+                lastCapabilityOutcome = null
                 scheduleCheck()
             }
 
             override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
-                if (!track(network, networkCapabilities)) return
+                val wasTracked = isTracked(network)
+                if (!track(network, networkCapabilities)) {
+                    if (wasTracked) {
+                        lastCapabilityOutcome = null
+                        scheduleCheck()
+                    }
+                    return
+                }
+                val gw = defaultRouteGateway(cm.getLinkProperties(network))
+                val outcome = lastCapabilityOutcome
+                val ageMs = if (outcome != null) SystemClock.elapsedRealtime() - outcome.checkedAtMs else Long.MAX_VALUE
+                if (HotspotGatewayPolicy.shouldSkipCapabilityCheck(
+                        wasTracked = wasTracked,
+                        sameGateway = gw != null && outcome != null &&
+                            outcome.networkHandle == network.networkHandle &&
+                            outcome.gateway == gw,
+                        lastOutcomeVerified = outcome?.verified == true,
+                        lastCheckAgeMs = ageMs,
+                        cooldownMs = CAPABILITY_RECHECK_COOLDOWN_MS,
+                    )
+                ) {
+                    return
+                }
                 scheduleCheck()
             }
 
             override fun onLost(network: Network) {
                 forget(network)
+                lastCapabilityOutcome = null
                 scheduleCheck()
             }
         }
@@ -467,15 +610,23 @@ object HotspotGatewayManager {
         }
     }
 
+    @Synchronized
     private fun unregisterCallback() {
         if (!isRegistered) return
         isRegistered = false
+        lastCapabilityOutcome = null
         debounceHandler.removeCallbacksAndMessages(null)
         networkCallback?.let {
             runCatching { SagerNet.connectivity.unregisterNetworkCallback(it) }
         }
         networkCallback = null
         synchronized(trackedNetworks) { trackedNetworks.clear() }
+        // Clear again after unregisterNetworkCallback returns so any callback in flight during teardown cannot linger.
+        debounceHandler.removeCallbacksAndMessages(null)
+    }
+
+    private fun isTracked(network: Network): Boolean {
+        synchronized(trackedNetworks) { return network in trackedNetworks }
     }
 
     /**
@@ -495,7 +646,9 @@ object HotspotGatewayManager {
     }
 
     private fun scheduleCheck() {
+        if (!isRegistered) return
         debounceHandler.removeCallbacks(debounceRunnable)
+        if (!isRegistered) return
         debounceHandler.postDelayed(debounceRunnable, DEBOUNCE_MS)
     }
 
@@ -558,12 +711,15 @@ object HotspotGatewayManager {
      * but never broadcasts `SWITCH_PROFILE` (the start-time path starts the profile itself).
      */
     suspend fun checkAndUpdate(forceReload: Boolean, reload: Boolean = true, allowSwitch: Boolean = true) = mutex.withLock {
-        if (!DataStore.hotspotGatewayEnabled) return@withLock
+        if (!withContext(Dispatchers.IO) { DataStore.hotspotGatewayEnabled }) return@withLock
 
         val candidate = getWifiGateway()
         if (candidate == null) {
+            lastCapabilityOutcome = null
             // Off Wi-Fi: the profile and the last gateway stay exactly as they are; the loss grace starts.
-            HotspotGatewayState.publish(HotspotGatewayStatus.NO_GATEWAY, gateway = "", port = 0)
+            withContext(Dispatchers.IO) {
+                HotspotGatewayState.publish(HotspotGatewayStatus.NO_GATEWAY, gateway = "", port = 0)
+            }
             Logs.w("hotspot gateway no gateway available")
             markLost()
             return@withLock
@@ -572,7 +728,22 @@ object HotspotGatewayManager {
         // probe below either confirms it (FOUND) or starts a fresh loss session of its own.
         cancelLossSession()
         val (network, gateway) = candidate
-        val pairing = HotspotGatewayState.pairing()
+        val (pairing, lastGateway, lastPort, appliedFingerprint) = withContext(Dispatchers.IO) {
+            listOf(
+                HotspotGatewayState.pairing(),
+                DataStore.hotspotGatewayLast,
+                DataStore.hotspotGatewayLastPort,
+                DataStore.hotspotGatewayAppliedFingerprint,
+            )
+        }.let { tuple ->
+            @Suppress("UNCHECKED_CAST")
+            QuadCheckSnapshot(
+                tuple[0] as HotspotPairing?,
+                tuple[1] as String,
+                tuple[2] as Int,
+                tuple[3] as String,
+            )
+        }
         // A matching gateway is only a previously verified one when the pairing still fingerprints to what was
         // applied: the shared record is republished here (it may still say NO_GATEWAY after a Wi-Fi drop, or NOT_FOUND
         // from an earlier failed probe), but a config change on the same gateway must re-probe and re-apply instead.
@@ -589,41 +760,72 @@ object HotspotGatewayManager {
         }
         val revisit = HotspotGatewayPolicy.revisitStatus(
             currentGateway = gateway,
-            lastGateway = DataStore.hotspotGatewayLast,
-            lastPort = DataStore.hotspotGatewayLastPort,
+            lastGateway = lastGateway,
+            lastPort = lastPort,
             currentFingerprint = currentFingerprint,
-            appliedFingerprint = DataStore.hotspotGatewayAppliedFingerprint,
+            appliedFingerprint = appliedFingerprint,
             forceReload = forceReload,
         )
         if (revisit != null) {
-            HotspotGatewayState.publish(revisit, gateway = gateway, port = DataStore.hotspotGatewayLastPort)
+            withContext(Dispatchers.IO) {
+                HotspotGatewayState.publish(revisit, gateway = gateway, port = lastPort)
+            }
+            lastCapabilityOutcome = LastCapabilityOutcome(
+                networkHandle = network.networkHandle,
+                gateway = gateway,
+                verified = true,
+                checkedAtMs = SystemClock.elapsedRealtime(),
+            )
             return@withLock
         }
 
         if (pairing == null) {
-            HotspotGatewayState.publish(HotspotGatewayStatus.PAIRING_REQUIRED, gateway = gateway, port = 0)
+            withContext(Dispatchers.IO) {
+                HotspotGatewayState.publish(HotspotGatewayStatus.PAIRING_REQUIRED, gateway = gateway, port = 0)
+            }
+            lastCapabilityOutcome = LastCapabilityOutcome(
+                networkHandle = network.networkHandle,
+                gateway = gateway,
+                verified = false,
+                checkedAtMs = SystemClock.elapsedRealtime(),
+            )
             return@withLock
         }
 
-        HotspotGatewayState.publish(HotspotGatewayStatus.PROBING, gateway = gateway, port = pairing.port)
+        withContext(Dispatchers.IO) {
+            HotspotGatewayState.publish(HotspotGatewayStatus.PROBING, gateway = gateway, port = pairing.port)
+        }
         val result = withContext(Dispatchers.IO) { probe(network, gateway, pairing.port) }
 
         // Settings may have moved while the probe ran: the shared record wins over the stale snapshot.
-        if (!DataStore.hotspotGatewayEnabled) return@withLock
-        val verified = HotspotGatewayState.pairing() ?: return@withLock
+        val verified = withContext(Dispatchers.IO) {
+            if (!DataStore.hotspotGatewayEnabled) null else HotspotGatewayState.pairing()
+        } ?: return@withLock
 
         if (HotspotGatewayPolicy.writesProfile(result, verified)) {
             applyVerifiedGateway(gateway, verified.port, verified, reload = reload, allowSwitch = allowSwitch)
             Logs.d("hotspot gateway verified $gateway:${verified.port}")
-            HotspotGatewayState.publish(HotspotGatewayStatus.FOUND, gateway = gateway, port = verified.port)
+            HotspotShareLogger.info("AutoGateway", "Gateway verified $gateway:${verified.port}")
+            withContext(Dispatchers.IO) {
+                HotspotGatewayState.publish(HotspotGatewayStatus.FOUND, gateway = gateway, port = verified.port)
+            }
+            lastCapabilityOutcome = LastCapabilityOutcome(
+                networkHandle = network.networkHandle,
+                gateway = gateway,
+                verified = true,
+                checkedAtMs = SystemClock.elapsedRealtime(),
+            )
             return@withLock
         }
 
         if (result is Socks5ProbeResult.Failure) {
             Logs.w("hotspot gateway probe failed $gateway:${verified.port} ${result.reason}")
+            HotspotShareLogger.warn("AutoGateway", "Gateway probe failed $gateway:${verified.port}: ${result.reason}")
         }
         val primaryStatus = HotspotGatewayPolicy.statusFor(result, verified)
-        HotspotGatewayState.publish(primaryStatus, gateway = gateway, port = verified.port)
+        withContext(Dispatchers.IO) {
+            HotspotGatewayState.publish(primaryStatus, gateway = gateway, port = verified.port)
+        }
 
         // A paired port that reached a SOCKS5 server (02 without credentials) has a pairing problem, not a port
         // problem: no scan. Otherwise - refused, timed out, not SOCKS5, FF - the bounded parallel scan of design
@@ -631,6 +833,12 @@ object HotspotGatewayManager {
         if (primaryStatus != HotspotGatewayStatus.NOT_FOUND &&
             primaryStatus != HotspotGatewayStatus.UNSUPPORTED_AUTH
         ) {
+            lastCapabilityOutcome = LastCapabilityOutcome(
+                networkHandle = network.networkHandle,
+                gateway = gateway,
+                verified = false,
+                checkedAtMs = SystemClock.elapsedRealtime(),
+            )
             // The retries are spent and this pairing cannot be completed: a flap, counted from now.
             markLost()
             return@withLock
@@ -653,8 +861,9 @@ object HotspotGatewayManager {
 
         // The scan ran unverified for seconds: enabled and pairing are re-read before anything is written (design:
         // a new pairing generation beats the old async results, and its own queued check re-verifies the rest).
-        if (!DataStore.hotspotGatewayEnabled) return@withLock
-        val current = HotspotGatewayState.pairing() ?: return@withLock
+        val current = withContext(Dispatchers.IO) {
+            if (!DataStore.hotspotGatewayEnabled) null else HotspotGatewayState.pairing()
+        } ?: return@withLock
 
         when (discovery) {
             is DiscoveryResult.Success -> {
@@ -662,17 +871,34 @@ object HotspotGatewayManager {
                 if (!HotspotGatewayPolicy.writesProfile(reply, current)) {
                     // The port speaks SOCKS5 but the pairing cannot complete it (02 without credentials):
                     // publish and write nothing.
-                    HotspotGatewayState.publish(
-                        HotspotGatewayPolicy.statusFor(reply, current),
+                    withContext(Dispatchers.IO) {
+                        HotspotGatewayState.publish(
+                            HotspotGatewayPolicy.statusFor(reply, current),
+                            gateway = gateway,
+                            port = discovery.port,
+                        )
+                    }
+                    lastCapabilityOutcome = LastCapabilityOutcome(
+                        networkHandle = network.networkHandle,
                         gateway = gateway,
-                        port = discovery.port,
+                        verified = false,
+                        checkedAtMs = SystemClock.elapsedRealtime(),
                     )
                     markLost()
                     return@withLock
                 }
                 applyVerifiedGateway(gateway, discovery.port, current, reload = reload, allowSwitch = allowSwitch)
                 Logs.d("hotspot gateway discovered $gateway:${discovery.port}")
-                HotspotGatewayState.publish(HotspotGatewayStatus.FOUND, gateway = gateway, port = discovery.port)
+                HotspotShareLogger.info("AutoGateway", "Gateway discovered $gateway:${discovery.port}")
+                withContext(Dispatchers.IO) {
+                    HotspotGatewayState.publish(HotspotGatewayStatus.FOUND, gateway = gateway, port = discovery.port)
+                }
+                lastCapabilityOutcome = LastCapabilityOutcome(
+                    networkHandle = network.networkHandle,
+                    gateway = gateway,
+                    verified = true,
+                    checkedAtMs = SystemClock.elapsedRealtime(),
+                )
             }
 
             is DiscoveryResult.Failure -> {
@@ -682,12 +908,28 @@ object HotspotGatewayManager {
                     HotspotGatewayStatus.NOT_FOUND
                 }
                 Logs.w("hotspot gateway discovery failed $gateway ${discovery.reason}")
-                HotspotGatewayState.publish(status, gateway = gateway, port = verified.port)
+                HotspotShareLogger.warn("AutoGateway", "Gateway discovery failed $gateway: ${discovery.reason}")
+                withContext(Dispatchers.IO) {
+                    HotspotGatewayState.publish(status, gateway = gateway, port = verified.port)
+                }
+                lastCapabilityOutcome = LastCapabilityOutcome(
+                    networkHandle = network.networkHandle,
+                    gateway = gateway,
+                    verified = false,
+                    checkedAtMs = SystemClock.elapsedRealtime(),
+                )
                 // The paired port and the whole candidate list are spent: a flap, counted from now.
                 markLost()
             }
         }
     }
+
+    private data class QuadCheckSnapshot(
+        val pairing: HotspotPairing?,
+        val lastGateway: String,
+        val lastPort: Int,
+        val appliedFingerprint: String,
+    )
 
     /**
      * The one write path of a verified gateway (design §7.1/§7.2): the dedicated group is ensured and the managed
@@ -703,71 +945,73 @@ object HotspotGatewayManager {
         allowSwitch: Boolean,
     ) {
         withContext(Dispatchers.IO) {
-            // A port found by the scan becomes the persistent pairing port (design §5.3); on the paired-port path
-            // [port] already is the pairing port and this write is a no-op.
-            if (DataStore.hotspotGatewayPort != port) DataStore.hotspotGatewayPort = port
+            writeMutex.withLock {
+                // A port found by the scan becomes the persistent pairing port (design §5.3); on the paired-port path
+                // [port] already is the pairing port and this write is a no-op.
+                if (DataStore.hotspotGatewayPort != port) DataStore.hotspotGatewayPort = port
 
-            val socks = Socks().apply {
-                name = HotspotGatewayProfiles.MANAGED_NAME
-                server = gateway
-                serverPort = port
-                username = pairing.user
-                password = pairing.pass
-                version = 5
-                uot = pairing.uot
-            }
+                val socks = Socks().apply {
+                    name = HotspotGatewayProfiles.MANAGED_NAME
+                    server = gateway
+                    serverPort = port
+                    username = pairing.user
+                    password = pairing.pass
+                    version = 5
+                    uot = pairing.uot
+                }
 
-            // The managed profile lives in the dedicated, fixed-named, non-subscription group. The group is ensured
-            // and the profile created-or-updated, each in one transaction. Only the id this manager itself stored is
-            // ever updated - a profile that merely shares the name is never adopted.
-            val group = HotspotGatewayProfiles.ensureDedicatedGroup()
-            val profile = ProfileManager.upsertNamed(
-                groupId = group.id,
-                preferredProfileId = DataStore.hotspotGatewayProfileId,
-                outbound = socks,
-            )
-            DataStore.hotspotGatewayProfileId = profile.id
+                // The managed profile lives in the dedicated, fixed-named, non-subscription group. The group is ensured
+                // and the profile created-or-updated, each in one transaction. Only the id this manager itself stored is
+                // ever updated - a profile that merely shares the name is never adopted.
+                val group = HotspotGatewayProfiles.ensureDedicatedGroup()
+                val profile = ProfileManager.upsertNamed(
+                    groupId = group.id,
+                    preferredProfileId = DataStore.hotspotGatewayProfileId,
+                    outbound = socks,
+                )
+                DataStore.hotspotGatewayProfileId = profile.id
 
-            // Only a verified probe reaches these two.
-            DataStore.hotspotGatewayLast = gateway
-            DataStore.hotspotGatewayLastPort = port
+                // Only a verified probe reaches these two.
+                DataStore.hotspotGatewayLast = gateway
+                DataStore.hotspotGatewayLastPort = port
 
-            val managedId = DataStore.hotspotGatewayProfileId
-            val fingerprint = HotspotGatewayPolicy.configFingerprint(
-                gateway = gateway,
-                port = port,
-                username = pairing.user,
-                password = pairing.pass,
-                uot = pairing.uot,
-            )
-            // The revisit fast-path compares the live pairing against this: only an unchanged config reuses the
-            // verified record without a probe.
-            DataStore.hotspotGatewayAppliedFingerprint = fingerprint
+                val managedId = DataStore.hotspotGatewayProfileId
+                val fingerprint = HotspotGatewayPolicy.configFingerprint(
+                    gateway = gateway,
+                    port = port,
+                    username = pairing.user,
+                    password = pairing.pass,
+                    uot = pairing.uot,
+                )
+                // The revisit fast-path compares the live pairing against this: only an unchanged config reuses the
+                // verified record without a probe.
+                DataStore.hotspotGatewayAppliedFingerprint = fingerprint
 
-            // Automatic selection: the previous choice is stored once (never overwritten), then the managed profile
-            // is selected. A running service is told through SWITCH_PROFILE only - that restart already carries the
-            // new config, so no RELOAD may follow it.
-            val selection = HotspotGatewayProfiles.selectManaged(
-                managedId = managedId,
-                // Auto-switch (SWITCH_PROFILE to a running service) is opt-in: default off.
-                serviceRunning = allowSwitch && DataStore.serviceState.started && DataStore.hotspotGatewayAutoSwitch,
-            )
-            val switched = selection is SelectionResult.Selected && selection.broadcastSwitch
-            if (switched) {
-                broadcastSwitchProfile(managedId)
-                HotspotGatewayProfiles.recordAppliedConfig(fingerprint)
-            } else if (reload) {
-                // Otherwise a reload happens exclusively through the claim: same fingerprint or inside the 5000 ms
-                // floor yields no broadcast at all, and only while the running config uses the managed profile. A
-                // change deferred by the floor is applied once, after it, by a single trailing reload.
-                when (HotspotGatewayProfiles.claimReload(
+                // Automatic selection: the previous choice is stored once (never overwritten), then the managed profile
+                // is selected. A running service is told through SWITCH_PROFILE only - that restart already carries the
+                // new config, so no RELOAD may follow it.
+                val selection = HotspotGatewayProfiles.selectManaged(
                     managedId = managedId,
-                    fingerprint = fingerprint,
-                    nowMs = System.currentTimeMillis(),
-                )) {
-                    ReloadDecision.Reload -> SagerNet.reloadService()
-                    ReloadDecision.MinInterval -> scheduleTrailingReload(managedId, fingerprint)
-                    else -> Unit
+                    // Auto-switch (SWITCH_PROFILE to a running service) is opt-in: default off.
+                    serviceRunning = allowSwitch && DataStore.serviceState.started && DataStore.hotspotGatewayAutoSwitch,
+                )
+                val switched = selection is SelectionResult.Selected && selection.broadcastSwitch
+                if (switched) {
+                    broadcastSwitchProfile(managedId)
+                    HotspotGatewayProfiles.recordAppliedConfig(fingerprint)
+                } else if (reload) {
+                    // Otherwise a reload happens exclusively through the claim: same fingerprint or inside the 5000 ms
+                    // floor yields no broadcast at all, and only while the running config uses the managed profile. A
+                    // change deferred by the floor is applied once, after it, by a single trailing reload.
+                    when (HotspotGatewayProfiles.claimReload(
+                        managedId = managedId,
+                        fingerprint = fingerprint,
+                        nowMs = System.currentTimeMillis(),
+                    )) {
+                        ReloadDecision.Reload -> SagerNet.reloadService()
+                        ReloadDecision.MinInterval -> scheduleTrailingReload(managedId, fingerprint)
+                        else -> Unit
+                    }
                 }
             }
         }

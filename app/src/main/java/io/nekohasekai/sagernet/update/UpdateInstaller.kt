@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.IBinder
 import android.os.ParcelFileDescriptor
 import io.nekohasekai.sagernet.BuildConfig
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -93,6 +94,8 @@ object UpdateInstaller {
                     errorOut[0].ifEmpty { "pm install failed (exit=$exitCode)" }
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (t: Throwable) {
             t.message ?: t.javaClass.simpleName
         } finally {

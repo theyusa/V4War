@@ -8,6 +8,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.ConnectivityManager
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
@@ -34,6 +35,7 @@ import io.nekohasekai.sagernet.utils.toolbox.ConnectivityStatus
 import io.nekohasekai.sagernet.utils.toolbox.ServiceProbeResult
 import io.nekohasekai.sagernet.utils.toolbox.ServiceProbeSpec
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class ConnectivityTestActivity : ThemedActivity(), SagerConnection.Callback {
@@ -130,13 +132,26 @@ class ConnectivityTestActivity : ThemedActivity(), SagerConnection.Callback {
         val cm = getSystemService(ConnectivityManager::class.java)
 
         testJob?.cancel()
+        singleTestJobs.values.forEach { it.cancel() }
+        singleTestJobs.clear()
+        renderThrottleJob?.cancel()
+        renderThrottleJob = null
+        lastRenderAtMs = 0L
         testJob = lifecycleScope.launch {
-            ConnectivityChecker.runChecks(targets, viaProxy, cm).collect { res ->
-                resultsMap[res.spec.id] = res
-                renderServices()
+            try {
+                ConnectivityChecker.runChecks(targets, viaProxy, cm).collect { res ->
+                    resultsMap[res.spec.id] = res
+                    scheduleRenderServices()
+                }
+            } finally {
+                renderThrottleJob?.cancel()
+                renderThrottleJob = null
+                if (!isFinishing && !isDestroyed) {
+                    renderServices()
+                    binding.progressIndicator.visibility = View.GONE
+                    binding.btnRun.setText(R.string.connectivity_run)
+                }
             }
-            binding.progressIndicator.visibility = View.GONE
-            binding.btnRun.setText(R.string.connectivity_run)
         }
     }
 
@@ -181,15 +196,50 @@ class ConnectivityTestActivity : ThemedActivity(), SagerConnection.Callback {
         }
     }
 
+    private val singleTestJobs = mutableMapOf<String, Job>()
+    private var renderThrottleJob: Job? = null
+    private var lastRenderAtMs = 0L
+
+    private fun scheduleRenderServices(minIntervalMs: Long = 90L) {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastRenderAtMs >= minIntervalMs) {
+            renderThrottleJob?.cancel()
+            renderThrottleJob = null
+            lastRenderAtMs = now
+            renderServices()
+            return
+        }
+        if (renderThrottleJob?.isActive == true) return
+        val waitMs = (minIntervalMs - (now - lastRenderAtMs)).coerceAtLeast(16L)
+        renderThrottleJob = lifecycleScope.launch {
+            delay(waitMs)
+            lastRenderAtMs = SystemClock.elapsedRealtime()
+            if (!isFinishing && !isDestroyed) {
+                renderServices()
+            }
+        }
+    }
+
     private fun testSingleService(spec: ServiceProbeSpec) {
         if (testJob?.isActive == true) return
         val viaProxy = binding.chipViaProxy.isChecked
         val cm = getSystemService(ConnectivityManager::class.java)
-        lifecycleScope.launch {
-            ConnectivityChecker.runChecks(listOf(spec), viaProxy, cm).collect { res ->
-                resultsMap[res.spec.id] = res
-                renderServices()
+        singleTestJobs.remove(spec.id)?.cancel()
+        lateinit var job: Job
+        job = lifecycleScope.launch {
+            try {
+                ConnectivityChecker.runChecks(listOf(spec), viaProxy, cm).collect { res ->
+                    resultsMap[res.spec.id] = res
+                    renderServices()
+                }
+            } finally {
+                if (singleTestJobs[spec.id] === job) {
+                    singleTestJobs.remove(spec.id)
+                }
             }
+        }
+        if (job.isActive) {
+            singleTestJobs[spec.id] = job
         }
     }
 

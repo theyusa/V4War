@@ -221,6 +221,7 @@ class VpnService : BaseVpnService(),
     override fun onDestroy() {
         DataStore.vpnService = null
         super.onDestroy()
+        data.notification?.destroy()
         data.binder.close()
     }
 }

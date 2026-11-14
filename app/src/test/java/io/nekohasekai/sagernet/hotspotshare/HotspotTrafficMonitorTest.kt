@@ -1,5 +1,9 @@
 package io.nekohasekai.sagernet.hotspotshare
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -74,5 +78,29 @@ testtun0:   50000     100    0    0    0     0          0         0    60000    
         val tickAfterReset = counter.tick(currentTimeMillis = 4000L)
         assertEquals(0L, tickAfterReset.sessionRxBytes)
         assertEquals(0L, tickAfterReset.sessionTxBytes)
+    }
+
+    @Test
+    fun startRestartStopResetsMonitorCleanly() = runBlocking {
+        val job = SupervisorJob()
+        val scope = CoroutineScope(job + Dispatchers.Unconfined)
+        try {
+            HotspotTrafficMonitor.start(scope, { 100L to 200L }, intervalMs = 5_000L, dispatcher = Dispatchers.Unconfined)
+            val updated = HotspotTrafficStats(rxSpeedBps = 42L, txSpeedBps = 84L, sessionRxBytes = 10L, sessionTxBytes = 20L)
+            HotspotTrafficMonitor.updateDirect(updated)
+            HotspotTrafficMonitor.updateDirect(updated)
+            assertEquals(updated, HotspotTrafficMonitor.stats.value)
+
+            // Restarting resets to fresh zeroed state cleanly without leaving stale values.
+            HotspotTrafficMonitor.start(scope, { 300L to 400L }, intervalMs = 5_000L, dispatcher = Dispatchers.Unconfined)
+            assertEquals(HotspotTrafficStats(), HotspotTrafficMonitor.stats.value)
+
+            HotspotTrafficMonitor.updateDirect(updated)
+            HotspotTrafficMonitor.stop()
+            assertEquals(HotspotTrafficStats(), HotspotTrafficMonitor.stats.value)
+        } finally {
+            HotspotTrafficMonitor.stop()
+            job.cancel()
+        }
     }
 }

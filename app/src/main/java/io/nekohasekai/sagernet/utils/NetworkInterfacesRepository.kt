@@ -157,7 +157,7 @@ class NetworkInterfacesRepository(private val connectivity: ConnectivityManager)
         // 4. Guarantee TUN presence and accurate VPN DNS
         val hasVpnRecord = records.values.any { it.isVpn || it.name.startsWith("tun") }
         if (!hasVpnRecord) {
-            val tunMtu = DataStore.vpnMtu.takeIf { it > 0 } ?: 9000
+            val tunMtu = DataStore.vpnMtu.takeIf { it > 0 } ?: 1500
             val tunDns = if (activeDnsServers.isNotEmpty() && isVpnConnected) activeDnsServers else listOf("172.19.0.2")
             records["tun0"] = NetworkInterfaceInfo(
                 name = "tun0",

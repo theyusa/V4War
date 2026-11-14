@@ -1271,7 +1271,7 @@ class ConfigGenerator @JvmOverloads constructor(
     }
 
     // The desktop never stores a malformed duration (dialog_manage_routes.cpp:230-237) and the core rejects one.
-    private fun validDuration(text: String): String = text.trim().takeIf { isValidDuration(it) } ?: ""
+    private fun validDuration(text: String): String = text.trim().takeIf { it.isNotEmpty() && isValidDuration(it) } ?: ""
 
     /**
      * appendDnsRoutingRules (:386-399): one rule-set rule and one inline rule that always carries all four keys, both

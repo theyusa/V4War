@@ -476,17 +476,21 @@ object ExpressiveSettingsHelper {
         applyTabTypography(tabLayout)
     }
 
+    private val mediumTypeface: Typeface by lazy {
+        Typeface.create("sans-serif-medium", Typeface.NORMAL)
+    }
+
     fun applyTabTypography(tabLayout: TabLayout) {
-        val mediumFace = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        val mediumFace = mediumTypeface
         val tabStrip = tabLayout.getChildAt(0) as? ViewGroup ?: return
         for (i in 0 until tabStrip.childCount) {
             val tabView = tabStrip.getChildAt(i) as? ViewGroup ?: continue
             for (j in 0 until tabView.childCount) {
                 val child = tabView.getChildAt(j)
                 if (child is TextView) {
-                    child.typeface = mediumFace
-                    child.letterSpacing = 0f
-                    child.includeFontPadding = false
+                    if (child.typeface !== mediumFace) child.typeface = mediumFace
+                    if (child.letterSpacing != 0f) child.letterSpacing = 0f
+                    if (child.includeFontPadding) child.includeFontPadding = false
                     child.isAllCaps = false
                 }
             }
@@ -497,6 +501,7 @@ object ExpressiveSettingsHelper {
         applyTabTypography(tabLayout)
         if (tabLayout.tabCount <= 0) return
         tabLayout.post {
+            if (!tabLayout.isAttachedToWindow || tabLayout.tabCount <= 0) return@post
             applyTabTypography(tabLayout)
             val parentView = tabLayout.parent as? View
             val availableWidth = if (parentView != null && parentView.width > 0) {

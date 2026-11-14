@@ -3,6 +3,7 @@ package io.nekohasekai.sagernet.hotspotshare.shizuku
 import android.content.Context
 import android.os.ParcelFileDescriptor
 import hev.htproxy.TProxyService
+import io.nekohasekai.sagernet.hotspotshare.HotspotShareLogger
 import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.atomic.AtomicBoolean
@@ -19,6 +20,9 @@ class HevTunnel(private val context: Context) {
     private val tproxy = TProxyService()
     private val running = AtomicBoolean(false)
     private var configFile: File? = null
+    // Retain the ParcelFileDescriptor for the lifetime of the native tunnel so GC
+    // does not finalize it and close the underlying TUN fd out from under hev-socks5-tunnel.
+    private var activeTunPfd: ParcelFileDescriptor? = null
 
     @Synchronized
     fun start(
@@ -26,7 +30,9 @@ class HevTunnel(private val context: Context) {
         socksPort: Int = 2088,
         mtu: Int = DEFAULT_TUN_MTU,
     ): Boolean {
-        if (running.get()) return true
+        if (running.get()) {
+            stop()
+        }
 
         val config = File(context.cacheDir, "hev_tunnel.yml")
         val yaml = buildString {
@@ -45,21 +51,30 @@ class HevTunnel(private val context: Context) {
 
         val started = tproxy.TProxyStartService(config.absolutePath, tunPfd.fd)
         if (started) {
+            activeTunPfd = tunPfd
             running.set(true)
+            HotspotShareLogger.info(TAG, "HevTunnel started (socksPort=$socksPort, mtu=$mtu)")
         } else {
+            HotspotShareLogger.error(TAG, "HevTunnel TProxyStartService returned false (socksPort=$socksPort, mtu=$mtu)")
+            runCatching { tunPfd.close() }
             config.delete()
+            configFile = null
         }
         return started
     }
 
     @Synchronized
     fun stop() {
-        if (!running.get()) return
-        try {
-            tproxy.TProxyStopService()
-        } catch (_: Throwable) {
+        val wasRunning = running.getAndSet(false)
+        if (wasRunning) {
+            try {
+                tproxy.TProxyStopService()
+            } catch (_: Throwable) {
+            }
+            HotspotShareLogger.info(TAG, "HevTunnel stopped")
         }
-        running.set(false)
+        runCatching { activeTunPfd?.close() }
+        activeTunPfd = null
         configFile?.delete()
         configFile = null
     }
@@ -78,6 +93,7 @@ class HevTunnel(private val context: Context) {
     }
 
     companion object {
+        private const val TAG = "HevTunnel"
         const val DEFAULT_TUN_MTU = 1500
     }
 }

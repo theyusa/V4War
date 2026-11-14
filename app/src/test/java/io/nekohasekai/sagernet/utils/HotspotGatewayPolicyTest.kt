@@ -548,4 +548,78 @@ class HotspotGatewayPolicyTest {
         assertEquals(5L, HotspotGatewayPolicy.restoredSelection(selected = 5L, managedId = 0L))
         assertEquals(0L, HotspotGatewayPolicy.restoredSelection(selected = 0L, managedId = 0L))
     }
+
+    @Test
+    fun shouldSkipCapabilityCheckSuppressesVerifiedChurnAndRateLimitsFailures() {
+        val cooldown = 30_000L
+
+        // Newly tracked network or changed gateway must always probe.
+        assertFalse(
+            HotspotGatewayPolicy.shouldSkipCapabilityCheck(
+                wasTracked = false,
+                sameGateway = true,
+                lastOutcomeVerified = true,
+                lastCheckAgeMs = 100L,
+                cooldownMs = cooldown,
+            ),
+        )
+        assertFalse(
+            HotspotGatewayPolicy.shouldSkipCapabilityCheck(
+                wasTracked = true,
+                sameGateway = false,
+                lastOutcomeVerified = true,
+                lastCheckAgeMs = 100L,
+                cooldownMs = cooldown,
+            ),
+        )
+
+        // Same tracked network + same gateway + verified -> suppress RSSI/capability churn.
+        assertTrue(
+            HotspotGatewayPolicy.shouldSkipCapabilityCheck(
+                wasTracked = true,
+                sameGateway = true,
+                lastOutcomeVerified = true,
+                lastCheckAgeMs = 120_000L,
+                cooldownMs = cooldown,
+            ),
+        )
+
+        // Unverified -> suppressed only within [0, cooldownMs).
+        assertTrue(
+            HotspotGatewayPolicy.shouldSkipCapabilityCheck(
+                wasTracked = true,
+                sameGateway = true,
+                lastOutcomeVerified = false,
+                lastCheckAgeMs = 0L,
+                cooldownMs = cooldown,
+            ),
+        )
+        assertTrue(
+            HotspotGatewayPolicy.shouldSkipCapabilityCheck(
+                wasTracked = true,
+                sameGateway = true,
+                lastOutcomeVerified = false,
+                lastCheckAgeMs = cooldown - 1L,
+                cooldownMs = cooldown,
+            ),
+        )
+        assertFalse(
+            HotspotGatewayPolicy.shouldSkipCapabilityCheck(
+                wasTracked = true,
+                sameGateway = true,
+                lastOutcomeVerified = false,
+                lastCheckAgeMs = cooldown,
+                cooldownMs = cooldown,
+            ),
+        )
+        assertFalse(
+            HotspotGatewayPolicy.shouldSkipCapabilityCheck(
+                wasTracked = true,
+                sameGateway = true,
+                lastOutcomeVerified = false,
+                lastCheckAgeMs = -1L,
+                cooldownMs = cooldown,
+            ),
+        )
+    }
 }

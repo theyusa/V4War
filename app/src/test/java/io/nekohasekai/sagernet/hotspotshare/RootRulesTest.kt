@@ -89,6 +89,7 @@ class RootRulesTest {
 
         assertTrue(cmds.any { it.contains("ip rule del pref 10099") })
         assertTrue(cmds.any { it.contains("ip rule del pref 10100") })
+        assertTrue(cmds.any { it.contains("ip -6 rule del pref 10100") })
         assertTrue(cmds.any { it.contains("iptables -t nat -X throne_nat") })
         assertTrue(cmds.any { it.contains("ip6tables -X throne_fwd6") })
     }
@@ -97,8 +98,11 @@ class RootRulesTest {
     fun buildBlockTrafficCommands_configuresFailClosedDrop() {
         val cmds = RootRules.buildBlockTrafficCommands(listOf("ap0"))
 
-        // Must delete vpn policy routing
+        // Must delete vpn policy routing and install IPv4 + IPv6 kernel blackhole rules
         assertTrue(cmds.any { it.contains("ip rule del pref 10100") })
+        assertTrue(cmds.any { it.contains("ip -6 rule del pref 10100") })
+        assertTrue(cmds.any { it.contains("ip rule add from all iif ap0 blackhole pref 10100") })
+        assertTrue(cmds.any { it.contains("ip -6 rule add from all iif ap0 blackhole pref 10100") })
         // Must clear nat
         assertTrue(cmds.any { it.contains("iptables -t nat -X throne_nat") || it.contains("iptables -t nat -F throne_nat") })
         // Must insert DROP on ap0 in FORWARD and FORWARD_V6

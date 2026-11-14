@@ -2,6 +2,7 @@ package io.nekohasekai.sagernet.utils.toolbox
 
 import android.net.ConnectivityManager
 import android.net.Network
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
@@ -181,7 +182,7 @@ object LocalPingEngine {
         }
     }
 
-    private fun probeIcmp(
+    private suspend fun probeIcmp(
         seq: Int,
         address: InetAddress,
         timeoutMs: Int,
@@ -207,14 +208,22 @@ object LocalPingEngine {
                     add(hostIp)
                 }
                 val proc = ProcessBuilder(cmd).redirectErrorStream(true).start()
-                val text = proc.inputStream.bufferedReader().readText()
-                val exit = proc.waitFor()
-                val parsed = parseSystemPingTimeMs(text)
-                if (exit == 0 && parsed != null) {
-                    PingSample(seq, true, parsed, hostIp)
-                } else {
-                    null
+                try {
+                    withImmediateCancel(onCancel = { proc.destroyForcibly() }) {
+                        val text = proc.inputStream.bufferedReader().use { it.readText() }
+                        val exit = proc.waitFor()
+                        val parsed = parseSystemPingTimeMs(text)
+                        if (exit == 0 && parsed != null) {
+                            PingSample(seq, true, parsed, hostIp)
+                        } else {
+                            null
+                        }
+                    }
+                } finally {
+                    if (proc.isAlive) proc.destroyForcibly()
                 }
+            }.onFailure {
+                if (it is CancellationException) throw it
             }.getOrNull()
             if (cmdRes != null) return cmdRes
         }

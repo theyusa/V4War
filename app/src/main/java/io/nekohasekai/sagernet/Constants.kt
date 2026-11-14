@@ -109,6 +109,9 @@ object Action {
     /** Hotspot share backend state changed in [io.nekohasekai.sagernet.hotspotshare.HotspotShareStateStore]. */
     const val HOTSPOT_SHARE_STATE = "io.nekohasekai.sagernet.HOTSPOT_SHARE_STATE"
 
+    /** Hotspot & Proxy diagnostic logs updated or cleared. */
+    const val HOTSPOT_SHARE_LOGS_UPDATED = "io.nekohasekai.sagernet.HOTSPOT_SHARE_LOGS_UPDATED"
+
     /** The auto-selector [EXTRA_PROFILE_ID] goes back to automatic in the running core. */
     const val AUTO_SELECTOR_AUTOMATIC = "io.nekohasekai.sagernet.AUTO_SELECTOR_AUTOMATIC"
     const val EXTRA_PROFILE_ID = "profileId"

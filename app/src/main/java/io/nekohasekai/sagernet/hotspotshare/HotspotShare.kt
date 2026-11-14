@@ -15,3 +15,23 @@ interface HotspotShare {
     /** Tears everything down (idempotent) and ends in [ShareState.Off]. */
     suspend fun stop()
 }
+
+/**
+ * Backend capable of pausing fail-closed on VPN drop without tearing down the hotspot
+ * and resuming cleanly once VPN reconnects.
+ */
+interface PausableHotspotShare : HotspotShare {
+    /** Enters zero-leak paused state without turning off the hotspot. */
+    suspend fun pauseForVpnDrop()
+
+    /** Resumes active sharing from the paused state once VPN is connected again. */
+    suspend fun resumeAfterVpnDrop(): Boolean
+}
+
+/**
+ * Backend capable of stopping the physical Wi-Fi hotspot when explicitly turned off by the user.
+ * Internal errors, crashes, VPN drops, and restarts must call [HotspotShare.stop] without closing hotspot.
+ */
+interface HotspotControllingBackend : HotspotShare {
+    suspend fun stopHotspotByUser()
+}

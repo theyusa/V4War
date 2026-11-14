@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Handler
 import io.nekohasekai.sagernet.hotspotshare.root.ShellExecutor
 import io.nekohasekai.sagernet.hotspotshare.root.ShellResult
 import kotlinx.coroutines.runBlocking
@@ -16,9 +17,42 @@ import org.junit.Test
 class RootBackendTest {
 
     private class FakeContext : ContextWrapper(null) {
+        val registeredReceivers = mutableListOf<BroadcastReceiver>()
         override fun getSystemService(name: String): Any? = null
-        override fun registerReceiver(receiver: BroadcastReceiver?, filter: IntentFilter?): Intent? = null
-        override fun unregisterReceiver(receiver: BroadcastReceiver?) {}
+        override fun registerReceiver(receiver: BroadcastReceiver?, filter: IntentFilter?): Intent? {
+            if (receiver != null) registeredReceivers += receiver
+            return null
+        }
+
+        override fun registerReceiver(receiver: BroadcastReceiver?, filter: IntentFilter?, flags: Int): Intent? {
+            if (receiver != null) registeredReceivers += receiver
+            return null
+        }
+
+        override fun registerReceiver(
+            receiver: BroadcastReceiver?,
+            filter: IntentFilter?,
+            broadcastPermission: String?,
+            scheduler: Handler?,
+        ): Intent? {
+            if (receiver != null) registeredReceivers += receiver
+            return null
+        }
+
+        override fun registerReceiver(
+            receiver: BroadcastReceiver?,
+            filter: IntentFilter?,
+            broadcastPermission: String?,
+            scheduler: Handler?,
+            flags: Int,
+        ): Intent? {
+            if (receiver != null) registeredReceivers += receiver
+            return null
+        }
+
+        override fun unregisterReceiver(receiver: BroadcastReceiver?) {
+            if (receiver != null) registeredReceivers -= receiver
+        }
     }
 
     private class FakeShellExecutor : ShellExecutor {
@@ -147,5 +181,48 @@ class RootBackendTest {
         // Explicit legacy cleanup strips the armed DROP rules when user turns sharing off
         RootBackend.cleanupLegacyRules(fakeExecutor)
         assertTrue(fakeExecutor.executedCommands.any { it.contains("iptables -X throne_fwd") })
+    }
+
+    @Test
+    fun failClosed_blockTrafficKeepsTetherReceiverUntilStop() = runBlocking {
+        val fakeContext = FakeContext()
+        val fakeExecutor = FakeShellExecutor()
+        val backend = RootBackend(
+            fakeContext,
+            shellExecutor = fakeExecutor,
+            failClosedAction = { FailClosedAction.BLOCK_TRAFFIC },
+        )
+
+        backend.start()
+        assertEquals(1, fakeContext.registeredReceivers.size)
+
+        runCatching { backend.handleVpnDropped(FailClosedAction.BLOCK_TRAFFIC) }
+        assertEquals(ShareState.Stopped(ShareFailure.VPN_LOST), backend.state.value)
+        // Receiver must stay registered during paused VPN drop so tether loss is still observed.
+        assertEquals(1, fakeContext.registeredReceivers.size)
+
+        backend.stop()
+        assertTrue(fakeContext.registeredReceivers.isEmpty())
+    }
+
+    @Test
+    fun failClosed_stopHotspotTearsDownAndStopsHotspotOnPause() = runBlocking {
+        val fakeContext = FakeContext()
+        val fakeExecutor = FakeShellExecutor()
+        val backend = RootBackend(
+            fakeContext,
+            shellExecutor = fakeExecutor,
+            failClosedAction = { FailClosedAction.STOP_HOTSPOT },
+        )
+
+        backend.start()
+        assertTrue(backend.state.value is ShareState.Active)
+        fakeExecutor.executedCommands.clear()
+
+        backend.pauseForVpnDrop()
+        assertEquals(ShareState.Stopped(ShareFailure.VPN_LOST), backend.state.value)
+        assertTrue(fakeExecutor.executedCommands.any { it.contains("iptables -X throne_fwd") })
+        assertTrue(fakeExecutor.executedCommands.any { it.contains("stop-softap") || it.contains("disable-hotspot") })
+        assertFalse(backend.resumeAfterVpnDrop())
     }
 }

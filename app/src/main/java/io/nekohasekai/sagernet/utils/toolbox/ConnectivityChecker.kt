@@ -7,10 +7,13 @@ import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.appUserAgent
 import io.nekohasekai.sagernet.ktx.newHttpClient
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.sync.Semaphore
@@ -141,34 +144,36 @@ object ConnectivityChecker {
         }
     }
 
-    private fun probeCfTrace(spec: ServiceProbeSpec, client: OkHttpClient, startNs: Long): ServiceProbeResult {
-        return runCatching {
+    private suspend fun probeCfTrace(spec: ServiceProbeSpec, client: OkHttpClient, startNs: Long): ServiceProbeResult {
+        return try {
             val req = Request.Builder().url(spec.url).header("User-Agent", appUserAgent()).build()
-            client.newCall(req).execute().use { resp ->
+            client.newCall(req).executeCancellable { resp ->
                 val rtt = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
                 val body = resp.body?.string().orEmpty()
                 val loc = parseTraceLoc(body)
-                if (!resp.isSuccessful) {
-                    return ServiceProbeResult(spec, ConnectivityStatus.BLOCKED, loc, rtt, "HTTP ${resp.code}")
+                when {
+                    !resp.isSuccessful -> ServiceProbeResult(spec, ConnectivityStatus.BLOCKED, loc, rtt, "HTTP ${resp.code}")
+                    loc.isNotBlank() && spec.restrictedRegions.contains(loc.uppercase()) ->
+                        ServiceProbeResult(spec, ConnectivityStatus.PARTIAL, loc, rtt, "Region restricted ($loc)")
+                    else -> ServiceProbeResult(spec, ConnectivityStatus.AVAILABLE, loc, rtt, "HTTP ${resp.code}")
                 }
-                if (loc.isNotBlank() && spec.restrictedRegions.contains(loc.uppercase())) {
-                    return ServiceProbeResult(spec, ConnectivityStatus.PARTIAL, loc, rtt, "Region restricted ($loc)")
-                }
-                ServiceProbeResult(spec, ConnectivityStatus.AVAILABLE, loc, rtt, "HTTP ${resp.code}")
             }
-        }.getOrElse { e ->
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            currentCoroutineContext().ensureActive()
             val rtt = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
             ServiceProbeResult(spec, ConnectivityStatus.ERROR, "", rtt, e.message ?: "Connection failed")
         }
     }
 
-    private fun probeHttpGet(spec: ServiceProbeSpec, client: OkHttpClient, startNs: Long): ServiceProbeResult {
-        return runCatching {
+    private suspend fun probeHttpGet(spec: ServiceProbeSpec, client: OkHttpClient, startNs: Long): ServiceProbeResult {
+        return try {
             val req = Request.Builder()
                 .url(spec.url)
                 .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/128.0 Mobile Safari/537.36")
                 .build()
-            client.newCall(req).execute().use { resp ->
+            client.newCall(req).executeCancellable { resp ->
                 val rtt = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
                 val code = resp.code
                 val finalUrl = resp.request.url.toString()
@@ -194,52 +199,61 @@ object ConnectivityChecker {
                 } else if (finalUrl.contains("unsupportedcountry", ignoreCase = true) ||
                     body.contains("not available in your country", ignoreCase = true)
                 ) {
-                    return ServiceProbeResult(spec, ConnectivityStatus.PARTIAL, region, rtt, "Region restricted")
+                    return@executeCancellable ServiceProbeResult(spec, ConnectivityStatus.PARTIAL, region, rtt, "Region restricted")
                 }
 
                 ServiceProbeResult(spec, status, region, rtt, "HTTP $code")
             }
-        }.getOrElse { e ->
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            currentCoroutineContext().ensureActive()
             val rtt = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
             ServiceProbeResult(spec, ConnectivityStatus.ERROR, "", rtt, e.message ?: "Connection failed")
         }
     }
 
-    private fun probeNetflix(spec: ServiceProbeSpec, client: OkHttpClient, startNs: Long): ServiceProbeResult {
-        return runCatching {
+    private suspend fun probeNetflix(spec: ServiceProbeSpec, client: OkHttpClient, startNs: Long): ServiceProbeResult {
+        return try {
             val req = Request.Builder()
                 .url(spec.url)
                 .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/128.0 Mobile Safari/537.36")
                 .build()
-            client.newCall(req).execute().use { resp ->
+            val firstOutcome = client.newCall(req).executeCancellable { resp ->
                 val rtt = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
                 val finalPath = resp.request.url.encodedPath
                 val region = Regex("""^/([a-z]{2})(?:-[a-z]{2})?/""", RegexOption.IGNORE_CASE)
                     .find(finalPath)?.groupValues?.getOrNull(1)?.uppercase().orEmpty()
-                if (resp.code == 200) {
-                    return ServiceProbeResult(spec, ConnectivityStatus.AVAILABLE, region, rtt, "Full Library")
-                }
-                val secUrl = spec.secondaryUrl ?: return ServiceProbeResult(spec, ConnectivityStatus.BLOCKED, region, rtt, "HTTP ${resp.code}")
-                val secReq = Request.Builder()
-                    .url(secUrl)
-                    .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/128.0 Mobile Safari/537.36")
-                    .build()
-                client.newCall(secReq).execute().use { secResp ->
-                    val rtt2 = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
-                    if (secResp.code == 200) {
-                        ServiceProbeResult(spec, ConnectivityStatus.PARTIAL, region, rtt2, "Originals Only")
-                    } else {
-                        ServiceProbeResult(spec, ConnectivityStatus.BLOCKED, region, rtt2, "Blocked (HTTP ${secResp.code})")
-                    }
+                when {
+                    resp.code == 200 -> ServiceProbeResult(spec, ConnectivityStatus.AVAILABLE, region, rtt, "Full Library") to region
+                    spec.secondaryUrl == null -> ServiceProbeResult(spec, ConnectivityStatus.BLOCKED, region, rtt, "HTTP ${resp.code}") to region
+                    else -> null to region
                 }
             }
-        }.getOrElse { e ->
+            firstOutcome.first?.let { return it }
+            val region = firstOutcome.second
+            val secReq = Request.Builder()
+                .url(spec.secondaryUrl!!)
+                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/128.0 Mobile Safari/537.36")
+                .build()
+            client.newCall(secReq).executeCancellable { secResp ->
+                val rtt2 = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
+                if (secResp.code == 200) {
+                    ServiceProbeResult(spec, ConnectivityStatus.PARTIAL, region, rtt2, "Originals Only")
+                } else {
+                    ServiceProbeResult(spec, ConnectivityStatus.BLOCKED, region, rtt2, "Blocked (HTTP ${secResp.code})")
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            currentCoroutineContext().ensureActive()
             val rtt = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
             ServiceProbeResult(spec, ConnectivityStatus.ERROR, "", rtt, e.message ?: "Connection failed")
         }
     }
 
-    private fun probeTelegram(
+    private suspend fun probeTelegram(
         spec: ServiceProbeSpec,
         client: OkHttpClient,
         viaProxy: Boolean,
@@ -250,16 +264,21 @@ object ConnectivityChecker {
         if (httpRes.status == ConnectivityStatus.AVAILABLE) return httpRes
         val tcpHost = spec.tcpHost ?: return httpRes
         if (!viaProxy || !DataStore.serviceState.connected) {
-            runCatching {
-                val resolved = physical?.getAllByName(tcpHost)?.firstOrNull()
-                val socket = physical?.socketFactory?.createSocket() ?: Socket()
-                socket.use { s ->
-                    val target = if (resolved != null) InetSocketAddress(resolved, spec.tcpPort)
-                    else InetSocketAddress(tcpHost, spec.tcpPort)
-                    s.connect(target, 4000)
+            try {
+                (physical?.socketFactory?.createSocket() ?: Socket()).use { socket ->
+                    withImmediateCancel(onCancel = { socket.close() }) {
+                        val resolved = physical?.getAllByName(tcpHost)?.firstOrNull()
+                        val target = if (resolved != null) InetSocketAddress(resolved, spec.tcpPort)
+                        else InetSocketAddress(tcpHost, spec.tcpPort)
+                        socket.connect(target, 4000)
+                    }
                 }
                 val rtt = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
                 return ServiceProbeResult(spec, ConnectivityStatus.AVAILABLE, "", rtt, "DC TCP reachable")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Throwable) {
+                currentCoroutineContext().ensureActive()
             }
         }
         return httpRes

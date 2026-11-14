@@ -17,8 +17,10 @@ import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.app
 import io.nekohasekai.sagernet.utils.DefaultNetworkListener
+import io.nekohasekai.sagernet.utils.DefaultNetworkMonitor
 import io.nekohasekai.sagernet.utils.PackageCache
 import io.nekohasekai.sagernet.utils.WifiStateAccess
+import go.Seq
 import io.throneproj.mobile.ConnectionOwner
 import io.throneproj.mobile.InterfaceUpdateListener
 import io.throneproj.mobile.LocalDNSTransport
@@ -38,7 +40,11 @@ import java.util.Collections
 import io.throneproj.mobile.NetworkInterface as CoreNetworkInterface
 import io.throneproj.mobile.Notification as CoreNotification
 
-class NativeInterface : PlatformInterface {
+class NativeInterface internal constructor(
+    private val networkMonitor: DefaultNetworkMonitor,
+) : PlatformInterface {
+
+    constructor() : this(DefaultNetworkListener)
 
     override fun localDNSTransport(): LocalDNSTransport? = try {
         LocalResolverImpl
@@ -91,16 +97,43 @@ class NativeInterface : PlatformInterface {
         return PackageCache.snapshot().packagesOf(uid)
     }
 
-    private fun monitorKey(listener: InterfaceUpdateListener): Any {
-        val ref = runCatching { listener.javaClass.getField("refnum").getInt(listener) }.getOrNull()
-        return if (ref != null) "go-iface:$ref" else listener
+    internal fun monitorKey(listener: InterfaceUpdateListener): Any {
+        if (listener is Seq.Proxy) {
+            extractProxyRefnum(listener)?.let { return "go-iface:$it" }
+        }
+        return IdentityKey(listener)
+    }
+
+    private class IdentityKey(val ref: Any) {
+        override fun equals(other: Any?): Boolean = other is IdentityKey && ref === other.ref
+        override fun hashCode(): Int = System.identityHashCode(ref)
+    }
+
+    // Read gomobile's package-private proxy `refnum` without calling `incRefnum()` (which bumps Go refcounts).
+    private fun extractProxyRefnum(proxy: Any): Int? {
+        var cls: Class<*>? = proxy.javaClass
+        while (cls != null && cls != Any::class.java) {
+            try {
+                val field = cls.getDeclaredField("refnum")
+                field.isAccessible = true
+                return field.getInt(proxy)
+            } catch (_: NoSuchFieldException) {
+                cls = cls.superclass
+            } catch (_: Throwable) {
+                return null
+            }
+        }
+        return null
     }
 
     // Registered synchronously so DefaultInterface() is populated before the box's first dial.
     override fun startDefaultInterfaceMonitor(listener: InterfaceUpdateListener) {
         val key = monitorKey(listener)
+        synchronized(ifaceReportStates) {
+            ifaceReportStates.remove(key)
+        }
         runBlocking {
-            DefaultNetworkListener.start(key) { network ->
+            networkMonitor.start(key) { network ->
                 checkDefaultInterfaceUpdate(key, listener, network)
             }
         }
@@ -108,11 +141,14 @@ class NativeInterface : PlatformInterface {
 
     override fun closeDefaultInterfaceMonitor(listener: InterfaceUpdateListener) {
         val key = monitorKey(listener)
-        runBlocking {
-            DefaultNetworkListener.stop(key)
-        }
-        synchronized(ifaceReportStates) {
-            ifaceReportStates.remove(key)
+        try {
+            runBlocking {
+                networkMonitor.stop(key)
+            }
+        } finally {
+            synchronized(ifaceReportStates) {
+                ifaceReportStates.remove(key)
+            }
         }
     }
 
@@ -138,6 +174,15 @@ class NativeInterface : PlatformInterface {
             ifaceReportStates.getOrPut(key) { IfaceReportState() }
         }
 
+    internal fun touchReportStateForTest(listener: InterfaceUpdateListener) {
+        reportState(monitorKey(listener))
+    }
+
+    internal fun reportStateCountForTest(): Int = synchronized(ifaceReportStates) { ifaceReportStates.size }
+
+    internal fun hasReportStateForTest(listener: InterfaceUpdateListener): Boolean =
+        synchronized(ifaceReportStates) { ifaceReportStates.containsKey(monitorKey(listener)) }
+
     private fun clearInterface(listener: InterfaceUpdateListener, state: IfaceReportState) {
         state.name = null
         state.index = Int.MIN_VALUE
@@ -159,9 +204,17 @@ class NativeInterface : PlatformInterface {
                 Thread.sleep(100)
                 return@repeat
             }
+            val interfaceName = linkProperties.interfaceName
+            if (interfaceName.isNullOrEmpty()) {
+                Thread.sleep(100)
+                return@repeat
+            }
             val interfaceIndex = try {
-                NetworkInterface.getByName(linkProperties.interfaceName).index
+                NetworkInterface.getByName(interfaceName)?.index
             } catch (e: Exception) {
+                null
+            }
+            if (interfaceIndex == null) {
                 Thread.sleep(100)
                 return@repeat
             }
