@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
+import android.os.Build
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.SettingsRegistry
 import okhttp3.OkHttpClient
@@ -30,6 +31,16 @@ data class LanSharingIface(
     val loopback: Boolean,
     val ipv4: List<LanSharingAddress>,
 )
+
+/**
+ * Channel category of a downstream tethered interface.
+ */
+enum class TetherKind {
+    WIFI,
+    USB,
+    BLUETOOTH,
+    OTHER,
+}
 
 /**
  * A detected hotspot interface: its name, the IPv4 gateway address clients reach this phone on and,
@@ -92,17 +103,32 @@ object LanSharingNetwork {
             n == "lo"
     }
 
-    fun isHotspotInterfaceName(name: String): Boolean {
-        if (isCellularOrVirtualInterface(name)) return false
-        val n = name.lowercase()
-        return n.startsWith("ap") ||
-            n == "wlan1" ||
-            n.startsWith("swlan") ||
-            n.startsWith("softap") ||
-            n.startsWith("wigig") ||
-            n.contains("hotspot") ||
-            n.contains("rndis")
+    /**
+     * Classifies a downstream tether/hotspot interface name into [TetherKind].
+     * Normal Wi-Fi STA (`wlan0`) and cellular/virtual interfaces return [TetherKind.OTHER].
+     */
+    fun getTetherKindForInterface(iface: String): TetherKind {
+        val n = iface.trim().lowercase()
+        if (n.isEmpty() || isCellularOrVirtualInterface(n)) return TetherKind.OTHER
+        return when {
+            n.startsWith("rndis") || n.contains("rndis") || n.startsWith("usb") || n.startsWith("ncm") ->
+                TetherKind.USB
+            n.startsWith("bt-pan") || n.startsWith("bnep") ->
+                TetherKind.BLUETOOTH
+            n.startsWith("ap") ||
+                (n.startsWith("wlan") && (n.removePrefix("wlan").toIntOrNull() ?: 0) >= 1) ||
+                n.startsWith("swlan") ||
+                n.startsWith("softap") ||
+                n.startsWith("wigig") ||
+                n.startsWith("wifi") ||
+                n.contains("hotspot") ->
+                TetherKind.WIFI
+            else -> TetherKind.OTHER
+        }
     }
+
+    fun isHotspotInterfaceName(name: String): Boolean =
+        getTetherKindForInterface(name) != TetherKind.OTHER
 
     /**
      * RFC 1918 private IPv4 (10/8, 172.16/12, 192.168/16). The hotspot gateway side always lives in
@@ -131,27 +157,57 @@ object LanSharingNetwork {
             !ip.startsWith("192.0.2.")
     }
 
-    fun isHotspotActive(context: Context): Boolean {
-        val appCtx = context.applicationContext
+    /**
+     * Returns active tethering channels ([TetherKind.WIFI], [TetherKind.USB], [TetherKind.BLUETOOTH])
+     * by inspecting Wi-Fi AP state, `getTetheredIfaces`, and active non-upstream [NetworkInterface]s.
+     */
+    fun getActiveTetherKinds(context: Context): Set<TetherKind> {
+        val appCtx = context.applicationContext ?: context
+        val kinds = linkedSetOf<TetherKind>()
+
         val wifiManager = appCtx.getSystemService(Context.WIFI_SERVICE) as? WifiManager
         val apEnabled = runCatching {
             val method = wifiManager?.javaClass?.getDeclaredMethod("isWifiApEnabled")
             method?.isAccessible = true
             method?.invoke(wifiManager) as? Boolean
         }.getOrNull()
-        if (apEnabled == true) return true
-
         val apState = runCatching {
             val method = wifiManager?.javaClass?.getDeclaredMethod("getWifiApState")
             method?.isAccessible = true
             method?.invoke(wifiManager) as? Int
         }.getOrNull()
-        if (apState == 12 || apState == 13) return true
+        if (apEnabled == true || apState == 12 || apState == 13) {
+            kinds += TetherKind.WIFI
+        }
 
         val cm = appCtx.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-        val tethered = getTetheredIfaces(cm)
-        if (tethered.isNotEmpty()) return true
+        for (iface in collectAllTetheredIfaces(appCtx, cm)) {
+            val lower = iface.trim().lowercase()
+            val kind = if (lower.startsWith("wlan")) TetherKind.WIFI else getTetherKindForInterface(iface)
+            if (kind != TetherKind.OTHER) {
+                kinds += kind
+            }
+        }
 
+        val knownIfaces = collectKnownNetworkIfaces(cm)
+        runCatching {
+            NetworkInterface.getNetworkInterfaces()?.toList().orEmpty().forEach { nif ->
+                val isUp = runCatching { nif.isUp }.getOrDefault(false)
+                val isLoopback = runCatching { nif.isLoopback }.getOrDefault(false)
+                if (!isUp || isLoopback) return@forEach
+                if (nif.name.lowercase() in knownIfaces) return@forEach
+                val kind = getTetherKindForInterface(nif.name)
+                if (kind != TetherKind.OTHER) {
+                    kinds += kind
+                }
+            }
+        }
+
+        return kinds
+    }
+
+    fun isHotspotActive(context: Context): Boolean {
+        if (getActiveTetherKinds(context).isNotEmpty()) return true
         return findHotspotIp(context) != null
     }
 
@@ -161,6 +217,47 @@ object LanSharingNetwork {
         (method?.invoke(cm) as? Array<*>)?.filterIsInstance<String>().orEmpty()
     }.getOrDefault(emptyList())
 
+    /**
+     * Returns true when the OS explicitly reports an active USB tethered interface
+     * in TetheredState via TetheringManager/ConnectivityManager.
+     */
+    fun isUsbTetheringConfirmedInOs(context: Context): Boolean {
+        val appCtx = context.applicationContext ?: context
+        val cm = appCtx.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        return collectAllTetheredIfaces(appCtx, cm)
+            .any { getTetherKindForInterface(it) == TetherKind.USB }
+    }
+
+    /**
+     * Returns true when an active tethered USB interface uses the NCM protocol (`ncm*`).
+     */
+    fun hasActiveNcmTetheredIface(context: Context): Boolean {
+        val appCtx = context.applicationContext ?: context
+        val cm = appCtx.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        return collectAllTetheredIfaces(appCtx, cm)
+            .any { it.trim().lowercase().startsWith("ncm") }
+    }
+
+    private fun collectAllTetheredIfaces(appCtx: Context, cm: ConnectivityManager?): List<String> {
+        val tethered = linkedSetOf<String>()
+        tethered += getTetheredIfaces(cm)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            runCatching {
+                val tm = appCtx.getSystemService("tethering")
+                val method = tm?.javaClass?.getMethod("getTetheredIfaces")
+                (method?.invoke(tm) as? Array<*>)?.filterIsInstance<String>()?.forEach { tethered += it }
+            }
+        }
+        return tethered.toList()
+    }
+
+    private fun collectKnownNetworkIfaces(cm: ConnectivityManager?): Set<String> = runCatching {
+        cm?.allNetworks?.toList().orEmpty()
+            .mapNotNull { network -> cm?.getLinkProperties(network)?.interfaceName }
+            .map { it.lowercase() }
+            .toSet()
+    }.getOrDefault(emptySet())
+
     fun findHotspotIp(context: Context): String? = findHotspotCandidates(context).firstOrNull()?.ip
 
     /**
@@ -168,19 +265,14 @@ object LanSharingNetwork {
      * [hotspotCandidates]; the Android layer only collects the input snapshots.
      */
     fun findHotspotCandidates(context: Context): List<HotspotCandidate> {
-        val appCtx = context.applicationContext
+        val appCtx = context.applicationContext ?: context
         val cm = appCtx.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
 
-        val tetheredIfaces = getTetheredIfaces(cm)
+        val tetheredIfaces = collectAllTetheredIfaces(appCtx, cm)
 
         // Every interface ConnectivityManager itself knows about (Wi-Fi client, cellular, VPN,
         // Ethernet): they belong to other networks and are never the hotspot side.
-        val knownIfaces = runCatching {
-            cm?.allNetworks?.toList().orEmpty()
-                .mapNotNull { network -> cm?.getLinkProperties(network)?.interfaceName }
-                .map { it.lowercase() }
-                .toSet()
-        }.getOrDefault(emptySet())
+        val knownIfaces = collectKnownNetworkIfaces(cm)
 
         val interfaces = runCatching {
             NetworkInterface.getNetworkInterfaces()?.toList().orEmpty()
@@ -211,8 +303,9 @@ object LanSharingNetwork {
      * an interface ConnectivityManager lists for its own networks ([knownIfaces]) — the Wi-Fi
      * client, cellular and VPN sides — and when it carries a private IPv4 ([isPrivateIpv4]) that is
      * not the Wi-Fi client address. Interfaces that are explicitly tethered (getTetheredIfaces)
-     * lead the result; then the remaining interfaces follow in OS order. No IP pattern and no
-     * default address is ever guessed.
+     * lead the result, followed by recognized tethering interfaces (`ap*`, `swlan*`, `softap*`,
+     * `wlan1+`, `rndis*`, `usb*`, `ncm*`, `bt-pan*`, `bnep*`), and then remaining interfaces in OS
+     * order. No IP pattern and no default address is ever guessed.
      */
     fun hotspotCandidates(
         interfaces: List<LanSharingIface>,
@@ -237,6 +330,7 @@ object LanSharingNetwork {
             picked[key] = HotspotCandidate(iface.name, address.ip, address.prefixLength)
         }
         interfaces.filter { it.name.lowercase() in tethered }.forEach(::consider)
+        interfaces.filter { isHotspotInterfaceName(it.name) }.forEach(::consider)
         interfaces.forEach(::consider)
         return picked.values.toList()
     }

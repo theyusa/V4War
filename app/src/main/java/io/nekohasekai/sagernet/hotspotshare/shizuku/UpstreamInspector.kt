@@ -1,6 +1,7 @@
 package io.nekohasekai.sagernet.hotspotshare.shizuku
 
 import io.nekohasekai.sagernet.utils.LanSharingNetwork
+import io.nekohasekai.sagernet.utils.TetherKind
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStream
@@ -261,13 +262,63 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
         )
 
         private val INTERFACE_PATTERN =
-            Regex("""\b(testtun\d+|v4-[a-z0-9_]+|wlan\d+|rmnet[a-z_]*\d*|ccmni[a-z_]*\d*|eth\d+|ap\d+|swlan\d+|softap\d*|rndis\d*|usb\d+)\b""")
+            Regex("""\b(testtun\d+|v4-[a-z0-9_]+|wlan\d+|rmnet[a-z_]*\d*|ccmni[a-z_]*\d*|eth\d+|ap\d+|swlan\d+|softap\d*|rndis\d*|usb\d+|ncm\d*|bt-pan\d*|bnep\d*)\b""")
 
         private val TETHERED_STATE_PATTERN =
             Regex("""^\s*([\w.-]+)\s+-\s+TetheredState(?:\s+-|\b)""")
 
+        private val AVAILABLE_STATE_ERROR_PATTERN =
+            Regex("""^\s*([\w.-]+)\s+-\s+AvailableState\s+-\s+lastError\s*=\s*(\d+)""")
+
+        private val PAN_TETHER_ON_PATTERN =
+            Regex("""Profile:\s*PanService[\s\S]{0,800}?mTetherOn:\s*(true|false)""", RegexOption.IGNORE_CASE)
+
+        private val BLUETOOTH_ENABLED_PATTERN =
+            Regex("""^\s*enabled:\s*(true|false)\b""", setOf(RegexOption.MULTILINE, RegexOption.IGNORE_CASE))
+
         private val CONNECTED_CLIENTS_PATTERN =
             Regex("""getConnectedClientList\(\)\.size\(\):\s*(\d+)""")
+
+        /**
+         * Classifies a tethering interface name as `"WIFI"`, `"USB"`, `"BLUETOOTH"`, or `"OTHER"`.
+         */
+        @JvmStatic
+        fun classifyDownstreamType(iface: String): String =
+            when (LanSharingNetwork.getTetherKindForInterface(iface)) {
+                TetherKind.WIFI -> "WIFI"
+                TetherKind.USB -> "USB"
+                TetherKind.BLUETOOTH -> "BLUETOOTH"
+                TetherKind.OTHER -> "OTHER"
+            }
+
+        /**
+         * Detects active tether channel types among `"WIFI"`, `"USB"`, `"BLUETOOTH"`
+         * from both `dumpsys tethering` downstreams and active OS network interface names.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun detectActiveTetherTypes(
+            dumpsysOutput: String?,
+            networkInterfaces: List<String> = emptyList(),
+        ): Set<String> {
+            val types = linkedSetOf<String>()
+            if (!dumpsysOutput.isNullOrBlank()) {
+                for (iface in parseTetheredDownstreams(dumpsysOutput)) {
+                    val lower = iface.trim().lowercase()
+                    val classified = if (lower.startsWith("wlan")) "WIFI" else classifyDownstreamType(iface)
+                    if (classified != "OTHER") {
+                        types += classified
+                    }
+                }
+            }
+            for (iface in networkInterfaces) {
+                val classified = classifyDownstreamType(iface)
+                if (classified != "OTHER") {
+                    types += classified
+                }
+            }
+            return types
+        }
 
         @JvmStatic
         fun parseUpstreamInterfaces(output: String): List<String> {
@@ -287,6 +338,43 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
                 .mapNotNull { line -> TETHERED_STATE_PATTERN.find(line)?.groupValues?.get(1) }
                 .distinct()
                 .toList()
+        }
+
+        /**
+         * Parses `<iface> - AvailableState - lastError = <code>` entries from `dumpsys tethering`.
+         */
+        @JvmStatic
+        fun parseAvailableDownstreamErrors(output: String): Map<String, Int> {
+            val errors = linkedMapOf<String, Int>()
+            for (line in output.lineSequence()) {
+                val match = AVAILABLE_STATE_ERROR_PATTERN.find(line) ?: continue
+                val iface = match.groupValues[1]
+                val code = match.groupValues[2].toIntOrNull() ?: continue
+                errors[iface] = code
+            }
+            return errors
+        }
+
+        /**
+         * Parses `mTetherOn: true|false` inside `Profile: PanService` from `dumpsys bluetooth_manager`.
+         */
+        @JvmStatic
+        fun parseBluetoothPanTetherOn(dumpsysBtOutput: String?): Boolean? {
+            if (dumpsysBtOutput.isNullOrBlank()) return null
+            val value = PAN_TETHER_ON_PATTERN.find(dumpsysBtOutput)?.groupValues?.get(1)?.lowercase()
+                ?: return null
+            return value == "true"
+        }
+
+        /**
+         * Parses top-level `enabled: true|false` from `dumpsys bluetooth_manager`.
+         */
+        @JvmStatic
+        fun parseBluetoothEnabled(dumpsysBtOutput: String?): Boolean? {
+            if (dumpsysBtOutput.isNullOrBlank()) return null
+            val value = BLUETOOTH_ENABLED_PATTERN.find(dumpsysBtOutput)?.groupValues?.get(1)?.lowercase()
+                ?: return null
+            return value == "true"
         }
 
         @JvmStatic

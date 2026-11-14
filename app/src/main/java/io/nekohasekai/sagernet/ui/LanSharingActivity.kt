@@ -50,6 +50,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.tabs.TabLayout
 import android.widget.AdapterView
@@ -93,6 +94,7 @@ import io.nekohasekai.sagernet.utils.LanClientDevice
 import io.nekohasekai.sagernet.utils.LanSharingLogics
 import io.nekohasekai.sagernet.utils.LanSharingNetwork
 import io.nekohasekai.sagernet.utils.ShizukuTunnelTraffic
+import io.nekohasekai.sagernet.utils.TetherKind
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -148,8 +150,16 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
     }
 
     private var detectedHotspotCandidate: HotspotCandidate? = null
+    @Volatile
+    private var detectedHotspotCandidates: List<HotspotCandidate> = emptyList()
     private var detectedWifiIp: String? = null
     private var hotspotActive: Boolean = false
+    @Volatile
+    private var activeTetherKinds: Set<TetherKind> = emptySet()
+    @Volatile
+    private var activeTetherMask: Int = 0
+    private val clientInterfaceMap = ConcurrentHashMap<String, String>()
+    private var tetherToggleInFlight: Boolean = false
 
     @Volatile
     private var cachedShizukuRunning: Boolean = false
@@ -886,6 +896,14 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         }.onSuccess { netStateReceiver = receiver }
     }
 
+    private data class NetworkStateSnapshot(
+        val hotspotActive: Boolean,
+        val candidates: List<HotspotCandidate>,
+        val wifiIp: String?,
+        val tetherKinds: Set<TetherKind>,
+        val tetherMask: Int,
+    )
+
     private fun refreshNetworkAndState(forceRootCheck: Boolean = false) {
         if (forceRootCheck) pendingForceRootCheck = true
         refreshNetworkJob?.cancel()
@@ -894,11 +912,23 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             val prevRoot = cachedRootAvailable
             val checkRootNow = pendingForceRootCheck || !rootCheckedOnce
             val net = withContext(Dispatchers.IO) {
+                val reconciledStaleState = HotspotShareStateStore.reconcileIfServiceDead(
+                    TetherWatchService.isRunningOrStarting(),
+                )
                 cachedShizukuRunning = ShizukuBackend.isShizukuRunning()
                 cachedShizukuGranted = if (cachedShizukuRunning) {
                     ShizukuBackend.isShizukuGranted(this@LanSharingActivity)
                 } else {
                     false
+                }
+                if (reconciledStaleState) {
+                    HotspotShareLogger.warn(
+                        "HotspotShare",
+                        "Cleared stale Active/Starting share state because TetherWatchService was not running",
+                    )
+                    if (cachedShizukuRunning && cachedShizukuGranted) {
+                        ShizukuBackend.cleanupOrphanedServiceState(this@LanSharingActivity)
+                    }
                 }
                 cachedAdb5555Open = ShizukuWatchdog.isLocalAdbPortOpen()
                 cachedWatchdogFlagExists = runCatching {
@@ -909,20 +939,38 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                     rootCheckedOnce = true
                     pendingForceRootCheck = false
                 }
-                Triple(
-                    LanSharingNetwork.isHotspotActive(this@LanSharingActivity),
-                    LanSharingNetwork.findHotspotCandidates(this@LanSharingActivity),
-                    LanSharingNetwork.findWifiIp(this@LanSharingActivity),
+                val tetherKinds = runCatching {
+                    LanSharingNetwork.getActiveTetherKinds(this@LanSharingActivity)
+                }.getOrDefault(emptySet())
+                val tetherMask = if (cachedShizukuRunning && cachedShizukuGranted) {
+                    runCatching {
+                        ShizukuBackend.refreshActiveTetherMask(
+                            this@LanSharingActivity,
+                            force = forceRootCheck,
+                        )
+                    }.getOrDefault(0)
+                } else {
+                    0
+                }
+                NetworkStateSnapshot(
+                    hotspotActive = LanSharingNetwork.isHotspotActive(this@LanSharingActivity),
+                    candidates = LanSharingNetwork.findHotspotCandidates(this@LanSharingActivity),
+                    wifiIp = LanSharingNetwork.findWifiIp(this@LanSharingActivity),
+                    tetherKinds = tetherKinds,
+                    tetherMask = tetherMask,
                 )
             }
             if (isFinishing || isDestroyed) return@launch
             if (prevRoot != cachedRootAvailable) {
                 shareMethodAdapter?.notifyDataSetChanged()
             }
-            hotspotActive = net.first
+            hotspotActive = net.hotspotActive
+            detectedHotspotCandidates = net.candidates
             // Show the first candidate; all candidates are in the list for diagnostics.
-            detectedHotspotCandidate = net.second.firstOrNull()
-            detectedWifiIp = net.third
+            detectedHotspotCandidate = net.candidates.firstOrNull()
+            detectedWifiIp = net.wifiIp
+            activeTetherKinds = net.tetherKinds
+            activeTetherMask = net.tetherMask
             renderUiState()
         }
     }
@@ -1230,6 +1278,10 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         val clashReachable: Boolean,
         val shizukuRunning: Boolean,
         val lanProxyDisplay: LanSharingLogics.LanProxyTrafficDisplay? = null,
+        val tetherKinds: Set<TetherKind> = emptySet(),
+        val tetherMask: Int = 0,
+        val hotspotCandidates: List<HotspotCandidate> = emptyList(),
+        val clientInterfaces: Map<String, String> = emptyMap(),
     )
 
     private var hasRenderedDeviceList: Boolean = false
@@ -1237,6 +1289,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
     private suspend fun pollClientDevicesOnce(force: Boolean = false) {
         val now = System.currentTimeMillis()
         val pollResult = withContext(Dispatchers.IO) {
+            HotspotShareStateStore.reconcileIfServiceDead(TetherWatchService.isRunningOrStarting())
             val shareSnapshot = HotspotShareStateStore.snapshot()
             val shizukuRunning = ShizukuBackend.isShizukuRunning()
             cachedShizukuRunning = shizukuRunning
@@ -1244,6 +1297,14 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 ShizukuBackend.isShizukuGranted(this@LanSharingActivity)
             } else {
                 false
+            }
+            val tetherKinds = runCatching {
+                LanSharingNetwork.getActiveTetherKinds(this@LanSharingActivity)
+            }.getOrDefault(emptySet())
+            val tetherMask = if (shizukuRunning && cachedShizukuGranted) {
+                runCatching { ShizukuBackend.getActiveTetherMask(this@LanSharingActivity) }.getOrDefault(0)
+            } else {
+                0
             }
 
             val shouldPollDevices = force ||
@@ -1260,6 +1321,8 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                     clashReachable = false,
                     shizukuRunning = shizukuRunning,
                     lanProxyDisplay = null,
+                    tetherKinds = tetherKinds,
+                    tetherMask = tetherMask,
                 )
             }
 
@@ -1270,6 +1333,9 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 0
             }
 
+            val candidates = LanSharingNetwork.findHotspotCandidates(this@LanSharingActivity)
+                .ifEmpty { detectedHotspotCandidates }
+            val primaryCandidate = detectedHotspotCandidate ?: candidates.firstOrNull()
             val arp = LanSharingNetwork.readArp()
             val body = LanSharingNetwork.fetchConnections(
                 url = LanSharingNetwork.clashUrl(),
@@ -1300,7 +1366,10 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             }
             val activeRootMode = activeMethod == ShareMethod.ROOT
             val rootDump = if (activeRootMode) RootBackend.queryNeighborDump() else null
-            val hotspotIfaces = setOfNotNull(detectedHotspotCandidate?.interfaceName)
+            val hotspotIfaces = buildSet {
+                primaryCandidate?.interfaceName?.let(::add)
+                candidates.forEach { add(it.interfaceName) }
+            }
             val neighSnapshot = LanSharingNetwork.readPrivilegedNeighbors(
                 shizukuDump = shizukuDump,
                 rootDump = rootDump,
@@ -1317,22 +1386,38 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             }
             combinedHostnames.putAll(neighborHostnames)
 
-            val localIpSet = setOfNotNull(detectedHotspotCandidate?.ip, detectedWifiIp)
-            val hotspotIp = detectedHotspotCandidate?.ip
+            val localIpSet = buildSet {
+                detectedWifiIp?.let(::add)
+                primaryCandidate?.ip?.let(::add)
+                candidates.forEach { add(it.ip) }
+            }
+            val hotspotIp = primaryCandidate?.ip
+            val allCandidatePeerIps = (arp + neighSnapshot.allIps + tcpRemotes).distinct()
+            val extraTetherSubnetIps = allCandidatePeerIps.filter { ip ->
+                candidates.any { candidate ->
+                    LanSharingLogics.isSameSubnet(ip, candidate.ip, candidate.prefixLength)
+                }
+            }
             val result = LanSharingLogics.mergeDevices(
                 history = clientHistory.toMap(),
                 arpIps = (arp + neighSnapshot.allIps).distinct(),
                 clash = clashList,
                 hotspotIp = hotspotIp,
-                hotspotPrefix = detectedHotspotCandidate?.prefixLength,
+                hotspotPrefix = primaryCandidate?.prefixLength,
                 localIps = localIpSet,
                 nowMs = now,
                 activePeerIps = tcpRemotes.toSet() + neighSnapshot.activeIps,
-                hotspotHintIps = neighSnapshot.hotspotIps,
+                hotspotHintIps = neighSnapshot.hotspotIps + extraTetherSubnetIps,
                 shizukuTraffic = shizukuTraffic,
                 hostnames = combinedHostnames,
                 activeHotspotMethod = activeMethod,
                 lanProxyEnabled = DataStore.allowLanAccess,
+            )
+            val clientInterfaces = resolveClientInterfaces(
+                shizukuDump = shizukuDump,
+                rootDump = rootDump,
+                candidates = candidates,
+                clientIps = result.map { it.ip },
             )
             scheduleHostnameLookups(result)
             clientHistory.clear()
@@ -1359,9 +1444,25 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 clashReachable = body != null,
                 shizukuRunning = shizukuRunning,
                 lanProxyDisplay = lanProxyDisplay,
+                tetherKinds = tetherKinds,
+                tetherMask = tetherMask,
+                hotspotCandidates = candidates,
+                clientInterfaces = clientInterfaces,
             )
         }
         if (isFinishing || isDestroyed) return
+        activeTetherKinds = pollResult.tetherKinds
+        activeTetherMask = pollResult.tetherMask
+        if (pollResult.hotspotCandidates.isNotEmpty()) {
+            detectedHotspotCandidates = pollResult.hotspotCandidates
+            if (detectedHotspotCandidate == null) {
+                detectedHotspotCandidate = pollResult.hotspotCandidates.firstOrNull()
+            }
+        }
+        clientInterfaceMap.clear()
+        clientInterfaceMap.putAll(pollResult.clientInterfaces)
+        renderTetherChannelChips()
+
         lastLanProxyTrafficDisplay = pollResult.lanProxyDisplay
         renderLanProxyTrafficUi(pollResult.lanProxyDisplay)
 
@@ -1387,6 +1488,60 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         }
     }
 
+    private fun resolveClientInterfaces(
+        shizukuDump: String?,
+        rootDump: String?,
+        candidates: List<HotspotCandidate>,
+        clientIps: Collection<String>,
+    ): Map<String, String> {
+        val resolved = LinkedHashMap<String, String>()
+        fun recordIfBetter(rawIp: String, rawIface: String) {
+            val ip = LanSharingLogics.normalizeIp(rawIp)
+            val iface = rawIface.trim()
+            if (ip.isBlank() || iface.isEmpty()) return
+            val existing = resolved[ip]
+            if (existing == null) {
+                resolved[ip] = iface
+                return
+            }
+            val existingKind = LanSharingNetwork.getTetherKindForInterface(existing)
+            val newKind = LanSharingNetwork.getTetherKindForInterface(iface)
+            if (existingKind == TetherKind.OTHER && newKind != TetherKind.OTHER) {
+                resolved[ip] = iface
+            }
+        }
+
+        listOfNotNull(shizukuDump, rootDump).forEach { dump ->
+            if (dump.isBlank()) return@forEach
+            LanSharingLogics.parseIpNeigh(dump).forEach { entry ->
+                recordIfBetter(entry.ip, entry.iface)
+            }
+        }
+
+        runCatching { File("/proc/net/arp").readLines() }.getOrNull()?.let { lines ->
+            lines.drop(1).forEach { line ->
+                val parts = line.trim().split(Regex("\\s+"))
+                if (parts.size >= 6) {
+                    val mac = parts[3]
+                    if (mac.isNotBlank() && mac != "00:00:00:00:00:00") {
+                        recordIfBetter(parts[0], parts[5])
+                    }
+                }
+            }
+        }
+
+        for (ip in clientIps) {
+            if (resolved.containsKey(ip)) continue
+            val matched = candidates.firstOrNull { candidate ->
+                LanSharingLogics.isSameSubnet(ip, candidate.ip, candidate.prefixLength)
+            }
+            if (matched != null) {
+                resolved[ip] = matched.interfaceName
+            }
+        }
+        return resolved
+    }
+
     private fun renderDeviceList(devices: List<LanClientDevice>, clashReachable: Boolean) {
         val activeCount = devices.count { it.activeConnections > 0 }
         val count = activeCount.coerceAtLeast(devices.size)
@@ -1408,8 +1563,10 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         val renderKey = buildString {
             append(hotspotShareActive).append('|').append(vpnConnected).append('|').append(clashReachable)
             devices.forEach { d ->
+                val kind = clientInterfaceMap[d.ip]?.let { LanSharingNetwork.getTetherKindForInterface(it) }
+                    ?: TetherKind.OTHER
                 append(';').append(d.ip).append(',').append(d.hostname).append(',')
-                    .append(d.isHotspot).append(',').append(d.route).append(',')
+                    .append(d.isHotspot).append(',').append(d.route).append(',').append(kind).append(',')
                     .append(d.activeConnections).append(',').append(d.lastHost).append(',')
                     .append(d.uploadBytes).append(',').append(d.downloadBytes)
             }
@@ -1455,15 +1612,10 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 textHostname.visibility = View.GONE
             }
             textIp.text = device.ip
-            badgeType.text = getString(
-                when (device.route) {
-                    ClientShareRoute.HOTSPOT_SHIZUKU -> R.string.lan_sharing_device_route_hotspot_shizuku
-                    ClientShareRoute.HOTSPOT_ROOT -> R.string.lan_sharing_device_route_hotspot_root
-                    ClientShareRoute.HOTSPOT_LAN_PROXY -> R.string.lan_sharing_device_route_hotspot_proxy
-                    ClientShareRoute.HOTSPOT_IDLE -> R.string.lan_sharing_device_route_hotspot_idle
-                    ClientShareRoute.LAN_PROXY -> R.string.lan_sharing_device_route_lan_proxy
-                },
-            )
+            val clientTetherKind = clientInterfaceMap[device.ip]
+                ?.let { LanSharingNetwork.getTetherKindForInterface(it) }
+                ?: TetherKind.OTHER
+            badgeType.text = getString(resolveDeviceRouteBadgeRes(device.route, clientTetherKind))
             val isActivelyRouted = device.activeConnections > 0 ||
                 device.route == ClientShareRoute.HOTSPOT_SHIZUKU ||
                 device.route == ClientShareRoute.HOTSPOT_ROOT
@@ -1709,6 +1861,32 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
+        // Active Tethering Channels filter chips (Wi-Fi / USB / Bluetooth)
+        binding.chipTetherWifi.setOnClickListener {
+            onTetherChannelChipClicked(
+                tetherType = ShizukuBackend.TETHERING_WIFI,
+                kind = TetherKind.WIFI,
+                maskBit = ShizukuBackend.TETHER_MASK_WIFI,
+                labelRes = R.string.hotspot_share_tether_channel_wifi,
+            )
+        }
+        binding.chipTetherUsb.setOnClickListener {
+            onTetherChannelChipClicked(
+                tetherType = ShizukuBackend.TETHERING_USB,
+                kind = TetherKind.USB,
+                maskBit = ShizukuBackend.TETHER_MASK_USB,
+                labelRes = R.string.hotspot_share_tether_channel_usb,
+            )
+        }
+        binding.chipTetherBluetooth.setOnClickListener {
+            onTetherChannelChipClicked(
+                tetherType = ShizukuBackend.TETHERING_BLUETOOTH,
+                kind = TetherKind.BLUETOOTH,
+                maskBit = ShizukuBackend.TETHER_MASK_BLUETOOTH,
+                labelRes = R.string.hotspot_share_tether_channel_bt,
+            )
+        }
+
         // Open Android System Hotspot Settings button
         binding.btnOpenSystemHotspotSettings.setOnClickListener {
             openSystemHotspotSettings()
@@ -1762,13 +1940,189 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         }
     }
 
-    private fun openSystemHotspotSettings() {
-        val candidates = listOf(
-            Intent("com.android.settings.WIFI_TETHER_SETTINGS"),
-            Intent("android.settings.TETHER_SETTINGS"),
-            Intent().setComponent(ComponentName("com.android.settings", "com.android.settings.TetherSettings")),
-            Intent(Settings.ACTION_WIRELESS_SETTINGS),
-        )
+    private fun isTetherChannelActive(kind: TetherKind, maskBit: Int): Boolean {
+        return kind in activeTetherKinds || (activeTetherMask and maskBit) != 0
+    }
+
+    private fun renderTetherChannelChips() {
+        if (tetherToggleInFlight) return
+        binding.chipTetherWifi.isChecked =
+            isTetherChannelActive(TetherKind.WIFI, ShizukuBackend.TETHER_MASK_WIFI)
+        binding.chipTetherUsb.isChecked =
+            isTetherChannelActive(TetherKind.USB, ShizukuBackend.TETHER_MASK_USB)
+        binding.chipTetherBluetooth.isChecked =
+            isTetherChannelActive(TetherKind.BLUETOOTH, ShizukuBackend.TETHER_MASK_BLUETOOTH)
+    }
+
+    private fun setTetherChannelChipsEnabled(enabled: Boolean) {
+        binding.chipTetherWifi.isEnabled = enabled
+        binding.chipTetherUsb.isEnabled = enabled
+        binding.chipTetherBluetooth.isEnabled = enabled
+    }
+
+    private fun resolveDeviceRouteBadgeRes(route: ClientShareRoute, tetherKind: TetherKind): Int {
+        if (route == ClientShareRoute.LAN_PROXY) {
+            return R.string.lan_sharing_device_route_lan_proxy
+        }
+        return when (tetherKind) {
+            TetherKind.USB -> when (route) {
+                ClientShareRoute.HOTSPOT_SHIZUKU -> R.string.lan_sharing_device_route_usb_shizuku
+                ClientShareRoute.HOTSPOT_ROOT -> R.string.lan_sharing_device_route_usb_root
+                ClientShareRoute.HOTSPOT_LAN_PROXY -> R.string.lan_sharing_device_route_usb_proxy
+                ClientShareRoute.HOTSPOT_IDLE,
+                ClientShareRoute.LAN_PROXY -> R.string.lan_sharing_device_route_usb_idle
+            }
+            TetherKind.BLUETOOTH -> when (route) {
+                ClientShareRoute.HOTSPOT_SHIZUKU -> R.string.lan_sharing_device_route_bt_shizuku
+                ClientShareRoute.HOTSPOT_ROOT -> R.string.lan_sharing_device_route_bt_root
+                ClientShareRoute.HOTSPOT_LAN_PROXY -> R.string.lan_sharing_device_route_bt_proxy
+                ClientShareRoute.HOTSPOT_IDLE,
+                ClientShareRoute.LAN_PROXY -> R.string.lan_sharing_device_route_bt_idle
+            }
+            TetherKind.WIFI,
+            TetherKind.OTHER -> when (route) {
+                ClientShareRoute.HOTSPOT_SHIZUKU -> R.string.lan_sharing_device_route_hotspot_shizuku
+                ClientShareRoute.HOTSPOT_ROOT -> R.string.lan_sharing_device_route_hotspot_root
+                ClientShareRoute.HOTSPOT_LAN_PROXY -> R.string.lan_sharing_device_route_hotspot_proxy
+                ClientShareRoute.HOTSPOT_IDLE -> R.string.lan_sharing_device_route_hotspot_idle
+                ClientShareRoute.LAN_PROXY -> R.string.lan_sharing_device_route_lan_proxy
+            }
+        }
+    }
+
+    private fun onTetherChannelChipClicked(
+        tetherType: Int,
+        kind: TetherKind,
+        maskBit: Int,
+        labelRes: Int,
+    ) {
+        val targetEnabled = !isTetherChannelActive(kind, maskBit)
+        val channelName = getString(labelRes)
+        // Restore actual checked state immediately until OS confirms the change.
+        renderTetherChannelChips()
+        if (tetherToggleInFlight) return
+
+        tetherToggleInFlight = true
+        setTetherChannelChipsEnabled(false)
+        val preferAllTethering = tetherType != ShizukuBackend.TETHERING_WIFI
+
+        lifecycleScope.launch {
+            try {
+                val (shizukuRunning, shizukuGranted) = withContext(Dispatchers.IO) {
+                    val running = ShizukuBackend.isShizukuRunning()
+                    val granted = running && ShizukuBackend.isShizukuGranted(this@LanSharingActivity)
+                    cachedShizukuRunning = running
+                    cachedShizukuGranted = granted
+                    running to granted
+                }
+                if (isFinishing || isDestroyed) return@launch
+
+                if (!shizukuRunning || !shizukuGranted) {
+                    Snackbar.make(
+                        binding.root,
+                        R.string.hotspot_share_tether_shizuku_required,
+                        Snackbar.LENGTH_LONG,
+                    ).setAction(R.string.hotspot_share_tether_open_settings) {
+                        openSystemHotspotSettings(preferAllTethering = preferAllTethering)
+                    }.show()
+                    return@launch
+                }
+
+                val result = ShizukuBackend.setTetherTypeEnabled(
+                    type = tetherType,
+                    enabled = targetEnabled,
+                    context = this@LanSharingActivity,
+                )
+                if (result.isSuccess) {
+                    delay(450L)
+                }
+                val (updatedKinds, updatedMask) = withContext(Dispatchers.IO) {
+                    val kinds = runCatching {
+                        LanSharingNetwork.getActiveTetherKinds(this@LanSharingActivity)
+                    }.getOrDefault(emptySet())
+                    val mask = runCatching {
+                        ShizukuBackend.refreshActiveTetherMask(
+                            this@LanSharingActivity,
+                            force = true,
+                        )
+                    }.getOrDefault(0)
+                    kinds to mask
+                }
+                if (isFinishing || isDestroyed) return@launch
+                activeTetherKinds = updatedKinds
+                activeTetherMask = updatedMask
+
+                val channelNowActive = isTetherChannelActive(kind, maskBit)
+                if (result.isSuccess && channelNowActive == targetEnabled) {
+                    Toast.makeText(
+                        this@LanSharingActivity,
+                        getString(
+                            if (targetEnabled) {
+                                R.string.hotspot_share_tether_enabled
+                            } else {
+                                R.string.hotspot_share_tether_disabled
+                            },
+                            channelName,
+                        ),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                    refreshNetworkAndState()
+                } else {
+                    val detail = result.exceptionOrNull()?.message.orEmpty()
+                    HotspotShareLogger.warn(
+                        "HotspotShare",
+                        "Tether channel toggle incomplete ($channelName, targetEnabled=$targetEnabled, activeNow=$channelNowActive): $detail",
+                    )
+                    val msg = when {
+                        targetEnabled && !channelNowActive && tetherType == ShizukuBackend.TETHERING_USB ->
+                            getString(R.string.hotspot_share_tether_usb_not_active)
+                        targetEnabled && !channelNowActive && tetherType == ShizukuBackend.TETHERING_BLUETOOTH ->
+                            getString(R.string.hotspot_share_tether_bt_not_active)
+                        preferAllTethering ||
+                            detail.contains("SecurityException", ignoreCase = true) ||
+                            detail.contains("permission", ignoreCase = true) ||
+                            detail.contains("Failed to start", ignoreCase = true) ->
+                            getString(R.string.hotspot_share_tether_toggle_blocked_rom, channelName)
+                        else ->
+                            getString(
+                                R.string.hotspot_share_tether_toggle_failed,
+                                channelName,
+                                detail.ifBlank { "error" },
+                            )
+                    }
+                    Snackbar.make(binding.root, msg, Snackbar.LENGTH_LONG)
+                        .setAction(R.string.hotspot_share_tether_open_settings) {
+                            openSystemHotspotSettings(preferAllTethering = preferAllTethering)
+                        }
+                        .show()
+                    refreshNetworkAndState()
+                }
+            } finally {
+                tetherToggleInFlight = false
+                if (!isFinishing && !isDestroyed) {
+                    setTetherChannelChipsEnabled(true)
+                    renderTetherChannelChips()
+                }
+            }
+        }
+    }
+
+    private fun openSystemHotspotSettings(preferAllTethering: Boolean = false) {
+        val candidates = if (preferAllTethering) {
+            listOf(
+                Intent("android.settings.TETHER_SETTINGS"),
+                Intent().setComponent(ComponentName("com.android.settings", "com.android.settings.TetherSettings")),
+                Intent("com.android.settings.WIFI_TETHER_SETTINGS"),
+                Intent(Settings.ACTION_WIRELESS_SETTINGS),
+            )
+        } else {
+            listOf(
+                Intent("com.android.settings.WIFI_TETHER_SETTINGS"),
+                Intent("android.settings.TETHER_SETTINGS"),
+                Intent().setComponent(ComponentName("com.android.settings", "com.android.settings.TetherSettings")),
+                Intent(Settings.ACTION_WIRELESS_SETTINGS),
+            )
+        }
         for (intent in candidates) {
             val started = runCatching {
                 if (intent.resolveActivity(packageManager) != null) {
@@ -2486,6 +2840,8 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         } else {
             View.GONE
         }
+
+        renderTetherChannelChips()
     }
 
     private fun formatShareError(reason: ShareFailure, detail: String?): String = when (reason) {
@@ -2556,6 +2912,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             binding.boxInlineShareLogs,
         ).forEach { ExpressiveSettingsHelper.styleExpressiveNestedBox(it) }
 
+        ExpressiveSettingsHelper.styleExpressiveChips(binding.tetherChannelsContainer)
         ExpressiveSettingsHelper.styleExpressiveChips(binding.drawerLogFilters)
 
         listOf(

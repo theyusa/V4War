@@ -62,7 +62,7 @@ object ShizukuWatchdog {
             append("\"\$BIN\" </dev/null >/dev/null 2>&1 & ")
             append("fi; ")
             append("fi; ")
-            append("sleep 4; ")
+            append("sleep 2; ")
             append("done; ")
             append("rm -f \"$pidFilePath\"")
         }
