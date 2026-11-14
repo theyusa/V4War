@@ -1,30 +1,61 @@
 package io.nekohasekai.sagernet.ui
 
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.content.res.ColorStateList
+import android.graphics.Typeface
 import android.os.Bundle
+import android.provider.Settings
+import android.text.InputType
+import android.text.SpannableStringBuilder
+import android.text.Spanned
 import android.text.format.Formatter
+import android.text.style.ForegroundColorSpan
+import android.text.style.RelativeSizeSpan
+import android.text.style.StyleSpan
+import android.text.style.TypefaceSpan
+import android.transition.AutoTransition
+import android.transition.TransitionManager
+import android.util.TypedValue
+import android.view.GestureDetector
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
+import java.io.File
+import java.net.InetAddress
+import java.util.Collections
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
+import androidx.core.widget.doAfterTextChanged
+import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
+import com.google.android.material.chip.Chip
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.switchmaterial.SwitchMaterial
+import com.google.android.material.tabs.TabLayout
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import io.nekohasekai.sagernet.hotspotshare.FailClosedAction
+import io.nekohasekai.sagernet.hotspotshare.HotspotShareLogger
 import io.nekohasekai.sagernet.hotspotshare.HotspotShareStateStore
 import io.nekohasekai.sagernet.hotspotshare.HotspotTrafficMonitor
 import io.nekohasekai.sagernet.hotspotshare.RootBackend
@@ -34,9 +65,11 @@ import io.nekohasekai.sagernet.hotspotshare.SharePreference
 import io.nekohasekai.sagernet.hotspotshare.ShareState
 import io.nekohasekai.sagernet.hotspotshare.ShizukuBackend
 import io.nekohasekai.sagernet.hotspotshare.TetherWatchService
+import io.nekohasekai.sagernet.hotspotshare.shizuku.ShizukuWatchdog
 import rikka.shizuku.Shizuku
 import io.nekohasekai.sagernet.Action
 import io.nekohasekai.sagernet.R
+import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.aidl.ISagerNetService
 import io.nekohasekai.sagernet.bg.BaseService
 import io.nekohasekai.sagernet.bg.SagerConnection
@@ -45,8 +78,12 @@ import io.nekohasekai.sagernet.database.SettingsRegistry
 import io.nekohasekai.sagernet.databinding.ActivityLanSharingBinding
 import io.nekohasekai.sagernet.utils.PlatformNotifications
 import io.nekohasekai.sagernet.ktx.getColorAttr
-import io.nekohasekai.sagernet.ktx.needReload
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
+import io.nekohasekai.sagernet.ktx.runOnIoDispatcher
+import kotlin.math.abs
+import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
+import io.nekohasekai.sagernet.widget.applyListInsets
+import io.nekohasekai.sagernet.utils.ClientShareRoute
 import io.nekohasekai.sagernet.utils.HotspotCandidate
 import io.nekohasekai.sagernet.utils.HotspotGatewayManager
 import io.nekohasekai.sagernet.utils.HotspotGatewaySnapshot
@@ -55,8 +92,10 @@ import io.nekohasekai.sagernet.utils.HotspotGatewayStatus
 import io.nekohasekai.sagernet.utils.LanClientDevice
 import io.nekohasekai.sagernet.utils.LanSharingLogics
 import io.nekohasekai.sagernet.utils.LanSharingNetwork
+import io.nekohasekai.sagernet.utils.ShizukuTunnelTraffic
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -71,9 +110,40 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
     private var suppressShareSwitchCallback = false
     private var suppressGatewaySwitchCallback = false
     private var suppressHotspotShareSwitchCallback = false
+    private var suppressLogsSwitchCallback = false
+    private var suppressMainTabCallback = false
+    private var suppressSubTabCallback = false
+    private var selectedTabIndex: Int = TAB_HOTSPOT_SHARE
+    private var selectedLanProxySubTabIndex: Int = SUBTAB_LAN_MAIN
+    private var lastLoopbackHealMs: Long = 0L
+    private var touchDownInTabBar: Boolean = false
+    private var touchDownInLogBox: Boolean = false
+    private var swipeTriggeredThisGesture: Boolean = false
+    private lateinit var horizontalSwipeDetector: GestureDetector
+    private var currentRawShareLogs: String = ""
     private val shizukuPermissionListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
-        if (requestCode == SHIZUKU_PERMISSION_REQUEST_CODE) {
-            runOnUiThread { refreshNetworkAndState() }
+        if (requestCode != SHIZUKU_PERMISSION_REQUEST_CODE) return@OnRequestPermissionResultListener
+        val granted = grantResult == PackageManager.PERMISSION_GRANTED
+        lifecycleScope.launch {
+            cachedShizukuGranted = granted
+            if (pendingStartAfterShizukuPermission) {
+                pendingStartAfterShizukuPermission = false
+                val shouldStart = withContext(Dispatchers.IO) {
+                    if (granted) {
+                        DataStore.hotspotShareEnabled
+                    } else {
+                        DataStore.hotspotShareEnabled = false
+                        HotspotShareStateStore.publish(ShareState.Error(ShareFailure.SHIZUKU_PERMISSION_DENIED))
+                        false
+                    }
+                }
+                if (shouldStart && !isFinishing && !isDestroyed) {
+                    TetherWatchService.start(this@LanSharingActivity)
+                }
+            }
+            if (!isFinishing && !isDestroyed) {
+                refreshNetworkAndState()
+            }
         }
     }
 
@@ -81,7 +151,56 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
     private var detectedWifiIp: String? = null
     private var hotspotActive: Boolean = false
 
+    @Volatile
+    private var cachedShizukuRunning: Boolean = false
+
+    @Volatile
+    private var cachedShizukuGranted: Boolean = false
+
+    @Volatile
+    private var cachedRootAvailable: Boolean = false
+
+    @Volatile
+    private var rootCheckedOnce: Boolean = false
+
+    @Volatile
+    private var cachedShizukuClientCount: Int = 0
+
+    // Confined to Dispatchers.Main; persisted across config changes via onSaveInstanceState.
+    private var pendingStartAfterShizukuPermission: Boolean = false
+    private var shareMethodAdapter: ArrayAdapter<String>? = null
+    private var lastHeroBadgeState: String? = null
+    private var lastHotspotBadgeActive: Boolean? = null
+    private var lastWifiBadgeActive: Boolean? = null
+    private var lastDevicesBadgeActive: Boolean? = null
+    private var lastShareBadgeKey: String? = null
+    private var lastLanProxyBadgeKey: String? = null
+    private var lastActiveShareMethod: ShareMethod? = null
+    private var lastRenderedDeviceKey: String? = null
+    private var lastLanProxyTrafficSample: LanSharingLogics.LanProxyTrafficSample? = null
+    private var lastLanProxyTrafficDisplay: LanSharingLogics.LanProxyTrafficDisplay? = null
+    private var cachedAdb5555Open: Boolean = false
+    private var cachedWatchdogFlagExists: Boolean = false
+    private val hostnameLookupCache = ConcurrentHashMap<String, String>()
+    private val hostnameLookupsInFlight: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap())
+    private var currentLogSourceFilter: HotspotShareLogger.LogSource = HotspotShareLogger.LogSource.ALL
+    private var currentLogLevelFilter: HotspotShareLogger.LogLevelFilter = HotspotShareLogger.LogLevelFilter.ALL
+    private var currentLogSearchQuery: String = ""
+    private var currentLogNewestFirst: Boolean = true
+    private var suppressFilterChipCallbacks: Boolean = false
+    private var lastRenderedLogEnabledState: Boolean? = null
+
     private var netStateReceiver: BroadcastReceiver? = null
+    private var refreshNetworkJob: Job? = null
+
+    @Volatile
+    private var pendingForceRootCheck: Boolean = false
+
+    private val gatewayChangedListener: () -> Unit = {
+        runOnUiThread {
+            if (!isFinishing && !isDestroyed) renderUiState()
+        }
+    }
 
     private companion object {
         // System broadcasts that must re-detect the hotspot IP: AP state flips and tethering changes
@@ -89,23 +208,48 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         const val WIFI_AP_STATE_CHANGED = "android.net.wifi.WIFI_AP_STATE_CHANGED"
         const val TETHER_STATE_CHANGED = "android.net.conn.TETHER_STATE_CHANGED"
         const val SHIZUKU_PERMISSION_REQUEST_CODE = 5051
+        const val STATE_PENDING_SHIZUKU_START = "state_pending_shizuku_start"
+        const val STATE_SELECTED_TAB = "state_selected_tab"
+        const val STATE_SELECTED_LAN_SUBTAB = "state_selected_lan_subtab"
+        const val TAB_HOTSPOT_SHARE = 0
+        const val TAB_LAN_PROXY = 1
+        const val TAB_DEVICES_AUTO = 2
+        const val TAB_LOGS = 3
+        const val SUBTAB_LAN_MAIN = 0
+        const val SUBTAB_AUTO_CONNECT = 1
+        const val SUBTAB_SHARE_CARDS = 2
+        const val LOOPBACK_HEAL_COOLDOWN_MS = 5000L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingStartAfterShizukuPermission = savedInstanceState?.getBoolean(STATE_PENDING_SHIZUKU_START, false) ?: false
+        selectedTabIndex = savedInstanceState?.getInt(STATE_SELECTED_TAB, TAB_HOTSPOT_SHARE) ?: TAB_HOTSPOT_SHARE
+        selectedLanProxySubTabIndex =
+            savedInstanceState?.getInt(STATE_SELECTED_LAN_SUBTAB, SUBTAB_LAN_MAIN) ?: SUBTAB_LAN_MAIN
         binding = ActivityLanSharingBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.apply {
-            setTitle(R.string.lan_sharing)
-            setDisplayHomeAsUpEnabled(true)
-            setHomeAsUpIndicator(R.drawable.ic_navigation_close)
+        ExpressiveSettingsHelper.attachActivityFloatingHeader(
+            this,
+            binding.root,
+            getString(R.string.lan_sharing)
+        )
+        binding.scrollLanSharing.applyListInsets()
+        binding.scrollLanSharing.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if (selectedTabIndex == TAB_LOGS && (bottom - top) != (oldBottom - oldTop)) {
+                updateLogsBoxHeightToFillViewport()
+            }
         }
+        styleExpressiveViews()
+        initHorizontalSwipeDetector()
 
+        setupTabs()
+        setupLanProxySubTabs()
+        HotspotShareLogger.ensureDefaultOffMigration()
         setupViews()
         setupHotspotShareViews()
+        setupLogViews()
         ensureClashApiForManualLanIfNeeded()
         try {
             Shizuku.addRequestPermissionResultListener(shizukuPermissionListener)
@@ -121,6 +265,25 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         super.onResume()
         // Coming back to the screen re-detects: the hotspot subnet changes between openings.
         refreshNetworkAndState()
+        ensureLanProxyBoundOnLoopbackMismatch()
+        if (selectedTabIndex == TAB_LOGS) {
+            updateLogsBoxHeightToFillViewport()
+            refreshInlineLogs(scrollToBottom = false, forceRebind = true)
+        }
+        if (pendingStartAfterShizukuPermission) {
+            lifecycleScope.launch {
+                val granted = withContext(Dispatchers.IO) {
+                    ShizukuBackend.isShizukuRunning() && ShizukuBackend.isShizukuGranted(this@LanSharingActivity)
+                }
+                if (granted && pendingStartAfterShizukuPermission) {
+                    pendingStartAfterShizukuPermission = false
+                    val enabled = withContext(Dispatchers.IO) { DataStore.hotspotShareEnabled }
+                    if (enabled && !isFinishing && !isDestroyed) {
+                        TetherWatchService.start(this@LanSharingActivity)
+                    }
+                }
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -135,8 +298,8 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 true
             }
             R.id.action_refresh -> {
-                refreshNetworkAndState()
-                lifecycleScope.launch { pollClientDevicesOnce() }
+                refreshNetworkAndState(forceRootCheck = true)
+                lifecycleScope.launch { pollClientDevicesOnce(force = true) }
                 true
             }
             R.id.action_config -> {
@@ -157,35 +320,355 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
     }
 
     override fun stateChanged(state: BaseService.State, profileName: String?, msg: String?) {
+        DataStore.serviceState = state
         refreshNetworkAndState()
         lifecycleScope.launch { pollClientDevicesOnce() }
     }
 
     override fun onServiceConnected(service: ISagerNetService) {
+        runCatching {
+            BaseService.State.entries.getOrNull(service.state)?.let { DataStore.serviceState = it }
+        }
         refreshNetworkAndState()
+        ensureLanProxyBoundOnLoopbackMismatch()
         lifecycleScope.launch { pollClientDevicesOnce() }
     }
 
+    private fun setupTabs() {
+        val tabLayout = binding.tabLanSections
+        tabLayout.removeAllTabs()
+        val tabTitles = listOf(
+            R.string.lan_tab_hotspot_share,
+            R.string.lan_tab_local_proxy,
+            R.string.lan_tab_devices_auto,
+            R.string.lan_tab_logs,
+        )
+        tabTitles.forEachIndexed { idx, titleRes ->
+            tabLayout.addTab(
+                tabLayout.newTab().setText(titleRes),
+                idx == selectedTabIndex,
+            )
+        }
+        ExpressiveSettingsHelper.styleExpressiveTabs(binding.lanTabContainer, tabLayout)
+        ExpressiveSettingsHelper.fitTabsToContainer(tabLayout)
+        selectTabSection(selectedTabIndex)
+
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                if (suppressMainTabCallback) return
+                val direction = if (tab.position >= selectedTabIndex) 1 else -1
+                selectTabSection(tab.position, animate = true, swipeDirection = direction)
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab) {}
+
+            override fun onTabReselected(tab: TabLayout.Tab) {
+                if (tab.position == TAB_LOGS) {
+                    refreshInlineLogs(scrollToBottom = true)
+                }
+            }
+        })
+    }
+
+    private fun setupLanProxySubTabs() {
+        val tabLayout = binding.tabLanProxySubSections
+        tabLayout.removeAllTabs()
+        val subTitles = listOf(
+            R.string.lan_subtab_proxy,
+            R.string.lan_subtab_auto_connect,
+            R.string.lan_subtab_share_cards,
+        )
+        subTitles.forEachIndexed { idx, titleRes ->
+            tabLayout.addTab(
+                tabLayout.newTab().setText(titleRes),
+                idx == selectedLanProxySubTabIndex,
+            )
+        }
+        ExpressiveSettingsHelper.styleExpressiveTabs(binding.lanProxySubTabContainer, tabLayout, cornerRadiusDp = 12f)
+        ExpressiveSettingsHelper.fitTabsToContainer(tabLayout)
+        selectLanProxySubTabSection(selectedLanProxySubTabIndex)
+
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                if (suppressSubTabCallback) return
+                val direction = if (tab.position >= selectedLanProxySubTabIndex) 1 else -1
+                selectLanProxySubTabSection(tab.position, animate = true, swipeDirection = direction)
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab) {}
+
+            override fun onTabReselected(tab: TabLayout.Tab) {}
+        })
+    }
+
+    private fun selectTabSection(index: Int, animate: Boolean = false, swipeDirection: Int = 0) {
+        val clamped = index.coerceIn(TAB_HOTSPOT_SHARE, TAB_LOGS)
+        selectedTabIndex = clamped
+        binding.tabLanSections.getTabAt(clamped)?.let { tab ->
+            if (!tab.isSelected) {
+                suppressMainTabCallback = true
+                tab.select()
+                suppressMainTabCallback = false
+            }
+        }
+        binding.containerTabHotspotShare.visibility = if (clamped == TAB_HOTSPOT_SHARE) View.VISIBLE else View.GONE
+        binding.containerTabLanProxy.visibility = if (clamped == TAB_LAN_PROXY) View.VISIBLE else View.GONE
+        binding.containerTabDevices.visibility = if (clamped == TAB_DEVICES_AUTO) View.VISIBLE else View.GONE
+        binding.containerTabLogs.visibility = if (clamped == TAB_LOGS) View.VISIBLE else View.GONE
+
+        val activeView = when (clamped) {
+            TAB_HOTSPOT_SHARE -> binding.containerTabHotspotShare
+            TAB_LAN_PROXY -> {
+                ExpressiveSettingsHelper.fitTabsToContainer(binding.tabLanProxySubSections)
+                binding.containerTabLanProxy
+            }
+            TAB_DEVICES_AUTO -> binding.containerTabDevices
+            else -> binding.containerTabLogs
+        }
+        if (animate) {
+            animateSectionTransition(activeView, swipeDirection)
+        }
+        if (clamped == TAB_LOGS) {
+            updateLogsBoxHeightToFillViewport()
+            refreshInlineLogs(scrollToBottom = true)
+        }
+    }
+
+    private fun selectLanProxySubTabSection(index: Int, animate: Boolean = false, swipeDirection: Int = 0) {
+        val clamped = index.coerceIn(SUBTAB_LAN_MAIN, SUBTAB_SHARE_CARDS)
+        selectedLanProxySubTabIndex = clamped
+        binding.tabLanProxySubSections.getTabAt(clamped)?.let { tab ->
+            if (!tab.isSelected) {
+                suppressSubTabCallback = true
+                tab.select()
+                suppressSubTabCallback = false
+            }
+        }
+        binding.containerSubTabLanProxyMain.visibility = if (clamped == SUBTAB_LAN_MAIN) View.VISIBLE else View.GONE
+        binding.containerSubTabAutoConnect.visibility = if (clamped == SUBTAB_AUTO_CONNECT) View.VISIBLE else View.GONE
+        binding.containerSubTabShareCards.visibility = if (clamped == SUBTAB_SHARE_CARDS) View.VISIBLE else View.GONE
+
+        if (animate) {
+            val activeView = when (clamped) {
+                SUBTAB_LAN_MAIN -> binding.containerSubTabLanProxyMain
+                SUBTAB_AUTO_CONNECT -> binding.containerSubTabAutoConnect
+                else -> binding.containerSubTabShareCards
+            }
+            animateSectionTransition(activeView, swipeDirection)
+        }
+    }
+
+    private fun initHorizontalSwipeDetector() {
+        horizontalSwipeDetector = GestureDetector(
+            this,
+            object : GestureDetector.SimpleOnGestureListener() {
+                override fun onFling(
+                    e1: MotionEvent?,
+                    e2: MotionEvent,
+                    velocityX: Float,
+                    velocityY: Float,
+                ): Boolean {
+                    if (e1 == null || touchDownInTabBar) return false
+                    val dx = e2.x - e1.x
+                    val dy = e2.y - e1.y
+                    val minDistance = dpToPx(if (touchDownInLogBox) 92 else 72).toFloat()
+                    val minRatio = if (touchDownInLogBox) 2.2f else 1.6f
+                    val minVelocity = dpToPx(220).toFloat()
+                    if (abs(dx) < minDistance || abs(dx) <= abs(dy) * minRatio || abs(velocityX) < minVelocity) {
+                        return false
+                    }
+                    return handleHorizontalSwipe(forward = dx < 0f)
+                }
+            },
+        )
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (!::binding.isInitialized || !::horizontalSwipeDetector.isInitialized) {
+            return super.dispatchTouchEvent(ev)
+        }
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
+            swipeTriggeredThisGesture = false
+            touchDownInTabBar = isTouchInsideView(ev, binding.lanTabContainer) ||
+                (binding.lanProxySubTabContainer.visibility == View.VISIBLE &&
+                    isTouchInsideView(ev, binding.lanProxySubTabContainer))
+            touchDownInLogBox = selectedTabIndex == TAB_LOGS && (
+                isTouchInsideView(ev, binding.boxInlineShareLogs) ||
+                    (binding.drawerLogFilters.visibility == View.VISIBLE &&
+                        isTouchInsideView(ev, binding.editLogSearch))
+                )
+        }
+        val detected = horizontalSwipeDetector.onTouchEvent(ev)
+        if (detected && swipeTriggeredThisGesture && ev.actionMasked == MotionEvent.ACTION_UP) {
+            val cancelEvent = MotionEvent.obtain(ev).apply { action = MotionEvent.ACTION_CANCEL }
+            val handled = super.dispatchTouchEvent(cancelEvent)
+            cancelEvent.recycle()
+            return handled
+        }
+        return super.dispatchTouchEvent(ev)
+    }
+
+    private fun handleHorizontalSwipe(forward: Boolean): Boolean {
+        if (forward) {
+            if (selectedTabIndex == TAB_LAN_PROXY && selectedLanProxySubTabIndex < SUBTAB_SHARE_CARDS) {
+                selectLanProxySubTabSection(selectedLanProxySubTabIndex + 1, animate = true, swipeDirection = 1)
+                swipeTriggeredThisGesture = true
+                return true
+            }
+            if (selectedTabIndex < TAB_LOGS) {
+                val nextMain = selectedTabIndex + 1
+                if (nextMain == TAB_LAN_PROXY) {
+                    selectLanProxySubTabSection(SUBTAB_LAN_MAIN, animate = false)
+                }
+                selectTabSection(nextMain, animate = true, swipeDirection = 1)
+                swipeTriggeredThisGesture = true
+                return true
+            }
+        } else {
+            if (selectedTabIndex == TAB_LAN_PROXY && selectedLanProxySubTabIndex > SUBTAB_LAN_MAIN) {
+                selectLanProxySubTabSection(selectedLanProxySubTabIndex - 1, animate = true, swipeDirection = -1)
+                swipeTriggeredThisGesture = true
+                return true
+            }
+            if (selectedTabIndex > TAB_HOTSPOT_SHARE) {
+                val prevMain = selectedTabIndex - 1
+                if (prevMain == TAB_LAN_PROXY) {
+                    selectLanProxySubTabSection(SUBTAB_SHARE_CARDS, animate = false)
+                }
+                selectTabSection(prevMain, animate = true, swipeDirection = -1)
+                swipeTriggeredThisGesture = true
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun animateSectionTransition(target: View, swipeDirection: Int) {
+        target.animate().cancel()
+        val shiftPx = dpToPx(24).toFloat() * when {
+            swipeDirection > 0 -> 1f
+            swipeDirection < 0 -> -1f
+            else -> 0f
+        }
+        target.alpha = 0f
+        target.translationX = shiftPx
+        target.animate()
+            .alpha(1f)
+            .translationX(0f)
+            .setDuration(180L)
+            .setInterpolator(FastOutSlowInInterpolator())
+            .start()
+    }
+
+    private fun isTouchInsideView(ev: MotionEvent, view: View): Boolean {
+        if (view.visibility != View.VISIBLE || !view.isShown) return false
+        val loc = IntArray(2)
+        view.getLocationOnScreen(loc)
+        val x = ev.rawX
+        val y = ev.rawY
+        return x >= loc[0] && x <= loc[0] + view.width && y >= loc[1] && y <= loc[1] + view.height
+    }
+
+    private fun dpToPx(dp: Int): Int = (dp * resources.displayMetrics.density).toInt()
+
+    private fun isLiveVpnConnected(): Boolean {
+        if (DataStore.serviceState.started) return true
+        val service = connection.service ?: return false
+        return runCatching {
+            val state = BaseService.State.entries.getOrNull(service.state)
+            if (state != null) {
+                DataStore.serviceState = state
+                state.started
+            } else {
+                false
+            }
+        }.getOrDefault(false)
+    }
+
+    private fun reloadRunningServiceIfActive() {
+        if (isLiveVpnConnected()) {
+            SagerNet.reloadService()
+        }
+    }
+
+    private fun ensureLanProxyBoundOnLoopbackMismatch() {
+        val now = System.currentTimeMillis()
+        if (now - lastLoopbackHealMs < LOOPBACK_HEAL_COOLDOWN_MS) return
+        lifecycleScope.launch {
+            val needsReload = withContext(Dispatchers.IO) {
+                if (!DataStore.allowLanAccess || DataStore.disableMixedInbound || DataStore.randomInboundPort) {
+                    return@withContext false
+                }
+                val vpnRunning = DataStore.serviceState.connected || (connection.service?.let { svc ->
+                    runCatching { BaseService.State.entries.getOrNull(svc.state)?.connected == true }.getOrDefault(false)
+                } == true)
+                if (!vpnRunning) return@withContext false
+
+                val portHex = ":%04X".format(DataStore.inboundSocksPort)
+                var boundLoopback = false
+                var boundWildcard = false
+                for (path in arrayOf("/proc/net/tcp", "/proc/net/tcp6")) {
+                    val file = File(path)
+                    if (!file.canRead()) continue
+                    runCatching {
+                        file.forEachLine { raw ->
+                            val cols = raw.trim().split(Regex("\\s+"))
+                            if (cols.size < 4 || cols[3] != "0A") return@forEachLine
+                            val localAddr = cols[1].uppercase()
+                            if (!localAddr.endsWith(portHex)) return@forEachLine
+                            val ipHex = localAddr.substringBefore(':')
+                            when (ipHex) {
+                                "00000000",
+                                "00000000000000000000000000000000",
+                                "0000000000000000FFFF000000000000" -> boundWildcard = true
+                                "0100007F",
+                                "00000000000000000000000001000000",
+                                "0000000000000000FFFF00000100007F" -> boundLoopback = true
+                            }
+                        }
+                    }
+                }
+                boundLoopback && !boundWildcard
+            }
+            if (needsReload && !isFinishing && !isDestroyed) {
+                lastLoopbackHealMs = System.currentTimeMillis()
+                HotspotShareLogger.warn(
+                    "LanProxy",
+                    "Inbound ${DataStore.inboundSocksPort} bound on loopback only; reloading service for LAN access",
+                )
+                SagerNet.reloadService()
+            }
+        }
+    }
+
     private fun setupViews() {
+        binding.btnRefreshLan.setOnClickListener {
+            refreshNetworkAndState(forceRootCheck = true)
+            lifecycleScope.launch { pollClientDevicesOnce(force = true) }
+        }
         setShareSwitchCheckedSilent(DataStore.allowLanAccess)
         setGatewaySwitchCheckedSilent(DataStore.hotspotGatewayEnabled)
 
         // Share (X): the switch is the real LAN inbound switch; turning it writes inbound_address to the LAN
         // or loopback address and reloads the service (InboundSettingsFragment allowLan listener,
-        // NetworkSettingsScreens.kt:74-78).
+        // NetworkSettingsScreens.kt:74-78). It works 100% independently of Shizuku/Root Hotspot Share.
         binding.switchLanSharing.setOnCheckedChangeListener { _, isChecked ->
             if (suppressShareSwitchCallback) return@setOnCheckedChangeListener
             DataStore.inboundAddress =
                 if (isChecked) SettingsRegistry.LAN_ADDRESS else SettingsRegistry.LOOPBACK_ADDRESS
             if (isChecked) {
-                // Clear stale stopped/error banner when user enables manual LAN proxy sharing
+                if (DataStore.disableMixedInbound) {
+                    DataStore.disableMixedInbound = false
+                }
+                // Clear stale stopped/error banner only when Hotspot Share is off and not active;
+                // never disturb an active or enabled Shizuku / Root Hotspot Share session.
                 if (!DataStore.hotspotShareEnabled && HotspotShareStateStore.snapshot() !is ShareState.Active) {
                     HotspotShareStateStore.publish(ShareState.Off)
                     PlatformNotifications.cancelHotspotShareDropped(this)
                 }
                 // The live client list reads the Clash API /connections endpoint: make sure the API
                 // is switched on, and that a secret exists. An existing secret is never overwritten;
-                // the needReload() below makes the core pick up both values.
+                // the reload below makes the core pick up these values immediately.
                 if (LanSharingLogics.clashApiSecretShouldBeGenerated(DataStore.coreBoxClashApiSecret)) {
                     DataStore.coreBoxClashApiSecret = LanSharingLogics.generateClashApiSecret()
                 }
@@ -193,19 +676,50 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 if (clashDecision.changed) {
                     DataStore.coreBoxClashApi = clashDecision.newRawPort
                 }
-            } else if (DataStore.hotspotShareEnabled &&
-                HotspotShareStateStore.snapshot() == ShareState.Active(ShareMethod.LAN_PROXY)
-            ) {
-                DataStore.hotspotShareEnabled = false
-                TetherWatchService.stop(this)
+            } else {
+                lastLanProxyTrafficSample = null
+                lastLanProxyTrafficDisplay = null
+                // Only if Hotspot Share is specifically running in LAN_PROXY mode does turning off
+                // the LAN inbound stop that share mode. Shizuku and Root modes remain 100% untouched.
+                val currentSnap = HotspotShareStateStore.snapshot()
+                val activeMethod = (currentSnap as? ShareState.Active)?.method
+                val pref = SharePreference.fromCode(DataStore.hotspotShareMethod)
+                if (LanSharingLogics.hotspotShareDependsOnLanProxy(DataStore.hotspotShareEnabled, pref, activeMethod)) {
+                    PlatformNotifications.cancelHotspotShareDropped(this)
+                    DataStore.hotspotShareEnabled = false
+                    setHotspotShareSwitchCheckedSilent(false)
+                    if (TetherWatchService.isRunning ||
+                        currentSnap is ShareState.Active ||
+                        currentSnap is ShareState.Starting
+                    ) {
+                        TetherWatchService.stop(this)
+                    } else {
+                        HotspotShareStateStore.publish(ShareState.Off)
+                    }
+                }
             }
-            needReload()
+            reloadRunningServiceIfActive()
+            HotspotShareLogger.info(
+                "LanProxy",
+                if (isChecked) {
+                    "LAN Proxy enabled (port=${DataStore.inboundSocksPort}, auth=${DataStore.inboundAuth})"
+                } else {
+                    "LAN Proxy disabled"
+                },
+            )
             refreshNetworkAndState()
-            lifecycleScope.launch { pollClientDevicesOnce() }
+            lifecycleScope.launch { pollClientDevicesOnce(force = true) }
         }
 
         binding.rowSwitchLanSharing.setOnClickListener {
             binding.switchLanSharing.isChecked = !DataStore.allowLanAccess
+        }
+
+        binding.cardAuth.setOnClickListener {
+            showLanProxyAuthDialog()
+        }
+        binding.btnAuthAction.setOnClickListener {
+            showLanProxyAuthDialog()
         }
 
         // Auto connect (Y): the Wi-Fi gateway auto-connect feature, its dialog and its status.
@@ -217,6 +731,10 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                         DataStore.hotspotGatewayEnabled = true
                         setGatewaySwitchCheckedSilent(true)
                         HotspotGatewayManager.onSwitchChanged(true)
+                        HotspotShareLogger.info(
+                            "AutoGateway",
+                            "Auto-connect enabled (port=${DataStore.hotspotGatewayPort}, auth=${DataStore.hotspotGatewayUser.isNotBlank()})",
+                        )
                     } else {
                         DataStore.hotspotGatewayEnabled = false
                         setGatewaySwitchCheckedSilent(false)
@@ -226,6 +744,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             } else {
                 DataStore.hotspotGatewayEnabled = false
                 HotspotGatewayManager.onSwitchChanged(false)
+                HotspotShareLogger.info("AutoGateway", "Auto-connect disabled")
                 refreshNetworkAndState()
             }
         }
@@ -236,6 +755,10 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         binding.btnGatewayConfigure.setOnClickListener {
             showHotspotDialog { saved ->
                 if (saved) {
+                    HotspotShareLogger.info(
+                        "AutoGateway",
+                        "Auto-connect configured (port=${DataStore.hotspotGatewayPort}, auth=${DataStore.hotspotGatewayUser.isNotBlank()})",
+                    )
                     if (DataStore.hotspotGatewayEnabled) {
                         runOnDefaultDispatcher {
                             HotspotGatewayManager.checkAndUpdate(forceReload = true)
@@ -291,7 +814,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
 
         binding.btnRefreshDevices.setOnClickListener {
             refreshNetworkAndState()
-            lifecycleScope.launch { pollClientDevicesOnce() }
+            lifecycleScope.launch { pollClientDevicesOnce(force = true) }
         }
     }
 
@@ -310,15 +833,26 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
     private fun registerStatusUpdates() {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
+                val action = intent?.action
+                if (action == Action.HOTSPOT_SHARE_LOGS_UPDATED) {
+                    if (selectedTabIndex == TAB_LOGS) {
+                        refreshInlineLogs(scrollToBottom = false, forceRebind = true)
+                    }
+                    return
+                }
                 renderUiState()
-                if (intent?.action == Action.HOTSPOT_SHARE_STATE) {
-                    lifecycleScope.launch { pollClientDevicesOnce() }
+                if (action == Action.HOTSPOT_SHARE_STATE) {
+                    lifecycleScope.launch { pollClientDevicesOnce(force = true) }
+                }
+                if (selectedTabIndex == TAB_LOGS && HotspotShareLogger.isLoggingEnabled()) {
+                    refreshInlineLogs(scrollToBottom = false)
                 }
             }
         }
         val filter = IntentFilter().apply {
             addAction(Action.HOTSPOT_GATEWAY_STATUS)
             addAction(Action.HOTSPOT_SHARE_STATE)
+            addAction(Action.HOTSPOT_SHARE_LOGS_UPDATED)
         }
         runCatching {
             ContextCompat.registerReceiver(
@@ -329,9 +863,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             )
         }.onSuccess { statusReceiver = receiver }
 
-        HotspotGatewayManager.onGatewayChanged = {
-            runOnUiThread { renderUiState() }
-        }
+        HotspotGatewayManager.addListener(gatewayChangedListener)
     }
 
     /**
@@ -354,14 +886,38 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         }.onSuccess { netStateReceiver = receiver }
     }
 
-    private fun refreshNetworkAndState() {
-        lifecycleScope.launch {
+    private fun refreshNetworkAndState(forceRootCheck: Boolean = false) {
+        if (forceRootCheck) pendingForceRootCheck = true
+        refreshNetworkJob?.cancel()
+        refreshNetworkJob = lifecycleScope.launch {
+            if (isFinishing || isDestroyed) return@launch
+            val prevRoot = cachedRootAvailable
+            val checkRootNow = pendingForceRootCheck || !rootCheckedOnce
             val net = withContext(Dispatchers.IO) {
+                cachedShizukuRunning = ShizukuBackend.isShizukuRunning()
+                cachedShizukuGranted = if (cachedShizukuRunning) {
+                    ShizukuBackend.isShizukuGranted(this@LanSharingActivity)
+                } else {
+                    false
+                }
+                cachedAdb5555Open = ShizukuWatchdog.isLocalAdbPortOpen()
+                cachedWatchdogFlagExists = runCatching {
+                    File(ShizukuWatchdog.DEFAULT_KEEP_ALIVE_FLAG_PATH).exists()
+                }.getOrDefault(false)
+                if (checkRootNow) {
+                    cachedRootAvailable = detectRootWithoutPopup()
+                    rootCheckedOnce = true
+                    pendingForceRootCheck = false
+                }
                 Triple(
                     LanSharingNetwork.isHotspotActive(this@LanSharingActivity),
                     LanSharingNetwork.findHotspotCandidates(this@LanSharingActivity),
                     LanSharingNetwork.findWifiIp(this@LanSharingActivity),
                 )
+            }
+            if (isFinishing || isDestroyed) return@launch
+            if (prevRoot != cachedRootAvailable) {
+                shareMethodAdapter?.notifyDataSetChanged()
             }
             hotspotActive = net.first
             // Show the first candidate; all candidates are in the list for diagnostics.
@@ -369,6 +925,21 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             detectedWifiIp = net.third
             renderUiState()
         }
+    }
+
+    private fun detectRootWithoutPopup(): Boolean {
+        if (runCatching { com.topjohnwu.superuser.Shell.isAppGrantedRoot() == true }.getOrDefault(false)) {
+            return true
+        }
+        val suPaths = arrayOf(
+            "/system/bin/su",
+            "/system/xbin/su",
+            "/sbin/su",
+            "/debug_ramdisk/su",
+            "/su/bin/su",
+            "/vendor/bin/su",
+        )
+        return suPaths.any { path -> runCatching { File(path).exists() }.getOrDefault(false) }
     }
 
     /** The Share (X) inbound port: the mixed inbound's SOCKS port. */
@@ -381,8 +952,6 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         setGatewaySwitchCheckedSilent(enabled)
 
         val snapshot = HotspotGatewayState.snapshot()
-        binding.textSwitchSummary.text =
-            getString(if (shareOn) R.string.lan_sharing_x_on else R.string.lan_sharing_x_off)
         // The Hotspot Gateway status line belongs to the Auto Connect (Y) card only; it never
         // bleeds into the Share (X) section's texts.
         binding.textGatewaySummary.text = statusSummaryText(enabled, snapshot)
@@ -399,32 +968,97 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         }
 
         val shareState = HotspotShareStateStore.snapshot()
-        val activeMethodCode = (shareState as? ShareState.Active)?.method?.code?.uppercase()
-        val anySharingActive = shareOn || activeMethodCode != null
+        if (shareState is ShareState.Active) {
+            lastActiveShareMethod = shareState.method
+        }
+        val lanProxyStatus = LanSharingLogics.lanProxyStatus(shareOn, shareState)
+        binding.textSwitchSummary.text = when (lanProxyStatus) {
+            LanSharingLogics.LanProxyStatus.OFF -> getString(R.string.lan_sharing_x_off)
+            LanSharingLogics.LanProxyStatus.ALONGSIDE_HOTSPOT_SHARE ->
+                getString(R.string.lan_sharing_x_on_parallel, port)
+            LanSharingLogics.LanProxyStatus.STANDALONE,
+            LanSharingLogics.LanProxyStatus.VIA_SHARE_MODE ->
+                getString(R.string.lan_sharing_x_on_standalone, port)
+        }
+        val lanProxyBadgeActive = lanProxyStatus != LanSharingLogics.LanProxyStatus.OFF
+        binding.badgeLanProxyStatus.text = when (lanProxyStatus) {
+            LanSharingLogics.LanProxyStatus.OFF -> getString(R.string.hotspot_share_status_off)
+            LanSharingLogics.LanProxyStatus.ALONGSIDE_HOTSPOT_SHARE ->
+                getString(R.string.lan_sharing_proxy_badge_parallel, port)
+            LanSharingLogics.LanProxyStatus.STANDALONE,
+            LanSharingLogics.LanProxyStatus.VIA_SHARE_MODE ->
+                getString(R.string.lan_sharing_proxy_badge_active, port)
+        }
+        val lanBadgeKey = if (lanProxyBadgeActive) "active" else "off"
+        if (lastLanProxyBadgeKey != lanBadgeKey) {
+            lastLanProxyBadgeKey = lanBadgeKey
+            ExpressiveSettingsHelper.styleExpressiveBadge(
+                binding.badgeLanProxyStatus,
+                if (lanProxyBadgeActive) primaryColor else secondaryColor,
+            )
+        }
+        val activeMethod = (shareState as? ShareState.Active)?.method
+        val activeMethodCode = activeMethod?.code?.uppercase()
+        val activeMethodLabel = when (activeMethod) {
+            ShareMethod.SHIZUKU -> "Shizuku"
+            ShareMethod.ROOT -> "Root"
+            ShareMethod.LAN_PROXY -> getString(R.string.hotspot_share_method_lan_proxy)
+            null -> ""
+        }
+        val heroMode = LanSharingLogics.resolveHeroBannerMode(shareOn, activeMethod)
+        val anySharingActive = heroMode != LanSharingLogics.HeroBannerMode.INACTIVE
 
-        if (anySharingActive) {
-            binding.textHeroTitle.text = getString(R.string.lan_sharing_active)
-            binding.badgeServiceStatus.text = if (activeMethodCode != null) {
-                getString(R.string.hotspot_share_status_active, activeMethodCode)
-            } else {
-                getString(R.string.lan_sharing_status_running)
+        val inactiveColor = getColorAttr(android.R.attr.textColorSecondary)
+        val heroBadgeKey = if (anySharingActive) "active" else "inactive"
+        when (heroMode) {
+            LanSharingLogics.HeroBannerMode.BOTH_ACTIVE -> {
+                binding.textHeroTitle.text = getString(R.string.lan_hero_both_active_title, activeMethodLabel)
+                binding.textHeroSubtitle.text = getString(R.string.lan_hero_both_active_sub, port, authShort)
+                binding.badgeServiceStatus.text = getString(R.string.lan_hero_both_active_badge, activeMethodCode ?: activeMethodLabel)
             }
-            binding.badgeServiceStatus.setTextColor(primaryColor)
-            binding.imgHeroStatus.setColorFilter(primaryColor)
-        } else {
-            binding.textHeroTitle.text = getString(R.string.lan_sharing_inactive)
-            binding.badgeServiceStatus.text = getString(R.string.lan_sharing_status_stopped)
-            binding.badgeServiceStatus.setTextColor(secondaryColor)
-            binding.imgHeroStatus.setColorFilter(secondaryColor)
+            LanSharingLogics.HeroBannerMode.HOTSPOT_SHARE_ONLY -> {
+                binding.textHeroTitle.text = getString(R.string.lan_sharing_active)
+                binding.textHeroSubtitle.text = getString(R.string.hotspot_share_status_active, activeMethodLabel)
+                binding.badgeServiceStatus.text = getString(R.string.hotspot_share_status_active, activeMethodCode ?: activeMethodLabel)
+            }
+            LanSharingLogics.HeroBannerMode.LAN_PROXY_ONLY -> {
+                binding.textHeroTitle.text = getString(R.string.lan_sharing_active)
+                binding.textHeroSubtitle.text = getString(R.string.lan_sharing_status_sub, port, authShort)
+                binding.badgeServiceStatus.text = getString(R.string.lan_sharing_status_running)
+            }
+            LanSharingLogics.HeroBannerMode.INACTIVE -> {
+                binding.textHeroTitle.text = getString(R.string.lan_sharing_inactive)
+                binding.textHeroSubtitle.text = getString(R.string.lan_sharing_status_sub, port, authShort)
+                binding.badgeServiceStatus.text = getString(R.string.lan_sharing_status_stopped)
+            }
         }
-        binding.textHeroSubtitle.text = if (activeMethodCode != null && !shareOn) {
-            getString(R.string.hotspot_share_status_active, activeMethodCode)
-        } else {
-            getString(R.string.lan_sharing_status_sub, port, authShort)
+        if (lastHeroBadgeState != heroBadgeKey) {
+            lastHeroBadgeState = heroBadgeKey
+            if (anySharingActive) {
+                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeServiceStatus, primaryColor)
+                ExpressiveSettingsHelper.applySquircleIcon(
+                    binding.imgHeroStatus,
+                    R.drawable.ic_hardware_router,
+                    sizeDp = 44,
+                    iconSizeDp = 22,
+                )
+            } else {
+                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeServiceStatus, inactiveColor)
+                ExpressiveSettingsHelper.applySquircleIcon(
+                    binding.imgHeroStatus,
+                    R.drawable.ic_hardware_router,
+                    sizeDp = 44,
+                    iconSizeDp = 22,
+                    customIconColor = inactiveColor,
+                )
+            }
         }
+
         // X warns when the shared inbound carries no RFC1929 credential.
         binding.textShareWarn.visibility = if (shareOn && !hasAuth) View.VISIBLE else View.GONE
-        binding.textAuthStatus.text = authShort
+        binding.textAuthStatus.text = getString(R.string.lan_auth_port_summary, port, authShort)
+        binding.btnAuthAction.visibility = View.VISIBLE
+        renderLanProxyTrafficUi(lastLanProxyTrafficDisplay)
 
         // Hotspot card. The share card advertises this phone's own hotspot address:
         // LanSharingNetwork.findHotspotCandidates() is the only source and there is no default
@@ -440,13 +1074,20 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             // Displayed masked; copy/share buttons below send the full link.
             LanSharingLogics.maskSocks5Link(buildSocksLinkForHost(hotspotIp))
         } else ""
-        if (hotspotActive || hotspotIp != null) {
+        val isHotspotOn = hotspotActive || hotspotIp != null
+        if (isHotspotOn) {
             binding.badgeHotspotStatus.text = getString(R.string.lan_sharing_hotspot_detected)
-            binding.badgeHotspotStatus.setTextColor(primaryColor)
+            if (lastHotspotBadgeActive != true) {
+                lastHotspotBadgeActive = true
+                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeHotspotStatus, primaryColor)
+            }
             binding.textHotspotDesc.text = getString(R.string.lan_sharing_hotspot_desc)
         } else {
             binding.badgeHotspotStatus.text = getString(R.string.lan_sharing_hotspot_not_active)
-            binding.badgeHotspotStatus.setTextColor(secondaryColor)
+            if (lastHotspotBadgeActive != false) {
+                lastHotspotBadgeActive = false
+                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeHotspotStatus, secondaryColor)
+            }
             binding.textHotspotDesc.text = getString(R.string.lan_sharing_hotspot_hint_off)
         }
         // Same rule as the Wi-Fi card: no detectable gateway IP, no copy/share.
@@ -461,7 +1102,10 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             binding.textWifiIp.text = wifiIp
             binding.textWifiSocksLink.text = LanSharingLogics.maskSocks5Link(buildSocksLinkForHost(wifiIp))
             binding.badgeWifiStatus.text = getString(R.string.lan_sharing_wifi_detected)
-            binding.badgeWifiStatus.setTextColor(primaryColor)
+            if (lastWifiBadgeActive != true) {
+                lastWifiBadgeActive = true
+                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeWifiStatus, primaryColor)
+            }
             binding.textWifiDesc.text = getString(R.string.lan_sharing_wifi_desc)
             binding.btnCopyWifiIp.isEnabled = true
             binding.btnCopyWifiLink.isEnabled = true
@@ -470,16 +1114,18 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             binding.textWifiIp.text = getString(R.string.lan_sharing_not_detected)
             binding.textWifiSocksLink.text = LanSharingLogics.maskSocks5Link(buildSocksLinkForHost("0.0.0.0"))
             binding.badgeWifiStatus.text = getString(R.string.lan_sharing_wifi_not_connected)
-            binding.badgeWifiStatus.setTextColor(secondaryColor)
+            if (lastWifiBadgeActive != false) {
+                lastWifiBadgeActive = false
+                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeWifiStatus, secondaryColor)
+            }
             binding.textWifiDesc.text = getString(R.string.lan_sharing_wifi_hint_off)
             binding.btnCopyWifiIp.isEnabled = false
             binding.btnCopyWifiLink.isEnabled = false
             binding.btnShareWifiLink.isEnabled = false
         }
 
-        // Auth row: display only. The X credential is configured in Settings › Basic › Inbound,
-        // not through the Hotspot Gateway dialog.
-        binding.btnAuthAction.visibility = View.GONE
+        // Port & Authentication action remains enabled for Local Proxy configuration.
+        binding.btnAuthAction.visibility = View.VISIBLE
     }
 
     private fun statusSummaryText(enabled: Boolean, snapshot: HotspotGatewaySnapshot): String {
@@ -549,7 +1195,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 HotspotTrafficMonitor.stats.collect { stats ->
-                    if (DataStore.hotspotShareEnabled) {
+                    if (binding.layoutShareTraffic.visibility == View.VISIBLE) {
                         val down = Formatter.formatFileSize(this@LanSharingActivity, stats.rxSpeedBps) + "/s"
                         val up = Formatter.formatFileSize(this@LanSharingActivity, stats.txSpeedBps) + "/s"
                         val total = Formatter.formatShortFileSize(
@@ -558,7 +1204,6 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                         )
                         binding.textShareSpeed.text = getString(R.string.hotspot_share_speed_format, down, up)
                         binding.textShareUsage.text = getString(R.string.hotspot_share_traffic_format, total)
-                        updateShareClientCountLabel()
                     }
                 }
             }
@@ -579,27 +1224,100 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         }
     }
 
-    private suspend fun pollClientDevicesOnce() {
+    private data class DevicePollResult(
+        val shareSnapshot: ShareState,
+        val devices: List<LanClientDevice>?,
+        val clashReachable: Boolean,
+        val shizukuRunning: Boolean,
+        val lanProxyDisplay: LanSharingLogics.LanProxyTrafficDisplay? = null,
+    )
+
+    private var hasRenderedDeviceList: Boolean = false
+
+    private suspend fun pollClientDevicesOnce(force: Boolean = false) {
         val now = System.currentTimeMillis()
-        val (merged, clashReachable) = withContext(Dispatchers.IO) {
+        val pollResult = withContext(Dispatchers.IO) {
+            val shareSnapshot = HotspotShareStateStore.snapshot()
+            val shizukuRunning = ShizukuBackend.isShizukuRunning()
+            cachedShizukuRunning = shizukuRunning
+            cachedShizukuGranted = if (shizukuRunning) {
+                ShizukuBackend.isShizukuGranted(this@LanSharingActivity)
+            } else {
+                false
+            }
+
+            val shouldPollDevices = force ||
+                DataStore.allowLanAccess ||
+                DataStore.hotspotShareEnabled ||
+                shareSnapshot is ShareState.Active
+            if (!shouldPollDevices) {
+                val hadHistory = clientHistory.isNotEmpty()
+                clientHistory.clear()
+                lastLanProxyTrafficSample = null
+                return@withContext DevicePollResult(
+                    shareSnapshot = shareSnapshot,
+                    devices = if (hadHistory || !hasRenderedDeviceList) emptyList() else null,
+                    clashReachable = false,
+                    shizukuRunning = shizukuRunning,
+                    lanProxyDisplay = null,
+                )
+            }
+
+            val activeMethod = (shareSnapshot as? ShareState.Active)?.method
+            cachedShizukuClientCount = if (activeMethod == ShareMethod.SHIZUKU) {
+                ShizukuBackend.queryActiveClientCount()
+            } else {
+                0
+            }
+
             val arp = LanSharingNetwork.readArp()
             val body = LanSharingNetwork.fetchConnections(
                 url = LanSharingNetwork.clashUrl(),
                 secret = DataStore.coreBoxClashApiSecret,
             )
             val clashList = if (body != null) LanSharingLogics.parseConnections(body) else emptyList()
+            val shizukuTraffic = if (activeMethod == ShareMethod.SHIZUKU) {
+                val clashShizuku = if (body != null) {
+                    LanSharingLogics.parseShizukuShareConnections(body)
+                } else {
+                    ShizukuTunnelTraffic()
+                }
+                val monitorStats = HotspotTrafficMonitor.stats.value
+                ShizukuTunnelTraffic(
+                    activeConnections = clashShizuku.activeConnections,
+                    uploadBytes = maxOf(clashShizuku.uploadBytes, monitorStats.sessionTxBytes),
+                    downloadBytes = maxOf(clashShizuku.downloadBytes, monitorStats.sessionRxBytes),
+                    lastHost = clashShizuku.lastHost,
+                )
+            } else {
+                null
+            }
             val tcpRemotes = LanSharingNetwork.readProcNetTcpRemotes(DataStore.inboundSocksPort)
-            val shizukuDump = ShizukuBackend.queryActiveNeighborDump()
-            val activeRootMode = (HotspotShareStateStore.snapshot() as? ShareState.Active)?.method == ShareMethod.ROOT
-            val rootGranted = runCatching { com.topjohnwu.superuser.Shell.isAppGrantedRoot() == true }.getOrDefault(false)
-            val rootDump = if (activeRootMode || rootGranted) RootBackend.queryNeighborDump() else null
+            val shizukuDump = if (activeMethod == ShareMethod.SHIZUKU) {
+                ShizukuBackend.queryActiveNeighborDump()
+            } else {
+                null
+            }
+            val activeRootMode = activeMethod == ShareMethod.ROOT
+            val rootDump = if (activeRootMode) RootBackend.queryNeighborDump() else null
             val hotspotIfaces = setOfNotNull(detectedHotspotCandidate?.interfaceName)
             val neighSnapshot = LanSharingNetwork.readPrivilegedNeighbors(
                 shizukuDump = shizukuDump,
                 rootDump = rootDump,
                 hotspotIfaces = hotspotIfaces,
             )
+            val rawHostText = buildString {
+                if (!shizukuDump.isNullOrBlank()) append(shizukuDump).append('\n')
+                if (!rootDump.isNullOrBlank()) append(rootDump).append('\n')
+            }
+            val neighborHostnames = LanSharingLogics.parseNeighborHostnames(rawHostText)
+            val combinedHostnames = LinkedHashMap<String, String>()
+            hostnameLookupCache.forEach { (ip, host) ->
+                if (host.isNotBlank()) combinedHostnames[ip] = host
+            }
+            combinedHostnames.putAll(neighborHostnames)
 
+            val localIpSet = setOfNotNull(detectedHotspotCandidate?.ip, detectedWifiIp)
             val hotspotIp = detectedHotspotCandidate?.ip
             val result = LanSharingLogics.mergeDevices(
                 history = clientHistory.toMap(),
@@ -607,28 +1325,102 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 clash = clashList,
                 hotspotIp = hotspotIp,
                 hotspotPrefix = detectedHotspotCandidate?.prefixLength,
-                localIps = setOfNotNull(detectedHotspotCandidate?.ip, detectedWifiIp),
+                localIps = localIpSet,
                 nowMs = now,
                 activePeerIps = tcpRemotes.toSet() + neighSnapshot.activeIps,
                 hotspotHintIps = neighSnapshot.hotspotIps,
+                shizukuTraffic = shizukuTraffic,
+                hostnames = combinedHostnames,
+                activeHotspotMethod = activeMethod,
+                lanProxyEnabled = DataStore.allowLanAccess,
             )
+            scheduleHostnameLookups(result)
             clientHistory.clear()
             result.forEach { clientHistory[it.ip] = it }
-            result to (body != null)
+
+            val lanProxyDisplay = if (DataStore.allowLanAccess) {
+                val (nextSample, display) = LanSharingLogics.computeLanProxyTraffic(
+                    previous = lastLanProxyTrafficSample,
+                    clashDevices = clashList,
+                    activeTcpRemotes = tcpRemotes,
+                    localIps = localIpSet,
+                    nowMs = now,
+                )
+                lastLanProxyTrafficSample = nextSample
+                display
+            } else {
+                lastLanProxyTrafficSample = null
+                null
+            }
+
+            DevicePollResult(
+                shareSnapshot = shareSnapshot,
+                devices = result,
+                clashReachable = body != null,
+                shizukuRunning = shizukuRunning,
+                lanProxyDisplay = lanProxyDisplay,
+            )
         }
-        renderDeviceList(merged, clashReachable)
-        updateShareClientCountLabel()
+        if (isFinishing || isDestroyed) return
+        lastLanProxyTrafficDisplay = pollResult.lanProxyDisplay
+        renderLanProxyTrafficUi(pollResult.lanProxyDisplay)
+
+        var activeShareSnapshot = pollResult.shareSnapshot
+        if (pendingStartAfterShizukuPermission && !pollResult.shizukuRunning) {
+            pendingStartAfterShizukuPermission = false
+            val stoppedError = ShareState.Error(ShareFailure.SHIZUKU_NOT_RUNNING)
+            activeShareSnapshot = stoppedError
+            withContext(Dispatchers.IO) {
+                DataStore.hotspotShareEnabled = false
+                HotspotShareStateStore.publish(stoppedError)
+            }
+            if (isFinishing || isDestroyed) return
+            renderHotspotShareUi()
+        }
+        if (pollResult.devices != null) {
+            hasRenderedDeviceList = true
+            renderDeviceList(pollResult.devices, pollResult.clashReachable)
+        }
+        updateShareClientCountLabel(activeShareSnapshot)
+        if (selectedTabIndex == TAB_LOGS && HotspotShareLogger.isLoggingEnabled()) {
+            refreshInlineLogs(scrollToBottom = false)
+        }
     }
 
     private fun renderDeviceList(devices: List<LanClientDevice>, clashReachable: Boolean) {
         val activeCount = devices.count { it.activeConnections > 0 }
-        binding.badgeDevicesCount.text = getString(R.string.lan_sharing_devices_count, activeCount.coerceAtLeast(devices.size))
+        val count = activeCount.coerceAtLeast(devices.size)
+        val hasDevices = count > 0
+        binding.badgeDevicesCount.text = getString(R.string.lan_sharing_devices_count, count)
+        if (lastDevicesBadgeActive != hasDevices) {
+            lastDevicesBadgeActive = hasDevices
+            val badgeColor = if (hasDevices) {
+                getColorAttr(R.attr.primaryOrTextPrimary)
+            } else {
+                getColorAttr(android.R.attr.textColorSecondary)
+            }
+            ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeDevicesCount, badgeColor)
+        }
         binding.textDevicesCount.text = getString(R.string.lan_sharing_devices_count, devices.size)
+
+        val hotspotShareActive = HotspotShareStateStore.snapshot() is ShareState.Active
+        val vpnConnected = DataStore.serviceState.connected
+        val renderKey = buildString {
+            append(hotspotShareActive).append('|').append(vpnConnected).append('|').append(clashReachable)
+            devices.forEach { d ->
+                append(';').append(d.ip).append(',').append(d.hostname).append(',')
+                    .append(d.isHotspot).append(',').append(d.route).append(',')
+                    .append(d.activeConnections).append(',').append(d.lastHost).append(',')
+                    .append(d.uploadBytes).append(',').append(d.downloadBytes)
+            }
+        }
+        if (lastRenderedDeviceKey == renderKey) {
+            return
+        }
+        lastRenderedDeviceKey = renderKey
 
         binding.layoutDevicesList.removeAllViews()
         if (devices.isEmpty()) {
-            val hotspotShareActive = HotspotShareStateStore.snapshot() is ShareState.Active
-            val vpnConnected = DataStore.serviceState.connected
             if (vpnConnected && DataStore.allowLanAccess && !clashReachable) {
                 ensureClashApiForManualLanIfNeeded()
             }
@@ -645,22 +1437,45 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         binding.layoutNoDevices.visibility = View.GONE
         for (device in devices) {
             val row = layoutInflater.inflate(R.layout.item_lan_client_device, binding.layoutDevicesList, false)
+            val cardDevice = row.findViewById<MaterialCardView>(R.id.card_lan_device)
+            ExpressiveSettingsHelper.styleExpressiveCard(cardDevice, cornerRadiusDp = 20f)
             val ivIcon = row.findViewById<ImageView>(R.id.iv_device_icon)
             val dotStatus = row.findViewById<View>(R.id.dot_device_status)
+            val textHostname = row.findViewById<TextView>(R.id.text_device_hostname)
             val textIp = row.findViewById<TextView>(R.id.text_device_ip)
             val badgeType = row.findViewById<TextView>(R.id.badge_device_type)
             val textDetail = row.findViewById<TextView>(R.id.text_device_status_detail)
             val textTraffic = row.findViewById<TextView>(R.id.text_device_traffic)
 
+            val hostNameValue = device.hostname?.takeIf { it.isNotBlank() }
+            if (hostNameValue != null) {
+                textHostname.text = hostNameValue
+                textHostname.visibility = View.VISIBLE
+            } else {
+                textHostname.visibility = View.GONE
+            }
             textIp.text = device.ip
             badgeType.text = getString(
-                if (device.isHotspot) R.string.lan_sharing_device_hotspot else R.string.lan_sharing_device_wifi
+                when (device.route) {
+                    ClientShareRoute.HOTSPOT_SHIZUKU -> R.string.lan_sharing_device_route_hotspot_shizuku
+                    ClientShareRoute.HOTSPOT_ROOT -> R.string.lan_sharing_device_route_hotspot_root
+                    ClientShareRoute.HOTSPOT_LAN_PROXY -> R.string.lan_sharing_device_route_hotspot_proxy
+                    ClientShareRoute.HOTSPOT_IDLE -> R.string.lan_sharing_device_route_hotspot_idle
+                    ClientShareRoute.LAN_PROXY -> R.string.lan_sharing_device_route_lan_proxy
+                },
             )
+            val isActivelyRouted = device.activeConnections > 0 ||
+                device.route == ClientShareRoute.HOTSPOT_SHIZUKU ||
+                device.route == ClientShareRoute.HOTSPOT_ROOT
+            val deviceColor = getColorAttr(
+                if (isActivelyRouted) R.attr.primaryOrTextPrimary else android.R.attr.textColorSecondary,
+            )
+            ExpressiveSettingsHelper.styleExpressiveBadge(badgeType, deviceColor)
             ivIcon.setImageResource(
                 if (device.isHotspot) R.drawable.ic_communication_phonelink_ring else R.drawable.ic_hardware_router
             )
             dotStatus.setBackgroundResource(
-                if (device.activeConnections > 0) R.drawable.bg_status_dot_green else R.drawable.bg_badge_soft
+                if (isActivelyRouted) R.drawable.bg_status_dot_green else R.drawable.bg_badge_soft
             )
 
             val statusLabel = if (device.activeConnections > 0) {
@@ -673,14 +1488,40 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             }.orEmpty()
             textDetail.text = "$statusLabel$hostPart"
 
-            val upStr = Formatter.formatFileSize(this, device.uploadBytes)
-            val downStr = Formatter.formatFileSize(this, device.downloadBytes)
-            textTraffic.text = "▲ $upStr\n▼ $downStr"
+            val hasTraffic = device.uploadBytes > 0L || device.downloadBytes > 0L
+            if (hasTraffic) {
+                val upStr = Formatter.formatFileSize(this, device.uploadBytes)
+                val downStr = Formatter.formatFileSize(this, device.downloadBytes)
+                textTraffic.text = "▲ $upStr\n▼ $downStr"
+                textTraffic.visibility = View.VISIBLE
+            } else {
+                textTraffic.visibility = View.GONE
+            }
 
             row.setOnClickListener {
                 copyToClipboard(device.ip, getString(R.string.lan_sharing_copied_ip, device.ip))
             }
             binding.layoutDevicesList.addView(row)
+        }
+    }
+
+    private fun scheduleHostnameLookups(devices: List<LanClientDevice>) {
+        devices.forEach { device ->
+            if (!device.isHotspot || !device.hostname.isNullOrBlank()) return@forEach
+            val ip = device.ip
+            if (hostnameLookupCache.containsKey(ip) || !hostnameLookupsInFlight.add(ip)) return@forEach
+            runOnIoDispatcher {
+                try {
+                    val resolved = runCatching {
+                        val addr = InetAddress.getByName(ip)
+                        addr.canonicalHostName.takeIf { it.isNotBlank() && it != ip }
+                            ?: addr.hostName.takeIf { it.isNotBlank() && it != ip }
+                    }.getOrNull()
+                    hostnameLookupCache[ip] = LanSharingLogics.cleanHostname(resolved).orEmpty()
+                } finally {
+                    hostnameLookupsInFlight.remove(ip)
+                }
+            }
         }
     }
 
@@ -736,25 +1577,55 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 PlatformNotifications.cancelHotspotShareDropped(this)
                 HotspotShareStateStore.publish(ShareState.Starting)
                 DataStore.hotspotShareEnabled = true
-                TetherWatchService.start(this)
+                val pref = SharePreference.fromCode(DataStore.hotspotShareMethod)
+                val logTag = when (pref) {
+                    SharePreference.ROOT -> "RootShare"
+                    SharePreference.SHIZUKU -> "ShizukuShare"
+                    else -> if (cachedRootAvailable && !cachedShizukuRunning) "RootShare" else "ShizukuShare"
+                }
+                HotspotShareLogger.info(
+                    logTag,
+                    "UI start requested (pref=$pref, shizuku=$cachedShizukuRunning/$cachedShizukuGranted, root=$cachedRootAvailable)",
+                )
+                val needsShizukuPrompt = (pref == SharePreference.SHIZUKU || (pref == SharePreference.AUTO && !cachedRootAvailable)) &&
+                    cachedShizukuRunning && !cachedShizukuGranted
+                if (needsShizukuPrompt) {
+                    HotspotShareLogger.info("ShizukuShare", "Requesting Shizuku permission before start")
+                    pendingStartAfterShizukuPermission = true
+                    runCatching { Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE) }
+                        .onFailure {
+                            pendingStartAfterShizukuPermission = false
+                            TetherWatchService.start(this)
+                        }
+                } else {
+                    pendingStartAfterShizukuPermission = false
+                    TetherWatchService.start(this)
+                }
             } else {
+                pendingStartAfterShizukuPermission = false
                 PlatformNotifications.cancelHotspotShareDropped(this)
                 DataStore.hotspotShareEnabled = false
-                if (TetherWatchService.isRunning) {
+                HotspotShareLogger.info("HotspotShare", "UI stop requested")
+                val currentSnap = HotspotShareStateStore.snapshot()
+                if (TetherWatchService.isRunning ||
+                    currentSnap is ShareState.Active ||
+                    currentSnap is ShareState.Starting ||
+                    (currentSnap as? ShareState.Stopped)?.cause == ShareFailure.VPN_LOST
+                ) {
                     TetherWatchService.stop(this)
                 } else {
                     HotspotShareStateStore.publish(ShareState.Off)
                 }
             }
             refreshNetworkAndState()
-            lifecycleScope.launch { pollClientDevicesOnce() }
+            lifecycleScope.launch { pollClientDevicesOnce(force = true) }
         }
 
         binding.rowSwitchHotspotShare.setOnClickListener {
             binding.switchHotspotShare.toggle()
         }
 
-        // Method selector spinner
+        // Method selector spinner (disable Root entry visually & functionally when no root exists)
         val methodEntries = listOf(
             getString(R.string.hotspot_share_method_auto),
             getString(R.string.hotspot_share_method_shizuku),
@@ -762,9 +1633,30 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             getString(R.string.hotspot_share_method_lan_proxy),
         )
         val methodCodes = listOf("auto", "shizuku", "root", "lan_proxy")
-        val methodAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, methodEntries).apply {
+        val methodAdapter = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, methodEntries) {
+            override fun areAllItemsEnabled(): Boolean = false
+
+            override fun isEnabled(position: Int): Boolean {
+                return !(position == 2 && !cachedRootAvailable)
+            }
+
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                return super.getView(position, convertView, parent).apply {
+                    alpha = if (position == 2 && !cachedRootAvailable) 0.45f else 1f
+                }
+            }
+
+            override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
+                return super.getDropDownView(position, convertView, parent).apply {
+                    val disabled = position == 2 && !cachedRootAvailable
+                    isEnabled = !disabled
+                    alpha = if (disabled) 0.45f else 1f
+                }
+            }
+        }.apply {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
+        shareMethodAdapter = methodAdapter
         binding.spinnerShareMethod.adapter = methodAdapter
         val currentMethodIndex = methodCodes.indexOf(DataStore.hotspotShareMethod).coerceAtLeast(0)
         binding.spinnerShareMethod.setSelection(currentMethodIndex)
@@ -772,6 +1664,13 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         binding.spinnerShareMethod.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val selectedCode = methodCodes.getOrNull(position) ?: "auto"
+                if (selectedCode == "root" && !cachedRootAvailable) {
+                    val fallbackIndex = methodCodes.indexOf(DataStore.hotspotShareMethod)
+                        .takeIf { it >= 0 && it != 2 } ?: 0
+                    binding.spinnerShareMethod.setSelection(fallbackIndex)
+                    Toast.makeText(this@LanSharingActivity, R.string.hotspot_share_err_root, Toast.LENGTH_SHORT).show()
+                    return
+                }
                 if (selectedCode != DataStore.hotspotShareMethod) {
                     DataStore.hotspotShareMethod = selectedCode
                     if (DataStore.hotspotShareEnabled) {
@@ -810,18 +1709,606 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        // Shizuku permission button
-        binding.btnShizukuPermission.setOnClickListener {
-            if (ShizukuBackend.isShizukuRunning()) {
-                try {
-                    Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE)
-                } catch (t: Throwable) {
-                    Toast.makeText(this, t.message ?: "Failed to request Shizuku permission", Toast.LENGTH_SHORT).show()
+        // Open Android System Hotspot Settings button
+        binding.btnOpenSystemHotspotSettings.setOnClickListener {
+            openSystemHotspotSettings()
+        }
+
+        val requestShizukuPermClick = View.OnClickListener {
+            lifecycleScope.launch {
+                val running = withContext(Dispatchers.IO) { ShizukuBackend.isShizukuRunning() }
+                if (isFinishing || isDestroyed) return@launch
+                if (running) {
+                    try {
+                        Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE)
+                    } catch (t: Throwable) {
+                        Toast.makeText(
+                            this@LanSharingActivity,
+                            t.message ?: "Failed to request Shizuku permission",
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                } else {
+                    Toast.makeText(
+                        this@LanSharingActivity,
+                        R.string.hotspot_share_shizuku_not_running,
+                        Toast.LENGTH_LONG,
+                    ).show()
                 }
-            } else {
-                Toast.makeText(this, R.string.hotspot_share_shizuku_not_running, Toast.LENGTH_LONG).show()
             }
         }
+        binding.btnShizukuPermission.setOnClickListener(requestShizukuPermClick)
+        binding.btnDashGrantShizuku.setOnClickListener(requestShizukuPermClick)
+
+        binding.btnDashReviveAdb.setOnClickListener {
+            binding.btnDashReviveAdb.isEnabled = false
+            Toast.makeText(this, R.string.hotspot_share_dash_reviving, Toast.LENGTH_SHORT).show()
+            lifecycleScope.launch {
+                val sent = withContext(Dispatchers.IO) {
+                    ShizukuWatchdog.tryReviveShizukuViaLocalAdbOrShell()
+                }
+                if (sent) {
+                    delay(1200L)
+                }
+                if (isFinishing || isDestroyed) return@launch
+                binding.btnDashReviveAdb.isEnabled = true
+                Toast.makeText(
+                    this@LanSharingActivity,
+                    if (sent) R.string.hotspot_share_dash_revive_ok else R.string.hotspot_share_dash_revive_fail,
+                    Toast.LENGTH_LONG,
+                ).show()
+                refreshNetworkAndState()
+            }
+        }
+    }
+
+    private fun openSystemHotspotSettings() {
+        val candidates = listOf(
+            Intent("com.android.settings.WIFI_TETHER_SETTINGS"),
+            Intent("android.settings.TETHER_SETTINGS"),
+            Intent().setComponent(ComponentName("com.android.settings", "com.android.settings.TetherSettings")),
+            Intent(Settings.ACTION_WIRELESS_SETTINGS),
+        )
+        for (intent in candidates) {
+            val started = runCatching {
+                if (intent.resolveActivity(packageManager) != null) {
+                    startActivity(intent)
+                    true
+                } else {
+                    false
+                }
+            }.getOrDefault(false)
+            if (started) return
+        }
+        runCatching { startActivity(Intent(Settings.ACTION_SETTINGS)) }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupLogViews() {
+        suppressLogsSwitchCallback = true
+        binding.switchShareLogsEnabled.isChecked = HotspotShareLogger.isLoggingEnabled()
+        suppressLogsSwitchCallback = false
+        updateInlineLogBoxAppearance(binding.switchShareLogsEnabled.isChecked)
+
+        binding.switchShareLogsEnabled.setOnCheckedChangeListener { _, isChecked ->
+            if (suppressLogsSwitchCallback) return@setOnCheckedChangeListener
+            lifecycleScope.launch {
+                withContext(Dispatchers.IO) {
+                    HotspotShareLogger.setLoggingEnabled(isChecked)
+                    ShizukuBackend.setServiceLoggingEnabled(isChecked)
+                    if (isChecked) {
+                        emitLoggingEnabledDiagnosticSnapshot()
+                    }
+                }
+                if (isFinishing || isDestroyed) return@launch
+                sendBroadcast(Intent(Action.HOTSPOT_SHARE_LOGS_UPDATED).setPackage(packageName))
+                updateInlineLogBoxAppearance(isChecked)
+                refreshInlineLogs(scrollToBottom = false, forceRebind = true)
+            }
+        }
+
+        binding.rowShareLogs.setOnClickListener {
+            binding.switchShareLogsEnabled.toggle()
+        }
+
+        binding.btnLogDrawerActions.setOnClickListener {
+            val open = binding.drawerLogActions.visibility != View.VISIBLE
+            toggleLogDrawer(showActions = open, showFilters = false)
+        }
+        binding.btnLogDrawerFilters.setOnClickListener {
+            val open = binding.drawerLogFilters.visibility != View.VISIBLE
+            toggleLogDrawer(showActions = false, showFilters = open)
+        }
+
+        binding.btnRefreshInlineLogs.setOnClickListener {
+            refreshInlineLogs(scrollToBottom = true, forceRebind = true)
+        }
+        binding.btnCopyInlineLogs.setOnClickListener {
+            val filtered = HotspotShareLogger.filterAndSortLogs(
+                currentRawShareLogs,
+                source = currentLogSourceFilter,
+                levelFilter = currentLogLevelFilter,
+                searchQuery = currentLogSearchQuery,
+                newestFirst = currentLogNewestFirst,
+            )
+            val toCopy = filtered.ifBlank {
+                currentRawShareLogs.ifBlank { binding.textInlineShareLogs.text?.toString().orEmpty() }
+            }
+            copyToClipboard(toCopy, getString(R.string.hotspot_share_logs_copied))
+        }
+        binding.btnClearInlineLogs.setOnClickListener {
+            clearAllShareLogs {
+                currentRawShareLogs = ""
+                applyLogFilters(scrollToEdge = false)
+            }
+        }
+
+        binding.editLogSearch.doAfterTextChanged { text ->
+            if (suppressFilterChipCallbacks) return@doAfterTextChanged
+            currentLogSearchQuery = text?.toString().orEmpty()
+            updateLogFilterUi()
+            applyLogFilters(scrollToEdge = false)
+        }
+
+        binding.chipGroupLogSource.setOnCheckedStateChangeListener { _, checkedIds ->
+            if (suppressFilterChipCallbacks) return@setOnCheckedStateChangeListener
+            val checkedId = checkedIds.firstOrNull()
+            currentLogSourceFilter = when (checkedId) {
+                R.id.chipLogSourceShizuku -> HotspotShareLogger.LogSource.SHIZUKU
+                R.id.chipLogSourceRoot -> HotspotShareLogger.LogSource.ROOT
+                R.id.chipLogSourceProxy -> HotspotShareLogger.LogSource.PROXY
+                else -> HotspotShareLogger.LogSource.ALL
+            }
+            updateLogFilterUi()
+            applyLogFilters(scrollToEdge = false)
+        }
+
+        binding.chipGroupLogLevel.setOnCheckedStateChangeListener { _, checkedIds ->
+            if (suppressFilterChipCallbacks) return@setOnCheckedStateChangeListener
+            val checkedId = checkedIds.firstOrNull()
+            currentLogLevelFilter = when (checkedId) {
+                R.id.chipLogLevelWarn -> HotspotShareLogger.LogLevelFilter.WARN_PLUS
+                R.id.chipLogLevelError -> HotspotShareLogger.LogLevelFilter.ERROR_ONLY
+                else -> HotspotShareLogger.LogLevelFilter.ALL
+            }
+            updateLogFilterUi()
+            applyLogFilters(scrollToEdge = false)
+        }
+
+        binding.chipLogSortOrder.setOnCheckedChangeListener { _, isChecked ->
+            if (suppressFilterChipCallbacks) return@setOnCheckedChangeListener
+            currentLogNewestFirst = isChecked
+            updateLogFilterUi()
+            applyLogFilters(scrollToEdge = true)
+        }
+
+        binding.btnResetLogFilters.setOnClickListener {
+            resetLogFilters()
+        }
+
+        updateLogFilterUi()
+
+        // Let the inner log scroll box consume vertical gestures cleanly without fighting the outer scroll view.
+        binding.scrollInlineShareLogs.setOnTouchListener { v, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE ->
+                    v.parent?.requestDisallowInterceptTouchEvent(true)
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
+                    v.parent?.requestDisallowInterceptTouchEvent(false)
+            }
+            false
+        }
+    }
+
+    private fun toggleLogDrawer(showActions: Boolean, showFilters: Boolean) {
+        runCatching {
+            TransitionManager.beginDelayedTransition(
+                binding.cardShareLogs,
+                AutoTransition().setDuration(180L),
+            )
+        }
+        binding.drawerLogActions.visibility = if (showActions) View.VISIBLE else View.GONE
+        binding.drawerLogFilters.visibility = if (showFilters) View.VISIBLE else View.GONE
+        updateLogFilterUi()
+        updateLogsBoxHeightToFillViewport()
+    }
+
+    private fun resetLogFilters() {
+        suppressFilterChipCallbacks = true
+        currentLogSourceFilter = HotspotShareLogger.LogSource.ALL
+        currentLogLevelFilter = HotspotShareLogger.LogLevelFilter.ALL
+        currentLogSearchQuery = ""
+        currentLogNewestFirst = true
+        binding.editLogSearch.setText("")
+        binding.chipGroupLogSource.check(R.id.chipLogSourceAll)
+        binding.chipGroupLogLevel.check(R.id.chipLogLevelAll)
+        binding.chipLogSortOrder.isChecked = true
+        suppressFilterChipCallbacks = false
+        updateLogFilterUi()
+        applyLogFilters(scrollToEdge = true)
+    }
+
+    private fun countActiveLogFilters(): Int {
+        var count = 0
+        if (currentLogSourceFilter != HotspotShareLogger.LogSource.ALL) count++
+        if (currentLogLevelFilter != HotspotShareLogger.LogLevelFilter.ALL) count++
+        if (currentLogSearchQuery.isNotBlank()) count++
+        if (!currentLogNewestFirst) count++
+        return count
+    }
+
+    private fun updateLogFilterUi() {
+        binding.chipLogSortOrder.text = getString(
+            if (currentLogNewestFirst) R.string.hotspot_share_log_sort_newest else R.string.hotspot_share_log_sort_oldest,
+        )
+        val activeFilterCount = countActiveLogFilters()
+        val hasActiveFilters = activeFilterCount > 0
+        binding.btnResetLogFilters.visibility = if (hasActiveFilters) View.VISIBLE else View.GONE
+        binding.btnLogDrawerFilters.text = if (hasActiveFilters) {
+            "${getString(R.string.hotspot_share_log_drawer_filters)} ($activeFilterCount)"
+        } else {
+            getString(R.string.hotspot_share_log_drawer_filters)
+        }
+
+        val primaryColor = getColorAttr(R.attr.primaryOrTextPrimary)
+        val secondaryColor = getColorAttr(android.R.attr.textColorSecondary)
+        val activeBg = ColorStateList.valueOf(
+            android.graphics.Color.argb(
+                36,
+                android.graphics.Color.red(primaryColor),
+                android.graphics.Color.green(primaryColor),
+                android.graphics.Color.blue(primaryColor),
+            ),
+        )
+        val activeStroke = ColorStateList.valueOf(primaryColor)
+
+        fun styleDrawerButton(btn: MaterialButton, highlighted: Boolean) {
+            ExpressiveSettingsHelper.styleOutlinedButton(btn)
+            if (highlighted) {
+                btn.backgroundTintList = activeBg
+                btn.strokeColor = activeStroke
+                btn.setTextColor(primaryColor)
+                btn.iconTint = ColorStateList.valueOf(primaryColor)
+            }
+        }
+
+        styleDrawerButton(
+            binding.btnLogDrawerActions,
+            binding.drawerLogActions.visibility == View.VISIBLE,
+        )
+        styleDrawerButton(
+            binding.btnLogDrawerFilters,
+            binding.drawerLogFilters.visibility == View.VISIBLE || hasActiveFilters,
+        )
+    }
+
+    private fun emitLoggingEnabledDiagnosticSnapshot() {
+        val pref = SharePreference.fromCode(DataStore.hotspotShareMethod)
+        val snap = HotspotShareStateStore.snapshot()
+        val vpnConnected = DataStore.serviceState.connected
+        HotspotShareLogger.info(
+            "HotspotShare",
+            "Diagnostic logging enabled (state=${snap.javaClass.simpleName}, pref=$pref, vpn=$vpnConnected, shizuku=$cachedShizukuRunning/$cachedShizukuGranted, adb5555=$cachedAdb5555Open, root=$cachedRootAvailable)",
+        )
+        if (DataStore.allowLanAccess) {
+            val authOn = DataStore.inboundAuth && DataStore.inboundUser.isNotBlank()
+            HotspotShareLogger.info(
+                "LanProxy",
+                "LAN Proxy status: active=true, port=${DataStore.inboundSocksPort}, auth=$authOn, vpn=$vpnConnected",
+            )
+        }
+        ShizukuBackend.mirrorServiceLogs()
+    }
+
+    private fun applyLogFilters(scrollToEdge: Boolean) {
+        val loggingEnabled = HotspotShareLogger.isLoggingEnabled()
+        lastRenderedLogEnabledState = loggingEnabled
+        val totalEntries = HotspotShareLogger.countEntries(currentRawShareLogs)
+        val hasActiveFilters = countActiveLogFilters() > 0
+
+        if (currentRawShareLogs.isBlank()) {
+            binding.textLogCountBadge.text = getString(R.string.hotspot_share_logs_count_total, 0)
+            binding.textInlineShareLogs.text = emptyLogPlaceholderText()
+            return
+        }
+        val filtered = HotspotShareLogger.filterAndSortLogs(
+            currentRawShareLogs,
+            source = currentLogSourceFilter,
+            levelFilter = currentLogLevelFilter,
+            searchQuery = currentLogSearchQuery,
+            newestFirst = currentLogNewestFirst,
+        )
+        val visibleEntries = if (filtered.isBlank()) 0 else HotspotShareLogger.countEntries(filtered)
+        binding.textLogCountBadge.text = if (hasActiveFilters && visibleEntries != totalEntries) {
+            getString(R.string.hotspot_share_logs_count_filtered, visibleEntries, totalEntries)
+        } else {
+            getString(R.string.hotspot_share_logs_count_total, totalEntries)
+        }
+
+        if (filtered.isBlank()) {
+            binding.textInlineShareLogs.text = getString(R.string.hotspot_share_logs_filter_empty, totalEntries)
+            return
+        }
+        binding.textInlineShareLogs.text = formatStyledLogSpannable(filtered)
+        if (scrollToEdge) {
+            binding.scrollInlineShareLogs.post {
+                if (currentLogNewestFirst) {
+                    binding.scrollInlineShareLogs.scrollTo(0, 0)
+                } else {
+                    binding.scrollInlineShareLogs.fullScroll(View.FOCUS_DOWN)
+                }
+            }
+        }
+    }
+
+    private fun updateLogsBoxHeightToFillViewport() {
+        binding.scrollLanSharing.post {
+            if (isFinishing || isDestroyed || selectedTabIndex != TAB_LOGS) return@post
+            val viewportBottom = binding.scrollLanSharing.height - binding.scrollLanSharing.paddingBottom
+            if (viewportBottom <= 0) return@post
+            val rootContent = binding.scrollLanSharing.getChildAt(0) ?: return@post
+            var topInContent = 0
+            var current: View? = binding.scrollInlineShareLogs
+            while (current != null && current !== rootContent) {
+                topInContent += current.top
+                current = current.parent as? View
+            }
+            val bottomTrimPx = binding.boxInlineShareLogs.paddingBottom +
+                ((binding.boxInlineShareLogs.parent as? View)?.paddingBottom ?: 0) +
+                dpToPx(12)
+            val drawerOpen = binding.drawerLogActions.visibility == View.VISIBLE ||
+                binding.drawerLogFilters.visibility == View.VISIBLE
+            val minHeightPx = dpToPx(if (drawerOpen) 240 else 340)
+            val targetHeight = (viewportBottom - topInContent - bottomTrimPx).coerceAtLeast(minHeightPx)
+            val lp = binding.scrollInlineShareLogs.layoutParams
+            if (lp.height != targetHeight) {
+                lp.height = targetHeight
+                binding.scrollInlineShareLogs.layoutParams = lp
+                binding.scrollInlineShareLogs.minimumHeight = targetHeight
+                binding.boxInlineShareLogs.requestLayout()
+            }
+        }
+    }
+
+    private fun updateInlineLogBoxAppearance(enabled: Boolean) {
+        binding.boxInlineShareLogs.alpha = if (enabled) 1f else 0.72f
+    }
+
+    private fun emptyLogPlaceholderText(): String {
+        return if (HotspotShareLogger.isLoggingEnabled()) {
+            getString(R.string.hotspot_share_logs_empty)
+        } else {
+            getString(R.string.hotspot_share_logs_disabled_hint)
+        }
+    }
+
+    private fun refreshInlineLogs(scrollToBottom: Boolean, forceRebind: Boolean = false) {
+        lifecycleScope.launch {
+            val merged = withContext(Dispatchers.IO) {
+                HotspotShareLogger.readMergedLogs(ShizukuBackend.fetchServiceLogs())
+            }
+            if (isFinishing || isDestroyed) return@launch
+            val changed = merged != currentRawShareLogs
+            val enabledStateChanged = lastRenderedLogEnabledState != HotspotShareLogger.isLoggingEnabled()
+            currentRawShareLogs = merged
+            if (changed || forceRebind || enabledStateChanged || binding.textInlineShareLogs.text?.isEmpty() != false) {
+                applyLogFilters(scrollToEdge = scrollToBottom)
+            } else if (scrollToBottom) {
+                binding.scrollInlineShareLogs.post {
+                    if (currentLogNewestFirst) {
+                        binding.scrollInlineShareLogs.scrollTo(0, 0)
+                    } else {
+                        binding.scrollInlineShareLogs.fullScroll(View.FOCUS_DOWN)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun clearAllShareLogs(onDoneOnMain: () -> Unit) {
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                ShizukuBackend.clearServiceLogs()
+                HotspotShareLogger.clearAll()
+            }
+            if (isFinishing || isDestroyed) return@launch
+            sendBroadcast(Intent(Action.HOTSPOT_SHARE_LOGS_UPDATED).setPackage(packageName))
+            onDoneOnMain()
+            Toast.makeText(
+                this@LanSharingActivity,
+                R.string.hotspot_share_logs_cleared,
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+    private fun formatStyledLogSpannable(rawLogs: String): CharSequence {
+        if (rawLogs.isBlank()) return ""
+        val primaryColor = getColorAttr(android.R.attr.textColorPrimary)
+        val secondaryColor = getColorAttr(android.R.attr.textColorSecondary)
+        val accentColor = getColorAttr(R.attr.primaryOrTextPrimary)
+        val amberColor = ContextCompat.getColor(this, R.color.material_amber_500)
+        val redColor = ContextCompat.getColor(this, R.color.material_red_500)
+
+        val sb = SpannableStringBuilder()
+        var first = true
+        for (rawLine in rawLogs.lineSequence()) {
+            val trimmed = rawLine.trim()
+            if (trimmed.isEmpty()) continue
+            if (!first) sb.append("\n\n")
+            first = false
+
+            val parsed = HotspotShareLogger.parseLogLine(trimmed)
+            if (parsed == null) {
+                val start = sb.length
+                sb.append(trimmed)
+                sb.setSpan(ForegroundColorSpan(primaryColor), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                continue
+            }
+
+            // Line 1: HH:mm:ss.SSS  LEVEL  [Tag]
+            val timeStart = sb.length
+            sb.append(parsed.timeOnly)
+            sb.setSpan(TypefaceSpan("monospace"), timeStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.setSpan(RelativeSizeSpan(0.88f), timeStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.setSpan(ForegroundColorSpan(secondaryColor), timeStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            sb.append("  ")
+            val levelStart = sb.length
+            sb.append(parsed.level)
+            val levelColor = when (parsed.level) {
+                "ERROR" -> redColor
+                "WARN" -> amberColor
+                else -> accentColor
+            }
+            sb.setSpan(ForegroundColorSpan(levelColor), levelStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.setSpan(StyleSpan(Typeface.BOLD), levelStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.setSpan(RelativeSizeSpan(0.88f), levelStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            sb.append("  ")
+            val tagStart = sb.length
+            sb.append("[").append(parsed.tag).append("]")
+            sb.setSpan(ForegroundColorSpan(primaryColor), tagStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.setSpan(StyleSpan(Typeface.BOLD), tagStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.setSpan(RelativeSizeSpan(0.92f), tagStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            // Line 2: indented readable message
+            sb.append("\n  ")
+            val msgStart = sb.length
+            sb.append(parsed.message)
+            sb.setSpan(ForegroundColorSpan(primaryColor), msgStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        return sb
+    }
+
+    private fun renderLanProxyTrafficUi(display: LanSharingLogics.LanProxyTrafficDisplay?) {
+        if (!DataStore.allowLanAccess) {
+            binding.layoutLanProxyTraffic.visibility = View.GONE
+            return
+        }
+        binding.layoutLanProxyTraffic.visibility = View.VISIBLE
+        val rxSpeed = display?.rxSpeedBps ?: 0L
+        val txSpeed = display?.txSpeedBps ?: 0L
+        val total = (display?.totalRxBytes ?: 0L) + (display?.totalTxBytes ?: 0L)
+        val clients = display?.activeClients ?: 0
+        val downStr = Formatter.formatFileSize(this, rxSpeed) + "/s"
+        val upStr = Formatter.formatFileSize(this, txSpeed) + "/s"
+        val totalStr = Formatter.formatShortFileSize(this, total)
+        binding.textLanProxySpeed.text = getString(R.string.hotspot_share_speed_format, downStr, upStr)
+        binding.textLanProxyUsage.text = getString(R.string.hotspot_share_traffic_format, totalStr)
+        binding.textLanProxyClients.text = getString(R.string.hotspot_share_clients_format, clients)
+    }
+
+    private fun showLanProxyAuthDialog() {
+        val density = resources.displayMetrics.density
+        val padOuter = (20 * density).toInt()
+        val gap = (12 * density).toInt()
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(padOuter, (10 * density).toInt(), padOuter, 0)
+        }
+
+        val portLabel = TextView(this).apply {
+            text = getString(R.string.lan_sharing_port_label)
+            setTextColor(getColorAttr(android.R.attr.textColorSecondary))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+        }
+        val editPort = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setText(DataStore.inboundSocksPort.toString())
+            setSelection(text?.length ?: 0)
+        }
+        root.addView(portLabel)
+        root.addView(editPort)
+
+        val switchAuth = SwitchMaterial(this).apply {
+            text = getString(R.string.lan_auth_enable_switch)
+            isChecked = DataStore.inboundAuth
+            setPadding(0, gap, 0, (4 * density).toInt())
+        }
+        root.addView(switchAuth)
+
+        val userLabel = TextView(this).apply {
+            text = getString(R.string.username)
+            setTextColor(getColorAttr(android.R.attr.textColorSecondary))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+            setPadding(0, (6 * density).toInt(), 0, 0)
+        }
+        val editUser = EditText(this).apply {
+            hint = getString(R.string.username)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            setText(DataStore.inboundUser)
+        }
+        root.addView(userLabel)
+        root.addView(editUser)
+
+        val passLabel = TextView(this).apply {
+            text = getString(R.string.password)
+            setTextColor(getColorAttr(android.R.attr.textColorSecondary))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+            setPadding(0, (8 * density).toInt(), 0, 0)
+        }
+        val editPass = EditText(this).apply {
+            hint = getString(R.string.password)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            setText(DataStore.inboundPass)
+        }
+        root.addView(passLabel)
+        root.addView(editPass)
+
+        fun updateCredentialFieldsEnabled(authOn: Boolean) {
+            val alpha = if (authOn) 1f else 0.5f
+            userLabel.alpha = alpha
+            editUser.alpha = alpha
+            editUser.isEnabled = authOn
+            passLabel.alpha = alpha
+            editPass.alpha = alpha
+            editPass.isEnabled = authOn
+        }
+        updateCredentialFieldsEnabled(switchAuth.isChecked)
+        switchAuth.setOnCheckedChangeListener { _, isChecked ->
+            updateCredentialFieldsEnabled(isChecked)
+        }
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.lan_auth_dialog_title)
+            .setView(root)
+            .setPositiveButton(android.R.string.ok, null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val portStr = editPort.text?.toString()?.trim().orEmpty()
+                val validPort = LanSharingLogics.validateDialogPort(portStr)
+                if (validPort == null) {
+                    Toast.makeText(this, getString(R.string.invalid_port, portStr), Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                val authEnabled = switchAuth.isChecked
+                val user = editUser.text?.toString()?.trim().orEmpty()
+                val pass = editPass.text?.toString().orEmpty()
+                if (authEnabled && user.isEmpty()) {
+                    Toast.makeText(this, R.string.lan_auth_credentials_required, Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                DataStore.inboundSocksPort = validPort
+                DataStore.inboundAuth = authEnabled
+                DataStore.inboundUser = user
+                DataStore.inboundPass = pass
+                lastLanProxyTrafficSample = null
+                HotspotShareLogger.info(
+                    "LanProxy",
+                    "Updated LAN Proxy config (port=${DataStore.inboundSocksPort}, auth=${DataStore.inboundAuth})",
+                )
+                reloadRunningServiceIfActive()
+                refreshNetworkAndState()
+                lifecycleScope.launch { pollClientDevicesOnce(force = true) }
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
     }
 
     private fun renderHotspotShareUi() {
@@ -837,45 +2324,71 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         when (state) {
             is ShareState.Off -> {
                 binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_off)
-                binding.badgeShareStatus.setTextColor(secondaryColor)
+                if (lastShareBadgeKey != "off") {
+                    lastShareBadgeKey = "off"
+                    ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeShareStatus, secondaryColor)
+                }
                 binding.layoutShareTraffic.visibility = View.GONE
                 binding.textShareClients.visibility = View.GONE
                 binding.bannerShareWarning.visibility = View.GONE
             }
             is ShareState.Starting -> {
                 binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_starting)
-                binding.badgeShareStatus.setTextColor(amberColor)
+                if (lastShareBadgeKey != "starting") {
+                    lastShareBadgeKey = "starting"
+                    ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeShareStatus, amberColor)
+                }
                 binding.layoutShareTraffic.visibility = View.GONE
                 binding.textShareClients.visibility = View.GONE
                 binding.bannerShareWarning.visibility = View.GONE
             }
             is ShareState.Active -> {
+                lastActiveShareMethod = state.method
                 val methodLabel = when (state.method) {
                     ShareMethod.SHIZUKU -> "Shizuku"
                     ShareMethod.ROOT -> "Root"
                     ShareMethod.LAN_PROXY -> getString(R.string.hotspot_share_method_lan_proxy)
                 }
                 binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_active, methodLabel)
-                binding.badgeShareStatus.setTextColor(primaryColor)
+                if (lastShareBadgeKey != "active") {
+                    lastShareBadgeKey = "active"
+                    ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeShareStatus, primaryColor)
+                }
                 binding.layoutShareTraffic.visibility = if (state.method == ShareMethod.LAN_PROXY) View.GONE else View.VISIBLE
-                updateShareClientCountLabel()
+                updateShareClientCountLabel(state)
                 binding.bannerShareWarning.visibility = View.GONE
             }
             is ShareState.Stopped -> {
-                binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_stopped_clean)
-                binding.badgeShareStatus.setTextColor(amberColor)
+                val pref = SharePreference.fromCode(DataStore.hotspotShareMethod)
+                val failClosed = FailClosedAction.fromCode(DataStore.hotspotShareFailClosed)
+                val pausedWaitingVpn = state.cause == ShareFailure.VPN_LOST && DataStore.hotspotShareEnabled
+                val vpnNotice = LanSharingLogics.vpnLostNotice(pref, lastActiveShareMethod, failClosed)
+                val showWaitingBadge = state.cause == ShareFailure.VPN_LOST &&
+                    LanSharingLogics.vpnLostShowsWaitingBadge(vpnNotice, pausedWaitingVpn)
+                binding.badgeShareStatus.text = getString(
+                    if (showWaitingBadge) R.string.hotspot_share_waiting_vpn_title
+                    else R.string.hotspot_share_status_stopped_clean
+                )
+                if (lastShareBadgeKey != "stopped") {
+                    lastShareBadgeKey = "stopped"
+                    ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeShareStatus, amberColor)
+                }
                 binding.layoutShareTraffic.visibility = View.GONE
                 binding.textShareClients.visibility = View.GONE
                 binding.bannerShareWarning.visibility = View.VISIBLE
-                val pref = SharePreference.fromCode(DataStore.hotspotShareMethod)
-                val failClosed = FailClosedAction.fromCode(DataStore.hotspotShareFailClosed)
                 binding.textShareWarning.text = when (state.cause) {
                     ShareFailure.TETHER_LOST -> getString(R.string.hotspot_share_tether_lost_warn)
                     ShareFailure.VPN_LOST -> {
-                        if (pref == SharePreference.ROOT && failClosed == FailClosedAction.BLOCK_TRAFFIC) {
-                            getString(R.string.hotspot_share_traffic_blocked_warn)
-                        } else {
-                            getString(R.string.hotspot_share_vpn_dropped_warn)
+                        when (vpnNotice) {
+                            LanSharingLogics.VpnLostNotice.LAN_PROXY_DROPPED ->
+                                getString(R.string.hotspot_share_lan_proxy_dropped_text)
+                            LanSharingLogics.VpnLostNotice.BLOCK_TRAFFIC_PROTECTED ->
+                                getString(
+                                    if (pausedWaitingVpn) R.string.hotspot_share_waiting_vpn_warn
+                                    else R.string.hotspot_share_traffic_blocked_warn
+                                )
+                            LanSharingLogics.VpnLostNotice.HOTSPOT_STOPPED ->
+                                getString(R.string.hotspot_share_vpn_dropped_warn)
                         }
                     }
                     else -> getString(R.string.hotspot_share_leak_warn)
@@ -883,7 +2396,10 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             }
             is ShareState.Error -> {
                 binding.badgeShareStatus.text = getString(R.string.hotspot_share_status_unavailable)
-                binding.badgeShareStatus.setTextColor(redColor)
+                if (lastShareBadgeKey != "error") {
+                    lastShareBadgeKey = "error"
+                    ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeShareStatus, redColor)
+                }
                 binding.layoutShareTraffic.visibility = View.GONE
                 binding.textShareClients.visibility = View.GONE
                 binding.bannerShareWarning.visibility = View.VISIBLE
@@ -891,35 +2407,81 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             }
         }
 
-        // Shizuku status & permission UI
+        // Shizuku status, permission & daemon watchdog UI (uses IO-cached flags — zero Main-thread Binder IPC)
         val pref = SharePreference.fromCode(DataStore.hotspotShareMethod)
-        val considersShizuku = pref == SharePreference.SHIZUKU || pref == SharePreference.AUTO
-        if (considersShizuku) {
-            val shizukuRunning = ShizukuBackend.isShizukuRunning()
-            val shizukuGranted = ShizukuBackend.isShizukuGranted(this)
-            if (!shizukuRunning) {
-                if (pref == SharePreference.SHIZUKU) {
-                    binding.layoutShizukuAction.visibility = View.VISIBLE
-                    binding.textShizukuHint.visibility = View.VISIBLE
-                    binding.textShizukuHint.text = getString(R.string.hotspot_share_shizuku_not_running)
-                    binding.btnShizukuPermission.visibility = View.GONE
-                } else {
-                    binding.layoutShizukuAction.visibility = View.GONE
+        val showDash = pref == SharePreference.SHIZUKU || pref == SharePreference.AUTO
+        binding.layoutShizukuDash.visibility = if (showDash) View.VISIBLE else View.GONE
+        if (showDash) {
+            when {
+                cachedShizukuRunning && cachedShizukuGranted -> {
+                    binding.textDashShizukuStatus.text = getString(R.string.hotspot_share_dash_shizuku_ready)
+                    binding.textDashShizukuStatus.setTextColor(primaryColor)
                 }
-            } else if (!shizukuGranted) {
-                binding.layoutShizukuAction.visibility = View.VISIBLE
-                binding.textShizukuHint.visibility = View.GONE
-                binding.btnShizukuPermission.visibility = View.VISIBLE
-            } else {
-                binding.layoutShizukuAction.visibility = View.GONE
+                cachedShizukuRunning -> {
+                    binding.textDashShizukuStatus.text = getString(R.string.hotspot_share_dash_shizuku_no_perm)
+                    binding.textDashShizukuStatus.setTextColor(amberColor)
+                }
+                else -> {
+                    binding.textDashShizukuStatus.text = getString(R.string.hotspot_share_dash_shizuku_stopped)
+                    binding.textDashShizukuStatus.setTextColor(amberColor)
+                }
             }
-        } else {
-            binding.layoutShizukuAction.visibility = View.GONE
+
+            if (cachedAdb5555Open) {
+                binding.textDashAdbStatus.text = getString(R.string.hotspot_share_dash_adb_open)
+                binding.textDashAdbStatus.setTextColor(primaryColor)
+            } else {
+                binding.textDashAdbStatus.text = getString(R.string.hotspot_share_dash_adb_closed)
+                binding.textDashAdbStatus.setTextColor(secondaryColor)
+            }
+
+            val watchdogLive = cachedWatchdogFlagExists ||
+                (state is ShareState.Active && state.method == ShareMethod.SHIZUKU)
+            if (watchdogLive) {
+                binding.textDashWatchdogStatus.text = getString(R.string.hotspot_share_dash_watchdog_active)
+                binding.textDashWatchdogStatus.setTextColor(primaryColor)
+            } else {
+                binding.textDashWatchdogStatus.text = getString(R.string.hotspot_share_dash_watchdog_standby)
+                binding.textDashWatchdogStatus.setTextColor(secondaryColor)
+            }
+
+            val showGrant = cachedShizukuRunning && !cachedShizukuGranted
+            val showRevive = !cachedShizukuRunning && cachedAdb5555Open
+            binding.btnDashGrantShizuku.visibility = if (showGrant) View.VISIBLE else View.GONE
+            binding.btnDashReviveAdb.visibility = if (showRevive) View.VISIBLE else View.GONE
+            binding.layoutDashActions.visibility = if (showGrant || showRevive) View.VISIBLE else View.GONE
         }
 
-        // Fail-closed row visibility (relevant when Root backend may be used)
-        val rootGranted = com.topjohnwu.superuser.Shell.isAppGrantedRoot() == true
-        binding.rowFailClosed.visibility = if (pref == SharePreference.ROOT || (pref == SharePreference.AUTO && rootGranted)) {
+        val hintKind = LanSharingLogics.shizukuHint(pref, cachedShizukuRunning, cachedShizukuGranted, cachedRootAvailable)
+        when (hintKind) {
+            LanSharingLogics.ShizukuHint.NOT_RUNNING -> {
+                binding.layoutShizukuAction.visibility = if (showDash && cachedAdb5555Open) View.GONE else View.VISIBLE
+                binding.textShizukuHint.visibility = View.VISIBLE
+                binding.textShizukuHint.setTextColor(amberColor)
+                binding.textShizukuHint.text = getString(R.string.hotspot_share_shizuku_not_running)
+                binding.btnShizukuPermission.visibility = View.GONE
+            }
+            LanSharingLogics.ShizukuHint.NEEDS_PERMISSION -> {
+                binding.layoutShizukuAction.visibility = if (showDash) View.GONE else View.VISIBLE
+                binding.textShizukuHint.visibility = View.VISIBLE
+                binding.textShizukuHint.setTextColor(amberColor)
+                binding.textShizukuHint.text = getString(R.string.hotspot_share_err_shizuku_perm)
+                binding.btnShizukuPermission.visibility = if (showDash) View.GONE else View.VISIBLE
+            }
+            LanSharingLogics.ShizukuHint.WATCHDOG_ACTIVE -> {
+                binding.layoutShizukuAction.visibility = if (showDash) View.GONE else View.VISIBLE
+                binding.textShizukuHint.visibility = View.VISIBLE
+                binding.textShizukuHint.setTextColor(secondaryColor)
+                binding.textShizukuHint.text = getString(R.string.hotspot_share_shizuku_watchdog_hint)
+                binding.btnShizukuPermission.visibility = View.GONE
+            }
+            LanSharingLogics.ShizukuHint.HIDDEN -> {
+                binding.layoutShizukuAction.visibility = View.GONE
+            }
+        }
+
+        // Fail-closed row visibility (relevant for both Shizuku and Root modes)
+        binding.rowFailClosed.visibility = if (pref != SharePreference.LAN_PROXY) {
             View.VISIBLE
         } else {
             View.GONE
@@ -935,51 +2497,143 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         ShareFailure.HOTSPOT_NOT_ACTIVE,
         ShareFailure.TETHER_LOST -> getString(R.string.hotspot_share_err_hotspot_off)
         ShareFailure.BACKEND_DIED -> getString(R.string.hotspot_share_err_died)
-        ShareFailure.VPN_LOST -> getString(R.string.hotspot_share_vpn_dropped_warn)
+        ShareFailure.VPN_LOST -> {
+            val failClosed = FailClosedAction.fromCode(DataStore.hotspotShareFailClosed)
+            if (failClosed == FailClosedAction.BLOCK_TRAFFIC) {
+                getString(R.string.hotspot_share_traffic_blocked_warn)
+            } else {
+                getString(R.string.hotspot_share_vpn_dropped_warn)
+            }
+        }
         ShareFailure.BACKEND_NOT_IMPLEMENTED,
         ShareFailure.BACKEND_FAILED -> detail?.takeIf { it.isNotBlank() }
             ?: getString(R.string.hotspot_share_err_generic)
     }
     private fun ensureClashApiForManualLanIfNeeded() {
-        if (!DataStore.allowLanAccess) return
-        var changed = false
-        if (LanSharingLogics.clashApiSecretShouldBeGenerated(DataStore.coreBoxClashApiSecret)) {
-            DataStore.coreBoxClashApiSecret = LanSharingLogics.generateClashApiSecret()
-            changed = true
-        }
-        val clashDecision = LanSharingLogics.ensureClashApiEnabledPort(DataStore.coreBoxClashApi)
-        if (clashDecision.changed) {
-            DataStore.coreBoxClashApi = clashDecision.newRawPort
-            changed = true
-        }
-        if (changed) {
-            needReload()
+        lifecycleScope.launch {
+            val changed = withContext(Dispatchers.IO) {
+                if (!DataStore.allowLanAccess) return@withContext false
+                var modified = false
+                if (LanSharingLogics.clashApiSecretShouldBeGenerated(DataStore.coreBoxClashApiSecret)) {
+                    DataStore.coreBoxClashApiSecret = LanSharingLogics.generateClashApiSecret()
+                    modified = true
+                }
+                val clashDecision = LanSharingLogics.ensureClashApiEnabledPort(DataStore.coreBoxClashApi)
+                if (clashDecision.changed) {
+                    DataStore.coreBoxClashApi = clashDecision.newRawPort
+                    modified = true
+                }
+                modified
+            }
+            if (changed && !isFinishing && !isDestroyed) {
+                reloadRunningServiceIfActive()
+            }
         }
     }
 
-    private fun updateShareClientCountLabel() {
-        val state = HotspotShareStateStore.snapshot()
+    private fun styleExpressiveViews() {
+        listOf(
+            binding.cardHero,
+            binding.cardHotspotShare,
+            binding.cardLanProxy,
+            binding.cardGateway,
+            binding.cardHotspot,
+            binding.cardWifi,
+            binding.cardAuth,
+            binding.cardShareLogs,
+        ).forEach { ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 20f) }
+
+        listOf(
+            binding.layoutShareTraffic,
+            binding.layoutLanProxyTraffic,
+            binding.layoutShizukuDash,
+            binding.bannerShareWarning,
+            binding.boxHotspotSocksLink,
+            binding.boxWifiSocksLink,
+            binding.drawerLogActions,
+            binding.drawerLogFilters,
+            binding.editLogSearch,
+            binding.boxInlineShareLogs,
+        ).forEach { ExpressiveSettingsHelper.styleExpressiveNestedBox(it) }
+
+        ExpressiveSettingsHelper.styleExpressiveChips(binding.drawerLogFilters)
+
+        listOf(
+            binding.btnRefreshLan,
+            binding.btnOpenSystemHotspotSettings,
+            binding.btnDashGrantShizuku,
+            binding.btnDashReviveAdb,
+            binding.btnShizukuPermission,
+            binding.btnLogDrawerActions,
+            binding.btnLogDrawerFilters,
+            binding.btnRefreshInlineLogs,
+            binding.btnCopyInlineLogs,
+            binding.btnClearInlineLogs,
+            binding.btnResetLogFilters,
+            binding.btnGatewayConfigure,
+            binding.btnCopyHotspotIp,
+            binding.btnCopyHotspotPort,
+            binding.btnCopyHotspotLink,
+            binding.btnShareHotspotLink,
+            binding.btnCopyWifiIp,
+            binding.btnCopyWifiPort,
+            binding.btnCopyWifiLink,
+            binding.btnShareWifiLink,
+            binding.btnAuthAction,
+        ).forEach { ExpressiveSettingsHelper.styleOutlinedButton(it) }
+
+        val mutedColor = getColorAttr(android.R.attr.textColorSecondary)
+        ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeServiceStatus, mutedColor)
+        ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeShareStatus, mutedColor)
+        ExpressiveSettingsHelper.styleExpressiveBadge(binding.textLogCountBadge, mutedColor)
+        updateLogFilterUi()
+        ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeLanProxyStatus, mutedColor)
+        ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeHotspotStatus, mutedColor)
+        ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeWifiStatus, mutedColor)
+        ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeDevicesCount, mutedColor)
+        ExpressiveSettingsHelper.applySquircleIcon(
+            binding.imgHeroStatus,
+            R.drawable.ic_hardware_router,
+            sizeDp = 44,
+            iconSizeDp = 22
+        )
+    }
+
+    private fun updateShareClientCountLabel(state: ShareState = HotspotShareStateStore.snapshot()) {
         if (state !is ShareState.Active) {
             binding.textShareClients.visibility = View.GONE
             return
         }
-        val shizukuCount = if (state.method == ShareMethod.SHIZUKU) {
-            ShizukuBackend.queryActiveClientCount()
-        } else {
-            null
-        }
+        val shizukuCount = if (state.method == ShareMethod.SHIZUKU) cachedShizukuClientCount else 0
         val discoveredCount = clientHistory.count { it.value.isHotspot || it.value.activeConnections > 0 }
-        val count = maxOf(shizukuCount ?: 0, discoveredCount)
+        val count = maxOf(shizukuCount, discoveredCount)
         binding.textShareClients.visibility = View.VISIBLE
         binding.textShareClients.text = getString(R.string.hotspot_share_clients_format, count)
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_PENDING_SHIZUKU_START, pendingStartAfterShizukuPermission)
+        outState.putInt(STATE_SELECTED_TAB, selectedTabIndex)
+        outState.putInt(STATE_SELECTED_LAN_SUBTAB, selectedLanProxySubTabIndex)
+    }
+
     override fun onDestroy() {
+        refreshNetworkJob?.cancel()
+        refreshNetworkJob = null
+        val pendingReset = isFinishing && pendingStartAfterShizukuPermission && !TetherWatchService.isRunning
+        pendingStartAfterShizukuPermission = false
+        if (pendingReset) {
+            runOnIoDispatcher {
+                DataStore.hotspotShareEnabled = false
+                HotspotShareStateStore.publish(ShareState.Off)
+            }
+        }
         statusReceiver?.let { runCatching { unregisterReceiver(it) } }
         statusReceiver = null
         netStateReceiver?.let { runCatching { unregisterReceiver(it) } }
         netStateReceiver = null
-        HotspotGatewayManager.onGatewayChanged = null
+        HotspotGatewayManager.removeListener(gatewayChangedListener)
         try {
             Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener)
         } catch (_: Throwable) {}

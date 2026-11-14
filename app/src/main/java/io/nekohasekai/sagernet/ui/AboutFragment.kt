@@ -7,7 +7,11 @@ import android.text.util.Linkify
 import android.view.View
 import androidx.core.view.GravityCompat
 import androidx.core.view.doOnPreDraw
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.appbar.AppBarLayout
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
@@ -123,9 +127,14 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
             }
         }
 
-        runOnDefaultDispatcher {
-            val license = view.context.assets.open("LICENSE").bufferedReader().readText()
-            onMainDispatcher {
+        val appContext = requireContext().applicationContext
+        viewLifecycleOwner.lifecycleScope.launch {
+            val license = withContext(Dispatchers.IO) {
+                runCatching {
+                    appContext.assets.open("LICENSE").bufferedReader().use { it.readText() }
+                }.getOrDefault("")
+            }
+            if (license.isNotEmpty()) {
                 binding.license.text = license
                 Linkify.addLinks(binding.license, Linkify.EMAIL_ADDRESSES or Linkify.WEB_URLS)
             }

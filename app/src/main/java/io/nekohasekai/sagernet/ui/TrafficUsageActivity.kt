@@ -4,6 +4,7 @@ import android.graphics.Typeface
 import android.net.TrafficStats
 import android.os.Bundle
 import android.os.Process
+import android.os.SystemClock
 import android.text.format.Formatter
 import android.view.Gravity
 import android.widget.LinearLayout
@@ -29,6 +30,7 @@ import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
 import io.nekohasekai.sagernet.widget.applyListInsets
 import io.nekohasekai.sagernet.ui.widget.TrafficBarView
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -97,6 +99,13 @@ class TrafficUsageActivity : ThemedActivity(), SagerConnection.Callback {
         ExpressiveSettingsHelper.styleExpressiveChips(binding.root)
     }
 
+    private var breakdownJob: Job? = null
+    private var pendingBreakdownJob: Job? = null
+    private var lastBreakdownAtMs: Long = 0L
+    private var lastRenderedTotals: Pair<Long, Long>? = null
+    private var lastRenderedFilter: Pair<Boolean, Boolean>? = null
+    private var lastRenderedEntries: List<BreakdownEntry>? = null
+
     private fun startPeriodicOsRefresh() {
         refreshJob?.cancel()
         refreshJob = lifecycleScope.launch {
@@ -157,9 +166,13 @@ class TrafficUsageActivity : ThemedActivity(), SagerConnection.Callback {
     }
 
     private fun reloadBreakdown() {
+        pendingBreakdownJob?.cancel()
+        pendingBreakdownJob = null
+        lastBreakdownAtMs = SystemClock.elapsedRealtime()
         val showGroups = binding.chipScopeGroups.isChecked
         val hideZero = binding.chipHideZero.isChecked
-        lifecycleScope.launch {
+        breakdownJob?.cancel()
+        breakdownJob = lifecycleScope.launch {
             val (totalRx, totalTx, entries) = withContext(Dispatchers.IO) {
                 val groups = GroupRepo.all()
                 val groupNames = groups.associate { it.id to it.displayName() }
@@ -208,13 +221,37 @@ class TrafficUsageActivity : ThemedActivity(), SagerConnection.Callback {
                 Triple(sumRx, sumTx, selected)
             }
 
-            binding.textRecordedTotals.text = getString(
-                R.string.traffic_recorded_totals_line,
-                formatBytes(totalRx),
-                formatBytes(totalTx),
-                formatBytes(totalRx + totalTx),
-            )
-            renderBreakdown(entries)
+            val totals = totalRx to totalTx
+            if (lastRenderedTotals != totals) {
+                lastRenderedTotals = totals
+                binding.textRecordedTotals.text = getString(
+                    R.string.traffic_recorded_totals_line,
+                    formatBytes(totalRx),
+                    formatBytes(totalTx),
+                    formatBytes(totalRx + totalTx),
+                )
+            }
+            val filter = showGroups to hideZero
+            if (lastRenderedFilter != filter || lastRenderedEntries != entries) {
+                lastRenderedFilter = filter
+                lastRenderedEntries = entries
+                renderBreakdown(entries)
+            }
+        }
+    }
+
+    private fun scheduleBreakdownReload(minIntervalMs: Long = 3_000L) {
+        val now = SystemClock.elapsedRealtime()
+        val elapsed = now - lastBreakdownAtMs
+        if (elapsed >= minIntervalMs && breakdownJob?.isActive != true) {
+            reloadBreakdown()
+            return
+        }
+        if (pendingBreakdownJob?.isActive == true) return
+        val waitMs = (minIntervalMs - elapsed).coerceAtLeast(300L)
+        pendingBreakdownJob = lifecycleScope.launch {
+            delay(waitMs)
+            reloadBreakdown()
         }
     }
 
@@ -376,7 +413,7 @@ class TrafficUsageActivity : ThemedActivity(), SagerConnection.Callback {
     }
 
     override suspend fun cbTrafficUpdate(data: TrafficDataBatch) {
-        reloadBreakdown()
+        scheduleBreakdownReload()
     }
 
     override fun stateChanged(state: BaseService.State, profileName: String?, msg: String?) {

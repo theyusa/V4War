@@ -530,13 +530,18 @@ class BackupFragment : Fragment(R.layout.layout_backup) {
         busy = true
         showProgress(text)
         viewLifecycleOwner.lifecycleScope.launch {
-            val result = runCatching { withContext(Dispatchers.IO) { work() } }
-            busy = false
-            progress?.dismiss()
-            progress = null
-            result.onSuccess(done).onFailure {
-                Logs.w(it)
-                alert(app.getString(failure, describe(it)))
+            try {
+                val value = withContext(Dispatchers.IO) { work() }
+                done(value)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                Logs.w(e)
+                alert(app.getString(failure, describe(e)))
+            } finally {
+                busy = false
+                progress?.dismiss()
+                progress = null
             }
         }
     }

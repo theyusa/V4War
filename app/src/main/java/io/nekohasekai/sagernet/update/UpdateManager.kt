@@ -15,6 +15,7 @@ import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.USER_AGENT
 import io.nekohasekai.sagernet.ktx.app
 import io.nekohasekai.sagernet.ktx.readableMessage
+import io.nekohasekai.sagernet.utils.toolbox.withImmediateCancel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +30,7 @@ import okhttp3.Call
 import okhttp3.Request
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.coroutineContext
 
 /**
@@ -65,25 +67,31 @@ object UpdateManager {
     @Volatile
     var uiVisible = false
 
+    @Volatile
+    private var cleanupJob: Job? = null
+
     private fun updateDir(context: Context) = File(context.noBackupFilesDir, "update")
 
     /** Main-process start: leftovers of a finished or interrupted update. */
     fun onAppStart(context: Context) {
-        scope.launch { updateDir(context).deleteRecursively() }
+        val appContext = context.applicationContext
+        cleanupJob = scope.launch { updateDir(appContext).deleteRecursively() }
         if (BuildConfig.IN_APP_UPDATER) {
             UpdateScheduler.schedule(keepExisting = true)
-            checkAutoOnStart(context)
+            checkAutoOnStart(appContext)
         }
     }
 
     private fun checkAutoOnStart(context: Context) {
-        if (!DataStore.updateCheckAuto) return
-        val now = System.currentTimeMillis()
-        val lastCheck = DataStore.lastAutoUpdateCheck
-        if (now - lastCheck < java.util.concurrent.TimeUnit.HOURS.toMillis(1)) return
-        DataStore.lastAutoUpdateCheck = now
         scope.launch {
+            if (!DataStore.updateCheckAuto) return@launch
+            val now = System.currentTimeMillis()
+            val lastCheck = DataStore.lastAutoUpdateCheck
+            if (now - lastCheck < TimeUnit.HOURS.toMillis(1)) return@launch
             val result = UpdateChecker.check(context)
+            if (result !is UpdateChecker.Result.Failed) {
+                DataStore.lastAutoUpdateCheck = System.currentTimeMillis()
+            }
             if (result is UpdateChecker.Result.Available) {
                 val offer = result.offer
                 if (offer.versionCode == 0L || offer.versionCode != DataStore.updateSkippedVersionCode) {
@@ -98,12 +106,19 @@ object UpdateManager {
         if (_state.value.busy) return
         _state.value = State.Checking
         job = scope.launch {
-            val result = UpdateChecker.check(app, withNotes = true)
-            ensureActive()
-            _state.value = when (result) {
-                is UpdateChecker.Result.UpToDate -> State.UpToDate
-                is UpdateChecker.Result.Available -> State.Available(result.offer)
-                is UpdateChecker.Result.Failed -> State.Failed(null, result.message)
+            try {
+                val result = UpdateChecker.check(app, withNotes = true)
+                ensureActive()
+                _state.value = when (result) {
+                    is UpdateChecker.Result.UpToDate -> State.UpToDate
+                    is UpdateChecker.Result.Available -> State.Available(result.offer)
+                    is UpdateChecker.Result.Failed -> State.Failed(null, result.message)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logs.w("Update check failed", e)
+                _state.value = State.Failed(null, e.readableMessage)
             }
         }
     }
@@ -163,6 +178,7 @@ object UpdateManager {
     }
 
     private suspend fun fetch(offer: UpdateChecker.Offer): File {
+        cleanupJob?.join()
         val expected = offer.expected!!
         val dir = updateDir(app).apply { mkdirs() }
         val target = File(dir, expected.name)
@@ -173,25 +189,28 @@ object UpdateManager {
         val request = Request.Builder().url(offer.apk!!.url).header("User-Agent", USER_AGENT).build()
         val httpCall = UpdateChecker.httpClient(timeoutSeconds = 60).newCall(request)
         call = httpCall
-        httpCall.execute().use { response ->
-            if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
-            val input = response.body?.byteStream() ?: throw IOException("empty response")
-            part.outputStream().use { out ->
-                val buffer = ByteArray(64 * 1024)
-                var done = 0L
-                var reported = 0L
-                while (true) {
-                    coroutineContext.ensureActive()
-                    val n = input.read(buffer)
-                    if (n < 0) break
-                    out.write(buffer, 0, n)
-                    done += n
-                    if (done > expected.size) throw IOException(app.getString(R.string.update_error_size))
-                    val now = System.currentTimeMillis()
-                    if (now - reported >= 500 || done == expected.size) {
-                        reported = now
-                        _state.value = State.Downloading(offer, done, expected.size)
-                        UpdateNotifications.progress(app, offer, done, expected.size)
+        val downloadJob = coroutineContext[Job]
+        withImmediateCancel(onCancel = { httpCall.cancel() }) {
+            httpCall.execute().use { response ->
+                if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
+                val input = response.body?.byteStream() ?: throw IOException("empty response")
+                part.outputStream().use { out ->
+                    val buffer = ByteArray(64 * 1024)
+                    var done = 0L
+                    var reported = 0L
+                    while (true) {
+                        downloadJob?.ensureActive()
+                        val n = input.read(buffer)
+                        if (n < 0) break
+                        out.write(buffer, 0, n)
+                        done += n
+                        if (done > expected.size) throw IOException(app.getString(R.string.update_error_size))
+                        val now = System.currentTimeMillis()
+                        if (now - reported >= 500 || done == expected.size) {
+                            reported = now
+                            _state.value = State.Downloading(offer, done, expected.size)
+                            UpdateNotifications.progress(app, offer, done, expected.size)
+                        }
                     }
                 }
             }

@@ -71,7 +71,10 @@ object SettingsMapper {
             mixedUsername = DataStore.inboundUser,
             mixedPassword = DataStore.inboundPass,
             customInboundJson = DataStore.customInbound,
-            shareSocksInboundEnabled = DataStore.hotspotShareEnabled,
+            shareSocksInboundEnabled = isShareSocksInboundNeeded(
+                DataStore.hotspotShareEnabled,
+                DataStore.hotspotShareMethod,
+            ),
             shareSocksPort = 2088,
             vpnMode = DataStore.serviceMode == Key.MODE_VPN,
             tunMtu = DataStore.vpnMtu,
@@ -138,46 +141,52 @@ object SettingsMapper {
         )
     }
 
+    internal fun isShareSocksInboundNeeded(enabled: Boolean, method: String): Boolean =
+        enabled && method != "root" && method != "lan_proxy"
+
     /**
      * DataStore -> BuildContext: the preset globals and the domain strategies, with direct_dns_disable_ipv6 from [dns],
      * the routing profile's own DNS, when given. TLS spoof is never mapped (decision D8).
      */
-    fun buildContext(dns: RouteDns? = null): BuildContext = BuildContext(
-        skipCert = DataStore.skipCert,
-        utlsFingerprint = DataStore.utlsFingerprint,
-        muxDefaultOn = DataStore.muxDefaultOn,
-        muxProtocol = DataStore.muxProtocol,
-        muxMode = DataStore.muxMode,
-        muxConcurrency = DataStore.muxConcurrency,
-        muxMaxConnections = DataStore.muxMaxConnections,
-        muxMinStreams = DataStore.muxMinStreams,
-        muxPadding = DataStore.muxPadding,
-        muxBrutal = DataStore.muxBrutal,
-        muxBrutalUpMbps = DataStore.muxBrutalUpMbps,
-        muxBrutalDownMbps = DataStore.muxBrutalDownMbps,
-        fragmentImplementation = DataStore.fragmentImplementation,
-        fragmentDefaultOn = DataStore.fragmentDefaultOn,
-        fragmentSize = DataStore.fragmentSize.ifBlank { SettingsRegistry.FRAGMENT_SIZE.default },
-        fragmentSleep = DataStore.fragmentSleep.ifBlank { SettingsRegistry.FRAGMENT_SLEEP.default },
-        tlsTricksDefaultOn = DataStore.tlsTricksDefaultOn,
-        h2IdleTimeout = DataStore.h2IdleTimeout,
-        h2KeepAlivePeriod = DataStore.h2KeepAlivePeriod,
-        h2StreamReceiveWindow = DataStore.h2StreamReceiveWindow,
-        h2ConnectionReceiveWindow = DataStore.h2ConnectionReceiveWindow,
-        h2MaxConcurrentStreams = DataStore.h2MaxConcurrentStreams,
-        quicInitialPacketSize = DataStore.quicInitialPacketSize,
-        quicDisablePathMtuDiscovery = DataStore.quicDisablePathMtuDiscovery,
-        xrayMuxConcurrency = DataStore.xrayMuxConcurrency,
-        xrayMuxMaxConnections = DataStore.xrayMuxMaxConnections,
-        xrayMuxXudpConcurrency = DataStore.xrayMuxXudpConcurrency,
-        xrayMuxXudpProxyUDP443 = DataStore.xrayMuxXudpProxyUdp443,
-        xrayMuxDefaultOn = DataStore.xrayMuxDefaultOn,
-        xrayUseSystemCA = DataStore.xrayUseSystemCa,
-        defaultDomainStrategy = DataStore.outboundDomainStrategy,
-        directDnsDisableIpv6 = dns?.directDnsDisableIpv6 ?: DataStore.directDnsDisableIpv6,
-        useDnsObject = DataStore.useDnsObject,
-        routeOwnsDns = dns != null,
-    )
+    fun buildContext(dns: RouteDns? = null): BuildContext {
+        DataStore.initGlobal()
+        return BuildContext(
+            skipCert = DataStore.skipCert,
+            utlsFingerprint = DataStore.utlsFingerprint,
+            muxDefaultOn = DataStore.muxDefaultOn,
+            muxProtocol = DataStore.muxProtocol,
+            muxMode = DataStore.muxMode,
+            muxConcurrency = DataStore.muxConcurrency,
+            muxMaxConnections = DataStore.muxMaxConnections,
+            muxMinStreams = DataStore.muxMinStreams,
+            muxPadding = DataStore.muxPadding,
+            muxBrutal = DataStore.muxBrutal,
+            muxBrutalUpMbps = DataStore.muxBrutalUpMbps,
+            muxBrutalDownMbps = DataStore.muxBrutalDownMbps,
+            fragmentImplementation = DataStore.fragmentImplementation,
+            fragmentDefaultOn = DataStore.fragmentDefaultOn,
+            fragmentSize = DataStore.fragmentSize.ifBlank { SettingsRegistry.FRAGMENT_SIZE.default },
+            fragmentSleep = DataStore.fragmentSleep.ifBlank { SettingsRegistry.FRAGMENT_SLEEP.default },
+            tlsTricksDefaultOn = DataStore.tlsTricksDefaultOn,
+            h2IdleTimeout = DataStore.h2IdleTimeout,
+            h2KeepAlivePeriod = DataStore.h2KeepAlivePeriod,
+            h2StreamReceiveWindow = DataStore.h2StreamReceiveWindow,
+            h2ConnectionReceiveWindow = DataStore.h2ConnectionReceiveWindow,
+            h2MaxConcurrentStreams = DataStore.h2MaxConcurrentStreams,
+            quicInitialPacketSize = DataStore.quicInitialPacketSize,
+            quicDisablePathMtuDiscovery = DataStore.quicDisablePathMtuDiscovery,
+            xrayMuxConcurrency = DataStore.xrayMuxConcurrency,
+            xrayMuxMaxConnections = DataStore.xrayMuxMaxConnections,
+            xrayMuxXudpConcurrency = DataStore.xrayMuxXudpConcurrency,
+            xrayMuxXudpProxyUDP443 = DataStore.xrayMuxXudpProxyUdp443,
+            xrayMuxDefaultOn = DataStore.xrayMuxDefaultOn,
+            xrayUseSystemCA = DataStore.xrayUseSystemCa,
+            defaultDomainStrategy = DataStore.outboundDomainStrategy,
+            directDnsDisableIpv6 = dns?.directDnsDisableIpv6 ?: DataStore.directDnsDisableIpv6,
+            useDnsObject = DataStore.useDnsObject,
+            routeOwnsDns = dns != null,
+        )
+    }
 
     /** xray_vless_preference for link and subscription imports (utils.cpp:50-70). */
     fun xrayVlessPreference(): OutboundFactory.XrayVlessPreference =

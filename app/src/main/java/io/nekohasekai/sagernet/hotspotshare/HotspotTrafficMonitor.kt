@@ -1,6 +1,8 @@
 package io.nekohasekai.sagernet.hotspotshare
 
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Traffic snapshot representing instantaneous speed (bytes/sec) and cumulative session usage.
@@ -62,13 +65,17 @@ object ProcNetDevParser {
         return Pair(totalRx, totalTx)
     }
 
+    private val procNetDevBlocked = AtomicBoolean(false)
+
     fun readCurrent(interfaceNames: Set<String> = emptySet()): Pair<Long, Long>? {
-        return runCatching {
-            val file = File("/proc/net/dev")
-            if (file.exists() && file.canRead()) {
-                parse(file.readText(), interfaceNames)
-            } else null
-        }.getOrNull()
+        if (procNetDevBlocked.get()) return null
+        return try {
+            val content = File("/proc/net/dev").readText()
+            parse(content, interfaceNames)
+        } catch (_: Throwable) {
+            procNetDevBlocked.set(true)
+            null
+        }
     }
 }
 
@@ -139,27 +146,34 @@ object HotspotTrafficMonitor {
     private var pollJob: Job? = null
     private var counter: HotspotTrafficCounter? = null
 
+    @Synchronized
     fun start(
         scope: CoroutineScope,
         rawStatsProvider: () -> Pair<Long, Long>?,
         intervalMs: Long = 1000L,
+        dispatcher: CoroutineDispatcher = Dispatchers.IO,
     ) {
         stop()
         val cnt = HotspotTrafficCounter(rawStatsProvider)
         counter = cnt
-        pollJob = scope.launch {
+        pollJob = scope.launch(dispatcher) {
             while (isActive) {
                 val current = cnt.tick()
-                _stats.value = current
+                if (_stats.value != current) {
+                    _stats.value = current
+                }
                 delay(intervalMs)
             }
         }
     }
 
     fun updateDirect(stats: HotspotTrafficStats) {
-        _stats.value = stats
+        if (_stats.value != stats) {
+            _stats.value = stats
+        }
     }
 
+    @Synchronized
     fun stop() {
         pollJob?.cancel()
         pollJob = null

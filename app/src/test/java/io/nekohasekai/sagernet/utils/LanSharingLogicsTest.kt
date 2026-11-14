@@ -1,5 +1,10 @@
 package io.nekohasekai.sagernet.utils
 
+import io.nekohasekai.sagernet.hotspotshare.FailClosedAction
+import io.nekohasekai.sagernet.hotspotshare.ShareFailure
+import io.nekohasekai.sagernet.hotspotshare.ShareMethod
+import io.nekohasekai.sagernet.hotspotshare.SharePreference
+import io.nekohasekai.sagernet.hotspotshare.ShareState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -390,5 +395,378 @@ class LanSharingLogicsTest {
         val second = merged.first { it.ip == "192.168.43.99" }
         assertTrue(second.isHotspot)
         assertFalse(merged.any { it.ip == "192.0.2.2" })
+    }
+
+    @Test
+    fun lanProxyStatusAndIndependenceFromShizukuAndRootShare() {
+        assertEquals(
+            LanSharingLogics.LanProxyStatus.OFF,
+            LanSharingLogics.lanProxyStatus(false, ShareState.Active(ShareMethod.SHIZUKU)),
+        )
+        assertEquals(
+            LanSharingLogics.LanProxyStatus.STANDALONE,
+            LanSharingLogics.lanProxyStatus(true, ShareState.Off),
+        )
+        assertEquals(
+            LanSharingLogics.LanProxyStatus.STANDALONE,
+            LanSharingLogics.lanProxyStatus(true, ShareState.Stopped(ShareFailure.VPN_LOST)),
+        )
+        assertEquals(
+            LanSharingLogics.LanProxyStatus.ALONGSIDE_HOTSPOT_SHARE,
+            LanSharingLogics.lanProxyStatus(true, ShareState.Active(ShareMethod.SHIZUKU)),
+        )
+        assertEquals(
+            LanSharingLogics.LanProxyStatus.ALONGSIDE_HOTSPOT_SHARE,
+            LanSharingLogics.lanProxyStatus(true, ShareState.Active(ShareMethod.ROOT)),
+        )
+        assertEquals(
+            LanSharingLogics.LanProxyStatus.VIA_SHARE_MODE,
+            LanSharingLogics.lanProxyStatus(true, ShareState.Active(ShareMethod.LAN_PROXY)),
+        )
+
+        // Turning off LAN proxy must never claim dependency when Shizuku or Root share is active or selected.
+        assertFalse(
+            LanSharingLogics.hotspotShareDependsOnLanProxy(
+                shareEnabled = true,
+                preference = SharePreference.SHIZUKU,
+                activeMethod = ShareMethod.SHIZUKU,
+            ),
+        )
+        assertFalse(
+            LanSharingLogics.hotspotShareDependsOnLanProxy(
+                shareEnabled = true,
+                preference = SharePreference.ROOT,
+                activeMethod = ShareMethod.ROOT,
+            ),
+        )
+        assertFalse(
+            LanSharingLogics.hotspotShareDependsOnLanProxy(
+                shareEnabled = true,
+                preference = SharePreference.AUTO,
+                activeMethod = ShareMethod.SHIZUKU,
+            ),
+        )
+        assertFalse(
+            LanSharingLogics.hotspotShareDependsOnLanProxy(
+                shareEnabled = true,
+                preference = SharePreference.SHIZUKU,
+                activeMethod = null,
+            ),
+        )
+        assertTrue(
+            LanSharingLogics.hotspotShareDependsOnLanProxy(
+                shareEnabled = true,
+                preference = SharePreference.LAN_PROXY,
+                activeMethod = ShareMethod.LAN_PROXY,
+            ),
+        )
+        assertTrue(
+            LanSharingLogics.hotspotShareDependsOnLanProxy(
+                shareEnabled = true,
+                preference = SharePreference.LAN_PROXY,
+                activeMethod = null,
+            ),
+        )
+    }
+
+    @Test
+    fun vpnLostNoticeDistinguishesBlockTrafficFromStopHotspotAndLanProxy() {
+        val shizukuBlock = LanSharingLogics.vpnLostNotice(
+            preference = SharePreference.SHIZUKU,
+            lastActiveMethod = ShareMethod.SHIZUKU,
+            failClosed = FailClosedAction.BLOCK_TRAFFIC,
+        )
+        assertEquals(LanSharingLogics.VpnLostNotice.BLOCK_TRAFFIC_PROTECTED, shizukuBlock)
+        assertTrue(LanSharingLogics.vpnLostShowsWaitingBadge(shizukuBlock, pausedWaitingVpn = true))
+
+        val shizukuStop = LanSharingLogics.vpnLostNotice(
+            preference = SharePreference.SHIZUKU,
+            lastActiveMethod = ShareMethod.SHIZUKU,
+            failClosed = FailClosedAction.STOP_HOTSPOT,
+        )
+        assertEquals(LanSharingLogics.VpnLostNotice.HOTSPOT_STOPPED, shizukuStop)
+        assertFalse(LanSharingLogics.vpnLostShowsWaitingBadge(shizukuStop, pausedWaitingVpn = true))
+
+        val autoRootBlock = LanSharingLogics.vpnLostNotice(
+            preference = SharePreference.AUTO,
+            lastActiveMethod = ShareMethod.ROOT,
+            failClosed = FailClosedAction.BLOCK_TRAFFIC,
+        )
+        assertEquals(LanSharingLogics.VpnLostNotice.BLOCK_TRAFFIC_PROTECTED, autoRootBlock)
+
+        val lanDropped = LanSharingLogics.vpnLostNotice(
+            preference = SharePreference.LAN_PROXY,
+            lastActiveMethod = ShareMethod.LAN_PROXY,
+            failClosed = FailClosedAction.BLOCK_TRAFFIC,
+        )
+        assertEquals(LanSharingLogics.VpnLostNotice.LAN_PROXY_DROPPED, lanDropped)
+    }
+
+    @Test
+    fun shizukuHintReflectsWatchdogWhenReadyAndPermissionStates() {
+        assertEquals(
+            LanSharingLogics.ShizukuHint.WATCHDOG_ACTIVE,
+            LanSharingLogics.shizukuHint(
+                preference = SharePreference.SHIZUKU,
+                shizukuRunning = true,
+                shizukuGranted = true,
+                rootAvailable = false,
+            ),
+        )
+        assertEquals(
+            LanSharingLogics.ShizukuHint.WATCHDOG_ACTIVE,
+            LanSharingLogics.shizukuHint(
+                preference = SharePreference.AUTO,
+                shizukuRunning = true,
+                shizukuGranted = true,
+                rootAvailable = false,
+            ),
+        )
+        assertEquals(
+            LanSharingLogics.ShizukuHint.HIDDEN,
+            LanSharingLogics.shizukuHint(
+                preference = SharePreference.AUTO,
+                shizukuRunning = true,
+                shizukuGranted = true,
+                rootAvailable = true,
+            ),
+        )
+        assertEquals(
+            LanSharingLogics.ShizukuHint.NEEDS_PERMISSION,
+            LanSharingLogics.shizukuHint(
+                preference = SharePreference.SHIZUKU,
+                shizukuRunning = true,
+                shizukuGranted = false,
+                rootAvailable = false,
+            ),
+        )
+        assertEquals(
+            LanSharingLogics.ShizukuHint.NOT_RUNNING,
+            LanSharingLogics.shizukuHint(
+                preference = SharePreference.SHIZUKU,
+                shizukuRunning = false,
+                shizukuGranted = false,
+                rootAvailable = false,
+            ),
+        )
+        assertEquals(
+            LanSharingLogics.ShizukuHint.HIDDEN,
+            LanSharingLogics.shizukuHint(
+                preference = SharePreference.ROOT,
+                shizukuRunning = true,
+                shizukuGranted = true,
+                rootAvailable = true,
+            ),
+        )
+    }
+
+    @Test
+    fun resolveHeroBannerModeCoversDualHotspotProxyAndInactiveStates() {
+        assertEquals(
+            LanSharingLogics.HeroBannerMode.BOTH_ACTIVE,
+            LanSharingLogics.resolveHeroBannerMode(lanAccessOn = true, activeShareMethod = ShareMethod.SHIZUKU),
+        )
+        assertEquals(
+            LanSharingLogics.HeroBannerMode.BOTH_ACTIVE,
+            LanSharingLogics.resolveHeroBannerMode(lanAccessOn = true, activeShareMethod = ShareMethod.ROOT),
+        )
+        assertEquals(
+            LanSharingLogics.HeroBannerMode.HOTSPOT_SHARE_ONLY,
+            LanSharingLogics.resolveHeroBannerMode(lanAccessOn = false, activeShareMethod = ShareMethod.SHIZUKU),
+        )
+        assertEquals(
+            LanSharingLogics.HeroBannerMode.HOTSPOT_SHARE_ONLY,
+            LanSharingLogics.resolveHeroBannerMode(lanAccessOn = false, activeShareMethod = ShareMethod.ROOT),
+        )
+        assertEquals(
+            LanSharingLogics.HeroBannerMode.LAN_PROXY_ONLY,
+            LanSharingLogics.resolveHeroBannerMode(lanAccessOn = true, activeShareMethod = null),
+        )
+        assertEquals(
+            LanSharingLogics.HeroBannerMode.LAN_PROXY_ONLY,
+            LanSharingLogics.resolveHeroBannerMode(lanAccessOn = true, activeShareMethod = ShareMethod.LAN_PROXY),
+        )
+        assertEquals(
+            LanSharingLogics.HeroBannerMode.INACTIVE,
+            LanSharingLogics.resolveHeroBannerMode(lanAccessOn = false, activeShareMethod = null),
+        )
+    }
+
+    @Test
+    fun computeLanProxyTrafficComputesSpeedsMonotonicTotalsAndClientCount() {
+        val localIps = setOf("192.168.43.1", "10.154.42.162")
+
+        // Poll 1 (baseline): excludes local/loopback IPs and dedupes Clash + TCP remotes
+        val firstDevices = listOf(
+            LanClientDevice("192.168.43.1", 5, 9_000L, 12_000L, "local.example", 1_000L, true),
+            LanClientDevice("127.0.0.1", 2, 500L, 500L, "loop.example", 1_000L, false),
+            LanClientDevice("192.168.43.52", 2, 1_000L, 4_000L, "client1.example", 1_000L, false),
+            LanClientDevice("192.168.43.60", 0, 200L, 600L, "client2.example", 1_000L, false),
+        )
+        val (sample1, display1) = LanSharingLogics.computeLanProxyTraffic(
+            previous = null,
+            clashDevices = firstDevices,
+            activeTcpRemotes = listOf("192.168.43.52", "192.168.43.88", "127.0.0.1", "192.168.43.1"),
+            localIps = localIps,
+            nowMs = 10_000L,
+        )
+        assertEquals(0L, display1.rxSpeedBps)
+        assertEquals(0L, display1.txSpeedBps)
+        assertEquals(4_600L, display1.totalRxBytes)
+        assertEquals(1_200L, display1.totalTxBytes)
+        assertEquals(2, display1.activeClients) // .52 and .88 (.60 has 0 activeConnections and isn't in tcpRemotes)
+
+        // Poll 2 (+2s): traffic grows -> computes B/s and adds positive deltas
+        val secondDevices = listOf(
+            LanClientDevice("192.168.43.52", 3, 2_000L, 10_600L, "client1.example", 12_000L, false),
+            LanClientDevice("192.168.43.60", 1, 200L, 1_000L, "client2.example", 12_000L, false),
+        )
+        val (sample2, display2) = LanSharingLogics.computeLanProxyTraffic(
+            previous = sample1,
+            clashDevices = secondDevices,
+            activeTcpRemotes = listOf("192.168.43.88"),
+            localIps = localIps,
+            nowMs = 12_000L,
+        )
+        // rawRx = 11_600 (delta = 7_000 / 2s = 3_500 B/s), rawTx = 2_200 (delta = 1_000 / 2s = 500 B/s)
+        assertEquals(3_500L, display2.rxSpeedBps)
+        assertEquals(500L, display2.txSpeedBps)
+        assertEquals(11_600L, display2.totalRxBytes)
+        assertEquals(2_200L, display2.totalTxBytes)
+        assertEquals(3, display2.activeClients) // .52, .60, .88
+
+        // Poll 3 (+2s): active flows closed so raw Clash totals shrink -> cumulative total remains monotonic
+        val (sample3, display3) = LanSharingLogics.computeLanProxyTraffic(
+            previous = sample2,
+            clashDevices = emptyList(),
+            activeTcpRemotes = emptyList(),
+            localIps = localIps,
+            nowMs = 14_000L,
+        )
+        assertEquals(0L, display3.rxSpeedBps)
+        assertEquals(0L, display3.txSpeedBps)
+        assertEquals(11_600L, display3.totalRxBytes)
+        assertEquals(2_200L, display3.totalTxBytes)
+        assertEquals(0, display3.activeClients)
+
+        // Poll 4 (new traffic after reset, non-advancing timestamp guards against /0)
+        val (_, display4) = LanSharingLogics.computeLanProxyTraffic(
+            previous = sample3,
+            clashDevices = listOf(LanClientDevice("192.168.43.52", 1, 300L, 400L, null, 14_000L, false)),
+            activeTcpRemotes = emptyList(),
+            localIps = localIps,
+            nowMs = 14_000L,
+        )
+        assertEquals(0L, display4.rxSpeedBps)
+        assertEquals(0L, display4.txSpeedBps)
+        assertEquals(12_000L, display4.totalRxBytes)
+        assertEquals(2_500L, display4.totalTxBytes)
+        assertEquals(1, display4.activeClients)
+    }
+
+    @Test
+    fun parseShizukuShareConnections_extractsShareSocksTrafficAndLastHost() {
+        val json = """
+            {
+              "connections": [
+                {
+                  "metadata": {
+                    "sourceIP": "127.0.0.1",
+                    "type": "socks/share-socks-in",
+                    "host": "youtube.com:443"
+                  },
+                  "upload": 1200,
+                  "download": 8400
+                },
+                {
+                  "metadata": {
+                    "sourceIP": "127.0.0.1",
+                    "inboundName": "share-socks-in",
+                    "destinationIP": "1.1.1.1",
+                    "destinationPort": "443"
+                  },
+                  "upload": 300,
+                  "download": 600
+                },
+                {
+                  "metadata": {
+                    "sourceIP": "10.154.42.99",
+                    "type": "mixed/mixed-in",
+                    "host": "ignored-lan-proxy.org"
+                  },
+                  "upload": 50000,
+                  "download": 50000
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val traffic = LanSharingLogics.parseShizukuShareConnections(json)
+        assertEquals(2, traffic.activeConnections)
+        assertEquals(1500L, traffic.uploadBytes)
+        assertEquals(9000L, traffic.downloadBytes)
+        assertEquals("1.1.1.1:443", traffic.lastHost)
+    }
+
+    @Test
+    fun parseNeighborHostnames_extractsTetheredClientAndDnsmasqLeases() {
+        val dump = """
+            10.154.42.195 dev swlan0 lladdr aa:bb:cc:dd:ee:01 REACHABLE
+            ---HOSTS---
+            1794689000 aa:bb:cc:dd:ee:02 10.154.42.88 Pixel-9-Pro *
+            1794689000 aa:bb:cc:dd:ee:03 10.154.42.99 * *
+            TetheredClient { macAddress: aa:bb:cc:dd:ee:01, addresses: [AddressInfo {address 10.154.42.195/24, hostname TheYusaPC}] }
+            10.154.42.77 ThinkPad-Work
+        """.trimIndent()
+
+        val hosts = LanSharingLogics.parseNeighborHostnames(dump)
+        assertEquals("TheYusaPC", hosts["10.154.42.195"])
+        assertEquals("Pixel-9-Pro", hosts["10.154.42.88"])
+        assertEquals("ThinkPad-Work", hosts["10.154.42.77"])
+        assertFalse(hosts.containsKey("10.154.42.99"))
+        assertTrue(LanSharingLogics.parseIpNeigh(dump).any { it.ip == "10.154.42.195" })
+    }
+
+    @Test
+    fun mergeDevices_filtersNonProxyWifiArpEntriesAndAttributesShizukuTrafficAndRoutes() {
+        val now = 10_000_000L
+        val merged = LanSharingLogics.mergeDevices(
+            history = emptyMap(),
+            arpIps = listOf("10.154.42.195", "192.168.1.1", "192.168.1.55"),
+            clash = listOf(
+                LanClientDevice("192.168.1.80", 2, 500L, 1500L, "lan.example.org", now, false),
+            ),
+            hotspotIp = "10.154.42.162",
+            hotspotPrefix = 24,
+            localIps = setOf("10.154.42.162", "192.168.1.10"),
+            nowMs = now,
+            shizukuTraffic = io.nekohasekai.sagernet.utils.ShizukuTunnelTraffic(
+                activeConnections = 4,
+                uploadBytes = 10_240L,
+                downloadBytes = 384_000L,
+                lastHost = "github.com:443",
+            ),
+            hostnames = mapOf("10.154.42.195" to "TheYusaPC"),
+            activeHotspotMethod = ShareMethod.SHIZUKU,
+            lanProxyEnabled = true,
+        )
+
+        val ips = merged.map { it.ip }
+        assertTrue(ips.contains("10.154.42.195"))
+        assertTrue(ips.contains("192.168.1.80"))
+        // Router/neighbor Wi-Fi ARP entries that are not using the proxy are excluded.
+        assertFalse(ips.contains("192.168.1.1"))
+        assertFalse(ips.contains("192.168.1.55"))
+
+        val hotspotClient = merged.first { it.ip == "10.154.42.195" }
+        assertEquals("TheYusaPC", hotspotClient.hostname)
+        assertEquals(io.nekohasekai.sagernet.utils.ClientShareRoute.HOTSPOT_SHIZUKU, hotspotClient.route)
+        assertEquals(4, hotspotClient.activeConnections)
+        assertEquals(10_240L, hotspotClient.uploadBytes)
+        assertEquals(384_000L, hotspotClient.downloadBytes)
+        assertEquals("github.com:443", hotspotClient.lastHost)
+
+        val lanClient = merged.first { it.ip == "192.168.1.80" }
+        assertEquals(io.nekohasekai.sagernet.utils.ClientShareRoute.LAN_PROXY, lanClient.route)
     }
 }

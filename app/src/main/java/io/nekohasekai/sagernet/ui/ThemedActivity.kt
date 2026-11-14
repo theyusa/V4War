@@ -10,6 +10,8 @@ import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.graphics.ColorUtils
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.snackbar.Snackbar
 import io.nekohasekai.sagernet.R
@@ -17,6 +19,9 @@ import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.widget.applyTopInset
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 abstract class ThemedActivity : AppCompatActivity {
     constructor() : super()
@@ -34,17 +39,20 @@ abstract class ThemedActivity : AppCompatActivity {
     private var lastUseSystemTheme: Boolean = false
     private var lastWallpaperColor: Int? = null
     private var lastAppTheme: Int = 0
+    private var lastCustomThemeColor: Int = 0
     private var lastNightTheme: Int = 0
     private var lastAmoledTheme: Boolean = false
     private var lastUsingNight: Boolean = false
+    private var wallpaperCheckJob: kotlinx.coroutines.Job? = null
 
     var lightStatusBar = false
         private set
 
     override fun onCreate(savedInstanceState: Bundle?) {
         lastUseSystemTheme = DataStore.useSystemTheme
-        lastWallpaperColor = if (DataStore.useSystemTheme) Theme.getSystemWallpaperColor(this) else null
+        lastWallpaperColor = null
         lastAppTheme = DataStore.appTheme
+        lastCustomThemeColor = DataStore.customThemeColor
         lastNightTheme = DataStore.nightTheme
         lastAmoledTheme = DataStore.amoledTheme
         lastUsingNight = Theme.usingNightMode(this)
@@ -83,15 +91,37 @@ abstract class ThemedActivity : AppCompatActivity {
 
     override fun onResume() {
         super.onResume()
-        val currentWallpaperColor = if (DataStore.useSystemTheme) Theme.getSystemWallpaperColor(this) else null
         val currentUsingNight = Theme.usingNightMode(this)
         if (lastUseSystemTheme != DataStore.useSystemTheme ||
-            (DataStore.useSystemTheme && lastWallpaperColor != currentWallpaperColor) ||
             (!DataStore.useSystemTheme && lastAppTheme != DataStore.appTheme) ||
+            (!DataStore.useSystemTheme && DataStore.appTheme == Theme.CUSTOM && lastCustomThemeColor != DataStore.customThemeColor) ||
             lastNightTheme != DataStore.nightTheme ||
             lastAmoledTheme != DataStore.amoledTheme ||
-            lastUsingNight != currentUsingNight) {
+            lastUsingNight != currentUsingNight
+        ) {
             ActivityCompat.recreate(this)
+            return
+        }
+        if (DataStore.useSystemTheme) {
+            wallpaperCheckJob?.cancel()
+            wallpaperCheckJob = lifecycleScope.launch {
+                val currentWallpaperColor = withContext(Dispatchers.IO) {
+                    Theme.getSystemWallpaperColor(applicationContext)
+                }
+                if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) ||
+                    isFinishing ||
+                    isDestroyed ||
+                    !DataStore.useSystemTheme
+                ) {
+                    return@launch
+                }
+                val expectedWallpaper = lastWallpaperColor
+                if (expectedWallpaper == null) {
+                    lastWallpaperColor = currentWallpaperColor
+                } else if (expectedWallpaper != currentWallpaperColor) {
+                    ActivityCompat.recreate(this@ThemedActivity)
+                }
+            }
         }
     }
 

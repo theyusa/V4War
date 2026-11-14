@@ -19,7 +19,7 @@ interface LanProxyControl {
  * same switch as LanSharingActivity; clients still enter the proxy by hand (or use auto connect). It never touches the
  * hotspot or the routing tables.
  */
-class LanProxyBackend(private val control: LanProxyControl = DataStoreLanProxyControl) : HotspotShare {
+class LanProxyBackend(private val control: LanProxyControl = DataStoreLanProxyControl) : PausableHotspotShare {
 
     override val method = ShareMethod.LAN_PROXY
 
@@ -30,14 +30,34 @@ class LanProxyBackend(private val control: LanProxyControl = DataStoreLanProxyCo
         _state.value = ShareState.Starting
         try {
             control.setLanAccess(true)
+            HotspotShareLogger.info("LanProxy", "LanProxyBackend started")
             _state.value = ShareState.Active(ShareMethod.LAN_PROXY)
         } catch (e: Exception) {
+            HotspotShareLogger.error("LanProxy", "LanProxyBackend start failed: ${e.message}")
             _state.value = ShareState.Error(ShareFailure.BACKEND_FAILED, e.message)
+        }
+    }
+
+    override suspend fun pauseForVpnDrop() {
+        HotspotShareLogger.warn("LanProxy", "LanProxyBackend paused after VPN drop")
+        _state.value = ShareState.Stopped(ShareFailure.VPN_LOST)
+    }
+
+    override suspend fun resumeAfterVpnDrop(): Boolean {
+        return try {
+            control.setLanAccess(true)
+            HotspotShareLogger.info("LanProxy", "LanProxyBackend resumed after VPN reconnect")
+            _state.value = ShareState.Active(ShareMethod.LAN_PROXY)
+            true
+        } catch (e: Exception) {
+            HotspotShareLogger.error("LanProxy", "LanProxyBackend resume failed: ${e.message}")
+            false
         }
     }
 
     override suspend fun stop() {
         if (control.isLanAccess()) control.setLanAccess(false)
+        HotspotShareLogger.info("LanProxy", "LanProxyBackend stopped")
         _state.value = ShareState.Off
     }
 }
@@ -57,6 +77,10 @@ object DataStoreLanProxyControl : LanProxyControl {
             DataStore.inboundAddress = targetAddr
         }
         if (enabled) {
+            if (DataStore.disableMixedInbound) {
+                DataStore.disableMixedInbound = false
+                changed = true
+            }
             if (LanSharingLogics.clashApiSecretShouldBeGenerated(DataStore.coreBoxClashApiSecret)) {
                 DataStore.coreBoxClashApiSecret = LanSharingLogics.generateClashApiSecret()
                 changed = true
@@ -67,6 +91,6 @@ object DataStoreLanProxyControl : LanProxyControl {
                 changed = true
             }
         }
-        if (changed && DataStore.serviceState.started) SagerNet.reloadService()
+        if (changed) SagerNet.reloadService()
     }
 }

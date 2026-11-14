@@ -7,6 +7,7 @@ import android.text.InputType
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -23,7 +24,11 @@ import io.nekohasekai.sagernet.ktx.snackbar
 import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
 import io.nekohasekai.sagernet.ui.settings.applyExpressiveSettingsStyle
 import io.nekohasekai.sagernet.widget.applyListInsets
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.google.android.material.snackbar.Snackbar
 
 class WebDAVSettingsActivity : ThemedActivity() {
@@ -133,26 +138,30 @@ class WebDAVSettingsActivity : ThemedActivity() {
             }
         }
 
-        private fun testWebDAV() {
-            runOnDefaultDispatcher {
-                try {
-                    val dav = WebDavBackup.configured()
-                        ?: throw Exception(app.getString(R.string.webdav_server_empty))
-                    dav.check()
+        private var testJob: Job? = null
 
-                    onMainDispatcher {
-                        if (!isFragmentAlive) return@onMainDispatcher
+        private fun testWebDAV() {
+            testJob?.cancel()
+            testJob = viewLifecycleOwner.lifecycleScope.launch {
+                try {
+                    withContext(Dispatchers.IO) {
+                        val dav = WebDavBackup.configured()
+                            ?: throw Exception(app.getString(R.string.webdav_server_empty))
+                        dav.check()
+                    }
+                    view?.let { root ->
                         Snackbar.make(
-                            requireView(),
+                            root,
                             getString(R.string.webdav_test_success),
                             Snackbar.LENGTH_SHORT
                         ).show()
                     }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
-                    onMainDispatcher {
-                        if (!isFragmentAlive) return@onMainDispatcher
+                    view?.let { root ->
                         Snackbar.make(
-                            requireView(),
+                            root,
                             getString(R.string.webdav_test_failed, e.readableMessage),
                             Snackbar.LENGTH_SHORT
                         ).show()

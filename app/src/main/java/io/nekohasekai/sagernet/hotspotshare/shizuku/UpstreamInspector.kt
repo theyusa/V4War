@@ -1,9 +1,9 @@
 package io.nekohasekai.sagernet.hotspotshare.shizuku
 
+import io.nekohasekai.sagernet.utils.LanSharingNetwork
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStream
-import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
@@ -106,17 +106,67 @@ class UpstreamTolerance(
  */
 class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
 
+    @Volatile
+    private var procArpBlocked: Boolean = false
+
     fun observeTethering(): UpstreamObservation = runDumpsys("tethering")
 
     fun observeWifiClientCount(): Int {
-        val obs = runDumpsys("wifi")
-        if (obs.didTimeout) return 0
-        return parseWifiClientCount(obs.rawOutput)
+        // Stream dumpsys wifi line-by-line with a tight deadline instead of buffering
+        // multi-megabyte Wi-Fi logs in memory; extract max getConnectedClientList().size().
+        val process = runCatching { ProcessBuilder("dumpsys", "wifi").start() }.getOrNull()
+            ?: return 0
+        var maxClients = 0
+        val drainThread = Thread {
+            runCatching {
+                process.inputStream.bufferedReader().useLines { lines ->
+                    for (line in lines) {
+                        val match = CONNECTED_CLIENTS_PATTERN.find(line) ?: continue
+                        val count = match.groupValues[1].toIntOrNull() ?: continue
+                        if (count > maxClients) maxClients = count
+                    }
+                }
+            }
+        }.apply {
+            isDaemon = true
+            start()
+        }
+        runCatching { process.errorStream.close() }
+        val completed = runCatching {
+            process.waitFor(WIFI_COUNT_DEADLINE_MS, TimeUnit.MILLISECONDS)
+        }.getOrDefault(false)
+        if (!completed) {
+            runCatching { process.destroyForcibly() }
+        }
+        runCatching { drainThread.join(200) }
+        return maxClients
     }
 
     fun observeNeighbors(): String {
         val neigh = runShellCommand(listOf("ip", "-4", "neigh", "show")).rawOutput
-        val arp = runCatching { File("/proc/net/arp").readText() }.getOrDefault("")
+        val arp = if (procArpBlocked) {
+            ""
+        } else {
+            try {
+                File("/proc/net/arp").readText()
+            } catch (_: Throwable) {
+                procArpBlocked = true
+                ""
+            }
+        }
+        val tetheringDump = runCatching {
+            observeTethering().rawOutput.lineSequence()
+                .filter { line ->
+                    line.contains("AddressInfo", ignoreCase = true) ||
+                        line.contains("TetheredClient", ignoreCase = true) ||
+                        line.contains("hostname", ignoreCase = true)
+                }
+                .joinToString("\n")
+        }.getOrDefault("")
+        val leaseLines = LEASE_FILES.mapNotNull { path ->
+            runCatching { File(path).takeIf { it.canRead() }?.readText() }.getOrNull()
+        }.filter { it.isNotBlank() }.joinToString("\n")
+
         return buildString {
             if (neigh.isNotBlank()) {
                 append(neigh)
@@ -125,6 +175,18 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
             if (arp.isNotBlank()) {
                 append("---ARP---\n")
                 append(arp)
+                if (!arp.endsWith('\n')) append('\n')
+            }
+            if (tetheringDump.isNotBlank() || leaseLines.isNotBlank()) {
+                append("---HOSTS---\n")
+                if (leaseLines.isNotBlank()) {
+                    append(leaseLines)
+                    if (!leaseLines.endsWith('\n')) append('\n')
+                }
+                if (tetheringDump.isNotBlank()) {
+                    append(tetheringDump)
+                    append('\n')
+                }
             }
         }
     }
@@ -134,23 +196,38 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
 
     private fun runShellCommand(cmd: List<String>): UpstreamObservation {
         val process = ProcessBuilder(cmd).start()
-        val drainPool = Executors.newFixedThreadPool(2)
+        return try {
+            val stdout = DRAIN_EXECUTOR.submit<String> { process.inputStream.drain() }
+            val stderr = DRAIN_EXECUTOR.submit<String> { process.errorStream.drain() }
 
-        val stdout = drainPool.submit<String> { process.inputStream.drain() }
-        val stderr = drainPool.submit<String> { process.errorStream.drain() }
+            val didExit = try {
+                process.waitFor(deadlineMs, TimeUnit.MILLISECONDS)
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
+                false
+            }
+            if (!didExit) {
+                process.destroyForcibly()
+                stdout.cancel(true)
+                stderr.cancel(true)
+            }
 
-        val didExit = process.waitFor(deadlineMs, TimeUnit.MILLISECONDS)
-        if (!didExit) process.destroyForcibly()
+            val output = if (didExit) collectOutput(stdout, stderr) else ""
 
-        val output = collectOutput(stdout, stderr)
-        drainPool.shutdownNow()
-
-        return UpstreamObservation(
-            rawOutput = output,
-            interfaceNames = parseUpstreamInterfaces(output),
-            tetheredDownstreams = parseTetheredDownstreams(output),
-            didTimeout = !didExit,
-        )
+            UpstreamObservation(
+                rawOutput = output,
+                interfaceNames = parseUpstreamInterfaces(output),
+                tetheredDownstreams = parseTetheredDownstreams(output),
+                didTimeout = !didExit,
+            )
+        } finally {
+            runCatching { process.outputStream.close() }
+            runCatching { process.inputStream.close() }
+            runCatching { process.errorStream.close() }
+            if (process.isAlive) {
+                runCatching { process.destroyForcibly() }
+            }
+        }
     }
 
     private fun collectOutput(stdout: Future<String>, stderr: Future<String>): String {
@@ -164,6 +241,16 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
 
     companion object {
         const val DEFAULT_DEADLINE_MS = 3_000L
+        const val WIFI_COUNT_DEADLINE_MS = 1_200L
+
+        private val LEASE_FILES = listOf(
+            "/data/misc/dhcp/dnsmasq.leases",
+            "/data/vendor/wifi/dhcp/dnsmasq.leases",
+            "/data/misc/dhcp/dnsmasq.ap.leases",
+            "/data/misc/irsi/dnsmasq.leases",
+        )
+
+        private val DRAIN_EXECUTOR = LanSharingNetwork.newDaemonCachedThreadPool("UpstreamInspector-drain")
 
         private val UPSTREAM_HINTS = listOf(
             "current upstream interface(s):",
@@ -174,10 +261,10 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
         )
 
         private val INTERFACE_PATTERN =
-            Regex("""\b(testtun\d+|wlan\d+|rmnet[a-z_]*\d*|eth\d+|ap\d+|swlan\d+)\b""")
+            Regex("""\b(testtun\d+|v4-[a-z0-9_]+|wlan\d+|rmnet[a-z_]*\d*|ccmni[a-z_]*\d*|eth\d+|ap\d+|swlan\d+|softap\d*|rndis\d*|usb\d+)\b""")
 
         private val TETHERED_STATE_PATTERN =
-            Regex("""^\s*([\w.-]+)\s+-\s+TetheredState\s+-""")
+            Regex("""^\s*([\w.-]+)\s+-\s+TetheredState(?:\s+-|\b)""")
 
         private val CONNECTED_CLIENTS_PATTERN =
             Regex("""getConnectedClientList\(\)\.size\(\):\s*(\d+)""")
@@ -207,6 +294,34 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
             return CONNECTED_CLIENTS_PATTERN.findAll(output)
                 .mapNotNull { match -> match.groupValues[1].toIntOrNull() }
                 .maxOrNull() ?: 0
+        }
+
+        /**
+         * Translates a single tethering observation into the IPC health status string.
+         * Never reports DOWNSTREAM_OFF while Wi-Fi SoftAp is still active, even if
+         * dumpsys tethering omits TetheredState lines on OEM firmware (e.g. HyperOS/MIUI).
+         */
+        @JvmStatic
+        fun evaluateUpstreamHealth(
+            obs: UpstreamObservation,
+            expectedIface: String,
+            existsCheck: ((String) -> Boolean)? = null,
+            isWifiHotspotActive: () -> Boolean,
+        ): String {
+            val live = if (existsCheck != null) {
+                obs.liveInterfaceNames(expectedIface, existsCheck)
+            } else {
+                obs.liveInterfaceNames(expectedIface)
+            }
+            return when (classifyUpstream(live, expectedIface, obs.didTimeout)) {
+                UpstreamReading.HEALTHY -> "HEALTHY"
+                UpstreamReading.ABSENT -> when {
+                    obs.tetheredDownstreams.isNotEmpty() || isWifiHotspotActive() -> "AWAITING"
+                    else -> "DOWNSTREAM_OFF"
+                }
+                UpstreamReading.TIMED_OUT -> "TIMED_OUT"
+                UpstreamReading.DRIFTED -> "DRIFTED:${live.joinToString(",")}"
+            }
         }
     }
 }

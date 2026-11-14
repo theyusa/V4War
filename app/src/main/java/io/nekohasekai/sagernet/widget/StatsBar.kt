@@ -221,7 +221,6 @@ class StatsBar @JvmOverloads constructor(
         super.onLayout(changed, left, top, right, bottom)
         // BottomAppBar places the cradle here, not always through an invalidation of the shape.
         foreground?.invalidateSelf()
-        updateThemeColors()
         val transition = pendingTransition
         if (transition != null) {
             pendingTransition = null

@@ -1,16 +1,22 @@
 package io.nekohasekai.sagernet.utils.toolbox
 
 import android.net.ConnectivityManager
+import android.net.Network
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.appUserAgent
 import io.nekohasekai.sagernet.ktx.newHttpClient
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicReference
 import okhttp3.Dns
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.DataInputStream
@@ -19,7 +25,9 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.net.Socket
 import java.net.UnknownHostException
+import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 
 enum class DnsResolverMode {
@@ -92,6 +100,8 @@ object DnsLookupEngine {
             )
         }
 
+        val dohClient = lazy { buildDohClient(viaProxy, connectivity) }
+
         if (compareMode) {
             val targets = buildList {
                 if (DataStore.serviceState.connected) add(DnsResolverPreset("core", "Core DNS", "core"))
@@ -106,7 +116,7 @@ object DnsLookupEngine {
                         if (target.endpoint == "core") {
                             queryCore(domain, recordType)
                         } else {
-                            queryServer(target.label, target.endpoint, domain, recordType, viaProxy, connectivity)
+                            queryServer(target.label, target.endpoint, domain, recordType, viaProxy, connectivity, dohClient)
                         }
                     }
                 }.awaitAll()
@@ -126,7 +136,7 @@ object DnsLookupEngine {
             DnsResolverMode.CUSTOM -> {
                 val ep = customEndpoint.trim().ifBlank { "https://cloudflare-dns.com/dns-query" }
                 val label = PRESETS.firstOrNull { it.endpoint == ep }?.label ?: ep
-                queryServer(label, ep, domain, recordType, viaProxy, connectivity)
+                queryServer(label, ep, domain, recordType, viaProxy, connectivity, dohClient)
             }
         }
 
@@ -146,7 +156,7 @@ object DnsLookupEngine {
                 error = "Core resolver returns A/AAAA records only; switch to Custom DoH/UDP for ${recordType.label}.",
             )
         }
-        return runCatching {
+        return try {
             val (ips, resolveErr) = IpLookupEngine.resolveViaCore(domain)
             val answers = ips.mapNotNull { ip ->
                 val isV6 = ip.contains(':')
@@ -178,14 +188,17 @@ object DnsLookupEngine {
                 answers = answers,
                 error = if (answers.isEmpty()) resolveErr else "",
             )
-        }.getOrElse { e ->
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            currentCoroutineContext().ensureActive()
             val rtt = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
             DnsServerResult("Core DNS", "sing-box core", "CORE", "ERR", rtt, emptyList(), e.message ?: "Error")
         }
     }
 
     @Suppress("DEPRECATION")
-    private fun querySystemDns(
+    private suspend fun querySystemDns(
         domain: String,
         recordType: DnsRecordType,
         connectivity: ConnectivityManager?,
@@ -205,7 +218,17 @@ object DnsLookupEngine {
             !IpLookupEngine.classifyIp(it).second.name.contains("LOOPBACK")
         }
         if (!serverIp.isNullOrBlank()) {
-            val wireRes = queryUdp("System DNS", serverIp, 53, domain, recordType)
+            val isPhysicalDns = physicalDns.contains(serverIp)
+            val wireRes = queryUdp(
+                label = "System DNS",
+                host = serverIp,
+                port = 53,
+                domain = domain,
+                recordType = recordType,
+                viaProxy = !isPhysicalDns && DataStore.serviceState.connected,
+                connectivity = connectivity,
+                explicitPhysicalNet = if (isPhysicalDns) physicalNet else null,
+            )
             if (wireRes.error.isBlank() || (recordType != DnsRecordType.A && recordType != DnsRecordType.AAAA)) {
                 return wireRes
             }
@@ -213,7 +236,7 @@ object DnsLookupEngine {
 
         // Fallback to physical network / InetAddress.getAllByName for A/AAAA
         val startNs = System.nanoTime()
-        return runCatching {
+        return try {
             val addrs = (physicalNet?.let { runCatching { it.getAllByName(domain).toList() }.getOrNull() }
                 ?: InetAddress.getAllByName(domain).toList())
                 .mapNotNull { it.hostAddress }
@@ -232,68 +255,67 @@ object DnsLookupEngine {
                 rttMs = rtt,
                 answers = answers,
             )
-        }.getOrElse { e ->
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            currentCoroutineContext().ensureActive()
             val rtt = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
             DnsServerResult("System DNS", serverIp ?: "system", "SYS", "ERR", rtt, emptyList(), e.message ?: "Lookup failed")
         }
     }
 
-    private fun queryServer(
+    private suspend fun queryServer(
         label: String,
         endpoint: String,
         domain: String,
         recordType: DnsRecordType,
         viaProxy: Boolean,
         connectivity: ConnectivityManager?,
+        dohClient: Lazy<OkHttpClient>,
     ): DnsServerResult {
         val trimmed = endpoint.trim()
         return when {
             trimmed.startsWith("https://", ignoreCase = true) -> {
-                queryDoh(label, trimmed, domain, recordType, viaProxy, connectivity)
+                queryDoh(label, trimmed, domain, recordType, dohClient.value)
             }
             trimmed.startsWith("tls://", ignoreCase = true) -> {
                 val hostPort = trimmed.substringAfter("tls://").substringBefore('/')
                 val (host, port) = parseHostPort(hostPort, 853)
-                queryDot(label, host, port, domain, recordType)
+                queryDot(label, host, port, domain, recordType, viaProxy, connectivity)
             }
             else -> {
                 val (host, port) = parseHostPort(trimmed.removePrefix("udp://"), 53)
-                queryUdp(label, host, port, domain, recordType)
+                queryUdp(label, host, port, domain, recordType, viaProxy, connectivity)
             }
         }
     }
 
-    private fun queryDoh(
+    private fun buildDohClient(viaProxy: Boolean, connectivity: ConnectivityManager?): OkHttpClient {
+        val useProxy = viaProxy && DataStore.serviceState.connected
+        val baseClient = newHttpClient(viaProxy = useProxy, timeoutSeconds = 10)
+        if (viaProxy) return baseClient
+        val net = IpLookupEngine.findPhysicalNetwork(connectivity) ?: return baseClient
+        return baseClient.newBuilder()
+            .socketFactory(net.socketFactory)
+            .dns(
+                Dns { host ->
+                    val addrs = runCatching { net.getAllByName(host).toList() }.getOrDefault(emptyList())
+                    if (addrs.isNotEmpty()) addrs else throw UnknownHostException("Unable to resolve $host on physical network")
+                },
+            )
+            .build()
+    }
+
+    private suspend fun queryDoh(
         label: String,
         url: String,
         domain: String,
         recordType: DnsRecordType,
-        viaProxy: Boolean,
-        connectivity: ConnectivityManager?,
+        client: OkHttpClient,
     ): DnsServerResult {
         val startNs = System.nanoTime()
-        return runCatching {
+        return try {
             val packet = DnsWireCodec.encodeQuery(domain, recordType)
-            val useProxy = viaProxy && DataStore.serviceState.connected
-            val baseClient = newHttpClient(viaProxy = useProxy, timeoutSeconds = 10)
-            val client = if (!viaProxy) {
-                val net = IpLookupEngine.findPhysicalNetwork(connectivity)
-                if (net != null) {
-                    baseClient.newBuilder()
-                        .socketFactory(net.socketFactory)
-                        .dns(
-                            Dns { host ->
-                                val addrs = runCatching { net.getAllByName(host).toList() }.getOrDefault(emptyList())
-                                if (addrs.isNotEmpty()) addrs else throw UnknownHostException("Unable to resolve $host on physical network")
-                            },
-                        )
-                        .build()
-                } else {
-                    baseClient
-                }
-            } else {
-                baseClient
-            }
             val body = packet.toRequestBody("application/dns-message".toMediaType())
             val req = Request.Builder()
                 .url(url)
@@ -301,7 +323,7 @@ object DnsLookupEngine {
                 .header("User-Agent", appUserAgent())
                 .post(body)
                 .build()
-            client.newCall(req).execute().use { resp ->
+            client.newCall(req).executeCancellable { resp ->
                 if (!resp.isSuccessful) error("HTTP ${resp.code}")
                 val raw = resp.body?.bytes() ?: error("Empty DoH body")
                 val decoded = DnsWireCodec.decodeResponse(raw)
@@ -315,80 +337,122 @@ object DnsLookupEngine {
                     answers = decoded.answers,
                 )
             }
-        }.getOrElse { e ->
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            currentCoroutineContext().ensureActive()
             val rtt = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
             DnsServerResult(label, url, "DoH", "ERR", rtt, emptyList(), e.message ?: "DoH failed")
         }
     }
 
-    private fun queryDot(
+    private suspend fun queryDot(
         label: String,
         host: String,
         port: Int,
         domain: String,
         recordType: DnsRecordType,
+        viaProxy: Boolean,
+        connectivity: ConnectivityManager?,
     ): DnsServerResult {
         val startNs = System.nanoTime()
-        return runCatching {
+        return try {
             val packet = DnsWireCodec.encodeQuery(domain, recordType)
-            val factory = SSLSocketFactory.getDefault()
-            factory.createSocket().use { socket ->
-                socket.connect(InetSocketAddress(host, port), 8_000)
-                socket.soTimeout = 8_000
-                val out = DataOutputStream(socket.getOutputStream())
-                val inp = DataInputStream(socket.getInputStream())
-                out.writeShort(packet.size)
-                out.write(packet)
-                out.flush()
-                val respLen = inp.readUnsignedShort()
-                val respBytes = ByteArray(respLen)
-                inp.readFully(respBytes)
-                val decoded = DnsWireCodec.decodeResponse(respBytes)
-                val rtt = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
-                DnsServerResult(
-                    label = label,
-                    endpoint = "tls://$host:$port",
-                    protocol = "DoT",
-                    rcodeName = decoded.rcodeName,
-                    rttMs = rtt,
-                    answers = decoded.answers,
-                )
+            val physicalNet = if (!viaProxy) IpLookupEngine.findPhysicalNetwork(connectivity) else null
+            val resolved = physicalNet?.getAllByName(host)?.firstOrNull() ?: InetAddress.getByName(host)
+            val rawSocket = physicalNet?.socketFactory?.createSocket() ?: Socket()
+            val sslFactory = SSLSocketFactory.getDefault() as SSLSocketFactory
+            val sslRef = AtomicReference<SSLSocket?>(null)
+            try {
+                withImmediateCancel(
+                    onCancel = {
+                        runCatching { sslRef.get()?.close() }
+                        runCatching { rawSocket.close() }
+                    },
+                ) {
+                    rawSocket.connect(InetSocketAddress(resolved, port), 8_000)
+                    rawSocket.soTimeout = 8_000
+                    val wrapped = sslFactory.createSocket(rawSocket, host, port, true) as SSLSocket
+                    sslRef.set(wrapped)
+                    wrapped.soTimeout = 8_000
+                    wrapped.startHandshake()
+                    val out = DataOutputStream(wrapped.getOutputStream())
+                    val inp = DataInputStream(wrapped.getInputStream())
+                    out.writeShort(packet.size)
+                    out.write(packet)
+                    out.flush()
+                    val respLen = inp.readUnsignedShort()
+                    val respBytes = ByteArray(respLen)
+                    inp.readFully(respBytes)
+                    val decoded = DnsWireCodec.decodeResponse(respBytes)
+                    val rtt = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
+                    DnsServerResult(
+                        label = label,
+                        endpoint = "tls://$host:$port",
+                        protocol = "DoT",
+                        rcodeName = decoded.rcodeName,
+                        rttMs = rtt,
+                        answers = decoded.answers,
+                    )
+                }
+            } finally {
+                val sslSocket = sslRef.get()
+                if (sslSocket != null) {
+                    runCatching { sslSocket.close() }
+                } else {
+                    runCatching { rawSocket.close() }
+                }
             }
-        }.getOrElse { e ->
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            currentCoroutineContext().ensureActive()
             val rtt = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
             DnsServerResult(label, "tls://$host:$port", "DoT", "ERR", rtt, emptyList(), e.message ?: "DoT failed")
         }
     }
 
-    private fun queryUdp(
+    internal suspend fun queryUdp(
         label: String,
         host: String,
         port: Int,
         domain: String,
         recordType: DnsRecordType,
+        viaProxy: Boolean,
+        connectivity: ConnectivityManager?,
+        explicitPhysicalNet: Network? = null,
     ): DnsServerResult {
         val startNs = System.nanoTime()
-        return runCatching {
+        return try {
             val packet = DnsWireCodec.encodeQuery(domain, recordType)
+            val physicalNet = explicitPhysicalNet
+                ?: if (!viaProxy) IpLookupEngine.findPhysicalNetwork(connectivity) else null
             DatagramSocket().use { socket ->
-                socket.soTimeout = 5_000
-                val address = InetAddress.getByName(host)
-                socket.send(DatagramPacket(packet, packet.size, address, port))
-                val buf = ByteArray(4096)
-                val dp = DatagramPacket(buf, buf.size)
-                socket.receive(dp)
-                val decoded = DnsWireCodec.decodeResponse(buf.copyOf(dp.length))
-                val rtt = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
-                DnsServerResult(
-                    label = label,
-                    endpoint = "$host:$port",
-                    protocol = "UDP",
-                    rcodeName = decoded.rcodeName,
-                    rttMs = rtt,
-                    answers = decoded.answers,
-                )
+                withImmediateCancel(onCancel = { socket.close() }) {
+                    physicalNet?.let { runCatching { it.bindSocket(socket) } }
+                    socket.soTimeout = 5_000
+                    val address = physicalNet?.getAllByName(host)?.firstOrNull()
+                        ?: InetAddress.getByName(host)
+                    socket.send(DatagramPacket(packet, packet.size, address, port))
+                    val buf = ByteArray(4096)
+                    val dp = DatagramPacket(buf, buf.size)
+                    socket.receive(dp)
+                    val decoded = DnsWireCodec.decodeResponse(buf.copyOf(dp.length))
+                    val rtt = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
+                    DnsServerResult(
+                        label = label,
+                        endpoint = "$host:$port",
+                        protocol = "UDP",
+                        rcodeName = decoded.rcodeName,
+                        rttMs = rtt,
+                        answers = decoded.answers,
+                    )
+                }
             }
-        }.getOrElse { e ->
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            currentCoroutineContext().ensureActive()
             val rtt = ((System.nanoTime() - startNs) / 1_000_000L).coerceAtLeast(1)
             DnsServerResult(label, "$host:$port", "UDP", "ERR", rtt, emptyList(), e.message ?: "UDP query failed")
         }

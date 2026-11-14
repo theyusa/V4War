@@ -32,7 +32,7 @@ class RootBackend(
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
     private val shellExecutor: ShellExecutor = LibsuShellExecutor,
     private val failClosedAction: () -> FailClosedAction = { FailClosedAction.BLOCK_TRAFFIC },
-) : HotspotShare {
+) : PausableHotspotShare, HotspotControllingBackend {
 
     override val method: ShareMethod = ShareMethod.ROOT
 
@@ -40,6 +40,7 @@ class RootBackend(
     override val state: StateFlow<ShareState> = _state.asStateFlow()
 
     private var watcherJob: Job? = null
+    private var tetherDebounceJob: Job? = null
     private var tetherReceiver: BroadcastReceiver? = null
     private var activeVpn: VpnRouteInfo? = null
     private var appliedIfaces = setOf<String>()
@@ -60,8 +61,10 @@ class RootBackend(
         isFailClosedBlocked = false
         autoStartedHotspot = false
         _state.value = ShareState.Starting
+        HotspotShareLogger.info(TAG, "Starting Root hotspot share session")
 
         if (!isAvailable()) {
+            HotspotShareLogger.error(TAG, "Root is not available")
             _state.value = ShareState.Error(
                 ShareFailure.ROOT_UNAVAILABLE,
                 "Root izni verilmedi veya cihaz root'lu değil.",
@@ -72,6 +75,7 @@ class RootBackend(
         val routeRes = shellExecutor.exec("ip route show table all")
         val vpn = RootRules.parseVpnRoute(routeRes.out)
         if (vpn == null) {
+            HotspotShareLogger.error(TAG, "VPN routing table not found")
             _state.value = ShareState.Error(
                 ShareFailure.VPN_NOT_RUNNING,
                 "VPN yönlendirme tablosu bulunamadı. Lütfen önce VPN bağlantısını başlatın.",
@@ -112,6 +116,7 @@ class RootBackend(
 
         val res = shellExecutor.exec(setupCmds)
         if (!res.isSuccess) {
+            HotspotShareLogger.error(TAG, "Failed to apply Root routing rules: ${res.err.joinToString("; ")}")
             shellExecutor.exec(RootRules.buildTeardownCommands())
             if (autoStartedHotspot) stopHotspot()
             _state.value = ShareState.Error(
@@ -127,20 +132,27 @@ class RootBackend(
         registerTetherReceiver()
         startWatcher()
 
+        HotspotShareLogger.info(TAG, "Root hotspot share ACTIVE (vpn=${vpn.tunInterface}/${vpn.table}, ifaces=$appliedIfaces)")
         _state.value = ShareState.Active(ShareMethod.ROOT)
     }
 
-    override suspend fun stop(): Unit = withContext(Dispatchers.IO) {
+    override suspend fun stop(): Unit = stopInternal(stopHotspot = false)
+
+    override suspend fun stopHotspotByUser(): Unit = stopInternal(stopHotspot = true)
+
+    private suspend fun stopInternal(stopHotspot: Boolean): Unit = withContext(Dispatchers.IO) {
+        HotspotShareLogger.info(TAG, "Stopping RootBackend (stopHotspot=$stopHotspot, isFailClosedBlocked=$isFailClosedBlocked)")
         stopWatcher()
         unregisterTetherReceiver()
 
-        // Preserve fail-closed DROP rules during controller mirror auto-teardown;
-        // explicit user stop in HotspotShareController calls RootBackend.cleanupLegacyRules().
-        if (!isFailClosedBlocked) {
+        // Preserve fail-closed DROP rules during internal/controller teardown unless
+        // user explicitly turned sharing OFF (stopHotspot = true).
+        if (stopHotspot) {
+            isFailClosedBlocked = false
+            stopHotspot()
             shellExecutor.exec(RootRules.buildTeardownCommands())
-            if (autoStartedHotspot) {
-                stopHotspot()
-            }
+        } else if (!isFailClosedBlocked) {
+            shellExecutor.exec(RootRules.buildTeardownCommands())
         }
         autoStartedHotspot = false
         activeVpn = null
@@ -185,6 +197,7 @@ class RootBackend(
     private fun startWatcher() {
         watcherJob?.cancel()
         watcherJob = scope.launch {
+            var vpnMissingStrikes = 0
             while (isActive) {
                 delay(WATCHER_INTERVAL_MS)
                 if (_state.value !is ShareState.Active) break
@@ -193,9 +206,16 @@ class RootBackend(
                 val currentVpn = RootRules.parseVpnRoute(routeRes.out)
 
                 if (currentVpn == null) {
-                    handleVpnDropped()
-                    break
+                    vpnMissingStrikes++
+                    // Give TetherWatchService's RELOAD_GRACE_MS (8s) + suspendForVpnDrop()
+                    // time to handle VPN reloads/disconnects cleanly without breaking auto-resume.
+                    if (vpnMissingStrikes >= VPN_MISSING_STRIKES) {
+                        handleVpnDropped()
+                        break
+                    }
+                    continue
                 }
+                vpnMissingStrikes = 0
 
                 // Self-healing: if Android Netd flushed FORWARD or changed VPN table after cellular/Wi-Fi handoff
                 val ifaces = appliedIfaces
@@ -219,22 +239,67 @@ class RootBackend(
     suspend fun handleVpnDropped(action: FailClosedAction = failClosedAction()) {
         stopWatcher()
         activeVpn = null
-        unregisterTetherReceiver()
 
         if (action == FailClosedAction.STOP_HOTSPOT) {
+            HotspotShareLogger.warn(TAG, "Fail-closed STOP_HOTSPOT on RootBackend: tearing down rules and stopping Wi-Fi Hotspot")
+            unregisterTetherReceiver()
             isFailClosedBlocked = false
             shellExecutor.exec(RootRules.buildTeardownCommands())
             stopHotspot()
         } else {
-            // Default: BLOCK_TRAFFIC — stays armed across controller teardown until user turns sharing off
+            // Default: BLOCK_TRAFFIC — keep Hotspot up behind DROP + blackhole lock so we can auto-resume when VPN returns
             isFailClosedBlocked = true
             val ifacesToBlock = appliedIfaces.ifEmpty { resolveTetheredInterfaces().toSet() }
+            HotspotShareLogger.warn(TAG, "Fail-closed BLOCK_TRAFFIC on RootBackend: installing blackhole + DROP rules on $ifacesToBlock")
             shellExecutor.exec(RootRules.buildBlockTrafficCommands(ifacesToBlock))
         }
 
         _state.value = ShareState.Stopped(
             ShareFailure.VPN_LOST,
         )
+    }
+
+    override suspend fun pauseForVpnDrop() {
+        handleVpnDropped(failClosedAction())
+    }
+
+    /**
+     * Re-arms NAT & FORWARD rules after VPN reconnects from a fail-closed BLOCK_TRAFFIC pause.
+     */
+    override suspend fun resumeAfterVpnDrop(): Boolean = withContext(Dispatchers.IO) {
+        if (!isFailClosedBlocked && failClosedAction() == FailClosedAction.STOP_HOTSPOT) {
+            return@withContext false
+        }
+        val ifaces = appliedIfaces.ifEmpty { resolveTetheredInterfaces().toSet() }
+        if (ifaces.isEmpty()) return@withContext false
+
+        var routeOut: List<String> = emptyList()
+        var vpnRoute: VpnRouteInfo? = null
+        repeat(8) {
+            val res = shellExecutor.exec("ip route show table all")
+            vpnRoute = RootRules.parseVpnRoute(res.out)
+            if (vpnRoute != null) {
+                routeOut = res.out
+                return@repeat
+            }
+            delay(500L)
+        }
+        val resolvedVpn = vpnRoute ?: return@withContext false
+        val subnets = RootRules.parseHotspotSubnets(routeOut, ifaces)
+        val cmds = RootRules.buildSetupCommands(resolvedVpn, ifaces, subnets)
+        if (!shellExecutor.exec(cmds).isSuccess) {
+            HotspotShareLogger.error(TAG, "Failed to re-apply Root setup rules on VPN resume")
+            return@withContext false
+        }
+
+        isFailClosedBlocked = false
+        activeVpn = resolvedVpn
+        appliedIfaces = ifaces
+        registerTetherReceiver()
+        startWatcher()
+        HotspotShareLogger.info(TAG, "Resumed Root hotspot share on $ifaces after VPN reconnect")
+        _state.value = ShareState.Active(ShareMethod.ROOT)
+        true
     }
 
     private fun stopHotspot() {
@@ -260,18 +325,32 @@ class RootBackend(
         }
     }
 
+    private fun shouldMonitorTetherLoss(): Boolean =
+        _state.value is ShareState.Active ||
+            (isFailClosedBlocked && (_state.value as? ShareState.Stopped)?.cause == ShareFailure.VPN_LOST)
+
     private fun registerTetherReceiver() {
         if (tetherReceiver != null) return
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(c: Context?, intent: Intent?) {
                 if (intent?.action != "android.net.conn.TETHER_STATE_CHANGED") return
-                scope.launch {
-                    val activeList = intent.getStringArrayListExtra("tetherArray")
-                        ?: intent.getStringArrayListExtra("activeArray")
-                        ?: emptyList()
+                val activeList = intent.getStringArrayListExtra("tetherArray")
+                    ?: intent.getStringArrayListExtra("activeArray")
+                    ?: emptyList()
 
-                    if (activeList.isEmpty() && _state.value is ShareState.Active) {
-                        _state.value = ShareState.Stopped(ShareFailure.TETHER_LOST)
+                if (activeList.isNotEmpty()) {
+                    tetherDebounceJob?.cancel()
+                    tetherDebounceJob = null
+                    return
+                }
+
+                if (shouldMonitorTetherLoss()) {
+                    tetherDebounceJob?.cancel()
+                    tetherDebounceJob = scope.launch {
+                        delay(TETHER_LOSS_DEBOUNCE_MS)
+                        if (shouldMonitorTetherLoss() && resolveTetheredInterfaces().isEmpty()) {
+                            _state.value = ShareState.Stopped(ShareFailure.TETHER_LOST)
+                        }
                     }
                 }
             }
@@ -285,6 +364,8 @@ class RootBackend(
     }
 
     private fun unregisterTetherReceiver() {
+        tetherDebounceJob?.cancel()
+        tetherDebounceJob = null
         tetherReceiver?.let {
             runCatching { context.unregisterReceiver(it) }
             tetherReceiver = null
@@ -292,15 +373,35 @@ class RootBackend(
     }
 
     companion object {
-        private const val WATCHER_INTERVAL_MS = 3_000L
+        private const val TAG = "RootBackend"
+        private const val WATCHER_INTERVAL_MS = 5_000L
+        private const val VPN_MISSING_STRIKES = 2
         private const val TETHER_WAIT_TIMEOUT_MS = 10_000L
+        private const val TETHER_LOSS_DEBOUNCE_MS = 2_000L
+        private const val ROOT_CACHE_TTL_MS = 30_000L
 
-        fun isRootAvailable(): Boolean {
-            return try {
+        @Volatile
+        private var cachedRootResult: Boolean? = null
+
+        @Volatile
+        private var cachedRootCheckedAtMs: Long = 0L
+
+        fun isRootAvailable(forceRefresh: Boolean = false): Boolean {
+            if (!forceRefresh) {
+                val cached = cachedRootResult
+                val ageMs = (System.nanoTime() / 1_000_000L) - cachedRootCheckedAtMs
+                if (cached != null && (cached || ageMs < ROOT_CACHE_TTL_MS)) {
+                    return cached
+                }
+            }
+            val result = try {
                 com.topjohnwu.superuser.Shell.isAppGrantedRoot() == true || LibsuShellExecutor.isRoot()
             } catch (_: Throwable) {
                 false
             }
+            cachedRootResult = result
+            cachedRootCheckedAtMs = System.nanoTime() / 1_000_000L
+            return result
         }
 
         fun cleanupLegacyRules(executor: ShellExecutor = LibsuShellExecutor) {
@@ -315,7 +416,9 @@ class RootBackend(
         fun queryNeighborDump(executor: ShellExecutor = LibsuShellExecutor): String? {
             return try {
                 if (!executor.isRoot()) return null
-                val res = executor.exec("ip -4 neigh show 2>/dev/null; echo '---ARP---'; cat /proc/net/arp 2>/dev/null")
+                val res = executor.exec(
+                    "ip -4 neigh show 2>/dev/null; echo '---ARP---'; cat /proc/net/arp 2>/dev/null; echo '---HOSTS---'; cat /data/misc/dhcp/dnsmasq.leases /data/vendor/wifi/dhcp/dnsmasq.leases /data/misc/dhcp/dnsmasq.ap.leases /data/misc/irsi/dnsmasq.leases 2>/dev/null; dumpsys tethering 2>/dev/null | grep -iE 'AddressInfo|TetheredClient|hostname'",
+                )
                 if (res.out.isEmpty()) null else res.out.joinToString("\n")
             } catch (_: Throwable) {
                 null

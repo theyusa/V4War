@@ -1,6 +1,10 @@
 package io.nekohasekai.sagernet.utils
 
 import io.nekohasekai.sagernet.database.SettingValidators
+import io.nekohasekai.sagernet.hotspotshare.FailClosedAction
+import io.nekohasekai.sagernet.hotspotshare.ShareMethod
+import io.nekohasekai.sagernet.hotspotshare.SharePreference
+import io.nekohasekai.sagernet.hotspotshare.ShareState
 import io.nekohasekai.sagernet.outbound.link.LinkBuilder
 import kotlin.math.abs
 import org.json.JSONObject
@@ -9,6 +13,21 @@ import java.security.SecureRandom
 /**
  * One row of the LAN Sharing device list; entries are keyed by IP.
  */
+enum class ClientShareRoute {
+    HOTSPOT_SHIZUKU,
+    HOTSPOT_ROOT,
+    HOTSPOT_LAN_PROXY,
+    HOTSPOT_IDLE,
+    LAN_PROXY,
+}
+
+data class ShizukuTunnelTraffic(
+    val activeConnections: Int = 0,
+    val uploadBytes: Long = 0L,
+    val downloadBytes: Long = 0L,
+    val lastHost: String? = null,
+)
+
 data class LanClientDevice(
     val ip: String,
     val activeConnections: Int,
@@ -17,6 +36,8 @@ data class LanClientDevice(
     val lastHost: String?,
     val lastSeenMs: Long,
     val isHotspot: Boolean,
+    val hostname: String? = null,
+    val route: ClientShareRoute = if (isHotspot) ClientShareRoute.HOTSPOT_IDLE else ClientShareRoute.LAN_PROXY,
 )
 
 /** Parsed entry from `ip -4 neigh show` or `/proc/net/arp`. */
@@ -85,6 +106,9 @@ object LanSharingLogics {
         for (rawLine in text.lineSequence()) {
             val line = rawLine.trim()
             if (line.isEmpty()) continue
+            if (line == "---HOSTS---") {
+                break
+            }
             if (line == "---ARP---") {
                 inArpSection = true
                 continue
@@ -198,14 +222,132 @@ object LanSharingLogics {
             if (ip.isEmpty() || isLocalSource(ip)) continue
             val entry = acc.getOrPut(ip) { Acc(0, 0L, 0L, null) }
             entry.active += 1
-            entry.up += item.optLong("upload", 0L)
-            entry.down += item.optLong("download", 0L)
-            item.optString("host").takeIf { it.isNotEmpty() }?.let { entry.lastHost = it }
-            meta.optString("host").takeIf { it.isNotEmpty() }?.let { entry.lastHost = it }
+            entry.up += item.optLong("upload", 0L).coerceAtLeast(0L)
+            entry.down += item.optLong("download", 0L).coerceAtLeast(0L)
+            extractConnectionHost(item, meta)?.let { entry.lastHost = it }
         }
         return acc.map { (ip, a) ->
             LanClientDevice(ip, a.active, a.up, a.down, a.lastHost, lastSeenMs = 0L, isHotspot = false)
         }
+    }
+
+    /**
+     * Extracts aggregated active flow stats from the internal Shizuku tunnel inbound
+     * (`share-socks-in`, port 2088). In Shizuku Hotspot Share mode, `hev-socks5-tunnel` forwards
+     * hotspot packets to `127.0.0.1:2088`, so normal per-IP filtering ignores `sourceIP = 127.0.0.1`.
+     */
+    fun parseShizukuShareConnections(
+        json: String,
+        shareSocksPort: Int = 2088,
+    ): ShizukuTunnelTraffic {
+        val tidy = json.trim()
+        if (tidy.isEmpty()) return ShizukuTunnelTraffic()
+        val parsed = runCatching { JSONObject(tidy) }.getOrNull() ?: return ShizukuTunnelTraffic()
+        val connections = parsed.optJSONArray("connections") ?: return ShizukuTunnelTraffic()
+
+        var active = 0
+        var up = 0L
+        var down = 0L
+        var lastHost: String? = null
+        val portStr = shareSocksPort.toString()
+
+        for (i in 0 until connections.length()) {
+            val item = connections.optJSONObject(i) ?: continue
+            val meta = item.optJSONObject("metadata") ?: continue
+            val inboundType = meta.optString("type")
+            val inboundName = meta.optString("inboundName").ifEmpty {
+                meta.optString("inbound").ifEmpty { meta.optString("inboundTag") }
+            }
+            val inboundPort = meta.optString("inboundPort")
+            val isShareSocks = inboundName.contains("share-socks-in", ignoreCase = true) ||
+                inboundType.contains("share-socks-in", ignoreCase = true) ||
+                inboundPort == portStr
+            if (!isShareSocks) continue
+
+            active += 1
+            up += item.optLong("upload", 0L).coerceAtLeast(0L)
+            down += item.optLong("download", 0L).coerceAtLeast(0L)
+            extractConnectionHost(item, meta)?.let { lastHost = it }
+        }
+        return ShizukuTunnelTraffic(
+            activeConnections = active,
+            uploadBytes = up,
+            downloadBytes = down,
+            lastHost = lastHost,
+        )
+    }
+
+    private fun extractConnectionHost(item: JSONObject, meta: JSONObject): String? {
+        val rawHost = item.optString("host").takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
+            ?: meta.optString("host").takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
+        if (!rawHost.isNullOrBlank()) return rawHost
+        val destIp = meta.optString("destinationIP").trim()
+        if (destIp.isEmpty() || destIp.equals("null", ignoreCase = true)) return null
+        val destPort = meta.optString("destinationPort").trim()
+        return if (destPort.isNotEmpty() && destPort != "0" && !destPort.equals("null", ignoreCase = true)) {
+            "$destIp:$destPort"
+        } else {
+            destIp
+        }
+    }
+
+    private val ADDRESS_INFO_HOSTNAME_REGEX = Regex(
+        """address\s+(\d{1,3}(?:\.\d{1,3}){3})(?:/\d+)?\s*,\s*hostname\s+([^,\}\]]+)""",
+        RegexOption.IGNORE_CASE,
+    )
+    private val GENERIC_IP_HOSTNAME_REGEX = Regex("""^(\d{1,3}(?:\.\d{1,3}){3})\s+(\S+)$""")
+
+    fun parseNeighborHostnames(rawText: String): Map<String, String> {
+        if (rawText.isBlank()) return emptyMap()
+        val result = LinkedHashMap<String, String>()
+        for (rawLine in rawText.lineSequence()) {
+            val line = rawLine.trim()
+            if (line.isEmpty() || line.startsWith("---")) continue
+
+            // Format 1: dumpsys tethering AddressInfo {address 10.154.42.195/24, hostname MyLaptop}
+            ADDRESS_INFO_HOSTNAME_REGEX.findAll(line).forEach { match ->
+                val ip = normalizeIp(match.groupValues[1])
+                val host = cleanHostname(match.groupValues[2])
+                if (ip.isNotEmpty() && host != null && !isLocalSource(ip)) {
+                    result[ip] = host
+                }
+            }
+
+            // Format 2: dnsmasq.leases -> <expiryTs> <mac> <ip> <hostname> [client-id]
+            val parts = line.split(Regex("""\s+"""))
+            if (parts.size >= 4 && parts[0].all { it.isDigit() } && parts[1].contains(':')) {
+                val ip = normalizeIp(parts[2])
+                val host = cleanHostname(parts[3])
+                if (ip.isNotEmpty() && host != null && !isLocalSource(ip)) {
+                    result[ip] = host
+                }
+                continue
+            }
+
+            // Format 3: simple "<ip> <hostname>" under ---HOSTS---
+            val generic = GENERIC_IP_HOSTNAME_REGEX.matchEntire(line)
+            if (generic != null) {
+                val ip = normalizeIp(generic.groupValues[1])
+                val host = cleanHostname(generic.groupValues[2])
+                if (ip.isNotEmpty() && host != null && !isLocalSource(ip)) {
+                    result[ip] = host
+                }
+            }
+        }
+        return result
+    }
+
+    internal fun cleanHostname(raw: String?): String? {
+        val cleaned = raw?.trim()?.trim('"', '\'', ',', ';') ?: return null
+        if (cleaned.isEmpty() ||
+            cleaned == "*" ||
+            cleaned.equals("null", ignoreCase = true) ||
+            cleaned.equals("unknown", ignoreCase = true)
+        ) {
+            return null
+        }
+        if (ipv4ToInt(cleaned) != null) return null
+        return cleaned
     }
 
     /**
@@ -281,21 +423,57 @@ object LanSharingLogics {
         nowMs: Long,
         activePeerIps: Set<String> = emptySet(),
         hotspotHintIps: Set<String> = emptySet(),
+        shizukuTraffic: ShizukuTunnelTraffic? = null,
+        hostnames: Map<String, String> = emptyMap(),
+        activeHotspotMethod: ShareMethod? = null,
+        lanProxyEnabled: Boolean = false,
     ): List<LanClientDevice> {
         val normalizedLocals = localIps.mapTo(HashSet()) { normalizeIp(it) }
         val normalizedHotspot = hotspotIp?.let { normalizeIp(it) }
         val normalizedActivePeers = activePeerIps.mapTo(HashSet()) { normalizeIp(it) }
         val normalizedHotspotHints = hotspotHintIps.mapTo(HashSet()) { normalizeIp(it) }
+        val clashIps = clash.mapNotNullTo(HashSet()) { normalizeIp(it.ip).takeIf(String::isNotEmpty) }
+        val normalizedHostnames = HashMap<String, String>(hostnames.size)
+        hostnames.forEach { (rawIp, rawHost) ->
+            val ip = normalizeIp(rawIp)
+            val host = cleanHostname(rawHost)
+            if (ip.isNotEmpty() && host != null) {
+                normalizedHostnames[ip] = host
+            }
+        }
         val byIp = LinkedHashMap<String, LanClientDevice>()
 
         fun isHotspotFor(ip: String): Boolean =
             isHotspotClient(ip, normalizedHotspot, hotspotPrefix) || ip in normalizedHotspotHints
 
+        fun resolveRoute(ip: String, isHotspot: Boolean): ClientShareRoute {
+            if (!isHotspot) return ClientShareRoute.LAN_PROXY
+            val usedLanProxyDirectly = ip in clashIps || ip in normalizedActivePeers
+            return when {
+                usedLanProxyDirectly && activeHotspotMethod == null -> ClientShareRoute.HOTSPOT_LAN_PROXY
+                activeHotspotMethod == ShareMethod.SHIZUKU -> {
+                    if (usedLanProxyDirectly && lanProxyEnabled) ClientShareRoute.HOTSPOT_LAN_PROXY
+                    else ClientShareRoute.HOTSPOT_SHIZUKU
+                }
+                activeHotspotMethod == ShareMethod.ROOT -> {
+                    if (usedLanProxyDirectly && lanProxyEnabled) ClientShareRoute.HOTSPOT_LAN_PROXY
+                    else ClientShareRoute.HOTSPOT_ROOT
+                }
+                activeHotspotMethod == ShareMethod.LAN_PROXY || usedLanProxyDirectly -> {
+                    ClientShareRoute.HOTSPOT_LAN_PROXY
+                }
+                else -> ClientShareRoute.HOTSPOT_IDLE
+            }
+        }
+
         arpIps.forEach { rawIp ->
             val ip = normalizeIp(rawIp)
             if (isLocalSource(ip, normalizedLocals)) return@forEach
-            val historyRow = history[ip]
+            val isHotspot = isHotspotFor(ip)
             val peerActive = ip in normalizedActivePeers
+            // Filter out unrelated Wi-Fi/router ARP entries that are neither Hotspot clients nor proxy users.
+            if (!isHotspot && !peerActive && ip !in clashIps) return@forEach
+            val historyRow = history[ip]
             byIp[ip] = LanClientDevice(
                 ip = ip,
                 activeConnections = if (peerActive) 1 else 0,
@@ -303,11 +481,14 @@ object LanSharingLogics {
                 downloadBytes = historyRow?.downloadBytes ?: 0L,
                 lastHost = historyRow?.lastHost,
                 lastSeenMs = if (peerActive) nowMs else (historyRow?.lastSeenMs ?: nowMs),
-                isHotspot = isHotspotFor(ip),
+                isHotspot = isHotspot,
+                hostname = normalizedHostnames[ip] ?: cleanHostname(historyRow?.hostname),
+                route = resolveRoute(ip, isHotspot),
             )
         }
         normalizedActivePeers.forEach { ip ->
             if (isLocalSource(ip, normalizedLocals)) return@forEach
+            val isHotspot = isHotspotFor(ip)
             if (ip !in byIp) {
                 val historyRow = history[ip]
                 byIp[ip] = LanClientDevice(
@@ -317,14 +498,18 @@ object LanSharingLogics {
                     downloadBytes = historyRow?.downloadBytes ?: 0L,
                     lastHost = historyRow?.lastHost,
                     lastSeenMs = nowMs,
-                    isHotspot = isHotspotFor(ip),
+                    isHotspot = isHotspot,
+                    hostname = normalizedHostnames[ip] ?: cleanHostname(historyRow?.hostname),
+                    route = resolveRoute(ip, isHotspot),
                 )
             }
         }
         history.forEach { (rawIp, row) ->
             val ip = normalizeIp(rawIp)
             if (isLocalSource(ip, normalizedLocals)) return@forEach
-            if (row.lastSeenMs >= nowMs - IDLE_MS) {
+            val isHotspot = isHotspotFor(ip)
+            val hadProxyActivity = row.activeConnections > 0 || row.uploadBytes > 0L || row.downloadBytes > 0L || !row.lastHost.isNullOrBlank()
+            if (row.lastSeenMs >= nowMs - IDLE_MS && (isHotspot || hadProxyActivity || ip in clashIps || ip in normalizedActivePeers)) {
                 // Idle rows are re-classified against the current hotspot subnet: the hotspot
                 // interface (and the whole subnet) changes between openings.
                 byIp.putIfAbsent(
@@ -332,7 +517,9 @@ object LanSharingLogics {
                     row.copy(
                         ip = ip,
                         activeConnections = 0,
-                        isHotspot = isHotspotFor(ip),
+                        isHotspot = isHotspot,
+                        hostname = normalizedHostnames[ip] ?: cleanHostname(row.hostname),
+                        route = resolveRoute(ip, isHotspot),
                     ),
                 )
             }
@@ -341,6 +528,7 @@ object LanSharingLogics {
             val ip = normalizeIp(rawEntry.ip)
             if (isLocalSource(ip, normalizedLocals)) return@forEach
             val prev = byIp[ip]
+            val isHotspot = isHotspotFor(ip)
             byIp[ip] = rawEntry.copy(
                 ip = ip,
                 activeConnections = rawEntry.activeConnections.coerceAtLeast(if (ip in normalizedActivePeers) 1 else 0),
@@ -348,9 +536,42 @@ object LanSharingLogics {
                 downloadBytes = rawEntry.downloadBytes.coerceAtLeast(prev?.downloadBytes ?: 0L),
                 lastHost = rawEntry.lastHost ?: prev?.lastHost,
                 lastSeenMs = rawEntry.lastSeenMs.takeIf { it > 0L } ?: nowMs,
-                isHotspot = isHotspotFor(ip),
+                isHotspot = isHotspot,
+                hostname = normalizedHostnames[ip] ?: cleanHostname(prev?.hostname ?: rawEntry.hostname),
+                route = resolveRoute(ip, isHotspot),
             )
         }
+
+        // Attribute Shizuku tunnel traffic (`share-socks-in`) to active Shizuku Hotspot clients
+        // when those clients do not have direct Clash proxy connections on port 2080.
+        if (activeHotspotMethod == ShareMethod.SHIZUKU && shizukuTraffic != null) {
+            val shizukuClients = byIp.values.filter {
+                it.isHotspot && it.route == ClientShareRoute.HOTSPOT_SHIZUKU && it.ip !in clashIps
+            }
+            if (shizukuClients.isNotEmpty() &&
+                (shizukuTraffic.activeConnections > 0 || shizukuTraffic.uploadBytes > 0L || shizukuTraffic.downloadBytes > 0L || !shizukuTraffic.lastHost.isNullOrBlank())
+            ) {
+                val singleClient = shizukuClients.size == 1
+                shizukuClients.forEach { client ->
+                    byIp[client.ip] = client.copy(
+                        activeConnections = shizukuTraffic.activeConnections.coerceAtLeast(client.activeConnections),
+                        uploadBytes = if (singleClient) {
+                            shizukuTraffic.uploadBytes.coerceAtLeast(client.uploadBytes)
+                        } else {
+                            client.uploadBytes
+                        },
+                        downloadBytes = if (singleClient) {
+                            shizukuTraffic.downloadBytes.coerceAtLeast(client.downloadBytes)
+                        } else {
+                            client.downloadBytes
+                        },
+                        lastHost = shizukuTraffic.lastHost ?: client.lastHost,
+                        lastSeenMs = if (shizukuTraffic.activeConnections > 0) nowMs else client.lastSeenMs,
+                    )
+                }
+            }
+        }
+
         return byIp.values
             .filter { nowMs - it.lastSeenMs < IDLE_MS || it.activeConnections > 0 }
             .sortedWith(compareByDescending<LanClientDevice> { it.activeConnections > 0 }
@@ -393,6 +614,108 @@ object LanSharingLogics {
     fun statusSummaryKind(enabled: Boolean, snapshot: HotspotGatewaySnapshot): String {
         if (!enabled) return "DISABLED"
         return snapshot.status.name
+    }
+
+    /** How the stand-alone LAN proxy inbound (port 2080) currently relates to "Share VPN over Hotspot". */
+    enum class LanProxyStatus {
+        /** The inbound listens on loopback only. */
+        OFF,
+
+        /** Proxy open to the LAN and no hotspot share running: the stand-alone use case. */
+        STANDALONE,
+
+        /** Proxy open to the LAN while Shizuku/Root hotspot routing runs next to it, independently. */
+        ALONGSIDE_HOTSPOT_SHARE,
+
+        /** Proxy is open because the hotspot share itself runs in its LAN Proxy method. */
+        VIA_SHARE_MODE,
+    }
+
+    fun lanProxyStatus(lanAccessOn: Boolean, shareState: ShareState): LanProxyStatus {
+        if (!lanAccessOn) return LanProxyStatus.OFF
+        val method = (shareState as? ShareState.Active)?.method
+        return when (method) {
+            null -> LanProxyStatus.STANDALONE
+            ShareMethod.LAN_PROXY -> LanProxyStatus.VIA_SHARE_MODE
+            ShareMethod.SHIZUKU, ShareMethod.ROOT -> LanProxyStatus.ALONGSIDE_HOTSPOT_SHARE
+        }
+    }
+
+    /**
+     * Whether the running hotspot share IS the LAN proxy inbound (method LAN_PROXY), so that switching the
+     * inbound off must also end the share. Shizuku and Root sharing never depend on the inbound: for them this
+     * is always false and the LAN switch must leave them untouched.
+     *
+     * [activeMethod] is the method of an [ShareState.Active] share, null when nothing is active; an active share
+     * is decided by its real method (AUTO may have picked any), otherwise the manual preference decides.
+     */
+    fun hotspotShareDependsOnLanProxy(
+        shareEnabled: Boolean,
+        preference: SharePreference,
+        activeMethod: ShareMethod?,
+    ): Boolean {
+        if (activeMethod != null) return activeMethod == ShareMethod.LAN_PROXY
+        return shareEnabled && preference == SharePreference.LAN_PROXY
+    }
+
+    /** Which VPN-lost explanation the hotspot share card shows. */
+    enum class VpnLostNotice {
+        /** LAN proxy method: clients lost the proxy path along with the VPN. */
+        LAN_PROXY_DROPPED,
+
+        /** Shizuku/Root + block: hotspot stays up but its traffic is blackholed, no cellular leak (zero-rating safe). */
+        BLOCK_TRAFFIC_PROTECTED,
+
+        /** Shizuku/Root + stop: the hotspot was turned off to prevent any leak. */
+        HOTSPOT_STOPPED,
+    }
+
+    /**
+     * [lastActiveMethod] is the method last seen active, used when the preference is AUTO so that the notice
+     * matches what really ran.
+     */
+    fun vpnLostNotice(
+        preference: SharePreference,
+        lastActiveMethod: ShareMethod?,
+        failClosed: FailClosedAction,
+    ): VpnLostNotice {
+        val method = preference.forcedMethod ?: lastActiveMethod
+        return when {
+            method == ShareMethod.LAN_PROXY -> VpnLostNotice.LAN_PROXY_DROPPED
+            failClosed == FailClosedAction.BLOCK_TRAFFIC -> VpnLostNotice.BLOCK_TRAFFIC_PROTECTED
+            else -> VpnLostNotice.HOTSPOT_STOPPED
+        }
+    }
+
+    /** The "waiting for VPN" badge fits while the share is paused and still protecting; not once the hotspot was stopped. */
+    fun vpnLostShowsWaitingBadge(notice: VpnLostNotice, pausedWaitingVpn: Boolean): Boolean =
+        pausedWaitingVpn && notice != VpnLostNotice.HOTSPOT_STOPPED
+
+    /** What the Shizuku line of the hotspot share card shows. */
+    enum class ShizukuHint {
+        HIDDEN,
+        NOT_RUNNING,
+        NEEDS_PERMISSION,
+
+        /** Shizuku is usable: tell the user the daemon watchdog keeps it alive and the hotspot open. */
+        WATCHDOG_ACTIVE,
+    }
+
+    fun shizukuHint(
+        preference: SharePreference,
+        shizukuRunning: Boolean,
+        shizukuGranted: Boolean,
+        rootAvailable: Boolean,
+    ): ShizukuHint {
+        val considersShizuku = preference == SharePreference.SHIZUKU || preference == SharePreference.AUTO
+        if (!considersShizuku) return ShizukuHint.HIDDEN
+        if (!shizukuRunning) {
+            return if (preference == SharePreference.SHIZUKU) ShizukuHint.NOT_RUNNING else ShizukuHint.HIDDEN
+        }
+        if (!shizukuGranted) return ShizukuHint.NEEDS_PERMISSION
+        // AUTO prefers Root when present, so Shizuku's watchdog only matters for a Shizuku run.
+        val shizukuIsTheRoute = preference == SharePreference.SHIZUKU || !rootAvailable
+        return if (shizukuIsTheRoute) ShizukuHint.WATCHDOG_ACTIVE else ShizukuHint.HIDDEN
     }
 
     /**
@@ -459,5 +782,112 @@ object LanSharingLogics {
         val cleanRemark = remark.trim()
         if (cleanRemark.isNotEmpty()) url.fragment = cleanRemark
         return url.build()
+    }
+
+    enum class HeroBannerMode {
+        BOTH_ACTIVE,
+        HOTSPOT_SHARE_ONLY,
+        LAN_PROXY_ONLY,
+        INACTIVE,
+    }
+
+    fun resolveHeroBannerMode(
+        lanAccessOn: Boolean,
+        activeShareMethod: ShareMethod?,
+    ): HeroBannerMode {
+        val hasPrivilegedShare = activeShareMethod != null && activeShareMethod != ShareMethod.LAN_PROXY
+        return when {
+            hasPrivilegedShare && lanAccessOn -> HeroBannerMode.BOTH_ACTIVE
+            activeShareMethod != null && !lanAccessOn -> HeroBannerMode.HOTSPOT_SHARE_ONLY
+            lanAccessOn -> HeroBannerMode.LAN_PROXY_ONLY
+            else -> HeroBannerMode.INACTIVE
+        }
+    }
+
+    data class LanProxyTrafficSample(
+        val rawRxBytes: Long,
+        val rawTxBytes: Long,
+        val cumulativeRxBytes: Long,
+        val cumulativeTxBytes: Long,
+        val timestampMs: Long,
+        val activeClients: Int,
+    )
+
+    data class LanProxyTrafficDisplay(
+        val rxSpeedBps: Long,
+        val txSpeedBps: Long,
+        val totalRxBytes: Long,
+        val totalTxBytes: Long,
+        val activeClients: Int,
+    )
+
+    fun computeLanProxyTraffic(
+        previous: LanProxyTrafficSample?,
+        clashDevices: List<LanClientDevice>,
+        activeTcpRemotes: Collection<String>,
+        localIps: Set<String>,
+        nowMs: Long,
+    ): Pair<LanProxyTrafficSample, LanProxyTrafficDisplay> {
+        val normalizedLocals = localIps.mapTo(HashSet()) { normalizeIp(it) }
+        var rawRx = 0L
+        var rawTx = 0L
+        val activeIps = LinkedHashSet<String>()
+
+        for (device in clashDevices) {
+            val ip = normalizeIp(device.ip)
+            if (ip.isEmpty() || isLocalSource(ip, normalizedLocals)) continue
+            rawRx += device.downloadBytes.coerceAtLeast(0L)
+            rawTx += device.uploadBytes.coerceAtLeast(0L)
+            if (device.activeConnections > 0) {
+                activeIps.add(ip)
+            }
+        }
+        for (rawRemote in activeTcpRemotes) {
+            val ip = normalizeIp(rawRemote)
+            if (ip.isNotEmpty() && !isLocalSource(ip, normalizedLocals)) {
+                activeIps.add(ip)
+            }
+        }
+
+        val cumRx: Long
+        val cumTx: Long
+        val rxSpeedBps: Long
+        val txSpeedBps: Long
+        if (previous == null) {
+            cumRx = rawRx
+            cumTx = rawTx
+            rxSpeedBps = 0L
+            txSpeedBps = 0L
+        } else {
+            val deltaRx = (rawRx - previous.rawRxBytes).coerceAtLeast(0L)
+            val deltaTx = (rawTx - previous.rawTxBytes).coerceAtLeast(0L)
+            cumRx = previous.cumulativeRxBytes + deltaRx
+            cumTx = previous.cumulativeTxBytes + deltaTx
+            if (nowMs > previous.timestampMs) {
+                val elapsedMs = (nowMs - previous.timestampMs).coerceAtLeast(1L)
+                rxSpeedBps = (deltaRx * 1000L) / elapsedMs
+                txSpeedBps = (deltaTx * 1000L) / elapsedMs
+            } else {
+                rxSpeedBps = 0L
+                txSpeedBps = 0L
+            }
+        }
+
+        val nextSample = LanProxyTrafficSample(
+            rawRxBytes = rawRx,
+            rawTxBytes = rawTx,
+            cumulativeRxBytes = cumRx,
+            cumulativeTxBytes = cumTx,
+            timestampMs = nowMs,
+            activeClients = activeIps.size,
+        )
+        val display = LanProxyTrafficDisplay(
+            rxSpeedBps = rxSpeedBps,
+            txSpeedBps = txSpeedBps,
+            totalRxBytes = cumRx,
+            totalTxBytes = cumTx,
+            activeClients = activeIps.size,
+        )
+        return nextSample to display
     }
 }

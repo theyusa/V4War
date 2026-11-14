@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.graphics.ColorUtils
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -116,25 +117,35 @@ class NetworkInterfacesActivity : ThemedActivity() {
         val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                requestRefresh(debounceMs = 500L, showLoading = false)
+                scheduleRefreshFromCallback()
             }
 
             override fun onLost(network: Network) {
-                requestRefresh(debounceMs = 500L, showLoading = false)
+                scheduleRefreshFromCallback()
             }
 
             override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
-                requestRefresh(debounceMs = 500L, showLoading = false)
+                scheduleRefreshFromCallback()
             }
 
             override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
-                requestRefresh(debounceMs = 500L, showLoading = false)
+                scheduleRefreshFromCallback()
             }
         }
-        networkCallback = callback
         runCatching {
             val request = NetworkRequest.Builder().build()
             cm.registerNetworkCallback(request, callback)
+        }.onSuccess {
+            networkCallback = callback
+        }
+    }
+
+    private fun scheduleRefreshFromCallback() {
+        lifecycleScope.launch(Dispatchers.Main) {
+            if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) || isFinishing || isDestroyed) {
+                return@launch
+            }
+            requestRefresh(debounceMs = 500L, showLoading = false)
         }
     }
 
@@ -148,6 +159,7 @@ class NetworkInterfacesActivity : ThemedActivity() {
     }
 
     private fun requestRefresh(debounceMs: Long = 0L, showLoading: Boolean = false) {
+        if (isFinishing || isDestroyed) return
         if (showLoading) {
             binding.progressBarLoading.visibility = View.VISIBLE
         }
@@ -157,10 +169,11 @@ class NetworkInterfacesActivity : ThemedActivity() {
             val snapshot = withContext(Dispatchers.IO) {
                 repository.collect()
             }
+            if (isFinishing || isDestroyed) return@launch
             if (snapshot != lastSnapshot) {
                 lastSnapshot = snapshot
                 renderSnapshot(snapshot)
-            } else if (showLoading) {
+            } else {
                 binding.progressBarLoading.visibility = View.GONE
             }
         }

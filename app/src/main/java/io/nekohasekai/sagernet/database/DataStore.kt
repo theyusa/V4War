@@ -19,6 +19,36 @@ import io.nekohasekai.sagernet.ktx.stringToInt
 import moe.matsuri.nb4a.TempDatabase
 import java.util.UUID
 
+internal const val FRAGMENT_DEFAULT_RESET_V1_KEY = "fragment_default_reset_v1"
+
+/**
+ * One-time migration for installs affected by earlier commit ed8e2d05 where
+ * `fragment_default_on` defaulted to `true`, which crippled TLS throughput.
+ * Preserves later user opt-in once [FRAGMENT_DEFAULT_RESET_V1_KEY] is recorded.
+ */
+internal fun migrateFragmentDefaultReset(store: PreferenceDataStore) {
+    if (!store.getBoolean(FRAGMENT_DEFAULT_RESET_V1_KEY, false)) {
+        store.putBoolean(SettingsRegistry.FRAGMENT_DEFAULT_ON.key, false)
+        store.putBoolean(FRAGMENT_DEFAULT_RESET_V1_KEY, true)
+    }
+}
+
+internal const val VPN_MTU_RESET_1500_V1_KEY = "vpn_mtu_reset_1500_v1"
+
+/**
+ * One-time migration: the Android default MTU used to be 9000 and is now 1500. A stored value of exactly 9000 is
+ * almost certainly the old default persisted by the UI, so it is reset once; any other custom MTU (e.g. 1400) is
+ * kept, and an explicit 9000 chosen after [VPN_MTU_RESET_1500_V1_KEY] is recorded survives later passes.
+ */
+internal fun migrateVpnMtuDefaultReset(store: PreferenceDataStore) {
+    if (!store.getBoolean(VPN_MTU_RESET_1500_V1_KEY, false)) {
+        val key = SettingsRegistry.VPN_MTU.key
+        val legacy = store.getInt(key, 1500) == 9000 || store.getString(key, null)?.trim() == "9000"
+        if (legacy) store.putString(key, "1500")
+        store.putBoolean(VPN_MTU_RESET_1500_V1_KEY, true)
+    }
+}
+
 object DataStore : OnPreferenceDataStoreChangeListener {
 
     // share service state in main & bg process
@@ -209,6 +239,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var hotspotShareStatusMethod by SettingsRegistry.HOTSPOT_SHARE_STATUS_METHOD
     var hotspotShareStatusReason by SettingsRegistry.HOTSPOT_SHARE_STATUS_REASON
     var hotspotShareStatusUpdatedAt by SettingsRegistry.HOTSPOT_SHARE_STATUS_UPDATED_AT
+    var hotspotShareLogEnabled by SettingsRegistry.HOTSPOT_SHARE_LOG_ENABLED
 
     /** disable_mixed_inbound only applies in VPN mode: the proxy-only service mode needs the mixed inbound. */
     val mixedInboundDisabled: Boolean
@@ -218,9 +249,20 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     val allowLanAccess: Boolean
         get() = !SettingsRegistry.isLoopbackAddress(inboundAddress)
 
+    @Volatile
+    private var globalInitialized = false
+
     fun initGlobal() {
-        if (!configurationStore.contains(SettingsRegistry.INBOUND_SOCKS_PORT.key)) {
-            inboundSocksPort = inboundSocksPort
+        if (globalInitialized) return
+        synchronized(this) {
+            if (globalInitialized) return
+            if (!configurationStore.contains(SettingsRegistry.INBOUND_SOCKS_PORT.key)) {
+                inboundSocksPort = inboundSocksPort
+            }
+            migrateFragmentDefaultReset(configurationStore)
+            migrateVpnMtuDefaultReset(configurationStore)
+            io.nekohasekai.sagernet.hotspotshare.HotspotShareLogger.ensureDefaultOffMigration()
+            globalInitialized = true
         }
     }
 

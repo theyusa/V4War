@@ -204,11 +204,12 @@ object SettingsRegistry {
     @JvmField val HOTSPOT_SHARE_STATUS_METHOD = string("hotspot_share_status_method", "")
     @JvmField val HOTSPOT_SHARE_STATUS_REASON = string("hotspot_share_status_reason", "")
     @JvmField val HOTSPOT_SHARE_STATUS_UPDATED_AT = long("hotspot_share_status_updated_at", 0L) { it >= 0 }
+    @JvmField val HOTSPOT_SHARE_LOG_ENABLED = bool("hotspot_share_log_enabled", false)
 
     // ------------------------------------------------------------------------------------------------ tun
 
-    /** Android 9000 (decision D2; desktop 1500). */
-    @JvmField val VPN_MTU = int("vpn_mtu", 9000) { it in 1000..10000 }
+    /** Default 1500 (matches desktop); the legacy 9000 default is reset once by [migrateVpnMtuDefaultReset]. */
+    @JvmField val VPN_MTU = int("vpn_mtu", 1500) { it in 1000..10000 }
     @JvmField val VPN_IPV6 = bool("vpn_ipv6", false)
     @JvmField val VPN_TUN_IPV4_CIDR = string("vpn_tun_ipv4_cidr", DEFAULT_TUN_IPV4_CIDR) {
         SettingValidators.isCidr(it, ipv6 = false)
@@ -445,6 +446,7 @@ object SettingsRegistry {
         // Hotspot share is bound to this device's Shizuku/root/hotspot state, so a backup never carries it.
         HOTSPOT_SHARE_ENABLED.key, HOTSPOT_SHARE_METHOD.key, HOTSPOT_SHARE_FAIL_CLOSED.key, HOTSPOT_SHARE_STATUS.key,
         HOTSPOT_SHARE_STATUS_METHOD.key, HOTSPOT_SHARE_STATUS_REASON.key, HOTSPOT_SHARE_STATUS_UPDATED_AT.key,
+        HOTSPOT_SHARE_LOG_ENABLED.key,
     )
 
     // ------------------------------------------------------------------------------------------------ lookup

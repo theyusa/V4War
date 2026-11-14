@@ -16,8 +16,9 @@ class UpdateUserService : IUpdateUserService.Stub() {
             setError(errorOut, "Invalid APK descriptor or size")
             return -1
         }
+        var process: Process? = null
         return try {
-            val process = ProcessBuilder("pm", "install", "-r", "-S", size.toString())
+            process = ProcessBuilder("pm", "install", "-r", "-S", size.toString())
                 .redirectErrorStream(true)
                 .start()
 
@@ -45,6 +46,12 @@ class UpdateUserService : IUpdateUserService.Stub() {
             Log.e(TAG, "Shizuku silent install failed", t)
             setError(errorOut, t.message ?: t.javaClass.simpleName)
             -1
+        } finally {
+            process?.let { if (it.isAlive) it.destroyForcibly() }
+            try {
+                apkFd.close()
+            } catch (_: Throwable) {
+            }
         }
     }
 

@@ -53,13 +53,15 @@ fun appRequestsNeedProxy(useProxy: Boolean = false): Boolean = useProxy || DataS
 
 // App-internal HTTP (subscriptions, update check): through the mixed inbound when [viaProxy] and the service is
 // connected and that inbound exists, direct otherwise. The main process never loads the core.
+private val baseHttpClient by lazy { OkHttpClient() }
+
 fun newHttpClient(
     viaProxy: Boolean = true,
     allowInsecure: Boolean = false,
     restrictTls13: Boolean = false,
     timeoutSeconds: Long = 30,
 ): OkHttpClient {
-    val builder = OkHttpClient.Builder()
+    val builder = baseHttpClient.newBuilder()
         .connectTimeout(timeoutSeconds, TimeUnit.SECONDS)
         .readTimeout(timeoutSeconds, TimeUnit.SECONDS)
         .writeTimeout(timeoutSeconds, TimeUnit.SECONDS)
@@ -140,7 +142,7 @@ fun httpGet(url: String, options: HttpGetOptions = HttpGetOptions()): HttpGetRes
     if (tlsVersion == SubTlsVersion.TLS13 && !tls13Supported) {
         return HttpGetResponse(ByteArray(0), null, app.getString(R.string.subs_tls_unsupported))
     }
-    val builder = OkHttpClient.Builder()
+    val builder = baseHttpClient.newBuilder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(10, TimeUnit.SECONDS)
         .writeTimeout(10, TimeUnit.SECONDS)

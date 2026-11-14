@@ -409,7 +409,7 @@ class MainActivity : ThemedActivity(),
         if (drawer != null && (drawer.isDrawerOpen(GravityCompat.START) || drawer.isDrawerOpen(GravityCompat.END))) {
             var committed = false
             val commitAction = Runnable {
-                if (committed || isFinishing || isDestroyed) return@Runnable
+                if (committed || isFinishing || isDestroyed || supportFragmentManager.isDestroyed) return@Runnable
                 committed = true
                 if (currentMainFragment === fragment) {
                     supportFragmentManager.beginTransaction()
@@ -418,14 +418,15 @@ class MainActivity : ThemedActivity(),
                     syncMainControls(fragment, showWhenConnected = false, animate = true)
                 }
             }
+            lateinit var fallbackRunnable: Runnable
             val closeListener = object : DrawerLayout.SimpleDrawerListener() {
                 override fun onDrawerClosed(drawerView: View) {
                     drawer.removeDrawerListener(this)
-                    drawer.removeCallbacks(commitAction)
+                    drawer.removeCallbacks(fallbackRunnable)
                     commitAction.run()
                 }
             }
-            val fallbackRunnable = Runnable {
+            fallbackRunnable = Runnable {
                 drawer.removeDrawerListener(closeListener)
                 commitAction.run()
             }
@@ -690,37 +691,56 @@ class MainActivity : ThemedActivity(),
         }
     }
 
+    private var startFromUiJob: kotlinx.coroutines.Job? = null
+
     /** Wi-Fi rules of the routing profile the selected profile starts with ask for location access once before a start from here. */
     private fun startFromUi() {
-        if (DataStore.selectedProxy <= 0L) {
-            val fallback = SagerDatabase.proxyDao.getAll().firstOrNull()
-            if (fallback != null) {
-                DataStore.selectedProxy = fallback.id
-                DataStore.currentProfile = fallback.id
-                refreshConfigurationProfileState()
-            } else {
-                snackbar(R.string.profile_empty).show()
-                return
-            }
+        if (startFromUiJob?.isActive == true) return
+        if (DataStore.selectedProxy > 0L &&
+            (DataStore.wifiPermissionAsked || WifiStateAccess.status(this) == WifiStateAccess.Status.OK)
+        ) {
+            return launchConnect()
         }
+        startFromUiJob = lifecycleScope.launch {
+            if (DataStore.selectedProxy <= 0L) {
+                val fallback = withContext(Dispatchers.IO) {
+                    SagerDatabase.proxyDao.getAll().firstOrNull()
+                }
+                if (isFinishing || isDestroyed) return@launch
+                if (fallback != null) {
+                    DataStore.selectedProxy = fallback.id
+                    DataStore.currentProfile = fallback.id
+                    refreshConfigurationProfileState()
+                } else {
+                    if (::binding.isInitialized) snackbar(R.string.profile_empty).show()
+                    return@launch
+                }
+            }
+            proceedStartFromUi()
+        }
+    }
+
+    private suspend fun proceedStartFromUi() {
+        if (isFinishing || isDestroyed) return
         if (DataStore.wifiPermissionAsked || WifiStateAccess.status(this) == WifiStateAccess.Status.OK) {
             return launchConnect()
         }
-        lifecycleScope.launch {
-            val usesWifi = withContext(Dispatchers.IO) {
-                runCatching {
-                    val groupId = ProfileManager.getProfile(DataStore.selectedProxy)?.groupId ?: -1L
-                    RouteManager.routeFor(groupId).rules.any { rule ->
-                        !rule.disabled && (rule.wifi_ssid.any { it.isNotBlank() } || rule.wifi_bssid.any { it.isNotBlank() })
-                    }
-                }.getOrDefault(false)
+        val usesWifi = withContext(Dispatchers.IO) {
+            runCatching {
+                val groupId = ProfileManager.getProfile(DataStore.selectedProxy)?.groupId ?: -1L
+                RouteManager.routeFor(groupId).rules.any { rule ->
+                    !rule.disabled && (rule.wifi_ssid.any { it.isNotBlank() } || rule.wifi_bssid.any { it.isNotBlank() })
+                }
+            }.getOrDefault(false)
+        }
+        if (isFinishing || isDestroyed) return
+        if (usesWifi) {
+            DataStore.wifiPermissionAsked = true
+            wifiFlow.run {
+                if (!isFinishing && !isDestroyed) launchConnect()
             }
-            if (usesWifi) {
-                DataStore.wifiPermissionAsked = true
-                wifiFlow.run { launchConnect() }
-            } else {
-                launchConnect()
-            }
+        } else {
+            launchConnect()
         }
     }
 
@@ -757,14 +777,20 @@ class MainActivity : ThemedActivity(),
 
     override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
         when (key) {
-            Key.SERVICE_MODE -> onBinderDied()
+            Key.SERVICE_MODE -> lifecycleScope.launch(Dispatchers.Main.immediate) {
+                if (!isFinishing && !isDestroyed) onBinderDied()
+            }
             // The JSON editors of custom_inbound and dns_object write here from their own activity.
             Key.PROXY_APPS, Key.BYPASS_MODE, Key.INDIVIDUAL,
             SettingsRegistry.CUSTOM_INBOUND.key, SettingsRegistry.DNS_OBJECT.key -> {
                 if (DataStore.serviceState.canStop) {
-                    snackbar(getString(R.string.need_reload)).setAction(R.string.apply) {
-                        SagerNet.reloadService()
-                    }.show()
+                    lifecycleScope.launch(Dispatchers.Main.immediate) {
+                        if (!isFinishing && !isDestroyed && ::binding.isInitialized && DataStore.serviceState.canStop) {
+                            snackbar(getString(R.string.need_reload)).setAction(R.string.apply) {
+                                SagerNet.reloadService()
+                            }.show()
+                        }
+                    }
                 }
             }
         }

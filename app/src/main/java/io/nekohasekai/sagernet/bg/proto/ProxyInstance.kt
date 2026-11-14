@@ -10,6 +10,7 @@ import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
 import io.nekohasekai.sagernet.outbound.config.AutoSelectorBuild
 import kotlinx.coroutines.runBlocking
+import java.util.concurrent.atomic.AtomicInteger
 
 class ProxyInstance(profile: ProxyEntity, var service: BaseService.Interface? = null) :
     BoxInstance(profile) {
@@ -18,6 +19,9 @@ class ProxyInstance(profile: ProxyEntity, var service: BaseService.Interface? = 
 
     // for TrafficLooper
     var looper: TrafficLooper? = null
+
+    /** Guards async looper creation in launch() against a close()/relaunch running first. */
+    private val looperGeneration = AtomicInteger(0)
 
     /**
      * Outbound tag -> the profiles whose traffic it carries: the `proxy` exit accounts for the started profile. An
@@ -59,13 +63,16 @@ class ProxyInstance(profile: ProxyEntity, var service: BaseService.Interface? = 
     override fun launch() {
         super.launch() // start box
         AutoSelectorRuntime.onStarted(this)
+        val generation = looperGeneration.incrementAndGet()
         runOnDefaultDispatcher {
+            if (looperGeneration.get() != generation) return@runOnDefaultDispatcher
             looper = service?.let { TrafficLooper(it.data, this) }
             looper?.start()
         }
     }
 
     override fun close() {
+        looperGeneration.incrementAndGet()
         var closeError: Throwable? = null
         try {
             AutoSelectorRuntime.onClosed(this)

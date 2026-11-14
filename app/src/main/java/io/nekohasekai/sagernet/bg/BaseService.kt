@@ -41,6 +41,7 @@ import kotlinx.coroutines.sync.withLock
 import moe.matsuri.nb4a.Protocols
 import moe.matsuri.nb4a.utils.Util
 import java.net.UnknownHostException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
 class BaseService {
@@ -168,7 +169,8 @@ class BaseService {
             }
         }
 
-        val callbackIdMap = mutableMapOf<ISagerNetServiceCallback, Int>()
+        // Written on binder threads (registerCallback/unregisterCallback) and read on Default dispatcher (TrafficLooper).
+        val callbackIdMap = ConcurrentHashMap<ISagerNetServiceCallback, Int>()
 
         override val coroutineContext = Dispatchers.Main.immediate + Job()
 
@@ -565,6 +567,9 @@ class BaseService {
         var upstreamInterfaceName: String?
 
         suspend fun preInit() {
+            withContext(Dispatchers.IO) {
+                DataStore.initGlobal()
+            }
             // Tracks the underlying network for VpnService.setUnderlyingNetworks only; the
             // "reset on network change" switch is applied by NativeInterface's monitor callback.
             DefaultNetworkListener.start(this) { network ->

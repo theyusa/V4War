@@ -78,6 +78,7 @@ class SagerNet : Application(),
             JavaUtil.handleWebviewDir(this)
 
             runOnDefaultDispatcher {
+                DataStore.initGlobal()
                 PackageCache.register()
                 cleanWebview()
             }
