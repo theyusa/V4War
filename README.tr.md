@@ -1,77 +1,118 @@
 <div align="center">
 
-# V4War for Android · `yusa` çatalı (fork)
+<img src=".github/images/logo.png" alt="V4War Logo" width="132" />
+
+# V4War for Android
+
+**Yeni Nesil Android VPN ve Proxy İstemcisi · Sing-box & Xray Çekirdekli**
 
 [🇬🇧 English](README.md) · [🇹🇷 Türkçe](README.tr.md)
 
-</div>
-
-> 🔀 **Bu depo [throneproj/ThroneForAndroid](https://github.com/throneproj/ThroneForAndroid) projesinin bir çatalıdır (fork).**
-> Dahili **LAN Paylaşımı ve Hotspot Ağ Geçidi (LAN Sharing & Hotspot Gateway)** özelliğini içerir — telefonunuzun aktif VPN bağlantısını **Root gerektirmeden** mobil erişim noktası (Hotspot) veya yerel Wi-Fi ağı üzerinden paylaşmanıza ve diğer V4War istemcilerine hiçbir IP/Port girmeden sıfır yapılandırmayla aktarmanıza olanak tanır.
-
-<p align="center">
-  <a href="#"><img alt="Android" src="https://img.shields.io/badge/Android-7.0%2B%20(API%2024)-3DDC84?logo=android&logoColor=white&style=for-the-badge"></a>
-  <a href="#"><img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white&style=for-the-badge"></a>
+<p>
+  <a href="https://github.com/theyusa/V4War/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/theyusa/V4War/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=CI"></a>
+  <a href="https://github.com/theyusa/V4War/releases"><img alt="Son Sürüm" src="https://img.shields.io/github/v/release/theyusa/V4War?include_prereleases&style=for-the-badge&logo=github&color=2088FF"></a>
+  <a href="https://github.com/theyusa/V4War/releases"><img alt="İndirmeler" src="https://img.shields.io/github/downloads/theyusa/V4War/total?style=for-the-badge&logo=android&logoColor=white&color=3DDC84"></a>
   <a href="LICENSE"><img alt="Lisans" src="https://img.shields.io/badge/Lisans-GPL--3.0-blue?logo=gnu&logoColor=white&style=for-the-badge"></a>
-  <a href="https://github.com/throneproj/ThroneForAndroid"><img alt="Upstream" src="https://img.shields.io/badge/upstream-throneproj%2FThroneForAndroid-1f6feb?logo=github&logoColor=white&style=for-the-badge"></a>
-  <a href="#-g%C3%BCnl%C3%BCk-upstream-senkronizasyonu"><img alt="Upstream Senkronizasyonu" src="https://img.shields.io/badge/upstream--sync-g%C3%BCnl%C3%BCk-2088FF?logo=githubactions&logoColor=white&style=for-the-badge"></a>
 </p>
 
-Android GUI vektör ve proxy istemcisi — [Sing-box](https://github.com/SagerNet/sing-box) çekirdeği ile güçlendirilmiştir. Android 7.0 (API 24) ve üzerini, ayrıca Android TV'yi destekler.
+<p>
+  <img alt="Android 7.0+" src="https://img.shields.io/badge/Android-7.0%2B%20(API%2024--35)-3DDC84?logo=android&logoColor=white&style=flat-square">
+  <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white&style=flat-square">
+  <a href="https://github.com/throneproj/ThroneForAndroid"><img alt="Upstream" src="https://img.shields.io/badge/Upstream-throneproj%2FThroneForAndroid-1f6feb?logo=github&logoColor=white&style=flat-square"></a>
+  <a href="#-g%C3%BCnl%C3%BCk-upstream-senkronizasyonu"><img alt="Günlük Senkronizasyon" src="https://img.shields.io/badge/Upstream%20Sync-G%C3%BCnl%C3%BCk-0969da?logo=githubactions&logoColor=white&style=flat-square"></a>
+</p>
 
-Resmi Dokümantasyon: [throneproj.github.io](https://throneproj.github.io)
-
-<p align="center">
+<p>
   <a href="https://github.com/theyusa/V4War/releases">
-    <img alt="GitHub Sürümleri" src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F%20%C4%B0ndir-GitHub%20Releases-2088FF?logo=github&logoColor=white&style=for-the-badge" />
+    <img alt="APK İndir" src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F%20Son%20APK'y%C4%B1%20%C4%B0ndir-GitHub%20Releases-2088FF?logo=github&logoColor=white&style=for-the-badge" />
   </a>
 </p>
 
+</div>
+
+> 🔀 **V4War**, [throneproj/ThroneForAndroid](https://github.com/throneproj/ThroneForAndroid) projesinin aktif olarak geliştirilen, kapsamlı bir çatalıdır (fork).
+> Birleşik Sing-box ve Xray çekirdeğinin üzerine; **gelişmiş Hotspot ve Proxy Paylaşım paketi (Shizuku TUN, Root `iptables` ve Rootsuz LAN Proxy)**, **10'u 1 Arada Ağ Araç Kutusu**, **Theme Studio destekli Material 3 Expressive arayüzü (Pure AMOLED)**, **Shizuku ile sessiz uygulama güncelleme** ve **varsayılan TLS kayıt parçalama (Fragment)** özelliklerini sunar.
+
 ---
 
-## 🚀 Hotspot Ağ Geçidi ve LAN Paylaşımı (LAN Sharing)
+## 📑 İçindekiler
 
-Telefonunuzun bağlı olduğu VPN tünelini, **Root yetkisi gerektirmeden** mobil erişim noktası (Hotspot) veya aynı yerel Wi-Fi ağı üzerindeki diğer cihazlarla paylaşın.
+- [Hotspot ve Proxy Paylaşım Paketi](#-hotspot-ve-proxy-payla%C5%9F%C4%B1m-paketi)
+- [10'u 1 Arada Ağ Araç Kutusu ve Tanılama](#-10u-1-arada-a%C4%9F-ara%C3%A7-kutusu-ve-tan%C4%B1lama)
+- [Material 3 Expressive Arayüz ve Theme Studio](#-material-3-expressive-aray%C3%BCz-ve-theme-studio)
+- [Çekirdek, Güvenlik ve Akıllı Güncellemeler](#-çekirdek-güvenlik-ve-akıllı-güncellemeler)
+- [Desteklenen Protokoller](#-desteklenen-protokoller)
+- [Kurulum ve Derleme](#-kurulum-ve-derleme)
+- [Günlük Upstream Senkronizasyonu](#-g%C3%BCnl%C3%BCk-upstream-senkronizasyonu)
+- [Teşekkürler, SSS ve Lisans](#-te%C5%9Fekk%C3%BCrler)
+
+---
+
+## 🚀 Hotspot ve Proxy Paylaşım Paketi
+
+Aktif VPN bağlantınızı **Wi-Fi Hotspot**, **USB RNDIS Paylaşımı** veya **Bluetooth PAN** üzerinden diğer telefonlar, bilgisayarlar ve cihazlarla **Root'lu veya Rootsuz** olarak paylaşın.
+
+### Paylaşım Modları
+
+| Mod | Yetki | Çalışma Mantığı | Öne Çıkanlar |
+|---|---|---|---|
+| **Otomatik (Auto)** | Uyarlanabilir | `Root → Shizuku → LAN Proxy` sırasıyla en uygun yöntemi seçer | Root veya Shizuku yoksa sorunsuz şekilde yedek moda geçer |
+| **Shizuku** | Rootsuz (UID 2000) | AOSP `TestNetworkManager` + `TetheringManager` + `hev-socks5-tunnel` | Root olmadan gerçek şeffaf TUN paylaşımı, çift yığın (dual-stack) TUN, yukarı akış izleme (watchdog), ADB `127.0.0.1:5555` otomatik canlandırma, binder ölüm kurtarma |
+| **Root** | `libsu` (Süper Kullanıcı) | Özel `iptables` zincirleri + `RootTetherHelper` otomatik tether | Tekilleştirilmiş kural yönetimi, IPv6 sızıntı önleme, VPN kopmasında yapılandırılabilir fail-closed koruması (`Trafiği Engelle` veya `Hotspot'u Durdur`) |
+| **LAN Proxy** | Yetkisiz | Yerel `SOCKS5` / `HTTP` / `Mixed` port bağlama | V4War cihazları ve [theyusa/Throne](https://github.com/theyusa/Throne) masaüstü ile sıfır ayarlı eşleşme, isteğe bağlı parola, UDP-over-TCP (UoT), tek tıkla `socks5://` paylaşım linki |
+
+### Çoklu Kanal ve Sistem Entegrasyonu
+
+- 📡 **Wi-Fi Hotspot, USB RNDIS ve Bluetooth PAN:** Mobil erişim noktası, USB internet paylaşımı (RNDIS sıfırlama kurtarmalı) ve Bluetooth PAN desteği.
+- 🎛️ **Hızlı Ayarlar (Quick Settings) Kutucuğu:** Android bildirim panelinden tek dokunuşla paylaşımı açıp kapatın (`HotspotShareTileService`), aktif kanal ve modu görün.
+- 📊 **Canlı İstemci ve Trafik İzleme:** `TetherWatchService` paylaşılan veri trafiğini ve bağlı cihazları Clash API (`/connections`) + çekirdek ARP tablosuyla anlık takip eder.
+- 🧾 **Çapraz Süreç Tanılama Log Çekmecesi:** Arka uç, `hev-socks5-tunnel`, Shizuku UserService ve Root kabuk loglarını doğrudan kompakt Material 3 çekmecesinde inceleyin.
+- 💻 **Masaüstü ile Sıfır Yapılandırma:** Bilgisayarınızda [theyusa/Throne](https://github.com/theyusa/Throne) çalıştırıp telefonun hotspot'una bağlanın ve masaüstünde `Settings → Basic Settings → Hotspot Ağ Geçidi` ayarını açın — IP veya port yazmaya gerek yoktur.
+
+<details>
+<summary>📸 Önizleme: LAN Paylaşımı ve Hotspot Ağ Geçidi Ekranı</summary>
 
 <p align="center">
-  <img src=".github/assets/lan-sharing.jpg" alt="V4War LAN Paylaşımı ve Hotspot Ağ Geçidi Ekranı" width="340" style="border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.25);" />
+  <img src=".github/assets/lan-sharing.jpg" alt="V4War LAN Paylaşımı ve Hotspot Ağ Geçidi Arayüzü" width="320" />
 </p>
 
-### 📱 Telefondan Telefona Paylaşım
-- **Sıfır Yapılandırma ile Otomatik Eşleşme:** Eğer **her iki telefonda da V4War yüklüyse ve bu özellik açıksa**, bağlanan telefon ağ geçidini otomatik olarak keşfeder; hiçbir IP veya port girmeden internetini telefonunuzun VPN'i üzerinden geçirir.
-- **Diğer Cihazlar / Genel İstemciler:** Bağlanacak cihazda V4War yoksa:
-  - **Linki Paylaş** veya **Linki Kopyala** butonuna dokunarak hazır `socks5://[kullanıcı:parola@]ip:port#açıklama` bağlantı linkini gönderin.
-  - Veya cihazın Wi-Fi / Proxy ayarlarına **IP Kopyala** ve **Port Kopyala** butonlarıyla elde ettiğiniz değerleri girin.
-
-### 💻 Telefondan Bilgisayara Paylaşım (Windows & Linux)
-- Bilgisayarınızda masaüstü uygulamamız [theyusa/Throne](https://github.com/theyusa/Throne) kullanılıyorsa:
-  1. Telefonunuzun Mobil Erişim Noktasını (Hotspot) açın ve V4War uygulamasında **Araçlar → Ağ ve Paylaşım → LAN Paylaşımı** anahtarını etkinleştirin.
-  2. Bilgisayarınızı telefonun hotspot ağına bağlayın.
-  3. Bilgisayardaki Throne uygulamasında **Settings → Basic Settings → Hotspot Ağ Geçidi (Hotspot Gateway)** ayarını açın.
-  4. Bilgisayarınız **hiçbir IP ya da port yazmanıza gerek kalmadan** telefonunuzun VPN tüneli üzerinden güvenle internete çıkar!
-
-### 🌟 Öne Çıkan Özellikler
-- 🛡️ **Rootsuz Çalışma:** Cihazda Root gerekmez; yerel soket bağlama ve port yönlendirmesiyle çalışır.
-- 📡 **Çift Mod Desteği:** Yöntem A (Telefon Hotspot'ı) ve Yöntem B (Aynı Wi-Fi Ağı).
-- 🔗 **Tek Tıkla SOCKS5 Paylaşım Linki:** Kimlik bilgisi, UDP-over-TCP (UoT) desteği ve etiket içeren evrensel RFC uyumlu `socks5://` linki üretir.
-- 👥 **Canlı Bağlı Cihaz İzleme:** Dahili Clash API (`/connections`) ve çekirdek ARP tablosu entegrasyonuyla bağlı istemcilerin IP'lerini, aktif bağlantı sayılarını, anlık indirme/yükleme verilerini ve hedef adreslerini listeler.
-- 🔒 **İsteğe Bağlı Kimlik Doğrulama:** Kullanıcı adı ve parola koruması; yedek dosyalarına aktarılmaz ve arayüzde maskeli tutulur.
-- 🔁 **Otomatik Geri Dönüş (Fallback):** Paylaşılan ağ kesildiğinde veya erişim noktası kapandığında otomatik olarak önceki profile geri döner.
+</details>
 
 ---
 
-## ✨ V4War Özellikleri
+## 🧰 10'u 1 Arada Ağ Araç Kutusu ve Tanılama
 
-- 🗂️ **Grup ve Abonelik Yönetimi:** Masaüstü Throne ile birebir uyumlu grup seçenekleri (filtreler, temizleme, güncelleme sonrası URL testi), ön/iniş proxy'si, HWID başlıkları ve zamanlanmış güncellemeler.
-- 💾 **Platformlar Arası Yedekleme:** `.thrbackup` biçiminde çift yönlü geri yüklenebilir yedekler: yerel kaydetme, paylaşma veya WebDAV üzerinden eşitleme.
-- 🧩 **Ortak Yönlendirme Profilleri:** [routeprofiles](https://github.com/throneproj/routeprofiles) deposundan doğrudan indirilebilir kurallar ve Android'e özgü filtreler (uygulama bazlı tünelleme, Wi-Fi SSID/BSSID koşulları, mobil/tarifeli ağ algılama).
-- ⚡ **Otomatik Seçici (Auto Selector) Profilleri:** Gruplardaki en hızlı ve kararlı sunucuları otomatik derecelendirir ve kesintisiz geçiş sağlar.
-- ☁️ **Cloudflare WARP Desteği:** Dahili WARP kaydı (WireGuard veya MASQUE kimliği) ve entegre yönlendirme modu.
-- 🧪 **Kapsamlı Hız ve Gecikme Testleri:** URL, IP/ülke ve hız testleri; canlı gecikme histogramı ve tek dokunuşla en hızlı sunucuya bağlanma.
-- 📊 **Dahili Sing-box Paneli:** Canlı trafik grafiği, aktif bağlantılar ve çekirdek logları.
-- ✏️ **Gelişmiş JSON Düzenleyici:** Sing-box şema doğrulaması, otomatik tamamlama ve kod biçimlendirme desteği.
-- 📱 **Android Sistem Entegrasyonu:** Ana ekran widget'ları, Hızlı Ayarlar (Quick Settings) kutucuğu ve bildirim çubuğundan sunucu değiştirme.
-- 📺 **Android TV Desteği:** TV arayüzü, kumanda (D-pad) ile gezinme ve hızlı sunucu geçişi.
+**Araçlar → Ağ** sekmesinde Material 3 Expressive grafiklerle sunulan on yerleşik ağ tanılama aracı:
+
+| Araç | Özellikler |
+|---|---|
+| **Hotspot ve Proxy Paylaşımı** | Auto / Shizuku / Root / LAN Proxy yönetimi, Wi-Fi / USB / Bluetooth tethering, bağlı cihazlar ve log çekmecesi |
+| **DNS Sızıntı ve Fake-IP Testi** | İstemci genel çıkış IP'sini DNS çözücü çıkışıyla karşılaştırır, Fake-IP / Strict Route yalıtımını ve Sistem Özel DNS (DoT) durumunu doğrular |
+| **STUN NAT Davranış Keşfi** | Saf Kotlin **RFC 5389 / 5780** NAT sınıflandırıcısı (Open, Full-Cone, Restricted-Cone, Port-Restricted-Cone, Symmetric), RTT/jitter/kayıp metrikleri, özel sunucu profilleri ve **fiziksel ağ üzerinden VPN bypass testi** |
+| **IP Sorgulama ve Çıkış Karşılaştırması** | **Proxy Çıkışı vs Doğrudan Fiziksel Çıkış** karşılaştırması ile herhangi bir IP, alan adı veya URL için ASN, ISS, ülke, saat dilimi ve IP sınıfı analizi |
+| **DNS Sorgulama (Lookup)** | Çekirdek, Sistem DNS veya özel çözücüler (`UDP`, `DoH`, `DoT`) üzerinden `A`, `AAAA`, `CNAME`, `HTTPS`, `TXT`, `MX`, `NS` ve `PTR` kayıtlarını çoklu karşılaştırmayla sorgulama |
+| **Yerel Ping** | Canlı RTT zaman çizelgesi grafiği, min/ort/maks, jitter, paket kaybı ve doğrudan fiziksel ağ seçeneği ile `TCP`, `UDP` ve `ICMP` gecikme ölçümü |
+| **Bağlantı ve Platform Testi** | **Yapay Zeka** (ChatGPT, Claude, Gemini, Grok, Perplexity, OpenRouter), **Yayın** (Netflix, YouTube, Disney+, Spotify, Twitch, TikTok), **Sosyal** (Telegram, Discord, X, Reddit) ve **Geliştirici** (GitHub, Cloudflare, Google, Wikipedia, Docker, npm) erişilebilirlik testi |
+| **Canlı Ağ Arayüzleri** | Aktif ağ ve sistem DNS özeti, IPv4/IPv6 adresleri, alt ağ maskeleri, MTU, MAC, yönlendirme tabloları ve hotspot/tether arayüz tespiti |
+| **Trafik Kullanım Analizi** | Anlık proxy/doğrudan hız, oturum ve uygulama UID toplamları, görsel trafik çubukları ve profil/grup bazlı kullanım istatistikleri |
+| **Hücresel Ağ Menüsü** | Android radyo tanılama ekranlarına (Radio Info) ve tercih edilen ağ türü (LTE / NR 5G sabitleme) kontrollerine hızlı erişim |
+
+---
+
+## 🎨 Material 3 Expressive Arayüz ve Theme Studio
+
+- **Theme Studio (`Ayarlar → Görünüm`):** Canlı etkileşimli mini önizleme kartı ile 5 yüzey modu — **Pure AMOLED**, **AMOLED**, **Koyu**, **Açık** ve **Sistem**.
+- **3 Tonlu Tohum Renk Uyumu:** Material 3 ton paleti, özel tema tohumları, Android 12+ **Monet** dinamik renklendirme ve uyumlu iletişim kutuları, anahtarlar ve squircle ikon rozetleri.
+- **Modern Liste ve Gezinme:** Yüzen hap (floating pill) başlıklar, expressive sekme göstergeleri, protokol rozetleri, kompakt profil satırları ve kompakt grup kartları.
+
+---
+
+## 🔒 Çekirdek, Güvenlik ve Akıllı Güncellemeler
+
+- **Varsayılan TLS Kayıt Parçalama (Fragment):** Sahte SNI ve CDN fronting senaryolarında dayanıklılık için varsayılan olarak etkinleştirilmiştir.
+- **Shizuku ile Sessiz Güncelleme:** `v4war-update.json` üzerinden SHA-256 ve imza sertifikası doğrulamalı güncelleme denetleyicisi; `CHANGELOG.md` sürüm notları, isteğe bağlı GitHub token desteği, Obtainium uyumu ve **Shizuku üzerinden sessiz arka plan kurulumu** (`UpdateUserService`).
+- **Gruplar, Yönlendirme ve Yedekler:** Grup bazlı yönlendirme profilleri, Happ yönlendirme içe aktarma, özel abonelik SNI, yönlendirme proxy atlamaları, çoklu grup Otomatik Seçici, Cloudflare WARP (WireGuard & MASQUE), WebDAV senkronizasyonlu `.thrbackup` yedekleri ve otomatik gizli veri temizliği (`HotspotBackupSanitizer`).
+- **Sistem ve Android TV Desteği:** Ana ekran widget'ları, Hızlı Ayarlar kutucukları, bildirim çubuğu eylemleri ve D-pad kumanda destekli yerel Android TV deneyimi.
 
 ---
 
@@ -85,52 +126,77 @@ Telefonunuzun bağlı olduğu VPN tünelini, **Root yetkisi gerektirmeden** mobi
 | 🦋 NaïveProxy | 🍹 Juicity | 🚇 TrustTunnel | 🎭 ShadowTLS |
 | 🔐 WireGuard | 🔐 AmneziaWG | 🎭 MASQUE | 🔑 SSH |
 | 🔒 OpenVPN | 🔓 OpenConnect | ➡️ Direct | ⛓️ Chain |
-| 🧩 Özel Çıkış (Custom) | ✨ Otomatik Seçici | 📡 DNSTT / VayDNS | 🎯 MasterDNS |
+| 🧩 Özel Çıkış | ✨ Otomatik Seçici | 📡 DNSTT / VayDNS | 🎯 MasterDNS |
+
+**Abonelik Biçimleri:** Standart paylaşım linkleri, Sing-box JSON, v2rayN, Shadowsocks, Clash (çıkış içe aktarma) ve deeplink desteği ([dokümantasyon](https://throneproj.github.io/advanced/deeplinks/)).
 
 ---
 
-## 📥 Abonelik Formatları
+## 📦 Kurulum ve Derleme
 
-Standart paylaşım linkleri, Sing-box JSON yapılandırmaları ve v2rayN bağlantı biçimleri desteklenir; ayrıca Shadowsocks ve Clash formatları için temel destek sunulur. Yalnızca sunucu çıkışları içe aktarılır, yönlendirme kuralları bağımsız yönetilir. Deeplink desteği de mevcuttur ([dokümantasyon](https://throneproj.github.io/advanced/deeplinks/)).
+### Hazır APK İndirme
+
+Cihazınızın işlemci mimarisine uygun APK'yı [**GitHub Releases**](https://github.com/theyusa/V4War/releases) sayfasından indirin:
+
+| Mimari | Hedef Cihazlar |
+|---|---|
+| `arm64-v8a` | Modern Android telefon ve tabletlerin çoğu (2015+) |
+| `armeabi-v7a` | Eski 32-bit ARM cihazlar |
+| `x86_64` | Emülatörler ve x86_64 Android cihazlar |
+
+### Kaynak Koddan Derleme ve Test
+
+**JDK 17 veya 21** ile **Android SDK 35** (`buildToolsVersion = "35.0.1"`, `minSdk = 24`) gerektirir:
+
+```bash
+# JVM birim testlerini çalıştırın
+./gradlew :app:testOssDebugUnitTest
+
+# Debug APK derleyin (app/libs/ altında ThroneCore AAR gerektirir)
+./gradlew :app:assembleOssDebug
+```
+
+> CI iş akışı `.github/actions/` üzerinden `ThroneCore`, `routeprofiles` ve `sing-box-dashboard` bileşenlerini otomatik indirir. Ayrıntılar için [CONTRIBUTING.md](CONTRIBUTING.md) dosyasına bakın.
 
 ---
 
 ## 🔄 Günlük Upstream Senkronizasyonu
 
-Bu depo, [`.github/workflows/sync-upstream.yml`](.github/workflows/sync-upstream.yml) aracılığıyla ana kaynak ([throneproj/ThroneForAndroid](https://github.com/throneproj/ThroneForAndroid)) ile otomatik olarak senkronize kalır.
+Bu depo, [`.github/workflows/sync-upstream.yml`](.github/workflows/sync-upstream.yml) iş akışı ile ana kaynak [throneproj/ThroneForAndroid](https://github.com/throneproj/ThroneForAndroid) ile senkronize kalır:
 
 - 🕒 Her gün **03:00 UTC** saatinde (veya manuel tetikleme ile) çalışır.
-- 🔍 Tag çakışmalarını önleyen rebase (`--no-tags --empty=drop`) ile fork commit'lerini güncel upstream üzerine taşır.
-- 🏷️ Özel Git merge sürücüleri çatalın kimlik dosyalarını (`PACKAGE_NAME`, sürümler ve varlıklar) korur.
-- 🚀 Yeni bir upstream sürümü algılandığında otomatik release iş akışını başlatır.
+- 🔍 Fork commit'lerini `upstream/main` üzerine (`--no-tags --empty=drop`) rebase eder ve `main` dalına göndermeden önce `:app:testOssDebugUnitTest` testlerini doğrular.
+- 🏷️ Özel Git birleştirme sürücüleri (`.gitattributes`) V4War kimliğini, belgeleri, CI dosyalarını ve sürüm bilgilerini korur.
 
 ---
 
-## 🙏 Teşekkür ve Kaynaklar
+## 🙏 Teşekkürler
 
-Açık kaynak dünyasının katkılarıyla inşa edilmiştir:
+Açık kaynak topluluğunun değerli projeleri üzerine inşa edilmiştir:
 
 - **Upstream:** [throneproj/ThroneForAndroid](https://github.com/throneproj/ThroneForAndroid)
-- **Çekirdekler:** [throneproj/sing-box](https://github.com/throneproj/sing-box) ve [throneproj/Xray-core](https://github.com/throneproj/Xray-core)
-- **GUI Kökleri:** [MatsuriDayo/NekoBoxForAndroid](https://github.com/MatsuriDayo/NekoBoxForAndroid), [SagerNet/SagerNet](https://github.com/SagerNet/SagerNet) ve [shadowsocks/shadowsocks-android](https://github.com/shadowsocks/shadowsocks-android)
-- **Ağ Araçları ve NAT Testi:** [eleutherifer/NekoBoxPlus](https://github.com/eleutherifer/NekoBoxPlus) & [ccding/go-stun](https://github.com/ccding/go-stun) (Apache-2.0)
+- **Çekirdekler:** [throneproj/sing-box](https://github.com/throneproj/sing-box) & [throneproj/Xray-core](https://github.com/throneproj/Xray-core)
+- **Rootsuz TUN Motoru:** [heiher/hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel)
+- **Yetki ve Kabuk Çatıları:** [RikkaApps/Shizuku](https://github.com/RikkaApps/Shizuku) & [topjohnwu/libsu](https://github.com/topjohnwu/libsu)
+- **GUI Kökleri:** [MatsuriDayo/NekoBoxForAndroid](https://github.com/MatsuriDayo/NekoBoxForAndroid), [SagerNet/SagerNet](https://github.com/SagerNet/SagerNet) & [shadowsocks/shadowsocks-android](https://github.com/shadowsocks/shadowsocks-android)
+- **Ağ Araçları İlhamı:** [eleutherifer/NekoBoxPlus](https://github.com/eleutherifer/NekoBoxPlus) & [ccding/go-stun](https://github.com/ccding/go-stun)
 - **Masaüstü Eşi:** [theyusa/Throne](https://github.com/theyusa/Throne) & [throneproj/Throne](https://github.com/throneproj/Throne)
 
 ---
 
 ## ❓ Sıkça Sorulan Sorular (SSS)
 
-**NekoBox for Android'den farkı nedir?** <br/>
-Throne, eski eklenti (plugin) mimarisini kaldırarak masaüstü Throne ile paylaşılan tek bir sing-box ve Xray çekirdeğine, ortak veri modellerine ve `.thrbackup` desteğine geçmiştir. Bu fork ise bunların üzerine rootsuz LAN Paylaşımı ve Hotspot Ağ Geçidi paketini ekler.
+**Root olmadan VPN bağlantımı nasıl paylaşırım?** <br/>
+**Araçlar → Ağ → Hotspot ve Proxy Paylaşımı** ekranını açın. Bağlanan cihazlarda hiçbir proxy ayarı yapmadan sistem geneli şeffaf TUN paylaşımı için **Shizuku** modunu (Wi-Fi Hotspot, USB ve Bluetooth destekli), veya `SOCKS5`/`HTTP` linki paylaşmak için **LAN Proxy** modunu seçin.
 
 **Bilgisayarımla IP/Port girmeden nasıl VPN paylaşırım?** <br/>
-Windows veya Linux bilgisayarınıza [theyusa/Throne](https://github.com/theyusa/Throne) masaüstü uygulamasını kurun, bilgisayarınızı telefonun hotspot'una bağlayın ve masaüstünde `Settings → Basic Settings → Hotspot Ağ Geçidi` ayarını açın. Bilgisayarınız otomatik bağlanacaktır.
+Windows veya Linux bilgisayarınıza [theyusa/Throne](https://github.com/theyusa/Throne) kurun, telefonun hotspot ağına bağlanın ve masaüstü ayarlarından **Settings → Basic Settings → Hotspot Ağ Geçidi** seçeneğini açın. Bilgisayar otomatik bağlanır.
 
-**İndirilebilir yönlendirme profilleri nereden geliyor?** <br/>
-Doğrudan masaüstü Throne'un da kullandığı [routeprofiles](https://github.com/throneproj/routeprofiles) deposundan alınmaktadır.
+**Hata veya güvenlik açığı nasıl bildirilir?** <br/>
+Hata ve özellik talepleri için [GitHub Issue Şablonlarını](https://github.com/theyusa/V4War/issues/new/choose), güvenlik bildirimleri için [SECURITY.md](SECURITY.md) yönergelerini kullanın.
 
 ---
 
 ## 📜 Lisans
 
-[GNU General Public License v3.0](LICENSE) altında dağıtılmaktadır.
+**GNU General Public License v3.0** altında dağıtılmaktadır — tüm koşullar için [LICENSE](LICENSE) dosyasına bakın.
