@@ -156,4 +156,22 @@ describe('V4War Multi-Page App', () => {
     expect(wrapper.find('[data-testid="apk-grid"]').exists()).toBe(true)
     expect(wrapper.get('[data-testid="apk-grid"]').text()).toContain('arm64-v8a')
   })
+
+  it('canonicalizes legacy /V4War/ and ?p= routes to root-relative URLs on mount', async () => {
+    window.history.replaceState({}, '', '/V4War/docs/hotspot-share')
+    const wrapper = mount(App)
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="docs-article"]').text()).toContain('Hotspot')
+    expect(window.location.pathname).toBe('/docs/hotspot-share')
+    wrapper.unmount()
+
+    window.history.replaceState({}, '', '/?p=/docs/network-toolbox')
+    const wrapper2 = mount(App)
+    await flushPromises()
+    expect(wrapper2.get('[data-testid="docs-article"]').text()).toContain('Toolbox')
+    expect(window.location.pathname).toBe('/docs/network-toolbox')
+    expect(window.location.search).toBe('')
+    wrapper2.unmount()
+  })
 })

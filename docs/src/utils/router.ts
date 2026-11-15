@@ -35,8 +35,10 @@ export function parseAppLocation(
 
   const base = normalizeBasePath(baseUrl)
   let rel = pathname || '/'
-  if (base && rel.startsWith(base)) {
+  if (base && (rel === base || rel.startsWith(`${base}/`))) {
     rel = rel.slice(base.length) || '/'
+  } else if (!base && (rel === '/V4War' || rel.startsWith('/V4War/'))) {
+    rel = rel.slice('/V4War'.length) || '/'
   }
   if (!rel.startsWith('/')) rel = `/${rel}`
   rel = rel.replace(/\/+$/, '') || '/'

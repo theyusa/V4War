@@ -179,6 +179,13 @@ function handlePopState() {
 
 onMounted(async () => {
   window.addEventListener('popstate', handlePopState)
+  const expectedPath = buildHref(route.value.canonicalPath)
+  const hasRedirectParam = new URLSearchParams(window.location.search).has('p')
+  const hasHashRoute = window.location.hash.startsWith('#/')
+  if (window.location.pathname !== expectedPath || hasRedirectParam || hasHashRoute) {
+    const targetUrl = `${expectedPath}${route.value.hash}`
+    window.history.replaceState({ route: route.value.canonicalPath }, '', targetUrl)
+  }
   const fetched = await fetchLatestRelease()
   if (fetched) {
     release.value = fetched

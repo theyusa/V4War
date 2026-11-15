@@ -74,6 +74,22 @@ describe('Markdown Documentation & Multi-Page Router', () => {
     expect(buildHref('/', '/')).toBe('/')
     expect(buildHref('/docs/overview', '/')).toBe('/docs/overview')
 
+    // Legacy /V4War prefix on root / deployment maps cleanly to root routes
+    expect(parseAppLocation('/V4War', '', '', '/')).toEqual({
+      page: 'home',
+      docSlug: 'overview',
+      hash: '',
+      canonicalPath: '/',
+    })
+    expect(parseAppLocation('/V4War/', '', '', '/').canonicalPath).toBe('/')
+    expect(parseAppLocation('/V4War/docs/hotspot-share', '', '', '/')).toEqual({
+      page: 'docs',
+      docSlug: 'hotspot-share',
+      hash: '',
+      canonicalPath: '/docs/hotspot-share',
+    })
+    expect(parseAppLocation('/V4War-other', '', '', '/V4War/').canonicalPath).toBe('/')
+
     expect(parseAppLocation('/V4War/', '', '', '/V4War/').page).toBe('home')
     expect(parseAppLocation('/V4War/docs/hotspot-share', '', '', '/V4War/')).toEqual({
       page: 'docs',
