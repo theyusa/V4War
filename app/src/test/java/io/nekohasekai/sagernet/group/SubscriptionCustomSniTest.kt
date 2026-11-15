@@ -11,14 +11,14 @@ class SubscriptionCustomSniTest {
     fun serializationPreservesCustomSni() {
         val options = SubscriptionOptions(
             customSni = "my.custom.sni.example.com",
-            nameInclude = "VIP",
+            nameFilter = "VIP",
         )
         val json = options.toJson()
         assertEquals("my.custom.sni.example.com", json.string("custom_sni"))
 
         val restored = SubscriptionOptions.fromJson(json)
         assertEquals("my.custom.sni.example.com", restored.customSni)
-        assertEquals("VIP", restored.nameInclude)
+        assertEquals("VIP", restored.nameFilter)
     }
 
     @Test

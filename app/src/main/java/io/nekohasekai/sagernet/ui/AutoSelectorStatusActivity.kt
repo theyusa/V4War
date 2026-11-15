@@ -11,6 +11,7 @@ import android.view.MenuItem
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.ColorInt
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -36,6 +37,7 @@ import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
 import io.nekohasekai.sagernet.ui.profile.ProfileSettingsActivity
 import io.nekohasekai.sagernet.ui.profile.profileSettingsIntent
 import io.nekohasekai.sagernet.ui.profiles.ProfilesDbWatcher
+import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
 import io.nekohasekai.sagernet.widget.applyInsetPadding
 import io.nekohasekai.sagernet.widget.applyListInsets
 import kotlinx.coroutines.Dispatchers
@@ -119,6 +121,11 @@ class AutoSelectorStatusActivity : ThemedActivity(), SagerConnection.Callback {
         binding.header.applyInsetPadding(horizontal = true)
         binding.empty.applyInsetPadding(horizontal = true)
         binding.list.applyListInsets()
+        ExpressiveSettingsHelper.styleOutlinedButton(binding.automatic)
+        ExpressiveSettingsHelper.styleOutlinedButton(binding.recheck)
+        val accent = ExpressiveSettingsHelper.resolveAccentColor(this)
+        binding.progress.setIndicatorColor(accent)
+        binding.progress.trackColor = ColorUtils.setAlphaComponent(accent, 44)
         binding.recheck.setOnClickListener { withService { it.autoSelectorRecheck() } }
         binding.automatic.setOnClickListener { withService { it.autoSelectorSelect(-1) } }
         connection.connect(this, this)

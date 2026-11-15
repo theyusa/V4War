@@ -3,6 +3,7 @@ package io.nekohasekai.sagernet.ui.profile
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -17,6 +18,7 @@ import androidx.activity.result.component1
 import androidx.activity.result.component2
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.ColorInt
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.isVisible
 import androidx.preference.PreferenceFragmentCompat
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -42,12 +44,14 @@ import io.nekohasekai.sagernet.ui.FormIssue
 import io.nekohasekai.sagernet.ui.ProfileSelectActivity
 import io.nekohasekai.sagernet.ui.ValidationForm
 import io.nekohasekai.sagernet.ui.test.TestFormat
+import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.validation.Severity
 import io.nekohasekai.sagernet.validation.vplural
 import io.nekohasekai.sagernet.widget.applyInsetPadding
 import io.nekohasekai.sagernet.widget.applyListInsets
 import moe.matsuri.nb4a.Protocols.getProtocolColor
 import moe.matsuri.nb4a.proxy.PreferenceBindingManager
+import kotlin.math.roundToInt
 
 class ChainSettingsActivity : ProfileSettingsActivity<Chain>(R.layout.layout_chain_settings) {
 
@@ -579,6 +583,7 @@ class ChainSettingsActivity : ProfileSettingsActivity<Chain>(R.layout.layout_cha
     inner class ProfileHolder(binding: LayoutProfileBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
+        val card = binding.content
         val profileName = binding.profileName
         val profileType = binding.profileType
         val trafficText: TextView = binding.trafficText
@@ -588,10 +593,21 @@ class ChainSettingsActivity : ProfileSettingsActivity<Chain>(R.layout.layout_cha
         val stepExplanation: TextView = binding.profileError
 
         fun bind(proxyEntity: ProxyEntity, index: Int) {
+            val context = card.context
+            card.setCardBackgroundColor(Theme.resolveCardBackground(context))
+            card.strokeColor = Theme.resolveCardStrokeColor(context, selected = false)
+            card.strokeWidth = Theme.resolveCardStrokeWidthPx(context, selected = false).roundToInt()
+            card.cardElevation = 0f
 
             profileName.text = proxyEntity.displayName()
             profileType.text = proxyEntity.displayType()
-            profileType.setTextColor(getProtocolColor(proxyEntity.type))
+            val protoColor = getProtocolColor(proxyEntity.type)
+            profileType.setTextColor(protoColor)
+            val chipAlpha = if (Theme.isBlackTheme(context)) 0.18 else 0.14
+            profileType.background = GradientDrawable().apply {
+                cornerRadius = dp2px(6).toFloat()
+                setColor(ColorUtils.setAlphaComponent(protoColor, (255 * chipAlpha).toInt()))
+            }
 
             val rx = proxyEntity.rx
             val tx = proxyEntity.tx

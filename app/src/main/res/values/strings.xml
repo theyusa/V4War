@@ -2907,13 +2907,13 @@
     <string name="route_tester_steps">Matched rules</string>
     <string name="route_tester_rule">Rule %1$d</string>
     <string name="route_tester_rule_named">“%1$s”</string>
-    <string name="route_tester_xray_bridge">Xray bridge (Throne)</string>
-    <string name="route_tester_sniff">Sniff (Throne)</string>
-    <string name="route_tester_resolve">Domain resolve (Throne)</string>
-    <string name="route_tester_dns_hijack">DNS hijack (Throne)</string>
-    <string name="route_tester_dns_in_guard">DNS inbound guard (Throne)</string>
+    <string name="route_tester_xray_bridge">Xray bridge (V4War)</string>
+    <string name="route_tester_sniff">Sniff (V4War)</string>
+    <string name="route_tester_resolve">Domain resolve (V4War)</string>
+    <string name="route_tester_dns_hijack">DNS hijack (V4War)</string>
+    <string name="route_tester_dns_in_guard">DNS inbound guard (V4War)</string>
     <string name="route_tester_adblock" translatable="false">AdBlock</string>
-    <string name="route_tester_block_final">Block the rest (Throne)</string>
+    <string name="route_tester_block_final">Block the rest (V4War)</string>
     <string name="route_tester_action_route_to">Route to %1$s</string>
     <string name="route_tester_action_bypass_to">Bypass to %1$s</string>
     <string name="route_tester_action_route_options">Route options</string>

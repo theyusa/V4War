@@ -1,10 +1,12 @@
 package io.nekohasekai.sagernet.ui.route
 
+import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import androidx.activity.viewModels
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.ViewModel
@@ -18,6 +20,7 @@ import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.RouteManager
 import io.nekohasekai.sagernet.databinding.LayoutRouteTesterBinding
 import io.nekohasekai.sagernet.databinding.LayoutRouteTesterStepBinding
+import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.readableMessage
 import io.nekohasekai.sagernet.outbound.config.RouteRuleOrigin
 import io.nekohasekai.sagernet.outbound.config.RouteRuleOriginKind
@@ -28,6 +31,8 @@ import io.nekohasekai.sagernet.outbound.link.Hosts
 import io.nekohasekai.sagernet.ui.AppListActivity
 import io.nekohasekai.sagernet.ui.PackageNameInput
 import io.nekohasekai.sagernet.ui.ThemedActivity
+import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
+import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.widget.applyListInsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -114,12 +119,12 @@ class RouteTesterActivity : ThemedActivity() {
         super.onCreate(savedInstanceState)
         binding = LayoutRouteTesterBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        setSupportActionBar(binding.root.findViewById(R.id.toolbar))
-        supportActionBar?.apply {
-            setTitle(R.string.route_tester)
-            setDisplayHomeAsUpEnabled(true)
-            setHomeAsUpIndicator(R.drawable.baseline_arrow_back_24)
-        }
+        ExpressiveSettingsHelper.attachActivityFloatingHeader(
+            this,
+            binding.root,
+            getString(R.string.route_tester),
+        )
+        styleExpressiveViews()
         binding.scroll.applyListInsets(ime = true)
         draftName = intent.getStringExtra(EXTRA_ROUTE_DRAFT)?.let { runCatching { RouteJson.profileFromJson(it).name }.getOrNull() }
 
@@ -401,15 +406,22 @@ class RouteTesterActivity : ThemedActivity() {
             getString(R.string.route_tester_skipped, skipped.joinToString(", ") { ruleLabel(it, "", names) })
         }
 
+        val accent = readableAccentColor()
         binding.steps.removeAllViews()
         binding.stepsTitle.isVisible = steps.isNotEmpty()
         for (step in steps) {
             val item = LayoutRouteTesterStepBinding.inflate(layoutInflater, binding.steps, false)
+            ExpressiveSettingsHelper.styleExpressiveCard(item.root, cornerRadiusDp = 16f)
+            if (step === deciding) {
+                item.root.strokeColor = ColorUtils.setAlphaComponent(accent, 180)
+                item.root.strokeWidth = dp2px(1).coerceAtLeast(item.root.strokeWidth)
+            }
             val index = stepIndex(step)
             val ruleText = step.string("rule")
             item.rule.text = ruleLabel(index, ruleText, names)
             item.rule.setTypeface(null, if (step === deciding) Typeface.BOLD else Typeface.NORMAL)
             item.action.text = actionText(step, names)
+            item.action.setTextColor(accent)
             val details = detailsText(step)
             item.details.text = details
             item.details.isVisible = details.isNotEmpty()
@@ -421,6 +433,27 @@ class RouteTesterActivity : ThemedActivity() {
                 item.raw.maxLines = if (item.raw.maxLines == Int.MAX_VALUE) 2 else Int.MAX_VALUE
             }
             binding.steps.addView(item.root)
+        }
+    }
+
+    private fun styleExpressiveViews() {
+        ExpressiveSettingsHelper.styleExpressiveCard(binding.inputCard, cornerRadiusDp = 20f)
+        ExpressiveSettingsHelper.styleExpressiveCard(binding.resultCard, cornerRadiusDp = 20f)
+        ExpressiveSettingsHelper.styleExpressiveChips(binding.network)
+        ExpressiveSettingsHelper.stylePrimaryButton(binding.test)
+        val accent = ExpressiveSettingsHelper.resolveAccentColor(this)
+        binding.progress.setIndicatorColor(accent)
+        binding.progress.trackColor = ColorUtils.setAlphaComponent(accent, 44)
+    }
+
+    private fun readableAccentColor(): Int {
+        val accent = ExpressiveSettingsHelper.resolveAccentColor(this)
+        val isNight = Theme.usingNightMode(this)
+        val isMonochrome = accent == Color.WHITE || accent == Color.BLACK
+        return when {
+            Theme.isMonochromeBlack(this) && isMonochrome -> Color.WHITE
+            isNight && ColorUtils.calculateLuminance(accent) < 0.35 -> ColorUtils.blendARGB(accent, Color.WHITE, 0.35f)
+            else -> accent
         }
     }
 
