@@ -1,14 +1,16 @@
 ---
 name: 'Feature Request'
-about: 'Make suggestions for new features of the software'
-title: ''
-labels: ''
+about: 'Suggest a new feature or enhancement for V4War.'
+title: 'feat: '
+labels: 'enhancement'
 assignees: ''
-
 ---
 
-## Description suggestions
+## Feature Summary
+A clear and concise description of what you would like to see added or improved.
 
-## Expected priority
+## Use Case
+Why is this feature useful, and what problem does it solve?
 
-Urgent/High/Medium/Low
+## Proposed Behavior
+Describe how the feature should work in the UI, VPN core, Hotspot Share, or Network Toolbox.

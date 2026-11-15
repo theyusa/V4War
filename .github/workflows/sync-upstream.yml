@@ -14,10 +14,10 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout hotspot-gateway
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
-          ref: hotspot-gateway
+          ref: main
           fetch-depth: 0
 
       - name: Check for new upstream commits and rebase
@@ -60,7 +60,16 @@ jobs:
           cat > /tmp/git-attributes <<'ATTR'
           README.md merge=keep-fork
           README.tr.md merge=keep-fork
+          CONTRIBUTING.md merge=keep-fork
+          SECURITY.md merge=keep-fork
+          .gitignore merge=keep-fork
           .github/assets/lan-sharing.jpg merge=keep-fork
+          .github/images/logo.png merge=keep-fork
+          .github/PULL_REQUEST_TEMPLATE.md merge=keep-fork
+          .github/ISSUE_TEMPLATE/config.yml merge=keep-fork
+          .github/ISSUE_TEMPLATE/bug-report-en.md merge=keep-fork
+          .github/ISSUE_TEMPLATE/bug-report-tr.md merge=keep-fork
+          .github/ISSUE_TEMPLATE/feature_request-en.md merge=keep-fork
           .gitattributes merge=keep-fork
           .github/workflows/sync-upstream.yml merge=keep-fork
           .github/workflows/release.yml merge=keep-fork
@@ -109,7 +118,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_TITLE: "Upstream sync blocked: unit tests failed after rebase to ${{ steps.sync.outputs.upstream_sha }}"
-          ISSUE_BODY: "The daily upstream sync rebased the fork commits onto ${{ steps.sync.outputs.upstream_sha }} successfully, but `./gradlew :app:testOssDebugUnitTest` failed in [run ${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}). The rebase was NOT force-pushed, no tag or release was created, and origin/hotspot-gateway still points at the last good commit. Fix the tests, then re-run the sync workflow."
+          ISSUE_BODY: "The daily upstream sync rebased the fork commits onto ${{ steps.sync.outputs.upstream_sha }} successfully, but `./gradlew :app:testOssDebugUnitTest` failed in [run ${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}). The rebase was NOT force-pushed, no tag or release was created, and origin/main still points at the last good commit. Fix the tests, then re-run the sync workflow."
         run: |
           gh issue create \
             --repo "${{ github.repository }}" \
@@ -120,4 +129,4 @@ jobs:
         if: steps.sync.outputs.synced == 'true'
         run: |
           set -euo pipefail
-          git push --force-with-lease origin hotspot-gateway
+          git push --force-with-lease origin main
