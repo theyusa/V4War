@@ -26,3 +26,6 @@ __pycache__/
 .codegraph/
 /lib/
 
+
+docs/.vitepress/dist
+docs/.vitepress/cache
