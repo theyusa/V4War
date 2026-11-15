@@ -40,37 +40,7 @@ function abiSubtitle(abi: string, locale: Locale): string {
 </script>
 
 <template>
-  <!-- Security & Core Section -->
-  <section class="section">
-    <div class="container">
-      <div class="section-header">
-        <div class="eyebrow">
-          <Lock :size="14" />
-          <span>{{ SITE_COPY.security.eyebrow[locale] }}</span>
-        </div>
-        <h2 class="section-title">{{ SITE_COPY.security.title[locale] }}</h2>
-      </div>
-
-      <div class="security-grid">
-        <div
-          v-for="(card, idx) in SITE_COPY.security.cards"
-          :key="card.title.en"
-          class="m3-card m3-card-interactive security-card"
-        >
-          <div class="squircle">
-            <Shield v-if="idx === 0" :size="20" />
-            <RefreshCw v-else-if="idx === 1" :size="20" />
-            <Route v-else-if="idx === 2" :size="20" />
-            <FileCheck2 v-else :size="20" />
-          </div>
-          <h3 class="sec-title">{{ card.title[locale] }}</h3>
-          <p class="sec-desc">{{ card.desc[locale] }}</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Download & Build Section -->
+  <!-- Download & Build Section (primary focus on /download) -->
   <section id="download" class="section">
     <div class="container">
       <div class="m3-card download-shell">
@@ -80,7 +50,7 @@ function abiSubtitle(abi: string, locale: Locale): string {
               <Download :size="14" />
               <span>{{ SITE_COPY.download.eyebrow[locale] }} · {{ release.tagName }}</span>
             </div>
-            <h2 class="section-title">{{ SITE_COPY.download.title[locale] }}</h2>
+            <h1 class="section-title">{{ SITE_COPY.download.title[locale] }}</h1>
             <p class="section-subtitle">{{ SITE_COPY.download.subtitle[locale] }}</p>
           </div>
 
@@ -149,9 +119,43 @@ function abiSubtitle(abi: string, locale: Locale): string {
       </div>
     </div>
   </section>
+
+  <!-- Security & Core Verification Section -->
+  <section class="section security-section">
+    <div class="container">
+      <div class="section-header">
+        <div class="eyebrow">
+          <Lock :size="14" />
+          <span>{{ SITE_COPY.security.eyebrow[locale] }}</span>
+        </div>
+        <h2 class="section-title">{{ SITE_COPY.security.title[locale] }}</h2>
+      </div>
+
+      <div class="security-grid">
+        <div
+          v-for="(card, idx) in SITE_COPY.security.cards"
+          :key="card.title.en"
+          class="m3-card m3-card-interactive security-card"
+        >
+          <div class="squircle">
+            <Shield v-if="idx === 0" :size="20" />
+            <RefreshCw v-else-if="idx === 1" :size="20" />
+            <Route v-else-if="idx === 2" :size="20" />
+            <FileCheck2 v-else :size="20" />
+          </div>
+          <h3 class="sec-title">{{ card.title[locale] }}</h3>
+          <p class="sec-desc">{{ card.desc[locale] }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
 </template>
 
 <style scoped>
+.security-section {
+  padding-top: 24px;
+}
+
 .security-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

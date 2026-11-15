@@ -21,8 +21,18 @@ describe('Markdown Documentation & Multi-Page Router', () => {
       expect(page.title.length).toBeGreaterThan(3)
       expect(page.headings.length).toBeGreaterThan(0)
       expect(page.html.length).toBeGreaterThan(100)
+      expect(page.html).not.toContain('<h1')
+      for (const h of page.headings) {
+        expect(h.text).not.toContain('&amp;')
+        expect(h.text).not.toContain('&#39;')
+      }
       expect(DOC_GROUPS.some((g) => g.id === page.group)).toBe(true)
     }
+
+    const hotspotTr = getDocBySlug('tr', 'hotspot-share')
+    const statusHeading = hotspotTr.headings.find((h) => h.text.includes('Recovery Status'))
+    expect(statusHeading?.text).toBe('Shizuku & Recovery Status paneli')
+    expect(statusHeading?.id).toBe('shizuku-recovery-status-paneli')
   })
 
   it('rewrites relative markdown screenshot paths to public BASE_URL images without raw ../../public', () => {

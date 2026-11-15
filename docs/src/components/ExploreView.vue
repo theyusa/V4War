@@ -101,11 +101,15 @@ const activeTab = ref<LabTab>('all')
 
 <style scoped>
 .explore-page {
-  padding-top: 84px;
+  padding-top: 24px;
+}
+
+.explore-page :deep(.section) {
+  padding: 44px 0;
 }
 
 .explore-banner {
-  padding: 28px 0 8px;
+  padding: 16px 0 8px;
 }
 
 .explore-banner-inner {

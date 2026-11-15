@@ -4,14 +4,15 @@ import { ArrowRight, BookOpen, Download, Github, ShieldCheck, Smartphone, Wifi, 
 import type { Locale } from '../data/content'
 import { SITE_COPY } from '../data/content'
 import { buildHref } from '../utils/router'
-import type { SeedPreset, SurfaceMode } from '../utils/theme'
-import { SEED_PRESETS, SURFACE_MODES } from '../utils/theme'
+import type { MonochromeMode, SeedPreset, SurfaceMode } from '../utils/theme'
+import { MONOCHROME_THEMES, SEED_PRESETS, SURFACE_MODES } from '../utils/theme'
 
 const props = defineProps<{
   locale: Locale
   versionTag: string
   recommendedDownloadUrl: string
   surfaceMode: SurfaceMode
+  monochromeMode: MonochromeMode
   activeSeed: SeedPreset
 }>()
 
@@ -30,6 +31,10 @@ const quickSeeds = computed(() =>
 )
 
 const activeSurfaceLabel = computed(() => {
+  if (props.monochromeMode !== 'none') {
+    const foundMono = MONOCHROME_THEMES.find((m) => m.id === props.monochromeMode)
+    if (foundMono) return props.locale === 'tr' ? foundMono.labelTr : foundMono.labelEn
+  }
   const found = SURFACE_MODES.find((m) => m.id === props.surfaceMode)
   if (!found) return props.surfaceMode
   return props.locale === 'tr' ? found.labelTr : found.labelEn
@@ -192,7 +197,7 @@ const activeSurfaceLabel = computed(() => {
                   :key="mode.id"
                   type="button"
                   class="mini-mode-chip"
-                  :class="{ active: surfaceMode === mode.id }"
+                  :class="{ active: monochromeMode === 'none' && surfaceMode === mode.id }"
                   @click="emit('update:surfaceMode', mode.id)"
                 >
                   {{ locale === 'tr' ? mode.labelTr : mode.labelEn }}
@@ -204,7 +209,7 @@ const activeSurfaceLabel = computed(() => {
                   :key="seed.id"
                   type="button"
                   class="seed-dot"
-                  :class="{ active: activeSeed.id === seed.id }"
+                  :class="{ active: monochromeMode === 'none' && activeSeed.id === seed.id }"
                   :style="{ backgroundColor: seed.primary }"
                   :aria-label="locale === 'tr' ? seed.nameTr : seed.nameEn"
                   @click="emit('update:seed', seed)"

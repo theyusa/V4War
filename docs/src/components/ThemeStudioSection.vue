@@ -182,6 +182,32 @@ function selectSeed(seed: SeedPreset) {
 function checkColorForBg(hex: string): string {
   return relativeLuminance(hex) > 0.52 ? '#000000' : '#FFFFFF'
 }
+
+const liveStatsStyle = computed(() => {
+  if (props.monochromeMode === 'none' && props.tokens.effectiveSurface === 'light') {
+    const bg = props.tokens.seedPrimary
+    return {
+      backgroundColor: bg,
+      borderColor: 'transparent',
+      color: relativeLuminance(bg) > 0.45 ? '#1E293B' : '#FFFFFF',
+      dotColor: '#FFFFFF',
+    }
+  }
+  return null
+})
+
+const liveFabStyle = computed(() => {
+  let bg = props.tokens.seedPrimary
+  if (props.monochromeMode === 'black') {
+    bg = '#242424'
+  } else if (props.monochromeMode === 'white' || props.monochromeMode === 'light-gray') {
+    bg = '#1F2937'
+  } else if (relativeLuminance(bg) > 0.85) {
+    bg = '#242424'
+  }
+  const color = relativeLuminance(bg) > 0.45 ? '#000000' : '#FFFFFF'
+  return { backgroundColor: bg, color }
+})
 </script>
 
 <template>
@@ -193,7 +219,7 @@ function checkColorForBg(hex: string): string {
             <Palette :size="14" />
             <span>{{ SITE_COPY.studio.eyebrow[locale] }}</span>
           </div>
-          <h2 class="section-title">{{ SITE_COPY.studio.title[locale] }}</h2>
+          <h1 class="section-title">{{ SITE_COPY.studio.title[locale] }}</h1>
           <p class="section-subtitle">{{ SITE_COPY.studio.subtitle[locale] }}</p>
         </div>
 
@@ -252,11 +278,25 @@ function checkColorForBg(hex: string): string {
                 </div>
 
                 <div class="live-bottom-row">
-                  <div class="live-stats-pill mono">
-                    <span class="live-stats-dot"></span>
+                  <div
+                    class="live-stats-pill mono"
+                    :style="
+                      liveStatsStyle
+                        ? {
+                            backgroundColor: liveStatsStyle.backgroundColor,
+                            borderColor: liveStatsStyle.borderColor,
+                            color: liveStatsStyle.color,
+                          }
+                        : undefined
+                    "
+                  >
+                    <span
+                      class="live-stats-dot"
+                      :style="liveStatsStyle ? { backgroundColor: liveStatsStyle.dotColor } : undefined"
+                    ></span>
                     <span>↑ 1.8 MB/s &nbsp;•&nbsp; ↓ 24.6 MB/s</span>
                   </div>
-                  <div class="live-fab" aria-hidden="true">
+                  <div class="live-fab" :style="liveFabStyle" aria-hidden="true">
                     <Send :size="14" />
                   </div>
                 </div>

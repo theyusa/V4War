@@ -118,12 +118,10 @@ function toggleLocale() {
 
 function setSurface(mode: SurfaceMode) {
   surfaceMode.value = mode
-  if (mode === 'light' || mode === 'system') {
-    monochromeMode.value = 'none'
-  }
+  monochromeMode.value = 'none'
   try {
     window.localStorage.setItem('v4war-surface', mode)
-    window.localStorage.setItem('v4war-monochrome', monochromeMode.value)
+    window.localStorage.setItem('v4war-monochrome', 'none')
   } catch {
     // ignore
   }
@@ -200,6 +198,7 @@ onUnmounted(() => {
       :locale="locale"
       :version-tag="release.tagName"
       :surface-mode="surfaceMode"
+      :monochrome-mode="monochromeMode"
       :current-page="route.page"
       @toggle-locale="toggleLocale"
       @cycle-surface="cycleSurface"
@@ -213,6 +212,7 @@ onUnmounted(() => {
         :version-tag="release.tagName"
         :recommended-download-url="recommendedDownloadUrl"
         :surface-mode="surfaceMode"
+        :monochrome-mode="monochromeMode"
         :active-seed="activeSeed"
         @update:surface-mode="setSurface"
         @update:seed="setSeed"
@@ -267,6 +267,10 @@ onUnmounted(() => {
 }
 
 .subpage-offset {
-  padding-top: 72px;
+  padding-top: 0;
+}
+
+.subpage-offset :deep(.section:first-child) {
+  padding-top: 36px;
 }
 </style>

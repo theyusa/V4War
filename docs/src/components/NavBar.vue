@@ -5,12 +5,13 @@ import type { Locale } from '../data/content'
 import { SITE_COPY } from '../data/content'
 import type { AppPageName } from '../utils/router'
 import { buildHref } from '../utils/router'
-import { SURFACE_MODES, type SurfaceMode } from '../utils/theme'
+import { MONOCHROME_THEMES, SURFACE_MODES, type MonochromeMode, type SurfaceMode } from '../utils/theme'
 
 const props = defineProps<{
   locale: Locale
   versionTag: string
   surfaceMode: SurfaceMode
+  monochromeMode: MonochromeMode
   currentPage: AppPageName
 }>()
 
@@ -24,6 +25,10 @@ const mobileOpen = ref(false)
 const logoUrl = `${import.meta.env.BASE_URL}logo.png`
 
 const activeSurfaceLabel = computed(() => {
+  if (props.monochromeMode !== 'none') {
+    const foundMono = MONOCHROME_THEMES.find((m) => m.id === props.monochromeMode)
+    if (foundMono) return props.locale === 'tr' ? foundMono.labelTr : foundMono.labelEn
+  }
   const found = SURFACE_MODES.find((m) => m.id === props.surfaceMode)
   if (!found) return props.surfaceMode
   return props.locale === 'tr' ? found.labelTr : found.labelEn

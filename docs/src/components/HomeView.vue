@@ -3,7 +3,7 @@ import { ArrowRight, BookOpen, Cpu, Download, Palette, Smartphone, Sparkles } fr
 import type { Locale } from '../data/content'
 import { SCREENSHOT_SHOWCASE, SITE_COPY } from '../data/content'
 import { buildHref } from '../utils/router'
-import type { SeedPreset, SurfaceMode } from '../utils/theme'
+import type { MonochromeMode, SeedPreset, SurfaceMode } from '../utils/theme'
 import HeroSection from './HeroSection.vue'
 import FaqAndFooter from './FaqAndFooter.vue'
 
@@ -12,6 +12,7 @@ defineProps<{
   versionTag: string
   recommendedDownloadUrl: string
   surfaceMode: SurfaceMode
+  monochromeMode: MonochromeMode
   activeSeed: SeedPreset
 }>()
 
@@ -38,6 +39,7 @@ function getPillarIcon(id: string) {
       :version-tag="versionTag"
       :recommended-download-url="recommendedDownloadUrl"
       :surface-mode="surfaceMode"
+      :monochrome-mode="monochromeMode"
       :active-seed="activeSeed"
       @update:surface-mode="emit('update:surfaceMode', $event)"
       @update:seed="emit('update:seed', $event)"

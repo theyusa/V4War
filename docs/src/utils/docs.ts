@@ -73,6 +73,15 @@ function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;')
 }
 
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&#x27;/g, "'")
+}
+
 function parseFrontmatter(raw: string): {
   meta: Record<string, string>
   body: string
@@ -111,12 +120,19 @@ function resolveDocMediaSrc(href: string): string {
 function renderMarkdown(markdown: string): { html: string; headings: TocHeading[] } {
   const headings: TocHeading[] = []
   const seenIds = new Map<string, number>()
+  let skippedTopH1 = false
 
   const renderer = new marked.Renderer()
 
   renderer.heading = ({ tokens, depth }) => {
     const innerHtml = marked.Parser.parseInline(tokens, { renderer })
-    const plain = innerHtml.replace(/<[^>]+>/g, '').trim()
+    const plain = decodeHtmlEntities(innerHtml.replace(/<[^>]+>/g, '')).trim()
+
+    if (depth === 1 && !skippedTopH1) {
+      skippedTopH1 = true
+      return ''
+    }
+
     let id = slugifyHeading(plain) || `section-${headings.length + 1}`
     const count = seenIds.get(id) ?? 0
     seenIds.set(id, count + 1)
@@ -141,16 +157,12 @@ function renderMarkdown(markdown: string): { html: string; headings: TocHeading[
     const titleAttr = title ? ` title="${escapeHtml(title)}"` : ''
 
     if (
-      rawHref.startsWith('/docs/') ||
-      rawHref === '/docs' ||
-      rawHref === '/theme-studio' ||
-      rawHref === '/explore' ||
-      rawHref === '/download' ||
-      rawHref === '/'
+      rawHref === '/' ||
+      /^\/(docs|theme-studio|explore|download)(?:$|[/?#])/.test(rawHref)
     ) {
       const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
       const fullHref = `${base}${rawHref}`
-      return `<a href="${fullHref}" data-internal-route="${escapeHtml(rawHref)}"${titleAttr}>${text}</a>`
+      return `<a href="${escapeHtml(fullHref)}" data-internal-route="${escapeHtml(rawHref)}"${titleAttr}>${text}</a>`
     }
 
     if (rawHref.startsWith('http://') || rawHref.startsWith('https://')) {

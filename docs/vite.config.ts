@@ -3,9 +3,21 @@ import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-function spa404FallbackPlugin() {
+const siteBase = process.env.V4WAR_SITE_BASE || '/V4War/'
+const normalizedBase = siteBase.endsWith('/') ? siteBase : `${siteBase}/`
+const siteOrigin =
+  process.env.V4WAR_SITE_ORIGIN ||
+  (normalizedBase === '/' ? 'https://v4war.theyusa.tr' : 'https://theyusa.tr')
+const siteCanonical = `${siteOrigin}${normalizedBase}`
+
+function siteMetaAndSpaPlugin() {
   return {
-    name: 'v4war-spa-404-fallback',
+    name: 'v4war-site-meta-and-spa',
+    transformIndexHtml(html: string) {
+      return html
+        .replace(/https:\/\/theyusa\.tr\/V4War\//g, siteCanonical)
+        .replace(/href="\/V4War\/logo\.png"/g, `href="${normalizedBase}logo.png"`)
+    },
     closeBundle() {
       const distDir = resolve(__dirname, 'dist')
       const indexFile = resolve(distDir, 'index.html')
@@ -18,8 +30,8 @@ function spa404FallbackPlugin() {
 }
 
 export default defineConfig({
-  base: process.env.V4WAR_SITE_BASE || '/V4War/',
-  plugins: [vue(), spa404FallbackPlugin()],
+  base: normalizedBase,
+  plugins: [vue(), siteMetaAndSpaPlugin()],
   build: {
     outDir: 'dist',
     emptyOutDir: true,

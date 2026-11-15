@@ -191,7 +191,7 @@ watch(
       </aside>
 
       <!-- Center Markdown Article -->
-      <main class="docs-main" data-testid="docs-article">
+      <div class="docs-main" data-testid="docs-article">
         <div class="docs-breadcrumb mono">
           <span>{{ locale === 'tr' ? 'Dokümanlar' : 'Docs' }}</span>
           <ChevronRight :size="13" />
@@ -261,7 +261,7 @@ watch(
             <span class="pager-title">{{ prevNext.next.title }}</span>
           </a>
         </nav>
-      </main>
+      </div>
 
       <!-- Right On-This-Page TOC -->
       <aside
@@ -298,8 +298,8 @@ watch(
 
 <style scoped>
 .docs-shell {
-  padding-top: 90px;
-  padding-bottom: 72px;
+  padding-top: 28px;
+  padding-bottom: 64px;
   min-height: calc(100vh - 120px);
 }
 
@@ -324,6 +324,24 @@ watch(
   background: var(--bg-surface);
   border: 1px solid var(--border-muted);
   padding: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-subtle) transparent;
+}
+
+.docs-sidebar::-webkit-scrollbar,
+.docs-toc::-webkit-scrollbar {
+  width: 5px;
+}
+
+.docs-sidebar::-webkit-scrollbar-track,
+.docs-toc::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.docs-sidebar::-webkit-scrollbar-thumb,
+.docs-toc::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 999px;
 }
 
 .docs-sidebar-head {
@@ -757,6 +775,8 @@ watch(
   background: var(--bg-surface);
   border: 1px solid var(--border-muted);
   padding: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-subtle) transparent;
 }
 
 .docs-toc-head {

@@ -81,6 +81,10 @@ describe('V4War Multi-Page App', () => {
     expect(wrapper.get('[data-testid="doc-prose"]').text()).toContain('V4War')
 
     await wrapper.get('[data-testid="doc-nav-hotspot-share"]').trigger('click')
+    expect(wrapper.findAll('main')).toHaveLength(1)
+    expect(wrapper.findAll('h1')).toHaveLength(1)
+    expect(wrapper.get('[data-testid="docs-toc"]').text()).toContain('Shizuku & Recovery Status')
+    expect(wrapper.get('[data-testid="docs-toc"]').text()).not.toContain('&amp;')
     expect(wrapper.get('[data-testid="docs-article"]').text()).toContain('Shizuku')
     expect(wrapper.get('[data-testid="doc-prose"] img').attributes('src')).toContain(
       'screenshots/hotspot-share.webp',
@@ -98,6 +102,7 @@ describe('V4War Multi-Page App', () => {
     await flushPromises()
 
     await wrapper.get('[data-testid="nav-link-studio"]').trigger('click')
+    expect(wrapper.findAll('h1')).toHaveLength(1)
     expect(wrapper.find('[data-testid="live-preview-canvas"]').exists()).toBe(true)
 
     await wrapper.get('[data-testid="surface-btn-light"]').trigger('click')
@@ -109,6 +114,11 @@ describe('V4War Multi-Page App', () => {
     await wrapper.get('[data-testid="mono-btn-black"]').trigger('click')
     expect(document.documentElement.style.getPropertyValue('--bg-canvas')).toBe('#000000')
     expect(document.documentElement.style.getPropertyValue('--seed-primary')).toBe('#FFFFFF')
+    expect(wrapper.get('[data-testid="nav-surface-cycle"]').text()).toContain('Black')
+
+    // Cycling surface from NavBar exits monochrome back to surface mode cleanly
+    await wrapper.get('[data-testid="nav-surface-cycle"]').trigger('click')
+    expect(document.documentElement.dataset.monochrome).toBe('none')
 
     await wrapper.get('[data-testid="custom-seed-btn"]').trigger('click')
     await wrapper.get('[data-testid="custom-hex-input"]').setValue('#7C3AED')
@@ -141,6 +151,7 @@ describe('V4War Multi-Page App', () => {
     expect(grid.findAll('.protocol-card')).toHaveLength(28)
 
     await wrapper.get('[data-testid="nav-link-download"]').trigger('click')
+    expect(wrapper.findAll('h1')).toHaveLength(1)
     expect(wrapper.find('[data-testid="apk-grid"]').exists()).toBe(true)
     expect(wrapper.get('[data-testid="apk-grid"]').text()).toContain('arm64-v8a')
   })
