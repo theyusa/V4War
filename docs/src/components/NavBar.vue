@@ -1,19 +1,23 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Download, Globe, Menu, Palette, X } from 'lucide-vue-next'
+import { BookOpen, Download, Globe, Menu, Palette, X } from 'lucide-vue-next'
 import type { Locale } from '../data/content'
 import { SITE_COPY } from '../data/content'
+import type { AppPageName } from '../utils/router'
+import { buildHref } from '../utils/router'
 import { SURFACE_MODES, type SurfaceMode } from '../utils/theme'
 
 const props = defineProps<{
   locale: Locale
   versionTag: string
   surfaceMode: SurfaceMode
+  currentPage: AppPageName
 }>()
 
 const emit = defineEmits<{
   'toggle-locale': []
   'cycle-surface': []
+  navigate: [routePath: string]
 }>()
 
 const mobileOpen = ref(false)
@@ -25,15 +29,21 @@ const activeSurfaceLabel = computed(() => {
   return props.locale === 'tr' ? found.labelTr : found.labelEn
 })
 
-function closeMobile() {
+function go(routePath: string) {
   mobileOpen.value = false
+  emit('navigate', routePath)
 }
 </script>
 
 <template>
   <header class="nav-wrapper">
     <nav class="nav-pill" aria-label="Main navigation">
-      <a href="#top" class="nav-brand">
+      <a
+        :href="buildHref('/')"
+        class="nav-brand"
+        data-testid="nav-brand"
+        @click.prevent="go('/')"
+      >
         <span class="nav-logo-badge">
           <img :src="logoUrl" alt="V4War Logo" class="nav-logo" width="28" height="28" />
         </span>
@@ -42,10 +52,43 @@ function closeMobile() {
       </a>
 
       <div class="nav-links">
-        <a href="#hotspot" class="nav-link">{{ SITE_COPY.nav.hotspot[locale] }}</a>
-        <a href="#toolbox" class="nav-link">{{ SITE_COPY.nav.toolbox[locale] }}</a>
-        <a href="#studio" class="nav-link">{{ SITE_COPY.nav.studio[locale] }}</a>
-        <a href="#protocols" class="nav-link">{{ SITE_COPY.nav.protocols[locale] }}</a>
+        <a
+          :href="buildHref('/')"
+          class="nav-link"
+          :class="{ active: currentPage === 'home' }"
+          data-testid="nav-link-home"
+          @click.prevent="go('/')"
+        >
+          {{ SITE_COPY.nav.home[locale] }}
+        </a>
+        <a
+          :href="buildHref('/docs/overview')"
+          class="nav-link"
+          :class="{ active: currentPage === 'docs' }"
+          data-testid="nav-link-docs"
+          @click.prevent="go('/docs/overview')"
+        >
+          <BookOpen :size="14" />
+          <span>{{ SITE_COPY.nav.docs[locale] }}</span>
+        </a>
+        <a
+          :href="buildHref('/theme-studio')"
+          class="nav-link"
+          :class="{ active: currentPage === 'theme-studio' }"
+          data-testid="nav-link-studio"
+          @click.prevent="go('/theme-studio')"
+        >
+          {{ SITE_COPY.nav.studio[locale] }}
+        </a>
+        <a
+          :href="buildHref('/explore')"
+          class="nav-link"
+          :class="{ active: currentPage === 'explore' }"
+          data-testid="nav-link-explore"
+          @click.prevent="go('/explore')"
+        >
+          {{ SITE_COPY.nav.explore[locale] }}
+        </a>
       </div>
 
       <div class="nav-actions">
@@ -72,7 +115,12 @@ function closeMobile() {
           <span class="hide-sm">{{ activeSurfaceLabel }}</span>
         </button>
 
-        <a href="#download" class="m3-btn m3-btn-primary nav-cta">
+        <a
+          :href="buildHref('/download')"
+          class="m3-btn m3-btn-primary nav-cta"
+          data-testid="nav-link-download"
+          @click.prevent="go('/download')"
+        >
           <Download :size="15" />
           <span>{{ SITE_COPY.nav.download[locale] }}</span>
         </a>
@@ -91,11 +139,19 @@ function closeMobile() {
     </nav>
 
     <div v-if="mobileOpen" class="mobile-drawer m3-card">
-      <a href="#hotspot" class="mobile-link" @click="closeMobile">{{ SITE_COPY.nav.hotspot[locale] }}</a>
-      <a href="#toolbox" class="mobile-link" @click="closeMobile">{{ SITE_COPY.nav.toolbox[locale] }}</a>
-      <a href="#studio" class="mobile-link" @click="closeMobile">{{ SITE_COPY.nav.studio[locale] }}</a>
-      <a href="#protocols" class="mobile-link" @click="closeMobile">{{ SITE_COPY.nav.protocols[locale] }}</a>
-      <a href="#download" class="m3-btn m3-btn-primary" @click="closeMobile">
+      <a :href="buildHref('/')" class="mobile-link" @click.prevent="go('/')">
+        {{ SITE_COPY.nav.home[locale] }}
+      </a>
+      <a :href="buildHref('/docs/overview')" class="mobile-link" @click.prevent="go('/docs/overview')">
+        {{ SITE_COPY.nav.docs[locale] }}
+      </a>
+      <a :href="buildHref('/theme-studio')" class="mobile-link" @click.prevent="go('/theme-studio')">
+        {{ SITE_COPY.nav.studio[locale] }}
+      </a>
+      <a :href="buildHref('/explore')" class="mobile-link" @click.prevent="go('/explore')">
+        {{ SITE_COPY.nav.explore[locale] }}
+      </a>
+      <a :href="buildHref('/download')" class="m3-btn m3-btn-primary" @click.prevent="go('/download')">
         <Download :size="15" />
         <span>{{ SITE_COPY.nav.download[locale] }}</span>
       </a>
@@ -113,7 +169,7 @@ function closeMobile() {
 }
 
 .nav-pill {
-  max-width: 1160px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 8px 10px 8px 14px;
   border-radius: 999px;
@@ -172,10 +228,13 @@ function closeMobile() {
 }
 
 .nav-link {
-  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px;
   border-radius: 999px;
   font-size: 13.5px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-secondary);
   transition: color 0.18s ease, background-color 0.18s ease;
 }
@@ -183,6 +242,12 @@ function closeMobile() {
 .nav-link:hover {
   color: var(--text-primary);
   background: var(--bg-pill);
+}
+
+.nav-link.active {
+  color: var(--text-primary);
+  background: var(--bg-nested);
+  border: 1px solid var(--border-subtle);
 }
 
 .nav-actions {
@@ -222,7 +287,7 @@ function closeMobile() {
 }
 
 .mobile-drawer {
-  max-width: 1160px;
+  max-width: 1200px;
   margin: 10px auto 0;
   padding: 16px;
   display: flex;

@@ -3,9 +3,22 @@ import { ref } from 'vue'
 import { ChevronDown, Github, HelpCircle } from 'lucide-vue-next'
 import type { Locale } from '../data/content'
 import { FAQS, SITE_COPY } from '../data/content'
+import { buildHref } from '../utils/router'
 
-defineProps<{
-  locale: Locale
+withDefaults(
+  defineProps<{
+    locale: Locale
+    showFaq?: boolean
+    showFooter?: boolean
+  }>(),
+  {
+    showFaq: true,
+    showFooter: true,
+  },
+)
+
+const emit = defineEmits<{
+  navigate: [routePath: string]
 }>()
 
 const openIndex = ref<number | null>(0)
@@ -17,7 +30,7 @@ function toggle(idx: number) {
 </script>
 
 <template>
-  <section id="faq" class="section">
+  <section v-if="showFaq" id="faq" class="section">
     <div class="container">
       <div class="section-header">
         <div class="eyebrow">
@@ -47,7 +60,7 @@ function toggle(idx: number) {
     </div>
   </section>
 
-  <footer class="footer">
+  <footer v-if="showFooter" class="footer">
     <div class="container footer-inner">
       <div class="footer-brand">
         <span class="footer-logo-wrap">
@@ -66,6 +79,18 @@ function toggle(idx: number) {
       </div>
 
       <div class="footer-links">
+        <a :href="buildHref('/docs/overview')" class="m3-pill" @click.prevent="emit('navigate', '/docs/overview')">
+          <span>{{ SITE_COPY.nav.docs[locale] }}</span>
+        </a>
+        <a :href="buildHref('/theme-studio')" class="m3-pill" @click.prevent="emit('navigate', '/theme-studio')">
+          <span>{{ SITE_COPY.nav.studio[locale] }}</span>
+        </a>
+        <a :href="buildHref('/explore')" class="m3-pill" @click.prevent="emit('navigate', '/explore')">
+          <span>{{ SITE_COPY.nav.explore[locale] }}</span>
+        </a>
+        <a :href="buildHref('/download')" class="m3-pill" @click.prevent="emit('navigate', '/download')">
+          <span>{{ SITE_COPY.nav.download[locale] }}</span>
+        </a>
         <a href="https://github.com/theyusa/V4War" target="_blank" rel="noopener noreferrer" class="m3-pill">
           <Github :size="14" />
           <span>theyusa/V4War</span>

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { ArrowRight, Download, Github, ShieldCheck, Smartphone, Wifi, Zap } from 'lucide-vue-next'
+import { ArrowRight, BookOpen, Download, Github, ShieldCheck, Smartphone, Wifi, Zap } from 'lucide-vue-next'
 import type { Locale } from '../data/content'
 import { SITE_COPY } from '../data/content'
+import { buildHref } from '../utils/router'
 import type { SeedPreset, SurfaceMode } from '../utils/theme'
 import { SEED_PRESETS, SURFACE_MODES } from '../utils/theme'
 
@@ -17,11 +18,16 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:surfaceMode': [mode: SurfaceMode]
   'update:seed': [seed: SeedPreset]
+  navigate: [routePath: string]
 }>()
 
 const phoneTab = ref<'live' | 'screenshot'>('live')
 const logoUrl = `${import.meta.env.BASE_URL}logo.png`
-const lanShotUrl = `${import.meta.env.BASE_URL}lan-sharing.jpg`
+const heroShotUrl = `${import.meta.env.BASE_URL}screenshots/appearance-theme-studio.webp`
+
+const quickSeeds = computed(() =>
+  SEED_PRESETS.filter((s) => ['crimson', 'verdant-mint', 'blue', 'purple', 'cyan', 'amber'].includes(s.id)),
+)
 
 const activeSurfaceLabel = computed(() => {
   const found = SURFACE_MODES.find((m) => m.id === props.surfaceMode)
@@ -55,14 +61,32 @@ const activeSurfaceLabel = computed(() => {
         </p>
 
         <div class="hero-cta-row">
-          <a href="#download" class="m3-btn m3-btn-primary">
+          <a
+            :href="buildHref('/docs/overview')"
+            class="m3-btn m3-btn-primary"
+            data-testid="hero-docs-cta"
+            @click.prevent="emit('navigate', '/docs/overview')"
+          >
+            <BookOpen :size="16" />
+            <span>{{ SITE_COPY.hero.ctaDocs[locale] }}</span>
+            <ArrowRight :size="15" />
+          </a>
+
+          <a
+            :href="buildHref('/download')"
+            class="m3-btn m3-btn-tonal"
+            @click.prevent="emit('navigate', '/download')"
+          >
             <Download :size="16" />
             <span>{{ SITE_COPY.hero.ctaPrimary[locale] }} ({{ versionTag }})</span>
           </a>
 
-          <a href="#hotspot" class="m3-btn m3-btn-tonal">
+          <a
+            :href="buildHref('/theme-studio')"
+            class="m3-btn m3-btn-tonal"
+            @click.prevent="emit('navigate', '/theme-studio')"
+          >
             <span>{{ SITE_COPY.hero.ctaSecondary[locale] }}</span>
-            <ArrowRight :size="15" />
           </a>
 
           <a
@@ -164,7 +188,7 @@ const activeSurfaceLabel = computed(() => {
               </div>
               <div class="mini-surface-row">
                 <button
-                  v-for="mode in SURFACE_MODES"
+                  v-for="mode in SURFACE_MODES.slice(0, 4)"
                   :key="mode.id"
                   type="button"
                   class="mini-mode-chip"
@@ -176,7 +200,7 @@ const activeSurfaceLabel = computed(() => {
               </div>
               <div class="mini-seed-row">
                 <button
-                  v-for="seed in SEED_PRESETS"
+                  v-for="seed in quickSeeds"
                   :key="seed.id"
                   type="button"
                   class="seed-dot"
@@ -194,12 +218,12 @@ const activeSurfaceLabel = computed(() => {
             </a>
           </div>
 
-          <!-- Tab 2: Real Screenshot from repo -->
+          <!-- Tab 2: Real Screenshot (EXIF-stripped WebP) -->
           <div v-else class="screenshot-container" data-testid="phone-screenshot-view">
             <div class="screenshot-wrap">
               <img
-                :src="lanShotUrl"
-                alt="V4War LAN Sharing & Hotspot Gateway Pure AMOLED Interface"
+                :src="heroShotUrl"
+                alt="V4War Pure AMOLED Appearance & Theme Studio Interface"
                 class="real-screenshot"
               />
             </div>
@@ -216,7 +240,7 @@ const activeSurfaceLabel = computed(() => {
 <style scoped>
 .hero {
   padding-top: 56px;
-  padding-bottom: 72px;
+  padding-bottom: 64px;
   overflow: hidden;
 }
 
@@ -297,7 +321,7 @@ const activeSurfaceLabel = computed(() => {
 .hero-cta-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 34px;
 }
 

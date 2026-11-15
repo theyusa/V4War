@@ -32,11 +32,65 @@ export interface FaqItem {
   a: Record<Locale, string>
 }
 
+export interface ScreenshotShowcaseItem {
+  id: string
+  file: string
+  title: Record<Locale, string>
+  caption: Record<Locale, string>
+  docRoute: string
+}
+
+export const SCREENSHOT_SHOWCASE: ScreenshotShowcaseItem[] = [
+  {
+    id: 'appearance',
+    file: 'screenshots/appearance-theme-studio.webp',
+    title: { en: 'Theme Studio (Pure AMOLED)', tr: 'Theme Studio (Saf AMOLED)' },
+    caption: {
+      en: 'Live Preview card, Surface Styles, Monochrome Themes & 22+ Material You seed colors.',
+      tr: 'Canlı Önizleme kartı, Yüzey Stilleri, Monokrom Temalar ve 22+ Material You tohum rengi.',
+    },
+    docRoute: '/docs/appearance-theme-studio',
+  },
+  {
+    id: 'tools',
+    file: 'screenshots/tools-network.webp',
+    title: { en: 'Network & Tools Suite', tr: 'Ağ ve Araçlar Paketi' },
+    caption: {
+      en: 'Cellular Radio, Interfaces, IP Lookup, DNS Lookup, Local Ping, Connectivity Test & Traffic.',
+      tr: 'Hücresel Radyo, Arayüzler, IP & DNS Sorgulama, Yerel Ping, Bağlantı Testi ve Trafik Analizi.',
+    },
+    docRoute: '/docs/network-toolbox',
+  },
+  {
+    id: 'hotspot',
+    file: 'screenshots/hotspot-share.webp',
+    title: { en: 'Hotspot Share (Shizuku TUN)', tr: 'Hotspot Paylaşım (Shizuku TUN)' },
+    caption: {
+      en: 'Rootless UID 2000 transparent TUN over Wi-Fi, USB RNDIS & Bluetooth with Fail-Closed guard.',
+      tr: 'Wi-Fi, USB RNDIS ve Bluetooth üzerinde rootsuz UID 2000 şeffaf TUN ve sızıntı koruması.',
+    },
+    docRoute: '/docs/hotspot-share',
+  },
+  {
+    id: 'local-proxy',
+    file: 'screenshots/hotspot-local-proxy.webp',
+    title: { en: 'LAN Proxy & Auto Connect', tr: 'LAN Proxy ve Otomatik Bağlan' },
+    caption: {
+      en: 'HTTP/SOCKS5 inbound, zero-config Desktop Gateway pairing, one-tap share links & live ARP devices.',
+      tr: 'HTTP/SOCKS5 giriş, sıfır ayarlı Masaüstü Ağ Geçidi eşleşmesi, paylaşım linkleri ve canlı cihazlar.',
+    },
+    docRoute: '/docs/local-proxy-desktop',
+  },
+]
+
 export const SITE_COPY = {
   nav: {
+    home: { en: 'Home', tr: 'Ana Sayfa' },
+    docs: { en: 'Docs', tr: 'Dokümanlar' },
+    studio: { en: 'Theme Studio', tr: 'Theme Studio' },
+    explore: { en: 'Explore Lab', tr: 'Özellik Lab' },
     hotspot: { en: 'Hotspot Share', tr: 'Hotspot Paylaşım' },
     toolbox: { en: 'Network Toolbox', tr: 'Ağ Araçları' },
-    studio: { en: 'Theme Studio', tr: 'Theme Studio' },
     protocols: { en: 'Protocols', tr: 'Protokoller' },
     download: { en: 'Download', tr: 'İndir' },
   },
@@ -61,13 +115,17 @@ export const SITE_COPY = {
       en: 'Download APK',
       tr: 'APK İndir',
     },
+    ctaDocs: {
+      en: 'Read Docs',
+      tr: 'Dokümanları Oku',
+    },
     ctaSecondary: {
-      en: 'Explore Features',
-      tr: 'Özellikleri Keşfet',
+      en: 'Open Theme Studio',
+      tr: 'Theme Studio Aç',
     },
     ctaGithub: {
-      en: 'GitHub Source',
-      tr: 'GitHub Kaynak',
+      en: 'GitHub',
+      tr: 'GitHub',
     },
     metrics: [
       { value: '28+', label: { en: 'Protocols & Transports', tr: 'Protokol ve Aktarım' } },
@@ -75,15 +133,84 @@ export const SITE_COPY = {
       { value: 'UID 2000', label: { en: 'Rootless Shizuku TUN', tr: 'Rootsuz Shizuku TUN' } },
       { value: 'API 24–35', label: { en: 'Android 7.0–15 + TV', tr: 'Android 7.0–15 + TV' } },
     ],
-    phoneTabLive: { en: 'Theme Studio UI', tr: 'Theme Studio Önizleme' },
-    phoneTabShot: { en: 'LAN Sharing Screen', tr: 'LAN Paylaşım Ekranı' },
+    phoneTabLive: { en: 'Live App UI', tr: 'Canlı Arayüz' },
+    phoneTabShot: { en: 'Real Screens', tr: 'Gerçek Ekranlar' },
     phoneMockup: {
       coreSubtitle: { en: 'Sing-box Core · TLS Fragment ON', tr: 'Sing-box Çekirdeği · TLS Fragment AÇIK' },
       connectedLabel: { en: 'Connected', tr: 'Bağlı' },
       hotspotTitle: { en: 'Hotspot Share · Shizuku', tr: 'Hotspot Paylaşım · Shizuku' },
       hotspotSubtitle: { en: 'Wi-Fi + USB RNDIS · 3 clients', tr: 'Wi-Fi + USB RNDIS · 3 istemci' },
-      scrollHint: { en: 'Real Pure AMOLED UI · Scrollable', tr: 'Gerçek Saf AMOLED Arayüzü · Kaydırılabilir' },
+      scrollHint: { en: 'Real V4War Pure AMOLED Screens · Metadata Stripped', tr: 'Gerçek V4War Saf AMOLED Ekranları · EXIF Temiz' },
     },
+  },
+  pillars: {
+    eyebrow: { en: 'Focused Architecture', tr: 'Odaklı Mimari' },
+    title: {
+      en: 'Everything Organized Into Dedicated Guides & Interactive Tools.',
+      tr: 'Her Özellik Ayrı Rehberler ve Etkileşimli Araçlarla Düzenlendi.',
+    },
+    subtitle: {
+      en: 'Instead of crowding everything onto one page, explore step-by-step Markdown documentation, test the real Theme Studio replica, or inspect live protocol and diagnostic simulators.',
+      tr: 'Her şeyi tek bir sayfaya yığmak yerine adım adım Markdown dokümantasyonunu inceleyin, gerçek Theme Studio kopyasını deneyin veya protokol ve ağ araçları laboratuvarını keşfedin.',
+    },
+    cards: [
+      {
+        id: 'docs',
+        badge: '12 GUIDES · EN / TR',
+        title: { en: 'Step-by-Step Documentation', tr: 'Adım Adım Dokümantasyon' },
+        desc: {
+          en: 'Throne-style left sidebar with Quick Start, Shizuku TUN Hotspot guides, Network Toolbox manuals, Routing, and Troubleshooting.',
+          tr: 'Sol kenar çubuklu, Hızlı Başlangıç, Shizuku TUN Hotspot rehberi, Ağ Araçları, Yönlendirme ve Sorun Giderme dokümanları.',
+        },
+        cta: { en: 'Browse Docs', tr: 'Dokümanlara Git' },
+        route: '/docs/overview',
+      },
+      {
+        id: 'studio',
+        badge: '1:1 APP REPLICA',
+        title: { en: 'Interactive Theme Studio', tr: 'Etkileşimli Theme Studio' },
+        desc: {
+          en: 'Test the exact V4War Appearance screen: Live Preview card, Pure AMOLED / AMOLED / Dark / Light / System, Monochrome Themes, and 22+ Seed Colors.',
+          tr: 'Gerçek V4War Görünüm ekranını birebir test edin: Canlı Önizleme, Pure AMOLED / AMOLED / Koyu / Açık / Sistem, Monokrom Temalar ve 22+ Tohum Rengi.',
+        },
+        cta: { en: 'Launch Studio', tr: 'Studio’yu Aç' },
+        route: '/theme-studio',
+      },
+      {
+        id: 'explore',
+        badge: '10 TOOLS · 28+ PROTOCOLS',
+        title: { en: 'Hotspot, Toolbox & Protocols Lab', tr: 'Hotspot, Ağ Araçları ve Protokol Lab' },
+        desc: {
+          en: 'Compare Auto, Shizuku TUN, Root iptables & LAN Proxy backends, inspect all 10 diagnostic tools, and filter 28+ protocols.',
+          tr: 'Auto, Shizuku TUN, Root iptables ve LAN Proxy motorlarını kıyaslayın, 10 ağ aracını ve 28+ protokolü filtreleyin.',
+        },
+        cta: { en: 'Open Explorer', tr: 'Laboratuvarı Aç' },
+        route: '/explore',
+      },
+      {
+        id: 'download',
+        badge: 'SHA-256 · SHIZUKU UPDATER',
+        title: { en: 'Verified APKs & Source Build', tr: 'Doğrulanmış APK ve Kaynak Derleme' },
+        desc: {
+          en: 'Grab arm64-v8a, armeabi-v7a, or x86_64 builds synced live from GitHub Releases with SHA256SUMS and Shizuku silent updates.',
+          tr: 'GitHub Releases’tan canlı çekilen arm64-v8a, armeabi-v7a ve x86_64 paketlerini SHA256SUMS doğrulamasıyla indirin.',
+        },
+        cta: { en: 'Get V4War APK', tr: 'APK İndir' },
+        route: '/download',
+      },
+    ],
+  },
+  gallery: {
+    eyebrow: { en: 'Real App Screenshots', tr: 'Gerçek Uygulama Ekranları' },
+    title: {
+      en: 'Captured Directly From V4War Pure AMOLED.',
+      tr: 'Doğrudan V4War Saf AMOLED Arayüzünden.',
+    },
+    subtitle: {
+      en: 'Tap any screen to jump straight to its step-by-step guide in the documentation.',
+      tr: 'İlgili adım adım rehbere gitmek için herhangi bir ekrana tıklayın.',
+    },
+    openGuide: { en: 'Read guide', tr: 'Rehberi oku' },
   },
   hotspot: {
     eyebrow: { en: 'Hotspot & Proxy Share Suite', tr: 'Hotspot ve Proxy Paylaşım Paketi' },
@@ -134,19 +261,24 @@ export const SITE_COPY = {
   studio: {
     eyebrow: { en: 'Material 3 Expressive & Theme Studio', tr: 'Material 3 Expressive ve Theme Studio' },
     title: {
-      en: 'True Pure AMOLED & 3-Tone Seed Harmonization.',
-      tr: 'Gerçek Saf AMOLED ve 3 Tonlu Tohum Renk Uyumu.',
+      en: 'Appearance & Theme Studio — 1:1 Live Replica.',
+      tr: 'Görünüm ve Theme Studio — Birebir Canlı Deneyim.',
     },
     subtitle: {
-      en: 'Test V4War’s Theme Studio engine live on this page. Switch surface modes and seed colors below — the entire interface adapts using V4War’s exact Tone 1 / Tone 2 / Tone 3 blending ratios.',
-      tr: 'V4War’ın Theme Studio motorunu doğrudan bu sayfada test edin. Aşağıdan yüzey modunu ve tema tohum rengini seçin — tüm arayüz V4War’ın gerçek 1. / 2. / 3. ton oranlarıyla canlı güncellenir.',
+      en: 'Mirrors V4War’s Settings → Appearance screen card-for-card. Switch Surface Styles, Monochrome Themes, or pick from 22+ Seed Colors & Custom HEX — the entire site updates live.',
+      tr: 'V4War’ın Ayarlar → Görünüm ekranını kart kart yansıtır. Yüzey Stilini, Monokrom Temaları veya 22+ Tohum Rengi ile Özel HEX seçimini değiştirin — tüm site anında güncellenir.',
     },
-    surfaceLabel: { en: 'Surface Mode', tr: 'Yüzey Modu' },
-    seedLabel: { en: 'Seed Palette', tr: 'Tema Tohumu' },
+    livePreviewLabel: { en: 'Live Preview', tr: 'Canlı Önizleme' },
+    surfaceLabel: { en: 'Surface Style', tr: 'Yüzey Stili' },
+    monochromeLabel: { en: 'Monochrome Themes', tr: 'Monokrom Temalar' },
+    themeSectionLabel: { en: 'Theme', tr: 'Tema' },
+    seedLabel: { en: 'Seed Color', tr: 'Tohum Rengi' },
+    customBtnLabel: { en: 'Custom', tr: 'Özel' },
     tonesLabel: { en: 'Live 3-Tone Output', tr: 'Canlı 3 Ton Çıktısı' },
     tone1Label: { en: 'Tone 1 (Canvas)', tr: '1. Ton (Tuval)' },
     tone2Label: { en: 'Tone 2 (Card)', tr: '2. Ton (Kart)' },
     tone3Label: { en: 'Tone 3 (Nested)', tr: '3. Ton (İç Kutu)' },
+    compareShotLabel: { en: 'Compare with Real App Screen', tr: 'Gerçek Uygulama Ekranıyla Kıyasla' },
   },
   protocols: {
     eyebrow: { en: 'Protocols & Subscriptions', tr: 'Protokoller ve Abonelikler' },
