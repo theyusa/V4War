@@ -3,6 +3,7 @@ package io.nekohasekai.sagernet.ui
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -32,14 +33,18 @@ import io.nekohasekai.sagernet.database.ProxyEntity
 import io.nekohasekai.sagernet.databinding.LayoutAutoSelectorMemberBinding
 import io.nekohasekai.sagernet.databinding.LayoutAutoSelectorStatusBinding
 import io.nekohasekai.sagernet.ktx.Logs
+import io.nekohasekai.sagernet.ktx.dp2pxf
 import io.nekohasekai.sagernet.ktx.needReload
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
 import io.nekohasekai.sagernet.ui.profile.ProfileSettingsActivity
 import io.nekohasekai.sagernet.ui.profile.profileSettingsIntent
 import io.nekohasekai.sagernet.ui.profiles.ProfilesDbWatcher
 import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
+import io.nekohasekai.sagernet.utils.Theme
+import io.nekohasekai.sagernet.widget.applyInsetMargin
 import io.nekohasekai.sagernet.widget.applyInsetPadding
 import io.nekohasekai.sagernet.widget.applyListInsets
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -118,12 +123,13 @@ class AutoSelectorStatusActivity : ThemedActivity(), SagerConnection.Callback {
 
         binding.list.layoutManager = LinearLayoutManager(this)
         binding.list.adapter = adapter
-        binding.header.applyInsetPadding(horizontal = true)
+        binding.headerCard.applyInsetMargin(horizontal = true)
         binding.empty.applyInsetPadding(horizontal = true)
         binding.list.applyListInsets()
+        ExpressiveSettingsHelper.styleExpressiveCard(binding.headerCard, cornerRadiusDp = 20f)
         ExpressiveSettingsHelper.styleOutlinedButton(binding.automatic)
         ExpressiveSettingsHelper.styleOutlinedButton(binding.recheck)
-        val accent = ExpressiveSettingsHelper.resolveAccentColor(this)
+        val accent = readableAccentColor()
         binding.progress.setIndicatorColor(accent)
         binding.progress.trackColor = ColorUtils.setAlphaComponent(accent, 44)
         binding.recheck.setOnClickListener { withService { it.autoSelectorRecheck() } }
@@ -443,6 +449,17 @@ class AutoSelectorStatusActivity : ThemedActivity(), SagerConnection.Callback {
         }
     }
 
+    private fun readableAccentColor(): Int {
+        val accent = ExpressiveSettingsHelper.resolveAccentColor(this)
+        val isNight = Theme.usingNightMode(this)
+        val isMonochrome = accent == Color.WHITE || accent == Color.BLACK
+        return when {
+            Theme.isMonochromeBlack(this) && isMonochrome -> Color.WHITE
+            isNight && ColorUtils.calculateLuminance(accent) < 0.35 -> ColorUtils.blendARGB(accent, Color.WHITE, 0.35f)
+            else -> accent
+        }
+    }
+
     private fun stateText(member: AutoSelectorStatus.Member): String = when (member.state) {
         AutoSelectorStatus.STATE_OK -> getString(R.string.autosel_state_ok)
         AutoSelectorStatus.STATE_DEGRADED -> getString(R.string.autosel_state_degraded)
@@ -554,6 +571,13 @@ class AutoSelectorStatusActivity : ThemedActivity(), SagerConnection.Callback {
         }
 
         fun bind(item: Row) {
+            val context = row.root.context
+            row.root.setCardBackgroundColor(Theme.resolveCardBackground(context))
+            row.root.strokeColor = Theme.resolveCardStrokeColor(context, selected = item.selected)
+            row.root.strokeWidth = Theme.resolveCardStrokeWidthPx(context, selected = item.selected).roundToInt()
+            row.root.cardElevation = 0f
+            row.root.radius = dp2pxf(16)
+
             row.rank.text = item.rank.toString()
             row.name.text = item.name
             row.name.setTypeface(

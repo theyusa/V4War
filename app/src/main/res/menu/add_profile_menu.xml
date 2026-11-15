@@ -155,6 +155,7 @@
                                 android:title="@string/profiles_test_speed" />
                             <item
                                 android:id="@+id/action_test_service"
+                                android:icon="@drawable/ic_baseline_check_circle_24"
                                 android:title="@string/service_check" />
                             <item
                                 android:id="@+id/action_test_stop"

@@ -441,7 +441,7 @@ class RouteTesterActivity : ThemedActivity() {
         ExpressiveSettingsHelper.styleExpressiveCard(binding.resultCard, cornerRadiusDp = 20f)
         ExpressiveSettingsHelper.styleExpressiveChips(binding.network)
         ExpressiveSettingsHelper.stylePrimaryButton(binding.test)
-        val accent = ExpressiveSettingsHelper.resolveAccentColor(this)
+        val accent = readableAccentColor()
         binding.progress.setIndicatorColor(accent)
         binding.progress.trackColor = ColorUtils.setAlphaComponent(accent, 44)
     }

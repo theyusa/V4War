@@ -45,7 +45,8 @@
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="@string/route_tester_target">
+                            android:hint="@string/route_tester_target"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.SagerNet.Input">
 
                             <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/target"
@@ -186,7 +187,8 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:hint="@string/route_tester_protocol"
-                            app:helperText="@string/route_tester_protocol_hint">
+                            app:helperText="@string/route_tester_protocol_hint"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.SagerNet.Input">
 
                             <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/protocol"

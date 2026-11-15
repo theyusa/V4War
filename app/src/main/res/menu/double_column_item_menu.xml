@@ -27,14 +27,17 @@
                 android:title="@string/profiles_test_speed" />
             <item
                 android:id="@+id/action_test_service"
+                android:icon="@drawable/ic_baseline_check_circle_24"
                 android:title="@string/service_check" />
         </menu>
     </item>
     <item
         android:id="@+id/action_service_results"
+        android:icon="@drawable/ic_baseline_info_24"
         android:title="@string/service_check_results" />
     <item
         android:id="@+id/action_pin"
+        android:icon="@drawable/ic_baseline_push_pin_24"
         android:title="@string/profiles_pin" />
     <item
         android:id="@+id/action_resolve_domain"
