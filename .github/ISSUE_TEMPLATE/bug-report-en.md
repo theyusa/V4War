@@ -1,25 +1,30 @@
 ---
-name: 'Bug Report'
-about: 'Please troubleshoot server-side issues and upgrade to the latest client before raising a question.'
-title: 'BUG: '
-labels: ''
+name: 'Bug Report (EN)'
+about: 'Report a bug or unexpected behavior in V4War for Android.'
+title: 'bug: '
+labels: 'bug'
 assignees: ''
-
 ---
 
+## Environment
+- **App version:** (e.g. `2.0.21`)
+- **Android version & ROM:** (e.g. Android 14 / HyperOS / OneUI / AOSP)
+- **Device model:**
+- **Sharing mode (if applicable):** Auto / Shizuku / Root / LAN Proxy / N/A
+- **Tethering channel (if applicable):** Wi-Fi Hotspot / USB RNDIS / Bluetooth PAN / N/A
+
 ## Describe the problem
+**Expected behavior:**
 
-Expected behavior:
+**Actual behavior:**
 
-Actual behavior:
-
-## How to reproduce
-
-Provide helpful screenshots, videos, text descriptions, subscription links, etc.
+## Steps to reproduce
+1.
+2.
+3.
 
 ## Logs & Configs
+Export logs from **Logs → Share / Save** (keep **"Hide sensitive data"** enabled) or from the **Hotspot & Proxy Share** log drawer. Remove any secrets from profile JSONs before attaching.
 
-Export the logs from the app (Log › Share logs or Save logs, keep "Hide sensitive data" on) and attach the file to this issue. Share configs or subscription links only with their secrets removed.
-
-- [ ] Attached exported logs
-- [ ] (Optional) Attached the relevant profile JSON with secrets removed
+- [ ] Tested on the latest V4War release
+- [ ] Attached exported logs (with secrets redacted)

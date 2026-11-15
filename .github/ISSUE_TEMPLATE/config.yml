@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Releases & Downloads
+    url: https://github.com/theyusa/V4War/releases
+    about: Check the latest stable release and changelog before reporting an issue.
+  - name: Documentation & Guides
+    url: https://github.com/theyusa/V4War#readme
+    about: Review Hotspot & Proxy Share, Shizuku/Root setup, and Network Toolbox docs.
