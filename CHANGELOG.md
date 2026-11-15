@@ -1,3 +1,10 @@
+#### 2.1.3
+
+* Bump release version to `2.1.3` (`VERSION_CODE=128`) with aligned APK filenames and `v4war-update.json` metadata
+* Sync upstream Throne 2.0.7 features (Service check, Route path lookup, Auto Selector priority tiers, hop-by-hop chain testing, profile pinning, multi-profile QR sharing, QUIC Opener, WARP TLS fragmentation, subscription filters, parallel DNS queries, WireGuard MTU 1280 default, and updated sing-box/Xray core)
+* Adapt newly synced upstream screens, Auto Selector status cards, Route Tester, and menu icons to V4War Material 3 Expressive / AMOLED theme
+* Include Hotspot & Proxy Share (Wi-Fi Hotspot, USB RNDIS, Bluetooth PAN, Quick Settings tile, Shizuku TUN, Root `iptables`, LAN Proxy), 10-in-1 Network Toolbox, and Shizuku silent app updater
+
 #### 2.0.7
 
 * Add Service check **1**

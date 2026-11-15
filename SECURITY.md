@@ -6,7 +6,7 @@ Security fixes are applied to the `main` branch and published in the latest rele
 
 | Version | Supported |
 |---|---|
-| Latest (`main` / `2.0.21+`) | :white_check_mark: |
+| Latest (`main` / `2.1.3+`) | :white_check_mark: |
 | Older releases | :x: |
 
 ## Security Practices in V4War

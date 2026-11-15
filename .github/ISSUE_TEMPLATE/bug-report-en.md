@@ -7,7 +7,7 @@ assignees: ''
 ---
 
 ## Environment
-- **App version:** (e.g. `2.0.21`)
+- **App version:** (e.g. `2.1.3`)
 - **Android version & ROM:** (e.g. Android 14 / HyperOS / OneUI / AOSP)
 - **Device model:**
 - **Sharing mode (if applicable):** Auto / Shizuku / Root / LAN Proxy / N/A

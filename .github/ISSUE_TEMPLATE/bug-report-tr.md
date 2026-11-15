@@ -7,7 +7,7 @@ assignees: ''
 ---
 
 ## Ortam Bilgileri
-- **Uygulama sürümü:** (ör. `2.0.21`)
+- **Uygulama sürümü:** (ör. `2.1.3`)
 - **Android sürümü ve ROM:** (ör. Android 14 / HyperOS / OneUI / AOSP)
 - **Cihaz modeli:**
 - **Paylaşım modu (ilgiliyse):** Otomatik / Shizuku / Root / LAN Proxy / Yok
