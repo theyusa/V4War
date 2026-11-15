@@ -23,6 +23,9 @@
 </p>
 
 <p>
+  <a href="https://v4war.theyusa.tr/">
+    <img alt="Web Sitesi ve Dokümantasyon" src="https://img.shields.io/badge/Web%20Sitesi%20%26%20Rehber-v4war.theyusa.tr-BC0000?logo=googlechrome&logoColor=white&style=for-the-badge" />
+  </a>
   <a href="https://github.com/theyusa/V4War/releases">
     <img alt="APK İndir" src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F%20Son%20APK'y%C4%B1%20%C4%B0ndir-GitHub%20Releases-2088FF?logo=github&logoColor=white&style=for-the-badge" />
   </a>

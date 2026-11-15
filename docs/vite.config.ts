@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-const siteBase = process.env.V4WAR_SITE_BASE || '/V4War/'
+const siteBase = process.env.V4WAR_SITE_BASE || '/'
 const normalizedBase = siteBase.endsWith('/') ? siteBase : `${siteBase}/`
 const siteOrigin =
   process.env.V4WAR_SITE_ORIGIN ||
@@ -15,8 +15,8 @@ function siteMetaAndSpaPlugin() {
     name: 'v4war-site-meta-and-spa',
     transformIndexHtml(html: string) {
       return html
-        .replace(/https:\/\/theyusa\.tr\/V4War\//g, siteCanonical)
-        .replace(/href="\/V4War\/logo\.png"/g, `href="${normalizedBase}logo.png"`)
+        .replace(/https:\/\/(?:v4war\.theyusa\.tr|theyusa\.tr\/V4War)\//g, siteCanonical)
+        .replace(/href="\/(?:V4War\/)?logo\.png"/g, `href="${normalizedBase}logo.png"`)
     },
     closeBundle() {
       const distDir = resolve(__dirname, 'dist')

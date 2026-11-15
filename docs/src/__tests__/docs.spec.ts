@@ -56,7 +56,24 @@ describe('Markdown Documentation & Multi-Page Router', () => {
     expect(shizukuMatches.some((p) => p.slug === 'hotspot-share')).toBe(true)
   })
 
-  it('parses direct routes, /V4War/ base paths, 404 ?p= redirects, and hash fallbacks', () => {
+  it('parses root / routes, subpath overrides, 404 ?p= redirects, and hash fallbacks', () => {
+    expect(parseAppLocation('/', '', '', '/').page).toBe('home')
+    expect(parseAppLocation('/docs/hotspot-share', '', '', '/')).toEqual({
+      page: 'docs',
+      docSlug: 'hotspot-share',
+      hash: '',
+      canonicalPath: '/docs/hotspot-share',
+    })
+    expect(parseAppLocation('/404.html', '', '?p=/docs/network-toolbox', '/')).toEqual({
+      page: 'docs',
+      docSlug: 'network-toolbox',
+      hash: '',
+      canonicalPath: '/docs/network-toolbox',
+    })
+    expect(parseAppLocation('/', '#/theme-studio', '', '/').page).toBe('theme-studio')
+    expect(buildHref('/', '/')).toBe('/')
+    expect(buildHref('/docs/overview', '/')).toBe('/docs/overview')
+
     expect(parseAppLocation('/V4War/', '', '', '/V4War/').page).toBe('home')
     expect(parseAppLocation('/V4War/docs/hotspot-share', '', '', '/V4War/')).toEqual({
       page: 'docs',
@@ -70,8 +87,6 @@ describe('Markdown Documentation & Multi-Page Router', () => {
       hash: '',
       canonicalPath: '/docs/network-toolbox',
     })
-    expect(parseAppLocation('/V4War/', '#/theme-studio', '', '/V4War/').page).toBe('theme-studio')
     expect(buildHref('/docs/overview', '/V4War/')).toBe('/V4War/docs/overview')
-    expect(buildHref('/docs/overview', '/')).toBe('/docs/overview')
   })
 })

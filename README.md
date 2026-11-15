@@ -23,6 +23,9 @@
 </p>
 
 <p>
+  <a href="https://v4war.theyusa.tr/">
+    <img alt="Website & Docs" src="https://img.shields.io/badge/Website%20%26%20Docs-v4war.theyusa.tr-BC0000?logo=googlechrome&logoColor=white&style=for-the-badge" />
+  </a>
   <a href="https://github.com/theyusa/V4War/releases">
     <img alt="Download APK" src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F%20Download%20Latest%20APK-GitHub%20Releases-2088FF?logo=github&logoColor=white&style=for-the-badge" />
   </a>

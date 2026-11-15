@@ -17,7 +17,7 @@ describe('V4War Multi-Page App', () => {
         store.clear()
       },
     })
-    window.history.replaceState({}, '', '/V4War/')
+    window.history.replaceState({}, '', '/')
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
@@ -48,6 +48,7 @@ describe('V4War Multi-Page App', () => {
     expect(wrapper.text()).toContain('V4War')
     expect(wrapper.text()).toContain('Next-Gen Android')
     expect(wrapper.find('[data-testid="pillar-card-docs"]').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="nav-link-docs"]').attributes('href')).toBe('/docs/overview')
     expect(wrapper.find('[data-testid="showcase-appearance"]').exists()).toBe(true)
     // Home stays uncluttered — interactive protocol grid lives on Explore Lab
     expect(wrapper.find('[data-testid="protocol-grid"]').exists()).toBe(false)
