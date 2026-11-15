@@ -1,0 +1,221 @@
+:root {
+  --seed-primary: #e11d24;
+  --seed-accent: #ff2a32;
+  --seed-tone-1: #150507;
+  --seed-tone-2: #240b10;
+  --seed-on-primary: #ffffff;
+
+  /* Pure AMOLED defaults (matching V4War Theme.kt NIGHT_PURE_AMOLED) */
+  --bg-canvas: #000000;
+  --bg-surface: #000000;
+  --bg-surface-elevated: #060608;
+  --bg-nested: rgba(225, 29, 36, 0.08);
+  --bg-glass: rgba(8, 8, 10, 0.78);
+  --bg-pill: rgba(255, 255, 255, 0.05);
+
+  --text-primary: #ffffff;
+  --text-secondary: #cac4d0;
+  --text-muted: #8e8a96;
+
+  /* 0.5dp–1px expressive hairline stroke */
+  --border-subtle: rgba(225, 29, 36, 0.34);
+  --border-muted: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(225, 29, 36, 0.75);
+
+  --shadow-glow: 0 0 80px rgba(225, 29, 36, 0.22);
+  --shadow-card: 0 10px 34px rgba(0, 0, 0, 0.55);
+
+  --radius-card: 22px;
+  --radius-nested: 16px;
+  --radius-pill: 999px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  transition: background-color 0.28s ease, color 0.28s ease;
+  overflow-x: hidden;
+}
+
+code,
+pre,
+.mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.section {
+  position: relative;
+  padding: 88px 0;
+}
+
+.section-header {
+  max-width: 720px;
+  margin-bottom: 44px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-nested);
+  border: 1px solid var(--border-subtle);
+  color: var(--seed-accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  margin: 0 0 14px;
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  color: var(--text-primary);
+}
+
+.section-subtitle {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+/* Material 3 Expressive Card & Squircle */
+.m3-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  transition: border-color 0.22s ease, transform 0.22s ease, background-color 0.28s ease, box-shadow 0.22s ease;
+}
+
+.m3-card-interactive:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+}
+
+.m3-nested {
+  background: var(--bg-nested);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-nested);
+}
+
+.squircle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 15px;
+  background: var(--bg-nested);
+  border: 1px solid var(--border-subtle);
+  color: var(--seed-accent);
+  flex-shrink: 0;
+}
+
+.m3-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.m3-btn:active {
+  transform: scale(0.98);
+}
+
+.m3-btn-primary {
+  background: var(--seed-primary);
+  color: var(--seed-on-primary);
+  box-shadow: 0 8px 26px color-mix(in srgb, var(--seed-primary) 38%, transparent);
+}
+
+.m3-btn-primary:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.m3-btn-tonal {
+  background: var(--bg-nested);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+
+.m3-btn-tonal:hover {
+  border-color: var(--border-strong);
+  background: color-mix(in srgb, var(--seed-primary) 16%, var(--bg-surface));
+}
+
+.m3-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border-muted);
+  background: var(--bg-pill);
+  color: var(--text-secondary);
+}
+
+/* Subtle dot grid for architectural depth without visual noise */
+.bg-grid-pattern {
+  background-image: radial-gradient(var(--border-muted) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: 60px 0;
+  }
+
+  .container {
+    padding: 0 16px;
+  }
+}

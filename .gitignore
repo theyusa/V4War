@@ -29,3 +29,6 @@ __pycache__/
 
 docs/.vitepress/dist
 docs/.vitepress/cache
+docs/dist/
+dist/
+node_modules/
