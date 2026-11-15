@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { ArrowRight, Download, Github, ShieldCheck, Smartphone, Wifi, Zap } from 'lucide-vue-next'
 import type { Locale } from '../data/content'
 import { SITE_COPY } from '../data/content'
 import type { SeedPreset, SurfaceMode } from '../utils/theme'
 import { SEED_PRESETS, SURFACE_MODES } from '../utils/theme'
 
-defineProps<{
+const props = defineProps<{
   locale: Locale
   versionTag: string
   recommendedDownloadUrl: string
@@ -22,6 +22,12 @@ const emit = defineEmits<{
 const phoneTab = ref<'live' | 'screenshot'>('live')
 const logoUrl = `${import.meta.env.BASE_URL}logo.png`
 const lanShotUrl = `${import.meta.env.BASE_URL}lan-sharing.jpg`
+
+const activeSurfaceLabel = computed(() => {
+  const found = SURFACE_MODES.find((m) => m.id === props.surfaceMode)
+  if (!found) return props.surfaceMode
+  return props.locale === 'tr' ? found.labelTr : found.labelEn
+})
 </script>
 
 <template>
@@ -30,7 +36,9 @@ const lanShotUrl = `${import.meta.env.BASE_URL}lan-sharing.jpg`
     <div class="container hero-grid">
       <div class="hero-copy">
         <div class="hero-badge-row">
-          <img :src="logoUrl" alt="V4War Emblem" class="hero-emblem" width="52" height="52" />
+          <div class="hero-emblem-wrap">
+            <img :src="logoUrl" alt="V4War Emblem" class="hero-emblem" width="46" height="46" />
+          </div>
           <div class="eyebrow" style="margin-bottom: 0">
             <ShieldCheck :size="14" />
             <span>{{ SITE_COPY.hero.eyebrow[locale] }}</span>
@@ -83,6 +91,7 @@ const lanShotUrl = `${import.meta.env.BASE_URL}lan-sharing.jpg`
             type="button"
             class="phone-tab"
             :class="{ active: phoneTab === 'live' }"
+            data-testid="phone-tab-live"
             @click="phoneTab = 'live'"
           >
             {{ SITE_COPY.hero.phoneTabLive[locale] }}
@@ -91,6 +100,7 @@ const lanShotUrl = `${import.meta.env.BASE_URL}lan-sharing.jpg`
             type="button"
             class="phone-tab"
             :class="{ active: phoneTab === 'screenshot' }"
+            data-testid="phone-tab-screenshot"
             @click="phoneTab = 'screenshot'"
           >
             {{ SITE_COPY.hero.phoneTabShot[locale] }}
@@ -101,10 +111,12 @@ const lanShotUrl = `${import.meta.env.BASE_URL}lan-sharing.jpg`
           <div class="phone-notch" aria-hidden="true"></div>
 
           <!-- Tab 1: Interactive V4War Material 3 Expressive Mini-App -->
-          <div v-if="phoneTab === 'live'" class="phone-screen">
+          <div v-if="phoneTab === 'live'" class="phone-screen" data-testid="phone-live-view">
             <div class="app-topbar">
               <div class="app-brand-mini">
-                <img :src="logoUrl" alt="" width="22" height="22" class="app-mini-logo" />
+                <span class="app-mini-logo-wrap">
+                  <img :src="logoUrl" alt="" width="20" height="20" class="app-mini-logo" />
+                </span>
                 <span>V4War</span>
               </div>
               <span class="status-chip mono">TUN · 24ms</span>
@@ -117,9 +129,13 @@ const lanShotUrl = `${import.meta.env.BASE_URL}lan-sharing.jpg`
                 </div>
                 <div class="app-card-text">
                   <strong>VLESS + Reality · Auto</strong>
-                  <span>Sing-box Core · TLS Fragment ON</span>
+                  <span>{{ SITE_COPY.hero.phoneMockup.coreSubtitle[locale] }}</span>
                 </div>
-                <span class="active-dot" aria-label="Connected"></span>
+                <span
+                  class="active-dot"
+                  :aria-label="SITE_COPY.hero.phoneMockup.connectedLabel[locale]"
+                  :title="SITE_COPY.hero.phoneMockup.connectedLabel[locale]"
+                ></span>
               </div>
               <div class="speed-strip mono">
                 <span>↑ 2.4 MB/s</span>
@@ -134,8 +150,8 @@ const lanShotUrl = `${import.meta.env.BASE_URL}lan-sharing.jpg`
                   <Wifi :size="17" />
                 </div>
                 <div class="app-card-text">
-                  <strong>Hotspot Share · Shizuku</strong>
-                  <span>Wi-Fi + USB RNDIS · 3 clients</span>
+                  <strong>{{ SITE_COPY.hero.phoneMockup.hotspotTitle[locale] }}</strong>
+                  <span>{{ SITE_COPY.hero.phoneMockup.hotspotSubtitle[locale] }}</span>
                 </div>
                 <span class="pill-mini mono">UID 2000</span>
               </div>
@@ -144,7 +160,7 @@ const lanShotUrl = `${import.meta.env.BASE_URL}lan-sharing.jpg`
             <div class="mini-studio">
               <div class="mini-studio-title">
                 <Smartphone :size="13" />
-                <span>Theme Studio · {{ surfaceMode }}</span>
+                <span>Theme Studio · {{ activeSurfaceLabel }}</span>
               </div>
               <div class="mini-surface-row">
                 <button
@@ -179,12 +195,17 @@ const lanShotUrl = `${import.meta.env.BASE_URL}lan-sharing.jpg`
           </div>
 
           <!-- Tab 2: Real Screenshot from repo -->
-          <div v-else class="phone-screen screenshot-wrap">
-            <img
-              :src="lanShotUrl"
-              alt="V4War LAN Sharing & Hotspot Gateway Pure AMOLED Interface"
-              class="real-screenshot"
-            />
+          <div v-else class="screenshot-container" data-testid="phone-screenshot-view">
+            <div class="screenshot-wrap">
+              <img
+                :src="lanShotUrl"
+                alt="V4War LAN Sharing & Hotspot Gateway Pure AMOLED Interface"
+                class="real-screenshot"
+              />
+            </div>
+            <div class="screenshot-caption mono">
+              {{ SITE_COPY.hero.phoneMockup.scrollHint[locale] }}
+            </div>
           </div>
         </div>
       </div>
@@ -231,12 +252,22 @@ const lanShotUrl = `${import.meta.env.BASE_URL}lan-sharing.jpg`
   flex-wrap: wrap;
 }
 
-.hero-emblem {
-  border-radius: 16px;
+.hero-emblem-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
   border: 1px solid var(--border-subtle);
-  background: var(--bg-surface-elevated);
-  padding: 4px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.14) 0%, rgba(188, 0, 0, 0.16) 62%, var(--bg-surface-elevated) 100%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   box-shadow: var(--shadow-glow);
+  flex-shrink: 0;
+}
+
+.hero-emblem {
+  display: block;
+  object-fit: contain;
 }
 
 .hero-title {
@@ -328,11 +359,11 @@ const lanShotUrl = `${import.meta.env.BASE_URL}lan-sharing.jpg`
 
 .phone-frame {
   width: 100%;
-  max-width: 340px;
+  max-width: 344px;
   border-radius: 34px;
   padding: 14px;
   border: 1.5px solid var(--border-subtle);
-  box-shadow: var(--shadow-glow), 0 26px 60px rgba(0, 0, 0, 0.55);
+  box-shadow: var(--shadow-glow), var(--shadow-card);
   position: relative;
 }
 
@@ -365,8 +396,19 @@ const lanShotUrl = `${import.meta.env.BASE_URL}lan-sharing.jpg`
   font-size: 15px;
 }
 
+.app-mini-logo-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.14) 0%, rgba(188, 0, 0, 0.16) 68%, transparent 100%);
+}
+
 .app-mini-logo {
   border-radius: 6px;
+  object-fit: contain;
 }
 
 .status-chip {
@@ -503,19 +545,34 @@ const lanShotUrl = `${import.meta.env.BASE_URL}lan-sharing.jpg`
   margin-top: 2px;
 }
 
+.screenshot-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .screenshot-wrap {
-  border-radius: 22px;
-  overflow: hidden;
+  display: block;
+  border-radius: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
   border: 1px solid var(--border-muted);
-  max-height: 450px;
+  background: #000000;
+  height: 432px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--seed-primary) #0b0b0d;
 }
 
 .real-screenshot {
   display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: top;
+  height: auto;
+}
+
+.screenshot-caption {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 @media (max-width: 960px) {

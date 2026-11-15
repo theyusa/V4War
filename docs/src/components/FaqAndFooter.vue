@@ -50,7 +50,9 @@ function toggle(idx: number) {
   <footer class="footer">
     <div class="container footer-inner">
       <div class="footer-brand">
-        <img :src="logoUrl" alt="V4War Logo" width="28" height="28" class="footer-logo" />
+        <span class="footer-logo-wrap">
+          <img :src="logoUrl" alt="V4War Logo" width="24" height="24" class="footer-logo" />
+        </span>
         <div>
           <strong>V4War for Android</strong>
           <p>
@@ -146,8 +148,21 @@ function toggle(idx: number) {
   gap: 12px;
 }
 
+.footer-logo-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.14) 0%, rgba(188, 0, 0, 0.16) 65%, transparent 100%);
+  border: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
 .footer-logo {
-  border-radius: 8px;
+  border-radius: 6px;
+  object-fit: contain;
 }
 
 .footer-brand p {

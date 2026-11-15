@@ -84,6 +84,22 @@ const filteredProtocols = computed(() => {
           <span v-if="item.badge" class="protocol-badge mono">{{ item.badge }}</span>
         </div>
       </div>
+
+      <div
+        v-if="filteredProtocols.length === 0"
+        class="protocol-empty m3-nested"
+        data-testid="protocol-empty"
+      >
+        <span>{{ SITE_COPY.protocols.emptyTitle[locale] }}</span>
+        <button
+          type="button"
+          class="m3-btn m3-btn-tonal"
+          data-testid="protocol-reset"
+          @click="activeCategory = 'all'; query = ''"
+        >
+          {{ SITE_COPY.protocols.emptyReset[locale] }}
+        </button>
+      </div>
     </div>
   </section>
 </template>
@@ -183,6 +199,19 @@ const filteredProtocols = computed(() => {
   border: 1px solid var(--border-subtle);
   color: var(--seed-accent);
   white-space: nowrap;
+}
+
+.protocol-empty {
+  margin-top: 14px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 @media (max-width: 960px) {

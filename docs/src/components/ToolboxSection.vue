@@ -226,6 +226,7 @@ const iconMap: Record<string, unknown> = {
   font-size: 12px;
   line-height: 1.5;
   color: var(--text-primary);
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 960px) {

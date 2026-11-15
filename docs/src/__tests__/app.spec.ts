@@ -35,9 +35,24 @@ describe('V4War Landing App', () => {
     await wrapper.get('[data-testid="locale-toggle"]').trigger('click')
     expect(wrapper.text()).toContain('Yeni Nesil Android')
     expect(wrapper.text()).toContain('Hotspot Paylaşım')
+    expect(wrapper.text()).toContain('TLS Fragment AÇIK')
+    expect(wrapper.text()).toContain('1. Ton (Tuval)')
+    expect(document.documentElement.lang).toBe('tr')
 
     await wrapper.get('[data-testid="locale-toggle"]').trigger('click')
     expect(wrapper.text()).toContain('Next-Gen Android')
+    expect(document.documentElement.lang).toBe('en')
+  })
+
+  it('switches hero phone tabs between live studio and real LAN screenshot', async () => {
+    const wrapper = mount(App)
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="phone-live-view"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="phone-tab-screenshot"]').trigger('click')
+    expect(wrapper.find('[data-testid="phone-screenshot-view"]').exists()).toBe(true)
+    const img = wrapper.get('[data-testid="phone-screenshot-view"] img')
+    expect(img.attributes('src')).toContain('lan-sharing.jpg')
   })
 
   it('switches hotspot backends and toolbox inspector items', async () => {
@@ -51,7 +66,7 @@ describe('V4War Landing App', () => {
     expect(wrapper.get('[data-testid="tool-inspector"]').text()).toContain('198.18.0.0/15')
   })
 
-  it('filters protocols by category and search query including empty match', async () => {
+  it('filters protocols by category and search query including empty state and reset', async () => {
     const wrapper = mount(App)
     await flushPromises()
 
@@ -67,15 +82,23 @@ describe('V4War Landing App', () => {
 
     await wrapper.get('[data-testid="protocol-search"]').setValue('nonexistent-xyz')
     expect(grid.findAll('.protocol-card')).toHaveLength(0)
+    expect(wrapper.find('[data-testid="protocol-empty"]').exists()).toBe(true)
+
+    await wrapper.get('[data-testid="protocol-reset"]').trigger('click')
+    expect(grid.findAll('.protocol-card')).toHaveLength(28)
   })
 
-  it('updates theme tokens and toggles FAQ accordion items', async () => {
+  it('updates theme tokens via studio & navbar cycle and toggles FAQ accordion items', async () => {
     const wrapper = mount(App)
     await flushPromises()
+
+    await wrapper.get('[data-testid="nav-surface-cycle"]').trigger('click')
+    expect(document.documentElement.dataset.surface).toBe('amoled')
 
     await wrapper.get('[data-testid="surface-btn-light"]').trigger('click')
     await wrapper.get('[data-testid="seed-btn-verdant-mint"]').trigger('click')
     expect(document.documentElement.style.getPropertyValue('--seed-primary')).toBe('#00B96B')
+    expect(document.documentElement.style.getPropertyValue('--seed-accent')).toBe('#007A47')
     expect(document.documentElement.style.getPropertyValue('--bg-canvas')).toBe('#F4FBF7')
 
     expect(wrapper.find('[data-testid="faq-answer-0"]').exists()).toBe(true)

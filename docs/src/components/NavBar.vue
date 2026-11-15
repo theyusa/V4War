@@ -1,21 +1,29 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Download, Globe, Menu, Palette, X } from 'lucide-vue-next'
 import type { Locale } from '../data/content'
 import { SITE_COPY } from '../data/content'
+import { SURFACE_MODES, type SurfaceMode } from '../utils/theme'
 
-defineProps<{
+const props = defineProps<{
   locale: Locale
   versionTag: string
+  surfaceMode: SurfaceMode
 }>()
 
 const emit = defineEmits<{
   'toggle-locale': []
-  'scroll-studio': []
+  'cycle-surface': []
 }>()
 
 const mobileOpen = ref(false)
 const logoUrl = `${import.meta.env.BASE_URL}logo.png`
+
+const activeSurfaceLabel = computed(() => {
+  const found = SURFACE_MODES.find((m) => m.id === props.surfaceMode)
+  if (!found) return props.surfaceMode
+  return props.locale === 'tr' ? found.labelTr : found.labelEn
+})
 
 function closeMobile() {
   mobileOpen.value = false
@@ -26,7 +34,9 @@ function closeMobile() {
   <header class="nav-wrapper">
     <nav class="nav-pill" aria-label="Main navigation">
       <a href="#top" class="nav-brand">
-        <img :src="logoUrl" alt="V4War Logo" class="nav-logo" width="32" height="32" />
+        <span class="nav-logo-badge">
+          <img :src="logoUrl" alt="V4War Logo" class="nav-logo" width="28" height="28" />
+        </span>
         <span class="nav-name">V4War</span>
         <span class="nav-version mono">{{ versionTag }}</span>
       </a>
@@ -53,10 +63,13 @@ function closeMobile() {
         <button
           type="button"
           class="icon-pill hide-xs"
-          :aria-label="SITE_COPY.nav.studio[locale]"
-          @click="emit('scroll-studio')"
+          :aria-label="`${SITE_COPY.nav.studio[locale]}: ${activeSurfaceLabel}`"
+          :title="`${SITE_COPY.nav.studio[locale]}: ${activeSurfaceLabel}`"
+          data-testid="nav-surface-cycle"
+          @click="emit('cycle-surface')"
         >
           <Palette :size="15" />
+          <span class="hide-sm">{{ activeSurfaceLabel }}</span>
         </button>
 
         <a href="#download" class="m3-btn m3-btn-primary nav-cta">
@@ -108,7 +121,7 @@ function closeMobile() {
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border: 1px solid var(--border-subtle);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.42);
+  box-shadow: var(--shadow-glass);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -125,8 +138,20 @@ function closeMobile() {
   letter-spacing: -0.02em;
 }
 
+.nav-logo-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.14) 0%, rgba(188, 0, 0, 0.18) 65%, transparent 100%);
+  border: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
 .nav-logo {
-  border-radius: 10px;
+  border-radius: 7px;
   object-fit: contain;
 }
 
@@ -218,6 +243,12 @@ function closeMobile() {
 .mobile-link:hover {
   background: var(--bg-nested);
   color: var(--text-primary);
+}
+
+@media (max-width: 1060px) {
+  .hide-sm {
+    display: none;
+  }
 }
 
 @media (max-width: 900px) {

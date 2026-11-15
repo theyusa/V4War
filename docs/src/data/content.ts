@@ -73,10 +73,17 @@ export const SITE_COPY = {
       { value: '28+', label: { en: 'Protocols & Transports', tr: 'Protokol ve Aktarım' } },
       { value: '10-in-1', label: { en: 'Diagnostic Toolbox', tr: 'Ağ Tanılama Aracı' } },
       { value: 'UID 2000', label: { en: 'Rootless Shizuku TUN', tr: 'Rootsuz Shizuku TUN' } },
-      { value: 'Android 7–15', label: { en: 'API 24–35 + TV D-Pad', tr: 'API 24–35 + TV D-Pad' } },
+      { value: 'API 24–35', label: { en: 'Android 7.0–15 + TV', tr: 'Android 7.0–15 + TV' } },
     ],
     phoneTabLive: { en: 'Theme Studio UI', tr: 'Theme Studio Önizleme' },
     phoneTabShot: { en: 'LAN Sharing Screen', tr: 'LAN Paylaşım Ekranı' },
+    phoneMockup: {
+      coreSubtitle: { en: 'Sing-box Core · TLS Fragment ON', tr: 'Sing-box Çekirdeği · TLS Fragment AÇIK' },
+      connectedLabel: { en: 'Connected', tr: 'Bağlı' },
+      hotspotTitle: { en: 'Hotspot Share · Shizuku', tr: 'Hotspot Paylaşım · Shizuku' },
+      hotspotSubtitle: { en: 'Wi-Fi + USB RNDIS · 3 clients', tr: 'Wi-Fi + USB RNDIS · 3 istemci' },
+      scrollHint: { en: 'Real Pure AMOLED UI · Scrollable', tr: 'Gerçek Saf AMOLED Arayüzü · Kaydırılabilir' },
+    },
   },
   hotspot: {
     eyebrow: { en: 'Hotspot & Proxy Share Suite', tr: 'Hotspot ve Proxy Paylaşım Paketi' },
@@ -137,6 +144,9 @@ export const SITE_COPY = {
     surfaceLabel: { en: 'Surface Mode', tr: 'Yüzey Modu' },
     seedLabel: { en: 'Seed Palette', tr: 'Tema Tohumu' },
     tonesLabel: { en: 'Live 3-Tone Output', tr: 'Canlı 3 Ton Çıktısı' },
+    tone1Label: { en: 'Tone 1 (Canvas)', tr: '1. Ton (Tuval)' },
+    tone2Label: { en: 'Tone 2 (Card)', tr: '2. Ton (Kart)' },
+    tone3Label: { en: 'Tone 3 (Nested)', tr: '3. Ton (İç Kutu)' },
   },
   protocols: {
     eyebrow: { en: 'Protocols & Subscriptions', tr: 'Protokoller ve Abonelikler' },
@@ -151,6 +161,14 @@ export const SITE_COPY = {
     searchPlaceholder: {
       en: 'Filter protocols (e.g. VLESS, Hysteria, DNSTT, WireGuard)...',
       tr: 'Protokol ara (ör. VLESS, Hysteria, DNSTT, WireGuard)...',
+    },
+    emptyTitle: {
+      en: 'No matching protocols found',
+      tr: 'Eşleşen protokol bulunamadı',
+    },
+    emptyReset: {
+      en: 'Reset filters',
+      tr: 'Filtreleri sıfırla',
     },
   },
   security: {

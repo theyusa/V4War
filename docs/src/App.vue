@@ -12,7 +12,9 @@ import type { Locale } from './data/content'
 import { FALLBACK_RELEASE, fetchLatestRelease, type ReleaseInfo } from './utils/releases'
 import {
   applyThemeToDocument,
+  resolveThemeTokens,
   SEED_PRESETS,
+  SURFACE_MODES,
   type SeedPreset,
   type SurfaceMode,
 } from './utils/theme'
@@ -29,10 +31,13 @@ const surfaceMode = ref<SurfaceMode>('pure-amoled')
 const activeSeed = ref<SeedPreset>(SEED_PRESETS[0])
 const release = ref<ReleaseInfo>(FALLBACK_RELEASE)
 
-const tokens = computed(() => applyThemeToDocument(surfaceMode.value, activeSeed.value))
+const tokens = computed(() => resolveThemeTokens(surfaceMode.value, activeSeed.value))
 
 watchEffect(() => {
   applyThemeToDocument(surfaceMode.value, activeSeed.value)
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = locale.value
+  }
 })
 
 const recommendedDownloadUrl = computed(() => {
@@ -47,8 +52,9 @@ function toggleLocale() {
   locale.value = locale.value === 'tr' ? 'en' : 'tr'
 }
 
-function scrollToStudio() {
-  document.getElementById('studio')?.scrollIntoView({ behavior: 'smooth' })
+function cycleSurfaceMode() {
+  const idx = SURFACE_MODES.findIndex((m) => m.id === surfaceMode.value)
+  surfaceMode.value = SURFACE_MODES[(idx + 1) % SURFACE_MODES.length].id
 }
 
 onMounted(async () => {
@@ -61,8 +67,9 @@ onMounted(async () => {
     <NavBar
       :locale="locale"
       :version-tag="release.tagName"
+      :surface-mode="surfaceMode"
       @toggle-locale="toggleLocale"
-      @scroll-studio="scrollToStudio"
+      @cycle-surface="cycleSurfaceMode"
     />
 
     <main>

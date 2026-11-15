@@ -24,6 +24,7 @@
 
   --shadow-glow: 0 0 80px rgba(225, 29, 36, 0.22);
   --shadow-card: 0 10px 34px rgba(0, 0, 0, 0.55);
+  --shadow-glass: 0 12px 32px rgba(0, 0, 0, 0.42);
 
   --radius-card: 22px;
   --radius-nested: 16px;

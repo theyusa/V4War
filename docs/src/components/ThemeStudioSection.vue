@@ -93,21 +93,21 @@ const emit = defineEmits<{
               <div class="tone-chip">
                 <span class="tone-preview" :style="{ backgroundColor: tokens.tone1 }"></span>
                 <div>
-                  <strong>Tone 1 (Canvas)</strong>
+                  <strong>{{ SITE_COPY.studio.tone1Label[locale] }}</strong>
                   <span class="mono">{{ tokens.tone1 }}</span>
                 </div>
               </div>
               <div class="tone-chip">
                 <span class="tone-preview" :style="{ backgroundColor: tokens.tone2 }"></span>
                 <div>
-                  <strong>Tone 2 (Card)</strong>
+                  <strong>{{ SITE_COPY.studio.tone2Label[locale] }}</strong>
                   <span class="mono">{{ tokens.tone2 }}</span>
                 </div>
               </div>
               <div class="tone-chip">
                 <span class="tone-preview" :style="{ backgroundColor: tokens.tone3 }"></span>
                 <div>
-                  <strong>Tone 3 (Nested)</strong>
+                  <strong>{{ SITE_COPY.studio.tone3Label[locale] }}</strong>
                   <span class="mono">{{ tokens.tone3 }}</span>
                 </div>
               </div>
@@ -193,7 +193,7 @@ const emit = defineEmits<{
 }
 
 .surface-swatch[data-mode='dark'] {
-  background: linear-gradient(135deg, #121216 35%, #24242b 100%);
+  background: linear-gradient(135deg, var(--seed-tone-1-dark) 35%, var(--seed-tone-2-dark) 100%);
 }
 
 .surface-swatch[data-mode='light'] {
@@ -298,7 +298,7 @@ const emit = defineEmits<{
   width: 26px;
   height: 26px;
   border-radius: 8px;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-muted);
   flex-shrink: 0;
 }
 
