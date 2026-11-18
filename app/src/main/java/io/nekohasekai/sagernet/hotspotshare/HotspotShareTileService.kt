@@ -183,20 +183,25 @@ class HotspotShareTileService : BaseTileService() {
         val kinds = runCatching {
             LanSharingNetwork.getActiveTetherKinds(this)
         }.getOrDefault(emptySet())
-        val mask = runCatching {
-            if (ShizukuBackend.isShizukuRunning() && ShizukuBackend.isShizukuGranted(this)) {
-                ShizukuBackend.getActiveTetherMask(this)
-            } else {
-                0
-            }
-        }.getOrDefault(0)
+        val mask = if (state.method == ShareMethod.SHIZUKU) {
+            runCatching {
+                if (ShizukuBackend.isShizukuRunning() && ShizukuBackend.isShizukuGranted(this)) {
+                    ShizukuBackend.getActiveTetherMask(this)
+                } else {
+                    0
+                }
+            }.getOrDefault(0)
+        } else {
+            0
+        }
 
         val hasWifi = TetherKind.WIFI in kinds ||
             (mask and ShizukuBackend.TETHER_MASK_WIFI) != 0
-        val hasUsb = TetherKind.USB in kinds ||
-            (mask and ShizukuBackend.TETHER_MASK_USB) != 0
-        val hasBt = TetherKind.BLUETOOTH in kinds ||
-            (mask and ShizukuBackend.TETHER_MASK_BLUETOOTH) != 0
+        val hasUsb = LanSharingNetwork.USB_TETHER_ENABLED && (
+            TetherKind.USB in kinds ||
+                (mask and ShizukuBackend.TETHER_MASK_USB) != 0
+            )
+        val hasBt = state.method != ShareMethod.SHIZUKU && TetherKind.BLUETOOTH in kinds
 
         val labels = ArrayList<String>(3)
         if (hasWifi) labels += getString(R.string.hotspot_share_tile_channel_wifi)

@@ -45,6 +45,7 @@ import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.needReload
 import io.nekohasekai.sagernet.ktx.onMainDispatcher
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
+import io.nekohasekai.sagernet.ktx.runOnIoDispatcher
 import io.nekohasekai.sagernet.ktx.runOnMainDispatcher
 import io.nekohasekai.sagernet.ui.profiles.GroupMenu
 import io.nekohasekai.sagernet.ui.profiles.ProfileImports
@@ -64,6 +65,7 @@ import io.nekohasekai.sagernet.widget.applyInsetMargin
 import io.nekohasekai.sagernet.widget.applyInsetPadding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -126,8 +128,13 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
     private val pickedId: Long get() = arguments?.getLong(ARG_PICKED_ID) ?: 0L
     private val pickedGroup: Long get() = arguments?.getLong(ARG_PICKED_GROUP) ?: 0L
 
-    val alwaysShowAddress by lazy { DataStore.alwaysShowAddress }
-    val compactRows by lazy { DataStore.compactProfileRows }
+    private var _alwaysShowAddress: Boolean? = null
+    val alwaysShowAddress: Boolean
+        get() = _alwaysShowAddress ?: DataStore.alwaysShowAddress.also { _alwaysShowAddress = it }
+
+    private var _compactRows: Boolean? = null
+    val compactRows: Boolean
+        get() = _compactRows ?: DataStore.compactProfileRows.also { _compactRows = it }
 
     /**
      * Double column (groupLayoutMode 1): the compact card, two columns at least (the width may give more). Landscape
@@ -182,7 +189,21 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
     private var selectedProxy = 0L
     private var currentProfile = 0L
     private var serviceStarted = false
+    private var profileStateRevision = 0
+    private var persistedCurrentGroupId = 0L
+    private var initialLoadJob: Job? = null
     private val stateRequests = Channel<Unit>(Channel.CONFLATED)
+
+    private data class InitialConfigSnapshot(
+        val groups: List<ProxyGroup>,
+        val currentGroupId: Long,
+        val selectedProxy: Long,
+        val currentProfile: Long,
+        val serviceStarted: Boolean,
+        val layoutMode: Int,
+        val alwaysShowAddress: Boolean,
+        val compactRows: Boolean,
+    )
 
     private val backCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -219,16 +240,22 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         super.onViewCreated(view, savedInstanceState)
         val config = resources.configuration
         landscape = config.screenWidthDp > config.screenHeightDp
-        doubleColumn = landscape && DataStore.groupLayoutMode == 1
-        readProfileState()
+        doubleColumn = false
 
         setUpToolbar()
         tabContainer = view.findViewById(R.id.group_tab_container)
         tabLayout = view.findViewById(R.id.group_tab)
         ExpressiveSettingsHelper.styleExpressiveTabs(tabContainer, tabLayout, cornerRadiusDp = 14f)
-        tabLayout.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
+        var pendingTabFit: Runnable? = null
+        tabLayout.addOnLayoutChangeListener { v, left, _, right, _, oldLeft, _, oldRight, _ ->
             if (right - left != oldRight - oldLeft) {
-                ExpressiveSettingsHelper.fitTabsToContainer(tabLayout)
+                pendingTabFit?.let(v::removeCallbacks)
+                pendingTabFit = Runnable {
+                    pendingTabFit = null
+                    if (v.isAttachedToWindow) {
+                        ExpressiveSettingsHelper.fitTabsToContainer(tabLayout)
+                    }
+                }.also(v::post)
             }
         }
         pager = view.findViewById(R.id.group_pager)
@@ -258,8 +285,7 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
 
         pagerAdapter = ProfilesPagerAdapter(this)
         pager.adapter = pagerAdapter
-        pager.offscreenPageLimit = 2
-        applyGroups(GroupRepo.all(), initialGroupId())
+        pager.offscreenPageLimit = 1
         mediator = TabLayoutMediator(tabLayout, pager) { tab, position ->
             pagerAdapter.groups.getOrNull(position)?.let { tab.text = tabLabel(it) }
             tab.view.setOnLongClickListener {
@@ -268,7 +294,6 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
             }
         }.also { it.attach() }
         pager.registerOnPageChangeCallback(pageCallback)
-        onPageShown()
 
         GroupRepo.addListener(this)
         ProfileManager.addListener(this)
@@ -276,6 +301,36 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, backCallback)
 
         val scope = viewLifecycleOwner.lifecycleScope
+        val revBefore = profileStateRevision
+        initialLoadJob = scope.launch {
+            val snapshot = withContext(Dispatchers.IO) {
+                InitialConfigSnapshot(
+                    groups = GroupRepo.all(),
+                    currentGroupId = initialGroupId(),
+                    selectedProxy = DataStore.selectedProxy,
+                    currentProfile = DataStore.currentProfile,
+                    serviceStarted = DataStore.serviceState.started,
+                    layoutMode = DataStore.groupLayoutMode,
+                    alwaysShowAddress = DataStore.alwaysShowAddress,
+                    compactRows = DataStore.compactProfileRows,
+                )
+            }
+            if (getView() == null) return@launch
+            _alwaysShowAddress = snapshot.alwaysShowAddress
+            _compactRows = snapshot.compactRows
+            val newDoubleColumn = landscape && snapshot.layoutMode == 1
+            if (newDoubleColumn != doubleColumn) {
+                doubleColumn = newDoubleColumn
+                updateLayoutAction()
+            }
+            persistedCurrentGroupId = snapshot.currentGroupId
+            if (profileStateRevision == revBefore) {
+                applyProfileState(snapshot.selectedProxy, snapshot.currentProfile, snapshot.serviceStarted)
+            } else {
+                refreshProfileState()
+            }
+            applyGroups(snapshot.groups, snapshot.currentGroupId)
+        }
         scope.launch {
             for (request in stateRequests) {
                 val (selected, current, started) = withContext(Dispatchers.IO) { profileStateSnapshot() }
@@ -332,6 +387,8 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
     }
 
     override fun onDestroyView() {
+        initialLoadJob?.cancel()
+        initialLoadJob = null
         GroupRepo.removeListener(this)
         ProfileManager.removeListener(this)
         DataStore.profileCacheStore.unregisterChangeListener(editingGroupListener)
@@ -372,6 +429,15 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         } else {
             toolbar.inflateMenu(R.menu.profile_selection_menu)
             TvControls.addServerSwitch(toolbar.menu, R.id.group_profiles_toolbar)
+            if (SagerNet.cachedIsTvOrNull() == null) {
+                viewLifecycleOwner.lifecycleScope.launch {
+                    if (SagerNet.awaitIsTv() && view != null &&
+                        toolbar.menu.findItem(R.id.action_previous_server) == null
+                    ) {
+                        TvControls.addServerSwitch(toolbar.menu, R.id.group_profiles_toolbar)
+                    }
+                }
+            }
             groupMenu.setUp(toolbar.menu)
             imports.prepare(toolbar.menu)
             updateLayoutAction()
@@ -512,8 +578,12 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
 
     private fun reloadGroups(switchTo: Long = 0L) {
         val owner = viewLifecycleOwnerLiveData.value ?: return
+        initialLoadJob?.cancel()
+        initialLoadJob = null
         owner.lifecycleScope.launch {
             val (groups, current) = withContext(Dispatchers.IO) { GroupRepo.all() to GroupRepo.currentId() }
+            if (view == null) return@launch
+            persistedCurrentGroupId = current
             val target = switchTo.takeIf { id -> groups.any { it.id == id } }
                 ?: currentGroupId.takeIf { id -> groups.any { it.id == id } }
                 ?: current
@@ -544,7 +614,10 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         val group = currentGroup() ?: return
         if (group.id == shownGroupId) return
         shownGroupId = group.id
-        if (!select) GroupRepo.setCurrent(group.id)
+        if (!select && group.id != persistedCurrentGroupId) {
+            persistedCurrentGroupId = group.id
+            runOnIoDispatcher { GroupRepo.setCurrent(group.id) }
+        }
         selection.onGroupShown(group.id)
         currentList()?.adapter?.onShown()
         applyQuery()
@@ -736,14 +809,8 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
     private fun profileStateSnapshot() =
         Triple(DataStore.selectedProxy, DataStore.currentProfile, DataStore.serviceState.started)
 
-    private fun readProfileState() {
-        val (selected, current, started) = profileStateSnapshot()
-        selectedProxy = selected
-        currentProfile = current
-        serviceStarted = started
-    }
-
     private fun applyProfileState(selected: Long, current: Long, started: Boolean) {
+        profileStateRevision++
         val changed = HashSet<Long>()
         if (selected != selectedProxy) changed += listOf(selectedProxy, selected)
         if (current != currentProfile) changed += listOf(currentProfile, current)

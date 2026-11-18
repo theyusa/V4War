@@ -11,6 +11,7 @@ import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.Network
 import android.os.Build
+import android.os.Looper
 import android.os.PowerManager
 import android.os.StrictMode
 import android.os.UserManager
@@ -28,11 +29,15 @@ import io.nekohasekai.sagernet.group.SubscriptionScheduler
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.isOss
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
+import io.nekohasekai.sagernet.ktx.runOnIoDispatcher
 import io.nekohasekai.sagernet.ui.MainActivity
 import io.nekohasekai.sagernet.update.UpdateManager
 import io.nekohasekai.sagernet.utils.*
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.DEBUG_PROPERTY_NAME
 import kotlinx.coroutines.DEBUG_PROPERTY_VALUE_ON
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import moe.matsuri.nb4a.utils.JavaUtil
 import moe.matsuri.nb4a.utils.cleanWebview
@@ -75,18 +80,20 @@ class SagerNet : Application(),
             }
 
             // fix multi process issue in Android 9+
-            JavaUtil.handleWebviewDir(this)
+            JavaUtil.initWebviewSuffix(this)
 
-            runOnDefaultDispatcher {
+            runOnIoDispatcher {
+                JavaUtil.cleanWebviewDir(this@SagerNet)
+                cleanWebview()
                 DataStore.initGlobal()
                 PackageCache.register()
-                cleanWebview()
             }
         }
 
         if (isMainProcess) {
-            Theme.apply(this)
+            warmSystemFeatures()
             Theme.applyNightTheme()
+            Theme.apply(this)
             AppLocale.apply()
             UpdateManager.onAppStart(this)
             HotspotGatewayManager.init()
@@ -98,7 +105,7 @@ class SagerNet : Application(),
                 updateNotificationChannels()
             }
             // The icon pack of the removed custom icon feature; a no-op once it is gone.
-            runOnDefaultDispatcher { File(filesDir, "custom_icon").deleteRecursively() }
+            runOnIoDispatcher { File(filesDir, "custom_icon").deleteRecursively() }
             RemoteRouteUpdater.schedule()
             SubscriptionScheduler.schedule()
             Widgets.watchSelection(this)
@@ -135,9 +142,78 @@ class SagerNet : Application(),
 
         lateinit var application: SagerNet
 
-        val isTv by lazy {
-            uiMode.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION ||
+        @Volatile
+        private var cachedIsTv: Boolean? = null
+
+        @Volatile
+        private var cachedHasCamera: Boolean? = null
+
+        @Volatile
+        private var systemFeaturesStarted = false
+
+        private val systemFeaturesWarmed = CompletableDeferred<Unit>()
+
+        private fun computeIsTv(): Boolean {
+            return uiMode.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION ||
                 application.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+        }
+
+        fun warmSystemFeatures() {
+            if (cachedIsTv != null && cachedHasCamera != null) {
+                systemFeaturesWarmed.complete(Unit)
+                return
+            }
+            if (systemFeaturesStarted) return
+            synchronized(this) {
+                if (systemFeaturesStarted) return
+                systemFeaturesStarted = true
+            }
+            runOnIoDispatcher {
+                try {
+                    if (cachedIsTv == null) {
+                        cachedIsTv = computeIsTv()
+                    }
+                    if (cachedHasCamera == null) {
+                        cachedHasCamera = application.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
+                    }
+                } finally {
+                    systemFeaturesWarmed.complete(Unit)
+                }
+            }
+        }
+
+        val isTv: Boolean
+            get() {
+                cachedIsTv?.let { return it }
+                if (Looper.myLooper() != Looper.getMainLooper()) {
+                    return computeIsTv().also { cachedIsTv = it }
+                }
+                warmSystemFeatures()
+                return (application.resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK) ==
+                    Configuration.UI_MODE_TYPE_TELEVISION
+            }
+
+        fun cachedIsTvOrNull(): Boolean? = cachedIsTv
+
+        suspend fun awaitIsTv(): Boolean {
+            cachedIsTv?.let { return it }
+            warmSystemFeatures()
+            systemFeaturesWarmed.await()
+            return cachedIsTv ?: withContext(Dispatchers.IO) {
+                computeIsTv().also { cachedIsTv = it }
+            }
+        }
+
+        fun cachedHasCamera(): Boolean? = cachedHasCamera
+
+        suspend fun hasCamera(): Boolean {
+            cachedHasCamera?.let { return it }
+            warmSystemFeatures()
+            systemFeaturesWarmed.await()
+            return cachedHasCamera ?: withContext(Dispatchers.IO) {
+                application.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
+                    .also { cachedHasCamera = it }
+            }
         }
 
         val configureIntent: (Context) -> PendingIntent by lazy {

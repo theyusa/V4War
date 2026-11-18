@@ -6,6 +6,7 @@ import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequest
+import androidx.work.WorkQuery
 import androidx.work.WorkerParameters
 import androidx.work.multiprocess.RemoteCoroutineWorker
 import androidx.work.multiprocess.RemoteListenableWorker
@@ -29,6 +30,8 @@ import io.nekohasekai.sagernet.route.RuleSets
 import io.nekohasekai.sagernet.route.RuleType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
@@ -41,6 +44,7 @@ object RemoteRouteUpdater {
     const val MIN_INTERVAL_MINUTES = 30
 
     private const val WORK_NAME = "RemoteRouteUpdater"
+    private val scheduleMutex = Mutex()
 
     /**
      * RouteUpdate::UpdateProfile (RouteUpdater.cpp:12-51) without saving: fetches [p]'s URL through the rule-set
@@ -185,36 +189,57 @@ object RemoteRouteUpdater {
     }
 
     /**
-     * (Re)schedules the periodic update from route_auto_update, or cancels it below [MIN_INTERVAL_MINUTES]. Call it
-     * after the interval changes and at app start: UPDATE registers the job again and keeps the current period's start.
+     * (Re)schedules the periodic update from route_auto_update, or cancels it below [MIN_INTERVAL_MINUTES]. Keeps an
+     * active periodic job untouched when its interval/constraints signature matches, updating only when changed.
      */
     fun schedule() {
         runOnDefaultDispatcher {
-            val workManager = RemoteWorkManager.getInstance(app)
-            val interval = DataStore.routeAutoUpdate
-            try {
-                if (interval < MIN_INTERVAL_MINUTES) {
-                    workManager.cancelUniqueWork(WORK_NAME).await()
-                    return@runOnDefaultDispatcher
+            scheduleMutex.withLock {
+                val workManager = RemoteWorkManager.getInstance(app)
+                val interval = DataStore.routeAutoUpdate
+                try {
+                    val signatureTag = if (interval < MIN_INTERVAL_MINUTES) {
+                        null
+                    } else {
+                        PeriodicSchedulePolicy.signatureTag(interval * 60L, NetworkType.CONNECTED)
+                    }
+                    val existing = workManager.getWorkInfos(WorkQuery.fromUniqueWorkNames(WORK_NAME)).await()
+                        .map { PeriodicWorkSnapshot(it.state, it.tags) }
+                    val action = PeriodicSchedulePolicy.decide(signatureTag, existing)
+                    when (action) {
+                        PeriodicScheduleAction.SKIP_CANCEL -> return@withLock
+                        PeriodicScheduleAction.CANCEL -> {
+                            workManager.cancelUniqueWork(WORK_NAME).await()
+                        }
+                        PeriodicScheduleAction.ENQUEUE_KEEP,
+                        PeriodicScheduleAction.ENQUEUE_UPDATE -> {
+                            val period = interval * 60L
+                            val now = System.currentTimeMillis() / 1000
+                            val initialDelay = (DataStore.routeAutoUpdateLast + period - now).coerceIn(0L, period)
+                            val request = PeriodicWorkRequest.Builder(UpdateTask::class.java, interval.toLong(), TimeUnit.MINUTES)
+                                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                                .setInitialDelay(initialDelay, TimeUnit.SECONDS)
+                                .addTag(signatureTag!!)
+                                .setInputData(
+                                    // The worker runs in the :bg process, like the subscription updater.
+                                    Data.Builder()
+                                        .putString(RemoteListenableWorker.ARGUMENT_PACKAGE_NAME, app.packageName)
+                                        .putString(RemoteListenableWorker.ARGUMENT_CLASS_NAME, RemoteWorkerService::class.java.name)
+                                        .putInt(KEY_INTERVAL, interval)
+                                        .build()
+                                )
+                                .build()
+                            val policy = if (action == PeriodicScheduleAction.ENQUEUE_KEEP) {
+                                ExistingPeriodicWorkPolicy.KEEP
+                            } else {
+                                ExistingPeriodicWorkPolicy.UPDATE
+                            }
+                            workManager.enqueueUniquePeriodicWork(WORK_NAME, policy, request).await()
+                        }
+                    }
+                } catch (e: Throwable) {
+                    Logs.w("RemoteRouteUpdater: scheduling failed", e)
                 }
-                val period = interval * 60L
-                val now = System.currentTimeMillis() / 1000
-                val initialDelay = (DataStore.routeAutoUpdateLast + period - now).coerceIn(0L, period)
-                val request = PeriodicWorkRequest.Builder(UpdateTask::class.java, interval.toLong(), TimeUnit.MINUTES)
-                    .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-                    .setInitialDelay(initialDelay, TimeUnit.SECONDS)
-                    .setInputData(
-                        // The worker runs in the :bg process, like the subscription updater.
-                        Data.Builder()
-                            .putString(RemoteListenableWorker.ARGUMENT_PACKAGE_NAME, app.packageName)
-                            .putString(RemoteListenableWorker.ARGUMENT_CLASS_NAME, RemoteWorkerService::class.java.name)
-                            .putInt(KEY_INTERVAL, interval)
-                            .build()
-                    )
-                    .build()
-                workManager.enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request).await()
-            } catch (e: Throwable) {
-                Logs.w("RemoteRouteUpdater: scheduling failed", e)
             }
         }
     }

@@ -58,6 +58,25 @@ class TetherWatchService : Service(), SagerConnection.Callback {
         private const val TETHER_LOSS_STARTUP_GRACE_MS = 6_000L
         private const val TETHER_LOSS_DEBOUNCE_MS = 3_000L
         private const val START_GRACE_MS = 8_000L
+        private const val CHANNEL_REFRESH_FALLBACK_MS = 25_000L
+        private const val CHANNEL_REFRESH_MIN_GAP_MS = 20_000L
+        private const val TRAFFIC_POLL_UI_FOREGROUND_MS = 1_000L
+        private const val TRAFFIC_POLL_SHIZUKU_BG_MS = 2_500L
+        private const val TRAFFIC_POLL_ROOT_BG_MS = 2_000L
+
+        @Volatile
+        private var isUiForeground: Boolean = false
+
+        fun setUiForeground(foreground: Boolean) {
+            isUiForeground = foreground
+        }
+
+        internal fun resolveTrafficPollIntervalMs(method: ShareMethod, uiForeground: Boolean): Long =
+            when {
+                uiForeground -> TRAFFIC_POLL_UI_FOREGROUND_MS
+                method == ShareMethod.SHIZUKU -> TRAFFIC_POLL_SHIZUKU_BG_MS
+                else -> TRAFFIC_POLL_ROOT_BG_MS
+            }
 
         var isRunning: Boolean = false
             private set
@@ -105,26 +124,41 @@ class TetherWatchService : Service(), SagerConnection.Callback {
         }
     }
 
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val connection = SagerConnection(SagerConnection.CONNECTION_ID_MAIN_ACTIVITY_BACKGROUND)
 
     private var controller: HotspotShareController? = null
     private var activeBackend: HotspotShare? = null
     private var systemNetReceiver: BroadcastReceiver? = null
+    @Volatile
     private var statsJob: Job? = null
+    @Volatile
     private var vpnDropGraceJob: Job? = null
+    @Volatile
     private var tetherDropDebounceJob: Job? = null
+    @Volatile
     private var channelRefreshJob: Job? = null
+    @Volatile
+    private var channelSafetyJob: Job? = null
+    @Volatile
     private var lastPersistJob: Job? = null
     private val persistMutex = Mutex()
+    private val notificationLock = Any()
+    @Volatile
     private var lastState: ShareState = ShareState.Off
+    @Volatile
     private var lastActiveMethod: ShareMethod? = null
+    @Volatile
     private var sessionGeneration: Long = 0L
+    @Volatile
     private var sessionStartElapsedMs: Long = 0L
     @Volatile
     private var desiredActive: Boolean = false
     @Volatile
     private var cachedChannelLabel: String = ""
+    @Volatile
+    private var lastChannelRefreshElapsedMs: Long = 0L
+    @Volatile
     private var lastNotificationSignature: String? = null
     private val contentPendingIntent: PendingIntent by lazy {
         PendingIntent.getActivity(
@@ -263,6 +297,8 @@ class TetherWatchService : Service(), SagerConnection.Callback {
         tetherDropDebounceJob = null
         channelRefreshJob?.cancel()
         channelRefreshJob = null
+        channelSafetyJob?.cancel()
+        channelSafetyJob = null
         cachedChannelLabel = ""
         lastActiveMethod = null
         PlatformNotifications.cancelHotspotShareDropped(this)
@@ -308,10 +344,13 @@ class TetherWatchService : Service(), SagerConnection.Callback {
                 }
                 updateNotification(state, HotspotTrafficMonitor.stats.value)
                 refreshActiveChannelsAndNotify()
+                startChannelSafetyFallback()
             }
             is ShareState.Stopped -> {
                 vpnDropGraceJob?.cancel()
                 vpnDropGraceJob = null
+                channelSafetyJob?.cancel()
+                channelSafetyJob = null
                 stopTrafficMonitoring()
                 if (pausedWaitingVpn) {
                     PlatformNotifications.cancelHotspotShareDropped(this)
@@ -337,6 +376,8 @@ class TetherWatchService : Service(), SagerConnection.Callback {
                 tetherDropDebounceJob = null
                 channelRefreshJob?.cancel()
                 channelRefreshJob = null
+                channelSafetyJob?.cancel()
+                channelSafetyJob = null
                 cachedChannelLabel = ""
                 lastActiveMethod = null
                 stopTrafficMonitoring()
@@ -349,6 +390,8 @@ class TetherWatchService : Service(), SagerConnection.Callback {
                 if (!desiredActive) {
                     channelRefreshJob?.cancel()
                     channelRefreshJob = null
+                    channelSafetyJob?.cancel()
+                    channelSafetyJob = null
                     cachedChannelLabel = ""
                     lastActiveMethod = null
                     PlatformNotifications.cancelHotspotShareDropped(this)
@@ -401,16 +444,34 @@ class TetherWatchService : Service(), SagerConnection.Callback {
             }
         }
 
-        HotspotTrafficMonitor.start(serviceScope, provider, dispatcher = Dispatchers.IO)
+        HotspotTrafficMonitor.start(
+            scope = serviceScope,
+            rawStatsProvider = provider,
+            intervalMs = TRAFFIC_POLL_UI_FOREGROUND_MS,
+            dispatcher = Dispatchers.IO,
+            intervalProvider = { resolveTrafficPollIntervalMs(method, isUiForeground) },
+        )
 
-        statsJob = serviceScope.launch {
-            var sampleTick = 0
+        statsJob = serviceScope.launch(Dispatchers.Default) {
             HotspotTrafficMonitor.stats.collectLatest { stats ->
-                if (lastState is ShareState.Active) {
-                    if (sampleTick++ % 4 == 0) {
-                        refreshActiveChannelsAndNotify()
-                    }
-                    updateNotification(lastState, stats)
+                val stateSnapshot = lastState
+                if (stateSnapshot is ShareState.Active) {
+                    updateNotification(stateSnapshot, stats)
+                }
+            }
+        }
+    }
+
+    private fun startChannelSafetyFallback() {
+        channelSafetyJob?.cancel()
+        val currentGen = sessionGeneration
+        channelSafetyJob = serviceScope.launch(Dispatchers.Default) {
+            while (currentGen == sessionGeneration && lastState is ShareState.Active) {
+                delay(CHANNEL_REFRESH_FALLBACK_MS)
+                if (currentGen != sessionGeneration || lastState !is ShareState.Active) break
+                val elapsedSinceLast = SystemClock.elapsedRealtime() - lastChannelRefreshElapsedMs
+                if (elapsedSinceLast >= CHANNEL_REFRESH_MIN_GAP_MS) {
+                    refreshActiveChannelsAndNotify()
                 }
             }
         }
@@ -539,6 +600,7 @@ class TetherWatchService : Service(), SagerConnection.Callback {
     private fun refreshActiveChannelsAndNotify() {
         val stateSnapshot = lastState
         val currentGen = sessionGeneration
+        lastChannelRefreshElapsedMs = SystemClock.elapsedRealtime()
         channelRefreshJob?.cancel()
         channelRefreshJob = serviceScope.launch {
             val label = withContext(Dispatchers.IO) {
@@ -547,8 +609,9 @@ class TetherWatchService : Service(), SagerConnection.Callback {
             if (currentGen != sessionGeneration) return@launch
             val changed = cachedChannelLabel != label
             cachedChannelLabel = label
-            if (lastState is ShareState.Active) {
-                updateNotification(lastState, HotspotTrafficMonitor.stats.value)
+            val latestState = lastState
+            if (latestState is ShareState.Active) {
+                updateNotification(latestState, HotspotTrafficMonitor.stats.value)
                 if (changed) {
                     sendBroadcast(Intent(Action.HOTSPOT_SHARE_STATE).setPackage(packageName))
                 }
@@ -558,27 +621,35 @@ class TetherWatchService : Service(), SagerConnection.Callback {
 
     private fun resolveActiveChannelLabel(state: ShareState): String {
         val kinds = linkedSetOf<TetherKind>()
-        kinds += runCatching { LanSharingNetwork.getActiveTetherKinds(this) }.getOrDefault(emptySet())
         val activeMethod = (state as? ShareState.Active)?.method ?: lastActiveMethod
         when (activeMethod) {
             ShareMethod.SHIZUKU -> {
+                val localKinds = runCatching { LanSharingNetwork.getActiveTetherKinds(this) }.getOrDefault(emptySet())
+                if (TetherKind.WIFI in localKinds) kinds += TetherKind.WIFI
+                if (LanSharingNetwork.USB_TETHER_ENABLED && TetherKind.USB in localKinds) kinds += TetherKind.USB
                 val mask = ShizukuBackend.getActiveTetherMask(this)
                 if ((mask and ShizukuBackend.TETHER_MASK_WIFI) != 0) kinds += TetherKind.WIFI
-                if ((mask and ShizukuBackend.TETHER_MASK_USB) != 0) kinds += TetherKind.USB
-                if ((mask and ShizukuBackend.TETHER_MASK_BLUETOOTH) != 0) kinds += TetherKind.BLUETOOTH
-            }
-            ShareMethod.ROOT -> {
-                (activeBackend as? RootBackend)?.activeInterfaces?.forEach { iface ->
-                    val kind = LanSharingNetwork.getTetherKindForInterface(iface)
-                    if (kind != TetherKind.OTHER) kinds += kind
+                if (LanSharingNetwork.USB_TETHER_ENABLED && (mask and ShizukuBackend.TETHER_MASK_USB) != 0) {
+                    kinds += TetherKind.USB
                 }
             }
-            else -> Unit
+            ShareMethod.ROOT -> {
+                kinds += runCatching { LanSharingNetwork.getActiveTetherKinds(this) }.getOrDefault(emptySet())
+                (activeBackend as? RootBackend)?.activeInterfaces?.forEach { iface ->
+                    val kind = LanSharingNetwork.getTetherKindForInterface(iface)
+                    if (kind != TetherKind.OTHER && (LanSharingNetwork.USB_TETHER_ENABLED || kind != TetherKind.USB)) {
+                        kinds += kind
+                    }
+                }
+            }
+            else -> {
+                kinds += runCatching { LanSharingNetwork.getActiveTetherKinds(this) }.getOrDefault(emptySet())
+            }
         }
         return listOfNotNull(
             if (TetherKind.WIFI in kinds) "Wi-Fi" else null,
-            if (TetherKind.USB in kinds) "USB" else null,
-            if (TetherKind.BLUETOOTH in kinds) "Bluetooth" else null,
+            if (LanSharingNetwork.USB_TETHER_ENABLED && TetherKind.USB in kinds) "USB" else null,
+            if (activeMethod != ShareMethod.SHIZUKU && TetherKind.BLUETOOTH in kinds) "Bluetooth" else null,
         ).joinToString(" + ")
     }
 
@@ -678,13 +749,15 @@ class TetherWatchService : Service(), SagerConnection.Callback {
     }
 
     private fun updateNotification(state: ShareState, stats: HotspotTrafficStats) {
-        val content = notificationContent(state, stats)
-        val sig = content.signature()
-        if (sig == lastNotificationSignature) return
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        try {
-            manager.notify(NOTIFICATION_ID, buildNotification(content))
-        } catch (_: SecurityException) {
+        synchronized(notificationLock) {
+            val content = notificationContent(state, stats)
+            val sig = content.signature()
+            if (sig == lastNotificationSignature) return
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            try {
+                manager.notify(NOTIFICATION_ID, buildNotification(content))
+            } catch (_: SecurityException) {
+            }
         }
     }
 
@@ -699,6 +772,8 @@ class TetherWatchService : Service(), SagerConnection.Callback {
         tetherDropDebounceJob = null
         channelRefreshJob?.cancel()
         channelRefreshJob = null
+        channelSafetyJob?.cancel()
+        channelSafetyJob = null
         cachedChannelLabel = ""
         stopTrafficMonitoring()
         systemNetReceiver?.let { runCatching { unregisterReceiver(it) } }

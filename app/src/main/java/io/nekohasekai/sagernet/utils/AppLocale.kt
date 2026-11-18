@@ -18,7 +18,15 @@ object AppLocale {
     // Applies the in-app language. AppCompat handles persistence (API 33+ via the
     // framework, below via SharedPreferences) and recreates active activities.
     fun apply(tag: String? = DataStore.appLanguage) {
-        AppCompatDelegate.setApplicationLocales(localeList(tag))
+        val target = localeList(tag)
+        val current = AppCompatDelegate.getApplicationLocales()
+        if ((target.isEmpty && current.isEmpty) ||
+            current == target ||
+            current.toLanguageTags().equals(target.toLanguageTags(), ignoreCase = true)
+        ) {
+            return
+        }
+        AppCompatDelegate.setApplicationLocales(target)
     }
 
 }

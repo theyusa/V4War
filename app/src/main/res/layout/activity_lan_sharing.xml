@@ -394,6 +394,7 @@
                                     android:checkable="true"
                                     android:clickable="true"
                                     android:focusable="true"
+                                    android:visibility="gone"
                                     android:text="@string/hotspot_share_tether_channel_bt" />
 
                             </com.google.android.material.chip.ChipGroup>

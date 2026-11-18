@@ -24,6 +24,10 @@ __pycache__/
 
 # local tooling / extracted debug native libs
 .codegraph/
+.claude/
+.gitnexus/
+.roo/
+.superpowers/
 /lib/
 
 

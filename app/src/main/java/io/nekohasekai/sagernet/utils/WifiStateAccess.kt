@@ -77,6 +77,7 @@ object WifiStateAccess {
 
         private var last: Pair<String, String>? = null
         private var registered = false
+        private var activeCallback: Callback? = null
 
         private inner class Callback : ConnectivityManager.NetworkCallback {
             constructor() : super()
@@ -84,38 +85,50 @@ object WifiStateAccess {
             @RequiresApi(31)
             constructor(flags: Int) : super(flags)
 
-            override fun onAvailable(network: Network) = check()
-            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) = check()
-            override fun onLost(network: Network) = check()
+            override fun onAvailable(network: Network) = check(this)
+            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) = check(this)
+            override fun onLost(network: Network) = check(this)
         }
 
-        private val callback = if (Build.VERSION.SDK_INT >= 31) {
+        private fun createCallback(): Callback = if (Build.VERSION.SDK_INT >= 31) {
             Callback(ConnectivityManager.NetworkCallback.FLAG_INCLUDE_LOCATION_INFO)
         } else {
             Callback()
         }
 
+        @Synchronized
         fun start() {
-            synchronized(this) { last = runCatching { read(context) }.getOrNull() }
+            if (registered) return
+            last = runCatching { read(context) }.getOrNull()
             val request = NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build()
+            val callback = createCallback()
             try {
                 SagerNet.connectivity.registerNetworkCallback(request, callback)
+                activeCallback = callback
                 registered = true
             } catch (e: Throwable) {
                 Logs.w(e)
             }
         }
 
+        @Synchronized
         fun stop() {
             if (!registered) return
             registered = false
-            runCatching { SagerNet.connectivity.unregisterNetworkCallback(callback) }
+            val callback = activeCallback
+            activeCallback = null
+            if (callback != null) {
+                runCatching { SagerNet.connectivity.unregisterNetworkCallback(callback) }
+            }
         }
 
-        private fun check() {
+        private fun check(source: Callback) {
+            synchronized(this) {
+                if (!registered || activeCallback !== source) return
+            }
             val state = runCatching { read(context) }.getOrNull() ?: return
             synchronized(this) {
-                if (state == last) return
+                if (!registered || activeCallback !== source || state == last) return
                 last = state
             }
             try {

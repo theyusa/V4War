@@ -1,9 +1,6 @@
 package io.nekohasekai.sagernet.hotspotshare.shizuku
 
 import android.annotation.SuppressLint
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
-import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.LinkAddress
@@ -18,19 +15,26 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.Parcel
 import android.os.ParcelFileDescriptor
+import android.os.Process
 import android.util.Log
+import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.hotspotshare.HotspotShareLogger
 import io.nekohasekai.sagernet.utils.LanSharingNetwork
 import io.nekohasekai.sagernet.utils.TetherKind
 import org.json.JSONObject
+import java.io.File
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
+import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.NetworkInterface
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executor
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -82,6 +86,8 @@ class ShareUserService : IShareUserService.Stub {
     private var testTunInterface: Any? = null
     @Volatile
     private var activeInterfaceName: String? = null
+    @Volatile
+    private var ownerPackageName: String? = null
     private var tunPfd: ParcelFileDescriptor? = null
     private var testNetworkBinder: IBinder? = null
     @Volatile
@@ -91,9 +97,29 @@ class ShareUserService : IShareUserService.Stub {
     private var shutdownHook: Thread? = null
     private val destroying = AtomicBoolean(false)
     private val tetherChannelLock = Any()
-    private val panProxyLock = Any()
+    private val callbackExecutor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "ShareUserService-cb").apply { isDaemon = true }
+    }
+    private val tetheringCallbackRegistered = AtomicBoolean(false)
+    private val tetheringCallbackInitialIfacesReceived = AtomicBoolean(false)
+    private val tetheringCallbackInitialUpstreamReceived = AtomicBoolean(false)
     @Volatile
-    private var cachedPanProxy: BluetoothProfile? = null
+    private var tetheringEventCallbackProxy: Any? = null
+    private val softApCallbackRegistered = AtomicBoolean(false)
+    @Volatile
+    private var softApCallbackProxy: Any? = null
+    @Volatile
+    private var cachedTetheredIfaces: List<String> = emptyList()
+    @Volatile
+    private var cachedUpstreamNetwork: Network? = null
+    @Volatile
+    private var cachedUpstreamIface: String? = null
+    private val upstreamWaitLock = Object()
+    @Volatile
+    private var cachedTetherClients: List<CachedTetherClient> = emptyList()
+    private val cachedTetherWifiClientCount = AtomicInteger(0)
+    private val softApClientsSingle = AtomicReference<Int?>(null)
+    private val softApClientsByInfo = ConcurrentHashMap<String, Int>()
 
     private val inspector = UpstreamInspector()
 
@@ -165,6 +191,209 @@ class ShareUserService : IShareUserService.Stub {
         }
 
         ShellContextHelper.injectContextIntoTetheringManager(tetheringManager!!, ctx)
+        registerTetheringEventCallback(tetheringManager!!)
+        registerSoftApCallback(ctx)
+    }
+
+    private fun registerTetheringEventCallback(tm: Any) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+        if (tetheringCallbackRegistered.get()) return
+        runCatching {
+            val cbClass = Class.forName("android.net.TetheringManager\$TetheringEventCallback")
+            if (!cbClass.isInterface) return@runCatching
+            val proxy = Proxy.newProxyInstance(
+                cbClass.classLoader,
+                arrayOf(cbClass),
+            ) { proxyInstance, method, args ->
+                when (method.name) {
+                    "equals" -> return@newProxyInstance proxyInstance === args?.firstOrNull()
+                    "hashCode" -> return@newProxyInstance System.identityHashCode(proxyInstance)
+                    "toString" -> return@newProxyInstance "ShareUserService.TetheringEventCallback"
+                    "onTetheredInterfacesChanged" -> {
+                        val raw = args?.firstOrNull() as? Collection<*>
+                        if (raw != null) {
+                            cachedTetheredIfaces = extractTetheredIfaceNames(raw)
+                            tetheringCallbackInitialIfacesReceived.set(true)
+                        }
+                    }
+                    "onUpstreamChanged" -> {
+                        val net = args?.firstOrNull() as? Network
+                        val iface = net?.let { n ->
+                            val cm = connectivityManager
+                                ?: (baseContext?.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager)
+                            runCatching { cm?.getLinkProperties(n)?.interfaceName }.getOrNull()
+                                ?.takeIf { it.isNotBlank() }
+                        }
+                        synchronized(upstreamWaitLock) {
+                            cachedUpstreamNetwork = net
+                            cachedUpstreamIface = iface
+                            tetheringCallbackInitialUpstreamReceived.set(true)
+                            upstreamWaitLock.notifyAll()
+                        }
+                    }
+                    "onClientsChanged" -> {
+                        val raw = args?.firstOrNull() as? Collection<*>
+                        if (raw != null) {
+                            val parsed = ArrayList<CachedTetherClient>()
+                            var wifiClientCount = 0
+                            for (client in raw) {
+                                if (client == null) continue
+                                val tetheringType = runCatching {
+                                    client.javaClass.getMethod("getTetheringType").invoke(client) as? Int
+                                }.getOrNull() ?: -1
+                                if (tetheringType == TETHERING_BLUETOOTH_TYPE) continue
+                                if ((tetheringType == TETHERING_USB || tetheringType == TETHERING_NCM) &&
+                                    !LanSharingNetwork.USB_TETHER_ENABLED
+                                ) {
+                                    continue
+                                }
+                                if (tetheringType == TETHERING_WIFI) {
+                                    wifiClientCount++
+                                }
+                                val mac = runCatching {
+                                    client.javaClass.getMethod("getMacAddress").invoke(client)?.toString()
+                                }.getOrNull()
+                                val addresses = runCatching {
+                                    client.javaClass.getMethod("getAddresses").invoke(client) as? Collection<*>
+                                }.getOrNull().orEmpty()
+                                for (addrInfo in addresses) {
+                                    if (addrInfo == null) continue
+                                    val linkAddr = runCatching {
+                                        addrInfo.javaClass.getMethod("getAddress").invoke(addrInfo) as? LinkAddress
+                                    }.getOrNull()
+                                    val ip = linkAddr?.address?.takeIf { it is Inet4Address }?.hostAddress ?: continue
+                                    val hostname = runCatching {
+                                        addrInfo.javaClass.getMethod("getHostname").invoke(addrInfo) as? String
+                                    }.getOrNull()?.takeIf { it.isNotBlank() }
+                                    parsed += CachedTetherClient(
+                                        ip = ip,
+                                        hostname = hostname,
+                                        mac = mac,
+                                        tetheringType = tetheringType,
+                                    )
+                                }
+                            }
+                            cachedTetherClients = parsed
+                            cachedTetherWifiClientCount.set(wifiClientCount)
+                        }
+                    }
+                }
+                null
+            }
+            tm.javaClass.getMethod("registerTetheringEventCallback", Executor::class.java, cbClass)
+                .invoke(tm, callbackExecutor, proxy)
+            tetheringEventCallbackProxy = proxy
+            tetheringCallbackRegistered.set(true)
+            HotspotShareLogger.info(TAG, "Registered TetheringEventCallback in ShareUserService")
+        }.onFailure { t ->
+            HotspotShareLogger.warn(TAG, "TetheringEventCallback unavailable: ${t.message}")
+        }
+    }
+
+    private fun registerSoftApCallback(ctx: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+        if (softApCallbackRegistered.get()) return
+        runCatching {
+            val wm = ctx.getSystemService(Context.WIFI_SERVICE) ?: return@runCatching
+            val cbClass = Class.forName("android.net.wifi.WifiManager\$SoftApCallback")
+            if (!cbClass.isInterface) return@runCatching
+            val proxy = Proxy.newProxyInstance(
+                cbClass.classLoader,
+                arrayOf(cbClass),
+            ) { proxyInstance, method, args ->
+                when (method.name) {
+                    "equals" -> return@newProxyInstance proxyInstance === args?.firstOrNull()
+                    "hashCode" -> return@newProxyInstance System.identityHashCode(proxyInstance)
+                    "toString" -> return@newProxyInstance "ShareUserService.SoftApCallback"
+                    "onStateChanged" -> {
+                        val state = args?.getOrNull(0) as? Int ?: -1
+                        if (state == WIFI_AP_STATE_DISABLED || state == WIFI_AP_STATE_FAILED) {
+                            softApClientsSingle.set(0)
+                            softApClientsByInfo.clear()
+                        }
+                    }
+                    "onConnectedClientsChanged" -> {
+                        if (args != null && args.size == 1) {
+                            val clients = args[0] as? Collection<*>
+                            if (clients != null) {
+                                softApClientsSingle.set(clients.size)
+                            }
+                        } else if (args != null && args.size >= 2) {
+                            val info = args[0]
+                            val clients = args[1] as? Collection<*>
+                            if (clients != null) {
+                                val key = runCatching {
+                                    info?.javaClass?.getMethod("getApInstanceIdentifier")?.invoke(info)?.toString()
+                                }.getOrNull() ?: info?.toString() ?: "default"
+                                softApClientsByInfo[key] = clients.size
+                            }
+                        }
+                    }
+                    "onInfoChanged" -> {
+                        val infos = args?.firstOrNull() as? Collection<*>
+                        if (infos != null) {
+                            val activeKeys = infos.mapNotNull { info ->
+                                runCatching {
+                                    info?.javaClass?.getMethod("getApInstanceIdentifier")?.invoke(info)?.toString()
+                                }.getOrNull() ?: info?.toString()
+                            }.toSet()
+                            softApClientsByInfo.keys.retainAll(activeKeys)
+                        }
+                    }
+                }
+                null
+            }
+            wm.javaClass.getMethod("registerSoftApCallback", Executor::class.java, cbClass)
+                .invoke(wm, callbackExecutor, proxy)
+            softApCallbackProxy = proxy
+            softApCallbackRegistered.set(true)
+            HotspotShareLogger.info(TAG, "Registered WifiManager.SoftApCallback in ShareUserService")
+        }.onFailure { t ->
+            HotspotShareLogger.warn(TAG, "SoftApCallback unavailable (will use cached fallback): ${t.message}")
+        }
+    }
+
+    private fun unregisterPlatformCallbacks() {
+        val tm = tetheringManager
+        val tetheringProxy = tetheringEventCallbackProxy
+        tetheringEventCallbackProxy = null
+        tetheringCallbackRegistered.set(false)
+        if (tm != null && tetheringProxy != null) {
+            runCatching {
+                val cbClass = Class.forName("android.net.TetheringManager\$TetheringEventCallback")
+                tm.javaClass.getMethod("unregisterTetheringEventCallback", cbClass).invoke(tm, tetheringProxy)
+            }
+        }
+        val softApProxy = softApCallbackProxy
+        softApCallbackProxy = null
+        softApCallbackRegistered.set(false)
+        if (softApProxy != null) {
+            runCatching {
+                val wm = baseContext?.getSystemService(Context.WIFI_SERVICE)
+                    ?: runCatching { context.getSystemService(Context.WIFI_SERVICE) }.getOrNull()
+                val cbClass = Class.forName("android.net.wifi.WifiManager\$SoftApCallback")
+                wm?.javaClass?.getMethod("unregisterSoftApCallback", cbClass)?.invoke(wm, softApProxy)
+            }
+        }
+        softApClientsByInfo.clear()
+        softApClientsSingle.set(null)
+        cachedTetherClients = emptyList()
+        cachedTetheredIfaces = emptyList()
+        tetheringCallbackInitialIfacesReceived.set(false)
+        synchronized(upstreamWaitLock) {
+            cachedUpstreamNetwork = null
+            cachedUpstreamIface = null
+            tetheringCallbackInitialUpstreamReceived.set(false)
+            upstreamWaitLock.notifyAll()
+        }
+        cachedTetherWifiClientCount.set(0)
+    }
+
+    private fun getCachedSoftApClientCount(): Int {
+        if (softApClientsByInfo.isNotEmpty()) {
+            return softApClientsByInfo.values.sum()
+        }
+        return softApClientsSingle.get() ?: 0
     }
 
     override fun getContractVersion(): Int = CONTRACT_VERSION
@@ -183,14 +412,15 @@ class ShareUserService : IShareUserService.Stub {
     ): ParcelFileDescriptor {
         ensureWatchdogAsync()
         val ctx = context
+        val ownerPkg = resolveOwnerPackageName(ctx)
         val tnm = testNetworkManager ?: throw IllegalStateException("TestNetworkManager is not ready")
         val cm = connectivityManager ?: (ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager)
         HotspotShareLogger.info(
             TAG,
-            "createTestNetwork requested (dns=${dnsServers?.joinToString(",")}, externalBinder=${lifeBinder != null})",
+            "createTestNetwork requested (dns=${dnsServers?.joinToString(",")}, externalBinder=${lifeBinder != null}, pkg=$ownerPkg)",
         )
 
-        cleanupOrphanedTestNetworks(tnm, cm)
+        cleanupOrphanedTestNetworks(tnm, cm, ownerPkg)
 
         // Build dual-stack LinkAddresses (RFC 5737 192.0.2.2/24 + non-FakeIP ULA fd00:2:0:2::2/64)
         // avoiding sing-box FakeIP 198.18.0.0/15 & FakeDNS 2001:db8::/32 collisions.
@@ -221,6 +451,7 @@ class ShareUserService : IShareUserService.Stub {
         val pfd = tunIface.javaClass.getMethod("getFileDescriptor").invoke(tunIface) as ParcelFileDescriptor
         activeInterfaceName = ifaceName
         tunPfd = pfd
+        persistOwnedTestTunInterface(ownerPkg, ifaceName)
 
         // Build LinkProperties with interfaceName, LinkAddresses, routes, and DNS servers
         val dnsInetList = buildDnsList(dnsServers, includeIpv6 = hasIpv6)
@@ -307,25 +538,70 @@ class ShareUserService : IShareUserService.Stub {
         acquiredNetwork = foundNetwork
         activeInterfaceName = target
         usesExternalLifeBinder = true
+        persistOwnedTestTunInterface(resolveOwnerPackageName(ctx), target)
         runCatching { setPreferTestNetworks(true) }
         installShutdownHook()
         HotspotShareLogger.info(TAG, "Adopted live $target after ShareUserService restart (network=$foundNetwork)")
         return true
     }
 
-    private fun cleanupOrphanedTestNetworks(tnm: Any, cm: ConnectivityManager) {
+    private fun resolveOwnerPackageName(ctx: Context? = baseContext): String {
+        val callingUid = runCatching { Binder.getCallingUid() }.getOrDefault(-1)
+        val myUid = runCatching { Process.myUid() }.getOrDefault(-1)
+        if (callingUid > 0 && callingUid != myUid && callingUid != ShellContextHelper.SHELL_UID) {
+            val fromUid = runCatching {
+                val pm = (ctx ?: baseContext)?.packageManager
+                pm?.getPackagesForUid(callingUid)?.firstOrNull { it.isNotBlank() }
+            }.getOrNull()
+            if (!fromUid.isNullOrBlank()) {
+                ownerPackageName = fromUid
+                return fromUid
+            }
+        }
+        ownerPackageName?.let { return it }
+        val fromBase = baseContext?.packageName?.takeIf {
+            it.isNotBlank() && it != ShellContextHelper.SHELL_PACKAGE && it != "android"
+        }
+        val resolved = fromBase
+            ?: BuildConfig.APPLICATION_ID.takeIf { it.isNotBlank() }
+            ?: if (callingUid > 0) "uid_$callingUid" else "default"
+        ownerPackageName = resolved
+        return resolved
+    }
+
+    private fun cleanupOrphanedTestNetworks(
+        tnm: Any,
+        cm: ConnectivityManager,
+        ownerPkg: String = resolveOwnerPackageName(baseContext),
+    ) {
+        val persistedOwned = readOwnedTestTunInterface(ownerPkg)
+        val candidateIfaces = runCatching {
+            cm.allNetworks.mapNotNull { net ->
+                runCatching { cm.getLinkProperties(net)?.interfaceName }.getOrNull()
+            }
+        }.getOrDefault(emptyList())
+        val ownedIfaces = selectOwnedOrphanedTestInterfaces(
+            networkIfaces = candidateIfaces,
+            activeIface = activeInterfaceName,
+            persistedOwnedIface = persistedOwned,
+        )
+        if (ownedIfaces.isEmpty()) {
+            clearOwnedTestTunInterface(ownerPkg)
+            return
+        }
         val teardownMethod = runCatching {
             tnm.javaClass.getMethod("teardownTestNetwork", Network::class.java)
         }.getOrNull() ?: return
         runCatching {
             cm.allNetworks.forEach { network ->
                 val ifName = runCatching { cm.getLinkProperties(network)?.interfaceName }.getOrNull()
-                if (ifName != null && ifName.startsWith("testtun")) {
+                if (ifName != null && ifName in ownedIfaces) {
                     runCatching { teardownMethod.invoke(tnm, network) }
-                    HotspotShareLogger.info(TAG, "Cleaned up lingering test network $ifName before creating new tunnel")
+                    HotspotShareLogger.info(TAG, "Cleaned up owned test network $ifName before creating new tunnel (pkg=$ownerPkg)")
                 }
             }
         }
+        clearOwnedTestTunInterface(ownerPkg)
     }
 
     private fun ensureWatchdogAsync() {
@@ -521,7 +797,17 @@ class ShareUserService : IShareUserService.Stub {
         runCatching { setPreferTestNetworks(true) }
 
         var restarted = startMaskChannels(tm, ctx, targetMask, hasNcm)
-        if (!restarted) {
+        if ((targetMask and TETHER_MASK_WIFI) != 0) {
+            val settled = restarted && awaitWifiHotspotSettled(ctx)
+            if (!settled) {
+                HotspotShareLogger.warn(TAG, "Wi-Fi hotspot did not settle after restart; retrying with WifiManager fallback")
+                runCatching { Thread.sleep(RESTART_RETRY_DELAY_MS) }
+                restarted = startWifiTetheringWithFallback(tm, ctx, verifySettled = true) &&
+                    awaitWifiHotspotSettled(ctx)
+            } else {
+                restarted = true
+            }
+        } else if (!restarted) {
             runCatching { Thread.sleep(RESTART_RETRY_DELAY_MS) }
             restarted = startMaskChannels(tm, ctx, targetMask, hasNcm) ||
                 isWifiHotspotActiveInternal(ctx, waitIfEnabling = true)
@@ -540,7 +826,12 @@ class ShareUserService : IShareUserService.Stub {
         val ctx = context
         val tm = tetheringManager ?: throw IllegalStateException("TetheringManager is not ready")
         ensureWatchdogAsync()
-        val desired = if (targetMask != 0) targetMask else TETHER_MASK_WIFI
+        val allowedMask = if (LanSharingNetwork.USB_TETHER_ENABLED) {
+            targetMask and (TETHER_MASK_WIFI or TETHER_MASK_USB)
+        } else {
+            targetMask and TETHER_MASK_WIFI
+        }
+        val desired = if (allowedMask != 0) allowedMask else TETHER_MASK_WIFI
         val currentMask = getActiveTetherMask()
         val missingMask = desired and currentMask.inv()
         if (missingMask == 0) {
@@ -571,11 +862,19 @@ class ShareUserService : IShareUserService.Stub {
         val tm = tetheringManager ?: return false
         HotspotShareLogger.info(TAG, "startTetheringType(type=$type)")
 
+        if (type == TETHERING_BLUETOOTH_TYPE) {
+            HotspotShareLogger.info(TAG, "startTetheringType($type): Bluetooth tethering is not supported in Shizuku mode")
+            return false
+        }
+        if ((type == TETHERING_USB || type == TETHERING_NCM) && !LanSharingNetwork.USB_TETHER_ENABLED) {
+            HotspotShareLogger.info(TAG, "startTetheringType($type): USB tethering is currently disabled")
+            return false
+        }
+
         val activeMask = getActiveTetherMask()
         val alreadyActive = when (type) {
             TETHERING_WIFI -> (activeMask and TETHER_MASK_WIFI) != 0
             TETHERING_USB, TETHERING_NCM -> (activeMask and TETHER_MASK_USB) != 0
-            TETHERING_BLUETOOTH -> (activeMask and TETHER_MASK_BLUETOOTH) != 0
             else -> false
         }
         if (alreadyActive) {
@@ -586,7 +885,6 @@ class ShareUserService : IShareUserService.Stub {
         return when (type) {
             TETHERING_WIFI -> startWifiTetheringWithFallback(tm, ctx)
             TETHERING_USB, TETHERING_NCM -> startUsbTetheringWithFallback(tm, ctx, type)
-            TETHERING_BLUETOOTH -> startBluetoothTetheringWithFallback(tm, ctx)
             else -> startViaTetheringRequest(tm, type, isExempt = true) ||
                 startViaTetheringRequest(tm, type, isExempt = false)
         }
@@ -598,8 +896,10 @@ class ShareUserService : IShareUserService.Stub {
         HotspotShareLogger.info(TAG, "stopTetheringType(type=$type)")
         when (type) {
             TETHERING_WIFI -> stopWifiTetheringInternal(tm, ctx)
-            TETHERING_USB, TETHERING_NCM -> stopUsbTetheringInternal(tm, ctx, type)
-            TETHERING_BLUETOOTH -> stopBluetoothTetheringInternal(tm, ctx)
+            TETHERING_USB, TETHERING_NCM -> if (LanSharingNetwork.USB_TETHER_ENABLED) {
+                stopUsbTetheringInternal(tm, ctx, type)
+            }
+            TETHERING_BLUETOOTH_TYPE -> Unit
             else -> invokeStopTethering(tm, type)
         }
         Unit
@@ -607,9 +907,15 @@ class ShareUserService : IShareUserService.Stub {
 
     override fun getActiveTetherMask(): Int {
         val ctx = runCatching { context }.getOrNull() ?: return 0
-        val dumpsysDownstreams = runCatching { inspector.observeTethering().tetheredDownstreams }
-            .getOrDefault(emptyList())
-        return computeActiveTetherMask(ctx, dumpsysDownstreams)
+        return computeActiveTetherMask(ctx, cachedTetheredIfaces)
+    }
+
+    override fun getTetheredIfaces(): List<String> {
+        val ctx = runCatching { context }.getOrNull() ?: return cachedTetheredIfaces
+        if (hasAuthoritativeTetheredIfacesCallback()) {
+            return cachedTetheredIfaces
+        }
+        return queryPlatformTetheredIfaces(ctx)
     }
 
     override fun isWifiHotspotActive(): Boolean {
@@ -617,9 +923,21 @@ class ShareUserService : IShareUserService.Stub {
         return isWifiHotspotActiveInternal(ctx, waitIfEnabling = false)
     }
 
-    private fun startWifiTetheringWithFallback(tm: Any, ctx: Context): Boolean {
-        if (startViaTetheringRequest(tm, TETHERING_WIFI, isExempt = true)) return true
-        if (startViaTetheringRequest(tm, TETHERING_WIFI, isExempt = false)) return true
+    private fun startWifiTetheringWithFallback(
+        tm: Any,
+        ctx: Context,
+        verifySettled: Boolean = false,
+    ): Boolean {
+        if (startViaTetheringRequest(tm, TETHERING_WIFI, isExempt = true) &&
+            (!verifySettled || awaitWifiHotspotSettled(ctx))
+        ) {
+            return true
+        }
+        if (startViaTetheringRequest(tm, TETHERING_WIFI, isExempt = false) &&
+            (!verifySettled || awaitWifiHotspotSettled(ctx))
+        ) {
+            return true
+        }
         return startViaWifiManager(ctx)
     }
 
@@ -731,198 +1049,12 @@ class ShareUserService : IShareUserService.Stub {
         return false
     }
 
-    private fun isBluetoothEnabledFromSystem(ctx: Context): Boolean? {
-        val adapter = resolveBluetoothAdapter(ctx)
-        if (adapter != null) return adapter.isEnabled
-        val (exitCode, out) = runShellWithResult(listOf("dumpsys", "bluetooth_manager"))
-        if (exitCode != 0) return null
-        UpstreamInspector.parseBluetoothEnabled(out)?.let { return it }
-        if (UpstreamInspector.parseBluetoothPanTetherOn(out) != null) return true
-        return null
-    }
-
-    private fun startBluetoothTetheringWithFallback(tm: Any, ctx: Context): Boolean {
-        if (isBluetoothPanTetheringOn(ctx)) {
-            HotspotShareLogger.info(TAG, "Bluetooth PAN tethering is already active")
-            return true
-        }
-
-        if (isBluetoothEnabledFromSystem(ctx) == false) {
-            HotspotShareLogger.info(TAG, "Bluetooth adapter disabled; enabling before Bluetooth tethering")
-            val cmdEnable = runShellWithResult(listOf("cmd", "bluetooth_manager", "enable")).first == 0 ||
-                runShellWithResult(listOf("svc", "bluetooth", "enable")).first == 0
-            val deadline = System.currentTimeMillis() + BLUETOOTH_ENABLE_TIMEOUT_MS
-            while (System.currentTimeMillis() < deadline && isBluetoothEnabledFromSystem(ctx) != true) {
-                runCatching { Thread.sleep(POLL_INTERVAL_MS) }
-            }
-            if (isBluetoothEnabledFromSystem(ctx) != true) {
-                HotspotShareLogger.warn(TAG, "Bluetooth adapter did not turn on (cmdEnable=$cmdEnable)")
-                return false
-            }
-        }
-
-        if (activeInterfaceName != null) {
-            runCatching { setPreferTestNetworks(true) }
-        }
-
-        if (startViaTetheringRequest(tm, TETHERING_BLUETOOTH, isExempt = true) && awaitBluetoothMaskActive(ctx)) {
-            return true
-        }
-        if (startViaTetheringRequest(tm, TETHERING_BLUETOOTH, isExempt = false) && awaitBluetoothMaskActive(ctx)) {
-            return true
-        }
-
-        for (cmd in listOf(
-            listOf("cmd", "connectivity", "start-tethering", "bluetooth"),
-            listOf("cmd", "tethering", "start-tethering", "bluetooth"),
-        )) {
-            val (exitCode, out) = runShellWithResult(cmd)
-            HotspotShareLogger.info(TAG, "Fallback '${cmd.joinToString(" ")}' -> exit=$exitCode out=${out.trim()}")
-            if (exitCode == 0 && awaitBluetoothMaskActive(ctx)) {
-                return true
-            }
-        }
-
-        if (resolveBluetoothAdapter(ctx) != null) {
-            val panOk = setBluetoothTetheringViaPan(ctx, enable = true)
-            if (panOk && awaitBluetoothMaskActive(ctx)) {
-                return true
-            }
-        }
-        HotspotShareLogger.warn(TAG, "startBluetoothTetheringWithFallback failed across all fallbacks")
-        return false
-    }
-
-    private fun awaitBluetoothMaskActive(ctx: Context): Boolean {
-        val deadline = System.currentTimeMillis() + BLUETOOTH_FALLBACK_SETTLE_MS
-        while (System.currentTimeMillis() < deadline) {
-            val downstreams = runCatching { inspector.observeTethering().tetheredDownstreams }.getOrDefault(emptyList())
-            val mask = computeActiveTetherMask(ctx, downstreams)
-            if ((mask and TETHER_MASK_BLUETOOTH) != 0) return true
-            runCatching { Thread.sleep(POLL_INTERVAL_MS) }
-        }
-        return false
-    }
-
-    @Suppress("DEPRECATION")
-    private fun resolveBluetoothAdapter(ctx: Context): BluetoothAdapter? {
-        val fromSys = (ctx.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
-        if (fromSys != null) return fromSys
-        val fromApp = runCatching {
-            (ctx.applicationContext?.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
-        }.getOrNull()
-        if (fromApp != null) return fromApp
-        return runCatching { BluetoothAdapter.getDefaultAdapter() }.getOrNull()
-    }
-
-    private fun getOrConnectPanProxy(ctx: Context, resolvedAdapter: BluetoothAdapter? = null): BluetoothProfile? =
-        synchronized(panProxyLock) {
-            val existing = cachedPanProxy
-            if (existing != null) {
-                val valid = runCatching {
-                    existing.javaClass.getMethod("isTetheringOn").invoke(existing)
-                    true
-                }.getOrDefault(false)
-                if (valid) return existing
-                cachedPanProxy = null
-            }
-
-            val adapter = resolvedAdapter ?: resolveBluetoothAdapter(ctx) ?: return null
-            if (!adapter.isEnabled) return null
-
-            val latch = CountDownLatch(1)
-            val proxyRef = AtomicReference<BluetoothProfile?>(null)
-            val listener = object : BluetoothProfile.ServiceListener {
-                override fun onServiceConnected(profile: Int, proxy: BluetoothProfile?) {
-                    proxyRef.set(proxy)
-                    latch.countDown()
-                }
-
-                override fun onServiceDisconnected(profile: Int) {
-                    synchronized(panProxyLock) {
-                        if (cachedPanProxy === proxyRef.get()) {
-                            cachedPanProxy = null
-                        }
-                    }
-                    latch.countDown()
-                }
-            }
-            val requested = runCatching {
-                adapter.getProfileProxy(ctx, listener, BLUETOOTH_PROFILE_PAN)
-            }.getOrDefault(false)
-            if (!requested) {
-                HotspotShareLogger.warn(TAG, "getProfileProxy(PAN) returned false")
-                return null
-            }
-            runCatching { latch.await(BLUETOOTH_PROXY_TIMEOUT_MS, TimeUnit.MILLISECONDS) }
-            val connected = proxyRef.get()
-            if (connected != null) {
-                cachedPanProxy = connected
-            }
-            return connected
-        }
-
-    private fun isBluetoothPanTetheringOn(ctx: Context): Boolean {
-        val adapter = resolveBluetoothAdapter(ctx)
-        if (adapter != null && !adapter.isEnabled) {
-            return false
-        }
-        val proxy = if (adapter != null) getOrConnectPanProxy(ctx, adapter) else cachedPanProxy
-        if (proxy != null) {
-            val isOn = runCatching {
-                proxy.javaClass.getMethod("isTetheringOn").invoke(proxy) as? Boolean
-            }.getOrNull()
-            if (isOn != null) return isOn
-        }
-        val (exitCode, out) = runShellWithResult(listOf("dumpsys", "bluetooth_manager"))
-        if (exitCode == 0) {
-            if (UpstreamInspector.parseBluetoothEnabled(out) == false) {
-                return false
-            }
-            val parsed = UpstreamInspector.parseBluetoothPanTetherOn(out)
-            if (parsed != null) return parsed
-        }
-        return false
-    }
-
-    private fun setBluetoothTetheringViaPan(ctx: Context, enable: Boolean): Boolean {
-        return runCatching {
-            val adapter = resolveBluetoothAdapter(ctx)
-            if (adapter == null) {
-                HotspotShareLogger.warn(TAG, "BluetoothAdapter unavailable for BluetoothPan($enable)")
-                return false
-            }
-            if (enable && !adapter.isEnabled) {
-                HotspotShareLogger.warn(TAG, "Bluetooth adapter is disabled; cannot start Bluetooth tethering")
-                return false
-            }
-            val proxy = getOrConnectPanProxy(ctx, adapter)
-            if (proxy == null) {
-                HotspotShareLogger.warn(TAG, "Timed out waiting for BluetoothPan service proxy")
-                return false
-            }
-            proxy.javaClass.getMethod("setBluetoothTethering", Boolean::class.javaPrimitiveType)
-                .invoke(proxy, enable)
-            val isOn = runCatching {
-                proxy.javaClass.getMethod("isTetheringOn").invoke(proxy) as? Boolean
-            }.getOrNull()
-            HotspotShareLogger.info(TAG, "BluetoothPan.setBluetoothTethering($enable) -> isTetheringOn=$isOn")
-            if (enable) isOn == true else isOn != true
-        }.getOrElse { t ->
-            HotspotShareLogger.warn(TAG, "BluetoothPan.setBluetoothTethering($enable) failed: ${t.message}")
-            false
-        }
-    }
-
     private fun stopMaskChannels(tm: Any, ctx: Context, mask: Int, hasNcm: Boolean) {
         if ((mask and TETHER_MASK_WIFI) != 0) {
             stopWifiTetheringInternal(tm, ctx)
         }
-        if ((mask and TETHER_MASK_USB) != 0) {
+        if (LanSharingNetwork.USB_TETHER_ENABLED && (mask and TETHER_MASK_USB) != 0) {
             stopUsbTetheringInternal(tm, ctx, if (hasNcm) TETHERING_NCM else TETHERING_USB)
-        }
-        if ((mask and TETHER_MASK_BLUETOOTH) != 0) {
-            stopBluetoothTetheringInternal(tm, ctx)
         }
     }
 
@@ -933,16 +1065,11 @@ class ShareUserService : IShareUserService.Stub {
                 anyStarted = true
             }
         }
-        if ((mask and TETHER_MASK_USB) != 0) {
+        if (LanSharingNetwork.USB_TETHER_ENABLED && (mask and TETHER_MASK_USB) != 0) {
             val usbType = if (hasNcm) TETHERING_NCM else TETHERING_USB
             val usbOk = startUsbTetheringWithFallback(tm, ctx, usbType) ||
                 (hasNcm && startUsbTetheringWithFallback(tm, ctx, TETHERING_USB))
             if (usbOk) anyStarted = true
-        }
-        if ((mask and TETHER_MASK_BLUETOOTH) != 0) {
-            if (startBluetoothTetheringWithFallback(tm, ctx)) {
-                anyStarted = true
-            }
         }
         return anyStarted
     }
@@ -950,15 +1077,30 @@ class ShareUserService : IShareUserService.Stub {
     private fun waitForTetherMaskStopped(ctx: Context, targetMask: Int) {
         val deadline = System.currentTimeMillis() + STOP_SETTLE_MS
         while (System.currentTimeMillis() < deadline) {
-            val obs = runCatching { inspector.observeTethering().tetheredDownstreams }.getOrDefault(emptyList())
-            val currentMask = computeActiveTetherMask(ctx, obs)
-            val wifiDisabling = (targetMask and TETHER_MASK_WIFI) != 0 &&
-                queryWifiApState(ctx) == WIFI_AP_STATE_DISABLING
-            if ((currentMask and targetMask) == 0 && !wifiDisabling) {
+            val downstreams = cachedTetheredIfaces
+            val currentMask = computeActiveTetherMask(ctx, downstreams)
+            val wifiState = if ((targetMask and TETHER_MASK_WIFI) != 0) queryWifiApState(ctx) else WIFI_AP_STATE_DISABLED
+            if (isTetherMaskStopSettled(targetMask, currentMask, wifiState, downstreams)) {
                 return
             }
             runCatching { Thread.sleep(POLL_INTERVAL_MS) }
         }
+    }
+
+    private fun awaitWifiHotspotSettled(
+        ctx: Context,
+        timeoutMs: Long = START_SETTLE_MS,
+    ): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            if (isWifiHotspotActiveInternal(ctx, waitIfEnabling = true)) {
+                return true
+            }
+            val remaining = deadline - System.currentTimeMillis()
+            if (remaining <= 0L) break
+            runCatching { Thread.sleep(minOf(POLL_INTERVAL_MS, remaining)) }
+        }
+        return isWifiHotspotActiveInternal(ctx, waitIfEnabling = false)
     }
 
     private fun startViaTetheringRequest(tm: Any, tetheringType: Int, isExempt: Boolean): Boolean {
@@ -1033,6 +1175,22 @@ class ShareUserService : IShareUserService.Stub {
         }
     }
 
+    private fun hasAuthoritativeTetheredIfacesCallback(): Boolean =
+        tetheringCallbackRegistered.get() && tetheringCallbackInitialIfacesReceived.get()
+
+    private fun resolveCurrentCallbackUpstreamIface(ctx: Context): String? {
+        val cached = cachedUpstreamIface
+        if (!cached.isNullOrBlank()) return cached
+        val net = cachedUpstreamNetwork ?: return null
+        val cm = connectivityManager ?: (ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager)
+        val resolved = runCatching { cm?.getLinkProperties(net)?.interfaceName }.getOrNull()
+            ?.takeIf { it.isNotBlank() }
+        if (resolved != null) {
+            cachedUpstreamIface = resolved
+        }
+        return resolved
+    }
+
     private fun isWifiHotspotActiveInternal(
         ctx: Context,
         waitIfEnabling: Boolean,
@@ -1052,30 +1210,27 @@ class ShareUserService : IShareUserService.Stub {
         if (wifiState == WIFI_AP_STATE_ENABLED || isWifiApEnabledReflective(ctx)) {
             return true
         }
-        val downstreams = downstreamsOverride
-            ?: runCatching { inspector.observeTethering().tetheredDownstreams }.getOrDefault(emptyList())
+        val downstreams = downstreamsOverride ?: if (hasAuthoritativeTetheredIfacesCallback()) {
+            cachedTetheredIfaces
+        } else {
+            (cachedTetheredIfaces + queryPlatformTetheredIfaces(ctx)).distinct()
+        }
         if (downstreams.any { isAnyTetherDownstreamName(it) }) {
             return true
         }
-        return computeActiveTetherMask(ctx, emptyList()) != 0
+        return computeActiveTetherMask(ctx, downstreams) != 0
     }
 
-    private fun computeActiveTetherMask(ctx: Context, dumpsysDownstreams: List<String>): Int {
-        var mask = 0
+    private fun computeActiveTetherMask(ctx: Context, extraDownstreams: List<String>): Int {
         val wifiState = queryWifiApState(ctx)
-        if (wifiState == WIFI_AP_STATE_ENABLED ||
+        val wifiApActive = wifiState == WIFI_AP_STATE_ENABLED ||
             wifiState == WIFI_AP_STATE_ENABLING ||
             isWifiApEnabledReflective(ctx)
-        ) {
-            mask = mask or TETHER_MASK_WIFI
-        }
 
-        for (iface in dumpsysDownstreams) {
-            mask = mask or maskForConfirmedDownstream(iface)
-        }
-
-        for (iface in queryPlatformTetheredIfaces(ctx)) {
-            mask = mask or maskForConfirmedDownstream(iface)
+        val downstreams = if (hasAuthoritativeTetheredIfacesCallback()) {
+            if (extraDownstreams.isNotEmpty()) extraDownstreams.distinct() else cachedTetheredIfaces
+        } else {
+            (extraDownstreams + queryPlatformTetheredIfaces(ctx)).distinct()
         }
 
         val cm = connectivityManager ?: (ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager)
@@ -1086,37 +1241,31 @@ class ShareUserService : IShareUserService.Stub {
                 .toSet()
         }.getOrDefault(emptySet())
 
-        runCatching {
-            NetworkInterface.getNetworkInterfaces()?.toList().orEmpty().forEach { nif ->
+        val unknownUpIfaces = runCatching {
+            NetworkInterface.getNetworkInterfaces()?.toList().orEmpty().mapNotNull { nif ->
                 val isUp = runCatching { nif.isUp }.getOrDefault(false)
                 val isLoopback = runCatching { nif.isLoopback }.getOrDefault(false)
-                if (!isUp || isLoopback) return@forEach
-                if (nif.name.lowercase() in knownIfaces) return@forEach
-                mask = mask or when (LanSharingNetwork.getTetherKindForInterface(nif.name)) {
-                    TetherKind.WIFI -> TETHER_MASK_WIFI
-                    TetherKind.USB -> TETHER_MASK_USB
-                    TetherKind.BLUETOOTH -> TETHER_MASK_BLUETOOTH
-                    TetherKind.OTHER -> 0
-                }
+                if (!isUp || isLoopback) return@mapNotNull null
+                if (nif.name.lowercase() in knownIfaces) return@mapNotNull null
+                nif.name
             }
-        }
-        if ((mask and TETHER_MASK_BLUETOOTH) == 0 && isBluetoothPanTetheringOn(ctx)) {
-            mask = mask or TETHER_MASK_BLUETOOTH
-        }
-        return mask
-    }
+        }.getOrDefault(emptyList())
 
-    private fun maskForConfirmedDownstream(iface: String): Int = when {
-        isWifiDownstreamName(iface) -> TETHER_MASK_WIFI
-        isUsbDownstreamName(iface) -> TETHER_MASK_USB
-        isBluetoothDownstreamName(iface) -> TETHER_MASK_BLUETOOTH
-        else -> 0
+        return computeActiveTetherMaskFromInputs(
+            wifiApActive = wifiApActive,
+            downstreams = downstreams,
+            networkInterfaces = unknownUpIfaces,
+        )
     }
 
     private fun hasActiveNcmDownstream(ctx: Context): Boolean {
-        val dumpsys = runCatching { inspector.observeTethering().tetheredDownstreams }.getOrDefault(emptyList())
-        if (dumpsys.any { it.trim().lowercase().startsWith("ncm") }) return true
-        if (queryPlatformTetheredIfaces(ctx).any { it.trim().lowercase().startsWith("ncm") }) return true
+        if (!LanSharingNetwork.USB_TETHER_ENABLED) return false
+        if (cachedTetheredIfaces.any { it.trim().lowercase().startsWith("ncm") }) return true
+        if (!hasAuthoritativeTetheredIfacesCallback() &&
+            queryPlatformTetheredIfaces(ctx).any { it.trim().lowercase().startsWith("ncm") }
+        ) {
+            return true
+        }
         return runCatching {
             NetworkInterface.getNetworkInterfaces()?.toList().orEmpty()
                 .any { nif ->
@@ -1183,7 +1332,50 @@ class ShareUserService : IShareUserService.Stub {
 
     override fun verifyUpstream(timeoutMs: Long): Boolean {
         val expected = activeInterfaceName ?: return false
+        val ctx = runCatching { context }.getOrNull()
         val deadline = System.currentTimeMillis() + timeoutMs
+
+        if (tetheringCallbackRegistered.get() && ctx != null) {
+            while (true) {
+                val cbIface = resolveCurrentCallbackUpstreamIface(ctx)
+                if (tetheringCallbackInitialUpstreamReceived.get() && cbIface == expected) {
+                    Log.i(TAG, "Upstream verified via TetheringEventCallback: $expected")
+                    HotspotShareLogger.info(TAG, "Upstream verified via TetheringEventCallback: $expected")
+                    return true
+                }
+                val remaining = deadline - System.currentTimeMillis()
+                if (remaining <= 0L) break
+                synchronized(upstreamWaitLock) {
+                    val refreshed = resolveCurrentCallbackUpstreamIface(ctx)
+                    if (tetheringCallbackInitialUpstreamReceived.get() && refreshed == expected) {
+                        Log.i(TAG, "Upstream verified via TetheringEventCallback: $expected")
+                        HotspotShareLogger.info(TAG, "Upstream verified via TetheringEventCallback: $expected")
+                        return true
+                    }
+                    runCatching {
+                        upstreamWaitLock.wait(minOf(remaining, UPSTREAM_CALLBACK_POLL_MS))
+                    }
+                }
+            }
+            if (!tetheringCallbackInitialUpstreamReceived.get()) {
+                val fallbackLive = runCatching {
+                    inspector.observeTethering().liveInterfaceNames(expected)
+                }.getOrDefault(emptyList())
+                if (fallbackLive.isNotEmpty() && fallbackLive.all { it == expected }) {
+                    Log.i(TAG, "Upstream verified via dumpsys fallback: $expected is sole upstream")
+                    HotspotShareLogger.info(TAG, "Upstream verified via dumpsys fallback: $expected is sole upstream")
+                    return true
+                }
+                Log.w(TAG, "verifyUpstream timed out after ${timeoutMs}ms: expected=$expected, observed=$fallbackLive")
+                HotspotShareLogger.warn(TAG, "verifyUpstream timed out after ${timeoutMs}ms: expected=$expected, observed=$fallbackLive")
+                return false
+            }
+            val observed = resolveCurrentCallbackUpstreamIface(ctx)
+            Log.w(TAG, "verifyUpstream timed out after ${timeoutMs}ms: expected=$expected, observed=${observed ?: "none"}")
+            HotspotShareLogger.warn(TAG, "verifyUpstream timed out after ${timeoutMs}ms: expected=$expected, observed=${observed ?: "none"}")
+            return false
+        }
+
         while (System.currentTimeMillis() < deadline) {
             val obs = runCatching { inspector.observeTethering() }.getOrNull()
             val live = obs?.liveInterfaceNames(expected).orEmpty()
@@ -1202,9 +1394,23 @@ class ShareUserService : IShareUserService.Stub {
 
     override fun checkUpstreamHealth(): String {
         val expected = activeInterfaceName ?: return "ABSENT"
-        val obs = runCatching { inspector.observeTethering() }.getOrElse {
-            HotspotShareLogger.warn(TAG, "checkUpstreamHealth observeTethering failed: ${it.message}")
-            return "TIMED_OUT"
+        val ctx = runCatching { context }.getOrNull()
+        val obs = if (ctx != null &&
+            tetheringCallbackRegistered.get() &&
+            tetheringCallbackInitialUpstreamReceived.get()
+        ) {
+            val upstream = resolveCurrentCallbackUpstreamIface(ctx)
+            val downstreams = if (hasAuthoritativeTetheredIfacesCallback()) {
+                cachedTetheredIfaces
+            } else {
+                (cachedTetheredIfaces + queryPlatformTetheredIfaces(ctx)).distinct()
+            }
+            buildCallbackUpstreamObservation(upstream, downstreams)
+        } else {
+            runCatching { inspector.observeTethering() }.getOrElse {
+                HotspotShareLogger.warn(TAG, "checkUpstreamHealth observeTethering failed: ${it.message}")
+                return "TIMED_OUT"
+            }
         }
         val health = UpstreamInspector.evaluateUpstreamHealth(obs, expected) {
             isWifiHotspotActiveInternal(
@@ -1220,11 +1426,20 @@ class ShareUserService : IShareUserService.Stub {
     }
 
     override fun getConnectedClientCount(): Int {
-        return runCatching { inspector.observeWifiClientCount() }.getOrDefault(0)
+        runCatching { context }
+        return resolveConnectedClientCount(
+            softApRegistered = softApCallbackRegistered.get(),
+            softApCount = getCachedSoftApClientCount(),
+            tetherRegistered = tetheringCallbackRegistered.get(),
+            tetherCount = cachedTetherWifiClientCount.get(),
+            fallback = { runCatching { inspector.observeWifiClientCountCached() }.getOrDefault(0) },
+        )
     }
 
     override fun getNeighborDump(): String {
-        return runCatching { inspector.observeNeighbors() }.getOrDefault("")
+        runCatching { context }
+        val hostLines = formatCachedClientHostLines(cachedTetherClients)
+        return runCatching { inspector.observeNeighbors(hostLines) }.getOrDefault("")
     }
 
     override fun checkCompatibility(): String {
@@ -1295,12 +1510,13 @@ class ShareUserService : IShareUserService.Stub {
     }
 
     private fun stopWifiTetheringInternal(tm: Any, ctx: Context): Boolean {
-        val tmStopped = invokeStopTethering(tm, TETHERING_WIFI)
-        val wmStopped = runCatching {
+        if (invokeStopTethering(tm, TETHERING_WIFI)) {
+            return true
+        }
+        return runCatching {
             val wm = ctx.getSystemService(Context.WIFI_SERVICE) ?: return@runCatching false
             wm.javaClass.getMethod("stopSoftAp").invoke(wm) as? Boolean ?: true
         }.getOrDefault(false)
-        return tmStopped || wmStopped
     }
 
     private fun stopUsbTetheringInternal(tm: Any, ctx: Context, requestedType: Int): Boolean {
@@ -1330,35 +1546,14 @@ class ShareUserService : IShareUserService.Stub {
         return stoppedRequested || stoppedAlt || cmStopped
     }
 
-    private fun stopBluetoothTetheringInternal(tm: Any, ctx: Context): Boolean {
-        val tmStopped = invokeStopTethering(tm, TETHERING_BLUETOOTH)
-        var panOk = false
-        if ((computeActiveTetherMask(ctx, emptyList()) and TETHER_MASK_BLUETOOTH) != 0 &&
-            resolveBluetoothAdapter(ctx) != null
-        ) {
-            panOk = setBluetoothTetheringViaPan(ctx, enable = false)
-        }
-        val cmdOk = if ((computeActiveTetherMask(ctx, emptyList()) and TETHER_MASK_BLUETOOTH) != 0) {
-            runShellWithResult(listOf("cmd", "connectivity", "stop-tethering", "bluetooth")).first == 0 ||
-                runShellWithResult(listOf("cmd", "tethering", "stop-tethering", "bluetooth")).first == 0
-        } else {
-            false
-        }
-        waitForTetherMaskStopped(ctx, TETHER_MASK_BLUETOOTH)
-        return tmStopped || panOk || cmdOk
-    }
-
     private fun stopTetheringInternal(tm: Any, ctx: Context, mask: Int): Boolean {
         val hasNcm = hasActiveNcmDownstream(ctx)
         var any = false
         if ((mask and TETHER_MASK_WIFI) != 0 || mask == 0) {
             if (stopWifiTetheringInternal(tm, ctx)) any = true
         }
-        if ((mask and TETHER_MASK_USB) != 0) {
+        if (LanSharingNetwork.USB_TETHER_ENABLED && (mask and TETHER_MASK_USB) != 0) {
             if (stopUsbTetheringInternal(tm, ctx, if (hasNcm) TETHERING_NCM else TETHERING_USB)) any = true
-        }
-        if ((mask and TETHER_MASK_BLUETOOTH) != 0) {
-            if (stopBluetoothTetheringInternal(tm, ctx)) any = true
         }
         return any
     }
@@ -1420,7 +1615,8 @@ class ShareUserService : IShareUserService.Stub {
 
     @Synchronized
     override fun cleanupDirtyState() {
-        HotspotShareLogger.info(TAG, "cleanupDirtyState (iface=$activeInterfaceName)")
+        val ownerPkg = resolveOwnerPackageName(baseContext)
+        HotspotShareLogger.info(TAG, "cleanupDirtyState (iface=$activeInterfaceName, pkg=$ownerPkg)")
         removeShutdownHook()
 
         // 1. Clear preferTestNetworks(false) and wait for upstream to move off testtunN
@@ -1457,8 +1653,9 @@ class ShareUserService : IShareUserService.Stub {
             }
         }
         if (tnm != null && cm != null) {
-            cleanupOrphanedTestNetworks(tnm, cm)
+            cleanupOrphanedTestNetworks(tnm, cm, ownerPkg)
         }
+        clearOwnedTestTunInterface(ownerPkg)
         acquiredNetwork = null
 
         // 4. Close TUN fd
@@ -1486,15 +1683,14 @@ class ShareUserService : IShareUserService.Stub {
         if (!destroying.compareAndSet(false, true)) return
         HotspotShareLogger.info(TAG, "destroy() called; disabling keep-alive and cleaning up")
         runCatching { ShizukuWatchdog.disableKeepAlive() }
-        synchronized(panProxyLock) {
-            cachedPanProxy?.let { proxy ->
-                runCatching {
-                    resolveBluetoothAdapter(context)?.closeProfileProxy(BLUETOOTH_PROFILE_PAN, proxy)
-                }
-            }
-            cachedPanProxy = null
+        runCatching { unregisterPlatformCallbacks() }
+        runCatching { callbackExecutor.shutdownNow() }
+        if (shouldCleanupOnDestroy(activeInterfaceName, keepAliveCallback, acquiredNetwork)) {
+            cleanupDirtyState()
+        } else {
+            removeShutdownHook()
+            HotspotShareLogger.info(TAG, "destroy() skipping redundant cleanupDirtyState (already clean)")
         }
-        cleanupDirtyState()
         // Exit asynchronously after Binder IPC returns so Shizuku unbind doesn't hit
         // DeadObjectException and no stale :hotspot_share process remains alive.
         Thread {
@@ -1506,9 +1702,16 @@ class ShareUserService : IShareUserService.Stub {
         }
     }
 
+    internal data class CachedTetherClient(
+        val ip: String,
+        val hostname: String?,
+        val mac: String?,
+        val tetheringType: Int,
+    )
+
     companion object {
         private const val TAG = "ShareUserService"
-        const val CONTRACT_VERSION = 11
+        const val CONTRACT_VERSION = 13
 
         /** Matches rikka.shizuku.ShizukuApiConstants.USER_SERVICE_TRANSACTION_destroy. */
         private const val TRANSACTION_SHIZUKU_DESTROY = 16777115
@@ -1520,34 +1723,141 @@ class ShareUserService : IShareUserService.Stub {
 
         const val TETHERING_WIFI = 0
         const val TETHERING_USB = 1
-        const val TETHERING_BLUETOOTH = 2
+        private const val TETHERING_BLUETOOTH_TYPE = 2
         const val TETHERING_NCM = 4
 
         const val TETHER_MASK_WIFI = 1
         const val TETHER_MASK_USB = 2
-        const val TETHER_MASK_BLUETOOTH = 4
 
-        private const val WIFI_AP_STATE_DISABLING = 10
-        private const val WIFI_AP_STATE_ENABLING = 12
-        private const val WIFI_AP_STATE_ENABLED = 13
+        internal const val WIFI_AP_STATE_DISABLING = 10
+        internal const val WIFI_AP_STATE_DISABLED = 11
+        internal const val WIFI_AP_STATE_ENABLING = 12
+        internal const val WIFI_AP_STATE_ENABLED = 13
+        internal const val WIFI_AP_STATE_FAILED = 14
         private const val TRANSPORT_TEST_FALLBACK = 7
-        private const val BLUETOOTH_PROFILE_PAN = 5
 
         private const val AVAILABILITY_TIMEOUT_MS = 10_000L
         private const val POLL_INTERVAL_MS = 200L
-        private const val STOP_SETTLE_MS = 3_000L
+        private const val STOP_SETTLE_MS = 5_000L
+        private const val START_SETTLE_MS = 3_000L
         private const val RESTART_RETRY_DELAY_MS = 500L
         private const val STOP_RETRY_DELAY_MS = 1_000L
         private const val DOWNSTREAM_STOP_ATTEMPTS = 3
         private const val START_TIMEOUT_SEC = 15L
         private const val UPSTREAM_POLL_MS = 500L
+        private const val UPSTREAM_CALLBACK_POLL_MS = 250L
         private const val UPSTREAM_RELEASE_MS = 4_000L
         private const val USB_RESET_SETTLE_MS = 450L
         private const val USB_FALLBACK_SETTLE_MS = 2_500L
-        private const val BLUETOOTH_FALLBACK_SETTLE_MS = 1_800L
-        private const val BLUETOOTH_ENABLE_TIMEOUT_MS = 2_500L
-        private const val BLUETOOTH_PROXY_TIMEOUT_MS = 2_000L
         private const val SHELL_CMD_TIMEOUT_MS = 3_000L
+        private const val OWNED_TESTTUN_MARKER_DIR = "/data/local/tmp"
+        private const val OWNED_TESTTUN_MARKER_PREFIX = "v4war_owned_testtun_"
+
+        internal fun sanitizePackageForMarker(pkg: String?): String {
+            val raw = pkg?.trim().orEmpty()
+            if (raw.isEmpty()) return "default"
+            val sanitized = buildString(raw.length) {
+                for (ch in raw) {
+                    if (ch.isLetterOrDigit() || ch == '.' || ch == '_' || ch == '-') {
+                        append(ch)
+                    } else {
+                        append('_')
+                    }
+                }
+            }.trim('.')
+            return sanitized.ifEmpty { "default" }
+        }
+
+        internal fun ownedTestTunMarkerFile(
+            pkg: String?,
+            markerDir: File = File(OWNED_TESTTUN_MARKER_DIR),
+        ): File = File(markerDir, "$OWNED_TESTTUN_MARKER_PREFIX${sanitizePackageForMarker(pkg)}")
+
+        internal fun persistOwnedTestTunInterface(
+            pkg: String?,
+            ifaceName: String?,
+            markerDir: File = File(OWNED_TESTTUN_MARKER_DIR),
+        ) {
+            val cleanIface = ifaceName?.trim()?.takeIf { it.startsWith("testtun") } ?: return
+            val file = ownedTestTunMarkerFile(pkg, markerDir)
+            runCatching {
+                file.parentFile?.let { parent -> if (!parent.exists()) parent.mkdirs() }
+                file.writeText("$cleanIface\n")
+                runCatching { file.setReadable(true, false) }
+            }
+        }
+
+        internal fun readOwnedTestTunInterface(
+            pkg: String?,
+            markerDir: File = File(OWNED_TESTTUN_MARKER_DIR),
+        ): String? {
+            val file = ownedTestTunMarkerFile(pkg, markerDir)
+            return runCatching {
+                if (!file.exists()) return@runCatching null
+                file.readText().trim().takeIf { it.startsWith("testtun") }
+            }.getOrNull()
+        }
+
+        internal fun clearOwnedTestTunInterface(
+            pkg: String?,
+            markerDir: File = File(OWNED_TESTTUN_MARKER_DIR),
+        ) {
+            val file = ownedTestTunMarkerFile(pkg, markerDir)
+            runCatching {
+                if (file.exists()) file.delete()
+            }
+        }
+
+        internal fun selectOwnedOrphanedTestInterfaces(
+            networkIfaces: Collection<String>,
+            activeIface: String?,
+            persistedOwnedIface: String?,
+        ): Set<String> {
+            val owned = LinkedHashSet<String>()
+            activeIface?.trim()?.takeIf { it.startsWith("testtun") }?.let { owned.add(it) }
+            persistedOwnedIface?.trim()?.takeIf { it.startsWith("testtun") }?.let { owned.add(it) }
+            if (owned.isEmpty()) return emptySet()
+            return networkIfaces.filterTo(LinkedHashSet()) { iface ->
+                iface.startsWith("testtun") && iface in owned
+            }
+        }
+
+        internal fun shouldCleanupOnDestroy(
+            activeIface: String?,
+            keepAlive: Any?,
+            network: Any?,
+        ): Boolean = activeIface != null || keepAlive != null || network != null
+
+        internal fun buildCallbackUpstreamObservation(
+            upstreamIface: String?,
+            tetheredDownstreams: List<String>,
+        ): UpstreamObservation = UpstreamObservation(
+            rawOutput = "",
+            interfaceNames = if (upstreamIface.isNullOrBlank()) emptyList() else listOf(upstreamIface),
+            tetheredDownstreams = tetheredDownstreams,
+            didTimeout = false,
+        )
+
+        internal fun isTetherMaskStopSettled(
+            targetMask: Int,
+            currentMask: Int,
+            wifiApState: Int,
+            cachedDownstreams: List<String>,
+            usbEnabled: Boolean = LanSharingNetwork.USB_TETHER_ENABLED,
+        ): Boolean {
+            if ((currentMask and targetMask) != 0) return false
+            if ((targetMask and TETHER_MASK_WIFI) != 0) {
+                val wifiStopped = wifiApState == WIFI_AP_STATE_DISABLED ||
+                    wifiApState == WIFI_AP_STATE_FAILED ||
+                    wifiApState == -1
+                if (!wifiStopped) return false
+                if (cachedDownstreams.any { isWifiDownstreamName(it) }) return false
+            }
+            if (usbEnabled && (targetMask and TETHER_MASK_USB) != 0) {
+                if (cachedDownstreams.any { isUsbDownstreamName(it) }) return false
+            }
+            return true
+        }
 
         internal fun isWifiDownstreamName(iface: String): Boolean {
             val lower = iface.trim().lowercase()
@@ -1558,10 +1868,70 @@ class ShareUserService : IShareUserService.Stub {
         internal fun isUsbDownstreamName(iface: String): Boolean =
             LanSharingNetwork.getTetherKindForInterface(iface) == TetherKind.USB
 
-        internal fun isBluetoothDownstreamName(iface: String): Boolean =
-            LanSharingNetwork.getTetherKindForInterface(iface) == TetherKind.BLUETOOTH
-
         internal fun isAnyTetherDownstreamName(iface: String): Boolean =
-            isWifiDownstreamName(iface) || isUsbDownstreamName(iface) || isBluetoothDownstreamName(iface)
+            isWifiDownstreamName(iface) ||
+                (LanSharingNetwork.USB_TETHER_ENABLED && isUsbDownstreamName(iface))
+
+        internal fun extractTetheredIfaceNames(raw: Collection<*>): List<String> =
+            raw.mapNotNull { item ->
+                when (item) {
+                    is String -> item.takeIf { it.isNotBlank() }
+                    null -> null
+                    else -> runCatching {
+                        item.javaClass.getMethod("getInterface").invoke(item) as? String
+                    }.getOrNull()?.takeIf { it.isNotBlank() }
+                }
+            }.distinct()
+
+        internal fun formatCachedClientHostLines(clients: List<CachedTetherClient>): List<String> =
+            clients.mapNotNull { client ->
+                val host = client.hostname?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+                val ip = client.ip.trim().takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+                "AddressInfo {address $ip/24, hostname $host}"
+            }.distinct()
+
+        internal fun resolveConnectedClientCount(
+            softApRegistered: Boolean,
+            softApCount: Int,
+            tetherRegistered: Boolean,
+            tetherCount: Int,
+            fallback: () -> Int,
+        ): Int {
+            if (softApRegistered || tetherRegistered) {
+                return maxOf(
+                    if (softApRegistered) softApCount.coerceAtLeast(0) else 0,
+                    if (tetherRegistered) tetherCount.coerceAtLeast(0) else 0,
+                )
+            }
+            return fallback().coerceAtLeast(0)
+        }
+
+        internal fun computeActiveTetherMaskFromInputs(
+            wifiApActive: Boolean,
+            downstreams: List<String>,
+            networkInterfaces: List<String>,
+            usbEnabled: Boolean = LanSharingNetwork.USB_TETHER_ENABLED,
+        ): Int {
+            var mask = 0
+            if (wifiApActive) {
+                mask = mask or TETHER_MASK_WIFI
+            }
+            for (iface in downstreams) {
+                mask = mask or when {
+                    isWifiDownstreamName(iface) -> TETHER_MASK_WIFI
+                    usbEnabled && isUsbDownstreamName(iface) -> TETHER_MASK_USB
+                    else -> 0
+                }
+            }
+            for (iface in networkInterfaces) {
+                mask = mask or when (LanSharingNetwork.getTetherKindForInterface(iface)) {
+                    TetherKind.WIFI -> TETHER_MASK_WIFI
+                    TetherKind.USB -> if (usbEnabled) TETHER_MASK_USB else 0
+                    TetherKind.BLUETOOTH,
+                    TetherKind.OTHER -> 0
+                }
+            }
+            return mask
+        }
     }
 }

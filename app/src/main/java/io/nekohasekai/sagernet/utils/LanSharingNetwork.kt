@@ -1,17 +1,24 @@
 package io.nekohasekai.sagernet.utils
 
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.os.Process
+import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.SettingsRegistry
+import io.nekohasekai.sagernet.hotspotshare.ShizukuBackend
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.net.Inet4Address
+import java.net.InetSocketAddress
 import java.net.NetworkInterface
+import java.net.Socket
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -57,6 +64,12 @@ data class HotspotCandidate(
  * `/connections` poller that feeds [LanSharingLogics].
  */
 object LanSharingNetwork {
+
+    /**
+     * TODO: Re-enable USB tethering once RNDIS/NCM upstream selection and USB gadget
+     * re-enumeration issues are investigated and fixed.
+     */
+    const val USB_TETHER_ENABLED: Boolean = false
 
     private val httpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -184,7 +197,7 @@ object LanSharingNetwork {
         for (iface in collectAllTetheredIfaces(appCtx, cm)) {
             val lower = iface.trim().lowercase()
             val kind = if (lower.startsWith("wlan")) TetherKind.WIFI else getTetherKindForInterface(iface)
-            if (kind != TetherKind.OTHER) {
+            if (kind != TetherKind.OTHER && (USB_TETHER_ENABLED || kind != TetherKind.USB)) {
                 kinds += kind
             }
         }
@@ -197,7 +210,7 @@ object LanSharingNetwork {
                 if (!isUp || isLoopback) return@forEach
                 if (nif.name.lowercase() in knownIfaces) return@forEach
                 val kind = getTetherKindForInterface(nif.name)
-                if (kind != TetherKind.OTHER) {
+                if (kind != TetherKind.OTHER && (USB_TETHER_ENABLED || kind != TetherKind.USB)) {
                     kinds += kind
                 }
             }
@@ -211,17 +224,90 @@ object LanSharingNetwork {
         return findHotspotIp(context) != null
     }
 
-    fun getTetheredIfaces(cm: ConnectivityManager?): List<String> = runCatching {
-        val method = cm?.javaClass?.getDeclaredMethod("getTetheredIfaces")
-        method?.isAccessible = true
-        (method?.invoke(cm) as? Array<*>)?.filterIsInstance<String>().orEmpty()
+    private const val SHELL_UID = 2000
+    private val cmTetheredIfacesBlocked = AtomicBoolean(false)
+    private val tmTetheredIfacesBlocked = AtomicBoolean(false)
+
+    internal fun isPrivilegedShellOrRootUid(
+        uid: Int = runCatching { Process.myUid() }.getOrDefault(-1),
+    ): Boolean = uid == SHELL_UID || uid == 0
+
+    internal fun canReflectTetheredIfaces(
+        sdkInt: Int = Build.VERSION.SDK_INT,
+        uid: Int = runCatching { Process.myUid() }.getOrDefault(-1),
+    ): Boolean = sdkInt < Build.VERSION_CODES.R || isPrivilegedShellOrRootUid(uid)
+
+    internal fun isProcNetRestrictedForCurrentProcess(
+        sdkInt: Int = Build.VERSION.SDK_INT,
+        uid: Int = runCatching { Process.myUid() }.getOrDefault(-1),
+    ): Boolean = sdkInt >= Build.VERSION_CODES.Q && uid >= Process.FIRST_APPLICATION_UID
+
+    internal fun extractTetheredIfacesFromIntent(intent: Intent?): List<String> {
+        if (intent == null) return emptyList()
+        val tetherArray = runCatching { intent.getStringArrayListExtra("tetherArray") }.getOrNull().orEmpty()
+        val activeArray = runCatching { intent.getStringArrayListExtra("activeArray") }.getOrNull().orEmpty()
+        return (tetherArray + activeArray)
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+    }
+
+    internal fun readStickyTetheredIfaces(context: Context): List<String> = runCatching {
+        val sticky = context.registerReceiver(null, IntentFilter("android.net.conn.TETHER_STATE_CHANGED"))
+        extractTetheredIfacesFromIntent(sticky)
     }.getOrDefault(emptyList())
+
+    private fun collectNonUpstreamHotspotIfaces(cm: ConnectivityManager?): List<String> {
+        val knownIfaces = collectKnownNetworkIfaces(cm)
+        return runCatching {
+            NetworkInterface.getNetworkInterfaces()?.toList().orEmpty().mapNotNull { nif ->
+                val isUp = runCatching { nif.isUp }.getOrDefault(false)
+                val isLoopback = runCatching { nif.isLoopback }.getOrDefault(false)
+                if (!isUp || isLoopback) return@mapNotNull null
+                if (nif.name.lowercase() in knownIfaces) return@mapNotNull null
+                if (!isHotspotInterfaceName(nif.name)) return@mapNotNull null
+                nif.name
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    fun getTetheredIfaces(cm: ConnectivityManager?): List<String> {
+        if (canReflectTetheredIfaces()) {
+            if (cm != null && !cmTetheredIfacesBlocked.get()) {
+                val reflected = try {
+                    val method = cm.javaClass.getDeclaredMethod("getTetheredIfaces")
+                    method.isAccessible = true
+                    (method.invoke(cm) as? Array<*>)?.filterIsInstance<String>().orEmpty()
+                } catch (_: Throwable) {
+                    cmTetheredIfacesBlocked.set(true)
+                    emptyList()
+                }
+                if (reflected.isNotEmpty() || isPrivilegedShellOrRootUid()) {
+                    return reflected
+                }
+            }
+            return emptyList()
+        }
+
+        val boundShizuku = runCatching { ShizukuBackend.getBoundTetheredIfaces() }.getOrNull()
+        if (boundShizuku != null) {
+            return boundShizuku
+        }
+
+        val result = linkedSetOf<String>()
+        runCatching { SagerNet.application }.getOrNull()?.let { appCtx ->
+            result += readStickyTetheredIfaces(appCtx)
+        }
+        result += collectNonUpstreamHotspotIfaces(cm)
+        return result.toList()
+    }
 
     /**
      * Returns true when the OS explicitly reports an active USB tethered interface
      * in TetheredState via TetheringManager/ConnectivityManager.
      */
     fun isUsbTetheringConfirmedInOs(context: Context): Boolean {
+        if (!USB_TETHER_ENABLED) return false
         val appCtx = context.applicationContext ?: context
         val cm = appCtx.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
         return collectAllTetheredIfaces(appCtx, cm)
@@ -232,6 +318,7 @@ object LanSharingNetwork {
      * Returns true when an active tethered USB interface uses the NCM protocol (`ncm*`).
      */
     fun hasActiveNcmTetheredIface(context: Context): Boolean {
+        if (!USB_TETHER_ENABLED) return false
         val appCtx = context.applicationContext ?: context
         val cm = appCtx.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
         return collectAllTetheredIfaces(appCtx, cm)
@@ -240,14 +327,28 @@ object LanSharingNetwork {
 
     private fun collectAllTetheredIfaces(appCtx: Context, cm: ConnectivityManager?): List<String> {
         val tethered = linkedSetOf<String>()
-        tethered += getTetheredIfaces(cm)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            runCatching {
-                val tm = appCtx.getSystemService("tethering")
-                val method = tm?.javaClass?.getMethod("getTetheredIfaces")
-                (method?.invoke(tm) as? Array<*>)?.filterIsInstance<String>()?.forEach { tethered += it }
+        if (canReflectTetheredIfaces()) {
+            tethered += getTetheredIfaces(cm)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !tmTetheredIfacesBlocked.get()) {
+                try {
+                    val tm = appCtx.getSystemService("tethering")
+                    val method = tm?.javaClass?.getMethod("getTetheredIfaces")
+                    (method?.invoke(tm) as? Array<*>)?.filterIsInstance<String>()?.forEach { tethered += it }
+                } catch (_: Throwable) {
+                    tmTetheredIfacesBlocked.set(true)
+                }
             }
+            return tethered.toList()
         }
+
+        val boundShizuku = runCatching { ShizukuBackend.getBoundTetheredIfaces() }.getOrNull()
+        if (boundShizuku != null) {
+            tethered += boundShizuku
+            return tethered.toList()
+        }
+
+        tethered += readStickyTetheredIfaces(appCtx)
+        tethered += collectNonUpstreamHotspotIfaces(cm)
         return tethered.toList()
     }
 
@@ -354,9 +455,39 @@ object LanSharingNetwork {
         return null
     }
 
-    private val procArpBlocked = AtomicBoolean(false)
-    private val procTcpBlocked = AtomicBoolean(false)
+    private val procArpBlocked = AtomicBoolean(isProcNetRestrictedForCurrentProcess())
+    private val procTcpBlocked = AtomicBoolean(isProcNetRestrictedForCurrentProcess())
     private val localNeighBlocked = AtomicBoolean(false)
+
+    internal fun isTcpEndpointOpen(host: String, port: Int, timeoutMs: Int = 250): Boolean = runCatching {
+        Socket().use { socket ->
+            socket.connect(InetSocketAddress(host, port), timeoutMs)
+        }
+        true
+    }.getOrDefault(false)
+
+    internal fun isPortBoundLoopbackOnly(
+        port: Int,
+        nonLoopbackLocalIps: List<String>,
+        timeoutMs: Int = 250,
+        endpointOpenProbe: (host: String, port: Int, timeoutMs: Int) -> Boolean = ::isTcpEndpointOpen,
+    ): Boolean {
+        if (port !in 1..65535 || nonLoopbackLocalIps.isEmpty()) return false
+        if (!endpointOpenProbe("127.0.0.1", port, timeoutMs)) return false
+        return nonLoopbackLocalIps.none { ip -> endpointOpenProbe(ip, port, timeoutMs) }
+    }
+
+    fun findLocalNonLoopbackIpv4Addresses(): List<String> = runCatching {
+        NetworkInterface.getNetworkInterfaces()?.toList().orEmpty().flatMap { nif ->
+            val isUp = runCatching { nif.isUp }.getOrDefault(false)
+            val isLoopback = runCatching { nif.isLoopback }.getOrDefault(false)
+            if (!isUp || isLoopback || isCellularOrVirtualInterface(nif.name)) return@flatMap emptyList()
+            runCatching { nif.interfaceAddresses }.getOrDefault(emptyList())
+                .mapNotNull { addr ->
+                    (addr.address as? Inet4Address)?.hostAddress?.takeIf { isValidHotspotIp(it) }
+                }
+        }.distinct()
+    }.getOrDefault(emptyList())
 
     fun readArp(): List<String> {
         if (procArpBlocked.get()) return emptyList()

@@ -14,7 +14,7 @@ import io.nekohasekai.sagernet.aidl.SpeedDisplayData
 import io.nekohasekai.sagernet.aidl.TrafficDataBatch
 import io.nekohasekai.sagernet.bg.autoselector.AutoSelectorClient
 import io.nekohasekai.sagernet.database.DataStore
-import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
+import io.nekohasekai.sagernet.ktx.runOnIoDispatcher
 import io.nekohasekai.sagernet.ktx.runOnMainDispatcher
 
 class SagerConnection(
@@ -49,6 +49,9 @@ class SagerConnection(
 
         /** The auto-selector status changed; [AutoSelectorClient] already holds it. */
         fun cbAutoSelectorUpdate(json: String) {}
+
+        /** Async URL test result for [requestId]; non-empty [error] indicates failure. */
+        fun cbUrlTestResult(requestId: Int, latencyMs: Int, error: String?) {}
 
         fun stateChanged(state: BaseService.State, profileName: String?, msg: String?)
 
@@ -105,6 +108,13 @@ class SagerConnection(
             }
         }
 
+        override fun cbUrlTestResult(requestId: Int, latencyMs: Int, error: String?) {
+            val callback = callback ?: return
+            runOnMainDispatcher {
+                callback.cbUrlTestResult(requestId, latencyMs, error)
+            }
+        }
+
     }
 
     private var binder: IBinder? = null
@@ -121,21 +131,33 @@ class SagerConnection(
     }
 
     override fun onServiceConnected(name: ComponentName?, binder: IBinder) {
+        if (!connectionActive) return
         this.binder = binder
-        val service = ISagerNetService.Stub.asInterface(binder)!!
-        this.service = service
+        val rawService = ISagerNetService.Stub.asInterface(binder)!!
+        this.service = rawService
         try {
             if (listenForDeath) binder.linkToDeath(this, 0)
             check(!callbackRegistered)
-            service.registerCallback(serviceCallback, connectionId)
+            rawService.registerCallback(serviceCallback, connectionId)
             callbackRegistered = true
         } catch (e: RemoteException) {
             e.printStackTrace()
         }
-        runOnDefaultDispatcher {
-            runCatching { service.autoSelectorStatus(false) }.onSuccess(AutoSelectorClient::update)
+        runOnIoDispatcher {
+            runCatching { rawService.autoSelectorStatus(false) }.onSuccess(AutoSelectorClient::update)
         }
-        callback?.onServiceConnected(service)
+        runOnIoDispatcher {
+            val stateResult = runCatching { rawService.state }
+            val profileNameResult = runCatching { rawService.profileName }
+            runOnMainDispatcher {
+                if (!connectionActive || this@SagerConnection.binder !== binder) return@runOnMainDispatcher
+                val cachedService = object : ISagerNetService by rawService {
+                    override fun getState(): Int = stateResult.getOrThrow()
+                    override fun getProfileName(): String? = profileNameResult.getOrThrow()
+                }
+                callback?.onServiceConnected(cachedService)
+            }
+        }
     }
 
     override fun onServiceDisconnected(name: ComponentName?) {

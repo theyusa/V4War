@@ -60,6 +60,7 @@ import io.nekohasekai.sagernet.ui.settings.XrayGeoSettingsFragment
 import io.nekohasekai.sagernet.ui.test.TestSessionClient
 import io.nekohasekai.sagernet.ktx.readableMessage
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
+import io.nekohasekai.sagernet.ktx.runOnIoDispatcher
 import io.nekohasekai.sagernet.ui.MessageStore
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.database.RouteManager
@@ -68,11 +69,16 @@ import io.nekohasekai.sagernet.utils.PlatformNotifications
 import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.utils.WifiStateAccess
 import io.nekohasekai.sagernet.widget.bars
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.drawerlayout.widget.DrawerLayout
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
 class MainActivity : ThemedActivity(),
     SagerConnection.Callback,
@@ -82,11 +88,18 @@ class MainActivity : ThemedActivity(),
     companion object {
         /** Texts to import (the QR scanner): URLs and deep links one by one, the rest as one import. */
         const val EXTRA_IMPORT_TEXTS = "importTexts"
+
+        @Volatile
+        private var lastAppliedHideFromRecentApps: Boolean? = null
+
+        @Volatile
+        private var lastAppliedHideTaskId: Int = -1
     }
 
     lateinit var binding: LayoutMainBinding
     lateinit var navigation: NavigationView
     private var currentMainFragment: ToolbarFragment? = null
+    private var resumeCheckJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -104,7 +117,7 @@ class MainActivity : ThemedActivity(),
             Theme.isWhiteTheme(this) -> ContextCompat.getColor(this, R.color.color_white_theme_fab)
             Theme.isLightGrayTheme(this) -> Color.parseColor("#1F2937")
             isBlackTheme || isAmoled -> {
-                val hasSeed = DataStore.appTheme !in setOf(Theme.BLACK, Theme.WHITE, Theme.LIGHT_GRAY)
+                val hasSeed = Theme.appTheme() !in setOf(Theme.BLACK, Theme.WHITE, Theme.LIGHT_GRAY)
                 if (hasSeed) {
                     val seedColor = MaterialColors.getColor(binding.root, R.attr.fabColorBackground, Color.BLACK)
                     if (ColorUtils.calculateLuminance(seedColor) > 0.85) {
@@ -219,7 +232,10 @@ class MainActivity : ThemedActivity(),
         if (savedInstanceState == null) intent?.let(::handleImportIntent)
         SubscriptionReportDialog.observe(this)
 
-        refreshNavMenu(DataStore.apiDashboardEnabled)
+        lifecycleScope.launch {
+            val dashboardEnabled = withContext(Dispatchers.IO) { DataStore.apiDashboardEnabled }
+            if (!isFinishing && !isDestroyed) refreshNavMenu(dashboardEnabled)
+        }
 
         if (savedInstanceState == null) {
             firstStart.start()
@@ -227,25 +243,77 @@ class MainActivity : ThemedActivity(),
         }
         runOnDefaultDispatcher { AppShortcuts.publish(applicationContext) }
 
-        if (isPreview && DataStore.previewHintDismissedVersion != BuildConfig.VERSION_NAME) {
-            MaterialAlertDialogBuilder(this)
-                .setTitle(BuildConfig.VERSION_NAME)
-                .setMessage(R.string.preview_version_hint)
-                .setPositiveButton(android.R.string.ok, null)
-                .setNeutralButton(R.string.preview_hint_dont_show_again) { _, _ ->
-                    DataStore.previewHintDismissedVersion = BuildConfig.VERSION_NAME
+        if (isPreview) {
+            lifecycleScope.launch {
+                val dismissedVersion = withContext(Dispatchers.IO) { DataStore.previewHintDismissedVersion }
+                if (!isFinishing && !isDestroyed && dismissedVersion != BuildConfig.VERSION_NAME) {
+                    MaterialAlertDialogBuilder(this@MainActivity)
+                        .setTitle(BuildConfig.VERSION_NAME)
+                        .setMessage(R.string.preview_version_hint)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .setNeutralButton(R.string.preview_hint_dont_show_again) { _, _ ->
+                            runOnIoDispatcher { DataStore.previewHintDismissedVersion = BuildConfig.VERSION_NAME }
+                        }
+                        .show()
                 }
-                .show()
+            }
         }
     }
+
+    private data class ResumeStateSnapshot(
+        val serviceError: String,
+        val serviceErrorDns: Boolean,
+        val serviceErrorGeo: Boolean,
+        val serviceErrorRuleSets: Boolean,
+        val hideFromRecentApps: Boolean,
+    )
 
     override fun onResume() {
         super.onResume()
         MessageStore.setCurrentActivity(this)
-        DataStore.serviceError.takeIf { it.isNotEmpty() }?.let(::showServiceError)
-
-        if (DataStore.hideFromRecentApps) {
-            applyHideFromRecentApps(DataStore.hideFromRecentApps)
+        val currentTaskId = taskId
+        resumeCheckJob?.cancel()
+        resumeCheckJob = lifecycleScope.launch {
+            val snapshot = withContext(Dispatchers.IO) {
+                val error = DataStore.serviceError
+                val hide = DataStore.hideFromRecentApps
+                if (error.isNotEmpty()) {
+                    ResumeStateSnapshot(
+                        serviceError = error,
+                        serviceErrorDns = DataStore.serviceErrorDns,
+                        serviceErrorGeo = DataStore.serviceErrorGeo,
+                        serviceErrorRuleSets = DataStore.serviceErrorRuleSets,
+                        hideFromRecentApps = hide,
+                    )
+                } else {
+                    ResumeStateSnapshot(
+                        serviceError = "",
+                        serviceErrorDns = false,
+                        serviceErrorGeo = false,
+                        serviceErrorRuleSets = false,
+                        hideFromRecentApps = hide,
+                    )
+                }
+            }
+            if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) || isFinishing || isDestroyed) {
+                return@launch
+            }
+            if (snapshot.serviceError.isNotEmpty()) {
+                showServiceError(
+                    snapshot.serviceError,
+                    dns = snapshot.serviceErrorDns,
+                    geo = snapshot.serviceErrorGeo,
+                    ruleSets = snapshot.serviceErrorRuleSets,
+                )
+            }
+            val hide = snapshot.hideFromRecentApps
+            val lastHide = lastAppliedHideFromRecentApps
+            if (lastHide == null && !hide) {
+                lastAppliedHideFromRecentApps = false
+                lastAppliedHideTaskId = currentTaskId
+            } else if (lastHide != hide || lastAppliedHideTaskId != currentTaskId) {
+                applyHideFromRecentApps(hide)
+            }
         }
     }
 
@@ -265,15 +333,20 @@ class MainActivity : ThemedActivity(),
     }
 
     fun applyHideFromRecentApps(hide: Boolean) {
-        try {
-            val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-            val tasks = activityManager.appTasks
-            if (tasks.isNotEmpty()) {
-                val task = tasks[0]
-                task.setExcludeFromRecents(hide)
+        val currentTaskId = taskId
+        lastAppliedHideFromRecentApps = hide
+        lastAppliedHideTaskId = currentTaskId
+        val appContext = applicationContext
+        runOnIoDispatcher {
+            try {
+                val activityManager = appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                val tasks = activityManager.appTasks
+                if (tasks.isNotEmpty()) {
+                    tasks[0].setExcludeFromRecents(hide)
+                }
+            } catch (e: Exception) {
+                Logs.w("Failed to set excludeFromRecents: ${e.message}")
             }
-        } catch (e: Exception) {
-            Logs.w("Failed to set excludeFromRecents: ${e.message}")
         }
     }
 
@@ -349,11 +422,39 @@ class MainActivity : ThemedActivity(),
         navigation.menu.findItem(R.id.nav_settings).isChecked = true
     }
 
-    fun urlTest(): Int {
-        if (!DataStore.serviceState.connected || connection.service == null) {
+    private val nextUrlTestRequestId = AtomicInteger(1)
+    private val pendingUrlTests = ConcurrentHashMap<Int, CompletableDeferred<Result<Int>>>()
+
+    suspend fun urlTest(): Int {
+        val service = connection.service
+        if (!DataStore.serviceState.connected || service == null) {
             error("not started")
         }
-        return connection.service!!.urlTest()
+        val requestId = nextUrlTestRequestId.getAndIncrement()
+        val deferred = CompletableDeferred<Result<Int>>()
+        pendingUrlTests[requestId] = deferred
+        try {
+            service.startUrlTest(requestId)
+            return deferred.await().getOrThrow()
+        } finally {
+            pendingUrlTests.remove(requestId, deferred)
+        }
+    }
+
+    override fun cbUrlTestResult(requestId: Int, latencyMs: Int, error: String?) {
+        val deferred = pendingUrlTests.remove(requestId) ?: return
+        if (error.isNullOrEmpty()) {
+            deferred.complete(Result.success(latencyMs))
+        } else {
+            deferred.complete(Result.failure(IllegalStateException(error)))
+        }
+    }
+
+    private fun failPendingUrlTests(cause: Throwable) {
+        val keys = pendingUrlTests.keys.toList()
+        for (key in keys) {
+            pendingUrlTests.remove(key)?.complete(Result.failure(cause))
+        }
     }
 
     /** A profile link opened from outside: confirmed, then imported into the current group. */
@@ -566,26 +667,57 @@ class MainActivity : ThemedActivity(),
         )
         if (state == BaseService.State.Connecting) errorBar?.dismiss()
         if (msg == null) return
-        if (msg == DataStore.serviceError) showServiceError(msg) else snackbar(getString(R.string.vpn_error, msg)).show()
+        lifecycleScope.launch {
+            val snapshot = withContext(Dispatchers.IO) {
+                val err = DataStore.serviceError
+                if (msg == err) {
+                    ResumeStateSnapshot(
+                        serviceError = err,
+                        serviceErrorDns = DataStore.serviceErrorDns,
+                        serviceErrorGeo = DataStore.serviceErrorGeo,
+                        serviceErrorRuleSets = DataStore.serviceErrorRuleSets,
+                        hideFromRecentApps = false,
+                    )
+                } else {
+                    ResumeStateSnapshot(err, false, false, false, false)
+                }
+            }
+            if (isFinishing || isDestroyed) return@launch
+            if (msg == snapshot.serviceError) {
+                showServiceError(
+                    msg,
+                    dns = snapshot.serviceErrorDns,
+                    geo = snapshot.serviceErrorGeo,
+                    ruleSets = snapshot.serviceErrorRuleSets,
+                )
+            } else {
+                snackbar(getString(R.string.vpn_error, msg)).show()
+            }
+        }
     }
 
     private var errorBar: Snackbar? = null
     private var errorShown = ""
 
     /** A failed start stays until the next start, its action or a swipe; the service keeps it for a later visit. */
-    private fun showServiceError(message: String) {
+    private fun showServiceError(
+        message: String,
+        dns: Boolean,
+        geo: Boolean,
+        ruleSets: Boolean,
+    ) {
         if (errorBar?.isShownOrQueued == true && errorShown == message) return
         errorShown = message
         val bar = snackbar(message).setDuration(Snackbar.LENGTH_INDEFINITE)
-        if (DataStore.serviceErrorDns) {
+        if (dns) {
             bar.setAction(R.string.settings_dns) {
                 openSettingsScreen(DnsSettingsFragment::class.java.name, getString(R.string.settings_dns))
             }
-        } else if (DataStore.serviceErrorGeo) {
+        } else if (geo) {
             bar.setAction(R.string.xray_geo_assets_action) {
                 openSettingsScreen(XrayGeoSettingsFragment::class.java.name, getString(R.string.xray_geo_assets))
             }
-        } else if (DataStore.serviceErrorRuleSets) {
+        } else if (ruleSets) {
             bar.setAction(R.string.rule_set_deferred_action) { confirmStartWithoutRuleSets() }
         } else {
             bar.setAction(R.string.menu_log) { displayFragmentWithId(R.id.nav_logcat) }
@@ -593,10 +725,12 @@ class MainActivity : ThemedActivity(),
         errorBar = bar.addCallback(object : Snackbar.Callback() {
             override fun onDismissed(transientBottomBar: Snackbar, event: Int) {
                 if (event == DISMISS_EVENT_SWIPE || event == DISMISS_EVENT_ACTION) {
-                    DataStore.serviceError = ""
-                    DataStore.serviceErrorDns = false
-                    DataStore.serviceErrorGeo = false
-                    DataStore.serviceErrorRuleSets = false
+                    runOnIoDispatcher {
+                        DataStore.serviceError = ""
+                        DataStore.serviceErrorDns = false
+                        DataStore.serviceErrorGeo = false
+                        DataStore.serviceErrorRuleSets = false
+                    }
                 }
             }
         }).also { it.show() }
@@ -666,8 +800,13 @@ class MainActivity : ThemedActivity(),
         }
     )
 
-    override fun onServiceDisconnected() = changeState(BaseService.State.Idle)
+    override fun onServiceDisconnected() {
+        failPendingUrlTests(IllegalStateException("service disconnected"))
+        changeState(BaseService.State.Idle)
+    }
+
     override fun onBinderDied() {
+        failPendingUrlTests(IllegalStateException("service disconnected"))
         changeState(BaseService.State.Idle)
         connection.disconnect(this)
         connection.connect(this, this)
@@ -808,6 +947,7 @@ class MainActivity : ThemedActivity(),
 
     override fun onDestroy() {
         super.onDestroy()
+        failPendingUrlTests(IllegalStateException("activity destroyed"))
         DataStore.configurationStore.unregisterChangeListener(this)
         connection.disconnect(this)
     }

@@ -30,6 +30,14 @@ import io.throneproj.mobile.PlatformInterface
 import io.throneproj.mobile.StringIterator
 import io.throneproj.mobile.TunOptions
 import io.throneproj.mobile.WIFIState
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import moe.matsuri.nb4a.net.LocalResolverImpl
 import java.net.Inet6Address
@@ -42,9 +50,26 @@ import io.throneproj.mobile.Notification as CoreNotification
 
 class NativeInterface internal constructor(
     private val networkMonitor: DefaultNetworkMonitor,
+    retryDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val retryDelayMs: Long = DEFAULT_RETRY_DELAY_MS,
+    private val maxProbeAttempts: Int = MAX_PROBE_ATTEMPTS,
+    private val interfaceProbe: ((Network) -> InterfaceSnapshot?)? = null,
 ) : PlatformInterface {
 
     constructor() : this(DefaultNetworkListener)
+
+    internal data class InterfaceSnapshot(
+        val name: String,
+        val index: Int,
+        val isExpensive: Boolean,
+    )
+
+    companion object {
+        private const val DEFAULT_RETRY_DELAY_MS = 100L
+        private const val MAX_PROBE_ATTEMPTS = 10
+    }
+
+    private val retryScope = CoroutineScope(SupervisorJob() + retryDispatcher)
 
     override fun localDNSTransport(): LocalDNSTransport? = try {
         LocalResolverImpl
@@ -131,6 +156,12 @@ class NativeInterface internal constructor(
         val key = monitorKey(listener)
         synchronized(ifaceReportStates) {
             ifaceReportStates.remove(key)
+        }?.let { oldState ->
+            synchronized(oldState) {
+                oldState.generation++
+                oldState.retryJob?.cancel()
+                oldState.retryJob = null
+            }
         }
         runBlocking {
             networkMonitor.start(key) { network ->
@@ -146,8 +177,15 @@ class NativeInterface internal constructor(
                 networkMonitor.stop(key)
             }
         } finally {
-            synchronized(ifaceReportStates) {
+            val removed = synchronized(ifaceReportStates) {
                 ifaceReportStates.remove(key)
+            }
+            removed?.let { state ->
+                synchronized(state) {
+                    state.generation++
+                    state.retryJob?.cancel()
+                    state.retryJob = null
+                }
             }
         }
     }
@@ -160,6 +198,8 @@ class NativeInterface internal constructor(
 
         // Survives clearInterface: the first network after a loss is a switch too, only the very first report is not.
         var reported = false
+        var generation: Long = 0L
+        var retryJob: Job? = null
     }
 
     private val ifaceReportStates = Collections.synchronizedMap(
@@ -173,6 +213,9 @@ class NativeInterface internal constructor(
         synchronized(ifaceReportStates) {
             ifaceReportStates.getOrPut(key) { IfaceReportState() }
         }
+
+    private fun isActiveState(key: Any, state: IfaceReportState): Boolean =
+        synchronized(ifaceReportStates) { ifaceReportStates[key] === state }
 
     internal fun touchReportStateForTest(listener: InterfaceUpdateListener) {
         reportState(monitorKey(listener))
@@ -191,62 +234,103 @@ class NativeInterface internal constructor(
         listener.updateDefaultInterface("", -1, false, false)
     }
 
+    private fun probeInterface(network: Network): InterfaceSnapshot? {
+        interfaceProbe?.let { return it(network) }
+        val linkProperties = SagerNet.connectivity.getLinkProperties(network) ?: return null
+        val interfaceName = linkProperties.interfaceName
+        if (interfaceName.isNullOrEmpty()) return null
+        val interfaceIndex = try {
+            NetworkInterface.getByName(interfaceName)?.index
+        } catch (_: Exception) {
+            null
+        } ?: return null
+        val capabilities = SagerNet.connectivity.getNetworkCapabilities(network)
+        val isExpensive = capabilities?.let {
+            it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                !it.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+        } ?: false
+        return InterfaceSnapshot(interfaceName, interfaceIndex, isExpensive)
+    }
+
+    private fun applySnapshot(
+        listener: InterfaceUpdateListener,
+        state: IfaceReportState,
+        network: Network,
+        snapshot: InterfaceSnapshot,
+    ) {
+        val sameInterface = state.name == snapshot.name && state.index == snapshot.index &&
+            (state.network === network || state.network == network)
+        // Capability-change storms repeat the same interface; skip them without a JNI round trip. A metering change
+        // alone (a Wi-Fi marked metered) is still reported so the core re-reads its interfaces, but is no switch.
+        if (sameInterface && state.isExpensive == snapshot.isExpensive) return
+        val changed = !sameInterface && state.reported
+        state.reported = true
+        state.name = snapshot.name
+        state.index = snapshot.index
+        state.network = network
+        state.isExpensive = snapshot.isExpensive
+        listener.updateDefaultInterface(snapshot.name, snapshot.index, snapshot.isExpensive, false)
+        if (changed) onDefaultInterfaceChanged(network)
+    }
+
     private fun checkDefaultInterfaceUpdate(key: Any, listener: InterfaceUpdateListener, network: Network?) {
         val state = reportState(key)
-        if (network == null) {
-            clearInterface(listener, state)
+        val generation = synchronized(state) {
+            val nextGen = ++state.generation
+            state.retryJob?.cancel()
+            state.retryJob = null
+            if (network == null) {
+                clearInterface(listener, state)
+                return
+            }
+            nextGen
+        }
+        val targetNetwork = network ?: return
+        // Fast path: populate synchronously when LinkProperties & NetworkInterface are already ready.
+        val immediate = probeInterface(targetNetwork)
+        if (immediate != null) {
+            synchronized(state) {
+                if (state.generation != generation || !isActiveState(key, state)) return
+                applySnapshot(listener, state, targetNetwork, immediate)
+            }
             return
         }
-        // LinkProperties / NetworkInterface may lag behind the callback briefly.
-        repeat(10) {
-            val linkProperties = SagerNet.connectivity.getLinkProperties(network)
-            if (linkProperties == null) {
-                Thread.sleep(100)
-                return@repeat
+        // LinkProperties / NetworkInterface may lag behind the callback briefly: retry off the NetworkCallback actor.
+        synchronized(state) {
+            if (state.generation != generation || !isActiveState(key, state)) return
+            state.retryJob = retryScope.launch {
+                repeat((maxProbeAttempts - 1).coerceAtLeast(0)) {
+                    delay(retryDelayMs)
+                    if (!isActive) return@launch
+                    val stillValid = synchronized(state) {
+                        state.generation == generation && isActiveState(key, state)
+                    }
+                    if (!stillValid) return@launch
+                    val snapshot = probeInterface(targetNetwork)
+                    if (snapshot != null) {
+                        synchronized(state) {
+                            if (state.generation != generation || !isActiveState(key, state)) return@launch
+                            state.retryJob = null
+                            applySnapshot(listener, state, targetNetwork, snapshot)
+                        }
+                        return@launch
+                    }
+                }
+                synchronized(state) {
+                    if (state.generation != generation || !isActiveState(key, state)) return@launch
+                    state.retryJob = null
+                    Logs.w("checkDefaultInterfaceUpdate exhausted retries for $targetNetwork")
+                    clearInterface(listener, state)
+                }
             }
-            val interfaceName = linkProperties.interfaceName
-            if (interfaceName.isNullOrEmpty()) {
-                Thread.sleep(100)
-                return@repeat
-            }
-            val interfaceIndex = try {
-                NetworkInterface.getByName(interfaceName)?.index
-            } catch (e: Exception) {
-                null
-            }
-            if (interfaceIndex == null) {
-                Thread.sleep(100)
-                return@repeat
-            }
-            val capabilities = SagerNet.connectivity.getNetworkCapabilities(network)
-            val isExpensive = capabilities?.let {
-                it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                    !it.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
-            } ?: false
-            val sameInterface = state.name == linkProperties.interfaceName && state.index == interfaceIndex &&
-                state.network == network
-            // Capability-change storms repeat the same interface; skip them without a JNI round trip. A metering change
-            // alone (a Wi-Fi marked metered) is still reported so the core re-reads its interfaces, but is no switch.
-            if (sameInterface && state.isExpensive == isExpensive) return
-            val changed = !sameInterface && state.reported
-            state.reported = true
-            state.name = linkProperties.interfaceName
-            state.index = interfaceIndex
-            state.network = network
-            state.isExpensive = isExpensive
-            listener.updateDefaultInterface(linkProperties.interfaceName, interfaceIndex, isExpensive, false)
-            if (changed) onDefaultInterfaceChanged(network)
-            return
         }
-        Logs.w("checkDefaultInterfaceUpdate exhausted retries for $network")
-        clearInterface(listener, state)
     }
 
     // Every box in this process has its own listener, so the user's "reset on network change"
     // switch is applied once per new network to the running VPN instance only.
     private fun onDefaultInterfaceChanged(network: Network) {
         if (!DataStore.networkChangeResetConnections) return
-        if (lastResetNetwork == network) return
+        if (lastResetNetwork === network || lastResetNetwork == network) return
         lastResetNetwork = network
         DataStore.baseService?.data?.proxy?.boxOrNull?.resetNetwork()
     }

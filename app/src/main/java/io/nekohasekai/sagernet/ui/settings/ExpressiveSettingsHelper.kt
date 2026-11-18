@@ -51,6 +51,7 @@ import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.widget.ExpressivePreferenceDecoration
+import java.util.WeakHashMap
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.min
@@ -480,6 +481,8 @@ object ExpressiveSettingsHelper {
         Typeface.create("sans-serif-medium", Typeface.NORMAL)
     }
 
+    private val pendingTabFitRunnables = WeakHashMap<TabLayout, Runnable>()
+
     fun applyTabTypography(tabLayout: TabLayout) {
         val mediumFace = mediumTypeface
         val tabStrip = tabLayout.getChildAt(0) as? ViewGroup ?: return
@@ -491,17 +494,18 @@ object ExpressiveSettingsHelper {
                     if (child.typeface !== mediumFace) child.typeface = mediumFace
                     if (child.letterSpacing != 0f) child.letterSpacing = 0f
                     if (child.includeFontPadding) child.includeFontPadding = false
-                    child.isAllCaps = false
+                    if (child.transformationMethod != null) child.isAllCaps = false
                 }
             }
         }
     }
 
     fun fitTabsToContainer(tabLayout: TabLayout) {
-        applyTabTypography(tabLayout)
         if (tabLayout.tabCount <= 0) return
-        tabLayout.post {
-            if (!tabLayout.isAttachedToWindow || tabLayout.tabCount <= 0) return@post
+        pendingTabFitRunnables.remove(tabLayout)?.let(tabLayout::removeCallbacks)
+        val runnable = Runnable {
+            pendingTabFitRunnables.remove(tabLayout)
+            if (!tabLayout.isAttachedToWindow || tabLayout.tabCount <= 0) return@Runnable
             applyTabTypography(tabLayout)
             val parentView = tabLayout.parent as? View
             val availableWidth = if (parentView != null && parentView.width > 0) {
@@ -509,9 +513,9 @@ object ExpressiveSettingsHelper {
             } else {
                 tabLayout.width
             }
-            if (availableWidth <= 0) return@post
+            if (availableWidth <= 0) return@Runnable
 
-            val tabStrip = tabLayout.getChildAt(0) as? ViewGroup ?: return@post
+            val tabStrip = tabLayout.getChildAt(0) as? ViewGroup ?: return@Runnable
             var totalNaturalWidth = 0
             val minExtraPx = dp2px(8)
             for (i in 0 until tabStrip.childCount) {
@@ -552,6 +556,8 @@ object ExpressiveSettingsHelper {
                 tabLayout.tabGravity = targetGravity
             }
         }
+        pendingTabFitRunnables[tabLayout] = runnable
+        tabLayout.post(runnable)
     }
 
     fun attachActivityFloatingHeader(activity: AppCompatActivity, root: View, title: CharSequence) {

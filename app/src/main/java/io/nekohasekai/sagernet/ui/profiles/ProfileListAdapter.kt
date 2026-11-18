@@ -217,7 +217,22 @@ internal class ProfileListAdapter(private val fragment: ProfileListFragment) :
         super.onViewAttachedToWindow(holder)
         val profile = cache[holder.itemId] ?: return
         if (holder.boundTx == profile.tx && holder.boundRx == profile.rx) return
-        if (fragment.isScrolling) pendingTraffic.add(profile.id) else notifyId(profile.id, PAYLOAD_CONTENT)
+        if (fragment.isScrolling) {
+            pendingTraffic.add(profile.id)
+            return
+        }
+        val recyclerView = holder.itemView.parent as? RecyclerView ?: fragment.list
+        if (recyclerView.isComputingLayout) {
+            if (pendingTraffic.add(profile.id)) {
+                recyclerView.post {
+                    if (recyclerView.isAttachedToWindow && !fragment.isScrolling && pendingTraffic.remove(profile.id)) {
+                        notifyId(profile.id, PAYLOAD_CONTENT)
+                    }
+                }
+            }
+        } else {
+            notifyId(profile.id, PAYLOAD_CONTENT)
+        }
     }
 
     // ------------------------------------------------------------------------------------------------ loading

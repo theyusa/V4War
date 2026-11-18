@@ -1,5 +1,6 @@
 package io.nekohasekai.sagernet.hotspotshare
 
+import io.nekohasekai.sagernet.utils.LanSharingNetwork
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -65,7 +66,7 @@ object ProcNetDevParser {
         return Pair(totalRx, totalTx)
     }
 
-    private val procNetDevBlocked = AtomicBoolean(false)
+    private val procNetDevBlocked = AtomicBoolean(LanSharingNetwork.isProcNetRestrictedForCurrentProcess())
 
     fun readCurrent(interfaceNames: Set<String> = emptySet()): Pair<Long, Long>? {
         if (procNetDevBlocked.get()) return null
@@ -146,12 +147,14 @@ object HotspotTrafficMonitor {
     private var pollJob: Job? = null
     private var counter: HotspotTrafficCounter? = null
 
+    @JvmOverloads
     @Synchronized
     fun start(
         scope: CoroutineScope,
         rawStatsProvider: () -> Pair<Long, Long>?,
         intervalMs: Long = 1000L,
         dispatcher: CoroutineDispatcher = Dispatchers.IO,
+        intervalProvider: (() -> Long)? = null,
     ) {
         stop()
         val cnt = HotspotTrafficCounter(rawStatsProvider)
@@ -162,7 +165,8 @@ object HotspotTrafficMonitor {
                 if (_stats.value != current) {
                     _stats.value = current
                 }
-                delay(intervalMs)
+                val delayMs = (intervalProvider?.invoke() ?: intervalMs).coerceAtLeast(250L)
+                delay(delayMs)
             }
         }
     }

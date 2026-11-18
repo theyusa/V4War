@@ -5,6 +5,7 @@ import android.annotation.TargetApi;
 import android.app.Application;
 import android.content.Context;
 import android.os.Build;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.webkit.WebView;
 
@@ -15,9 +16,12 @@ import com.google.gson.ToNumberPolicy;
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Method;
+import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import io.nekohasekai.sagernet.BuildConfig;
 import io.nekohasekai.sagernet.ktx.Logs;
@@ -26,7 +30,30 @@ public class JavaUtil {
 
     // Webview Utils
 
-    public static void handleWebviewDir(Context context) {
+    private static final ExecutorService WEBVIEW_IO_EXECUTOR = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "webview-dir-cleanup");
+        t.setDaemon(true);
+        return t;
+    });
+
+    /** Sets the per-process WebView data directory suffix synchronously before WebView initialization. */
+    public static void initWebviewSuffix(Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            return;
+        }
+        try {
+            String processName = Application.getProcessName();
+            if (!BuildConfig.APPLICATION_ID.equals(processName)) {
+                String suffix = TextUtils.isEmpty(processName) ? context.getPackageName() : processName;
+                WebView.setDataDirectorySuffix(suffix);
+            }
+        } catch (Exception e) {
+            Logs.INSTANCE.e(e);
+        }
+    }
+
+    /** Checks/recreates WebView lock files; intended for background I/O off the main thread. */
+    public static void cleanWebviewDir(Context context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
             return;
         }
@@ -40,7 +67,6 @@ public class JavaUtil {
             String processName = Application.getProcessName();
             if (!BuildConfig.APPLICATION_ID.equals(processName)) { // not the main process
                 suffix = TextUtils.isEmpty(processName) ? context.getPackageName() : processName;
-                WebView.setDataDirectorySuffix(suffix);
                 suffix = "_" + suffix;
                 pathSet.add(dataPath + webViewDir + suffix + lockFile);
                 if (checkIsHuaweiRom()) {
@@ -68,10 +94,24 @@ public class JavaUtil {
         }
     }
 
+    public static void handleWebviewDir(Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            return;
+        }
+        initWebviewSuffix(context);
+        final Context appContext = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            WEBVIEW_IO_EXECUTOR.execute(() -> cleanWebviewDir(appContext));
+        } else {
+            cleanWebviewDir(appContext);
+        }
+    }
+
     @TargetApi(Build.VERSION_CODES.P)
     private static void tryLockOrRecreateFile(File file) {
-        try {
-            FileLock tryLock = new RandomAccessFile(file, "rw").getChannel().tryLock();
+        try (RandomAccessFile raf = new RandomAccessFile(file, "rw");
+             FileChannel channel = raf.getChannel()) {
+            FileLock tryLock = channel.tryLock();
             if (tryLock != null) {
                 tryLock.close();
             } else {

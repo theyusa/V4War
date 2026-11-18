@@ -1,16 +1,30 @@
 package moe.matsuri.nb4a
 
+import android.net.Network
 import io.nekohasekai.sagernet.outbound.TestProxyFactory
 import io.nekohasekai.sagernet.utils.NetworkListenerEngine
 import io.throneproj.mobile.InterfaceUpdateListener
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 class NativeInterfaceMonitorTest {
+
+    private fun stubNetwork(): Network {
+        val unsafeField = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe")
+        unsafeField.isAccessible = true
+        val unsafe = unsafeField.get(null)
+        val allocate = unsafe.javaClass.getMethod("allocateInstance", Class::class.java)
+        return allocate.invoke(unsafe, Network::class.java) as Network
+    }
 
     @Test
     fun proxyWrappersWithSameRefnumShareKeyAndCleanUpEngineAndReportStates() = runBlocking {
@@ -26,6 +40,7 @@ class NativeInterfaceMonitorTest {
             },
             activeNetworkFallback = { null },
             elapsedRealtime = { 0L },
+            describeNetwork = { "stub-net" },
             logInfo = {},
             logDebug = {},
             logWarn = {},
@@ -65,6 +80,7 @@ class NativeInterfaceMonitorTest {
             unregisterCallback = {},
             activeNetworkFallback = { null },
             elapsedRealtime = { 0L },
+            describeNetwork = { "stub-net" },
             logInfo = {},
             logDebug = {},
             logWarn = {},
@@ -109,6 +125,7 @@ class NativeInterfaceMonitorTest {
             },
             activeNetworkFallback = { null },
             elapsedRealtime = { 0L },
+            describeNetwork = { "stub-net" },
             logInfo = {},
             logDebug = {},
             logWarn = {},
@@ -131,5 +148,136 @@ class NativeInterfaceMonitorTest {
         nativeInterface.closeDefaultInterfaceMonitor(w3)
         assertEquals(2, registerCalls)
         assertEquals(0, unregisterCalls)
+    }
+
+    @Test
+    fun laggingInterfaceProbeRetriesOffActorThreadWithoutBlockingNetworkUpdates() = runBlocking {
+        val engine = NetworkListenerEngine(
+            registerCallback = { true },
+            unregisterCallback = {},
+            activeNetworkFallback = { null },
+            elapsedRealtime = { 0L },
+            describeNetwork = { "stub-net" },
+            logInfo = {},
+            logDebug = {},
+            logWarn = {},
+        )
+        val attempts = AtomicInteger(0)
+        val delivered = CountDownLatch(1)
+        val updates = CopyOnWriteArrayList<String>()
+        val nativeInterface = NativeInterface(
+            networkMonitor = engine,
+            retryDispatcher = Dispatchers.Default,
+            retryDelayMs = 20L,
+            maxProbeAttempts = 5,
+            interfaceProbe = {
+                if (attempts.incrementAndGet() >= 3) {
+                    NativeInterface.InterfaceSnapshot("wlan0", 12, false)
+                } else {
+                    null
+                }
+            },
+        )
+        val listener = object : InterfaceUpdateListener {
+            override fun updateDefaultInterface(name: String?, index: Int, isExpensive: Boolean, isConstrained: Boolean) {
+                updates.add("$name:$index:$isExpensive")
+                if (name == "wlan0") delivered.countDown()
+            }
+
+            override fun updateNetworkPath(path: String?) = Unit
+        }
+
+        nativeInterface.startDefaultInterfaceMonitor(listener)
+        val net = stubNetwork()
+        val beforePutNs = System.nanoTime()
+        engine.put(net)
+        val putElapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - beforePutNs)
+
+        assertTrue("put() must not block on retries (took ${putElapsedMs}ms)", putElapsedMs < 100L)
+        assertTrue("Async retry must deliver wlan0", delivered.await(2, TimeUnit.SECONDS))
+        assertEquals(listOf("wlan0:12:false"), updates)
+        assertEquals(3, attempts.get())
+        nativeInterface.closeDefaultInterfaceMonitor(listener)
+    }
+
+    @Test
+    fun readyInterfacePopulatesSynchronouslyBeforeStartReturns() = runBlocking {
+        val engine = NetworkListenerEngine(
+            registerCallback = { true },
+            unregisterCallback = {},
+            activeNetworkFallback = { null },
+            elapsedRealtime = { 0L },
+            describeNetwork = { "stub-net" },
+            logInfo = {},
+            logDebug = {},
+            logWarn = {},
+        )
+        val net = stubNetwork()
+        engine.put(net)
+
+        val updates = CopyOnWriteArrayList<String>()
+        val nativeInterface = NativeInterface(
+            networkMonitor = engine,
+            retryDispatcher = Dispatchers.Default,
+            retryDelayMs = 50L,
+            maxProbeAttempts = 3,
+            interfaceProbe = { NativeInterface.InterfaceSnapshot("rmnet0", 7, true) },
+        )
+        val listener = object : InterfaceUpdateListener {
+            override fun updateDefaultInterface(name: String?, index: Int, isExpensive: Boolean, isConstrained: Boolean) {
+                updates.add("$name:$index:$isExpensive")
+            }
+
+            override fun updateNetworkPath(path: String?) = Unit
+        }
+
+        nativeInterface.startDefaultInterfaceMonitor(listener)
+        assertEquals(listOf("rmnet0:7:true"), updates)
+        nativeInterface.closeDefaultInterfaceMonitor(listener)
+    }
+
+    @Test
+    fun lostOrCloseCancelsPendingRetryWithoutStaleCallback() = runBlocking {
+        val engine = NetworkListenerEngine(
+            registerCallback = { true },
+            unregisterCallback = {},
+            activeNetworkFallback = { null },
+            elapsedRealtime = { 0L },
+            describeNetwork = { "stub-net" },
+            logInfo = {},
+            logDebug = {},
+            logWarn = {},
+        )
+        val attempts = AtomicInteger(0)
+        val updates = CopyOnWriteArrayList<String>()
+        val nativeInterface = NativeInterface(
+            networkMonitor = engine,
+            retryDispatcher = Dispatchers.Default,
+            retryDelayMs = 40L,
+            maxProbeAttempts = 5,
+            interfaceProbe = {
+                if (attempts.incrementAndGet() >= 3) {
+                    NativeInterface.InterfaceSnapshot("wlan0", 5, false)
+                } else {
+                    null
+                }
+            },
+        )
+        val listener = object : InterfaceUpdateListener {
+            override fun updateDefaultInterface(name: String?, index: Int, isExpensive: Boolean, isConstrained: Boolean) {
+                updates.add("$name:$index")
+            }
+
+            override fun updateNetworkPath(path: String?) = Unit
+        }
+
+        nativeInterface.startDefaultInterfaceMonitor(listener)
+        val net = stubNetwork()
+        engine.put(net)
+        engine.lost(net)
+        Thread.sleep(180L)
+
+        assertEquals(listOf(":-1"), updates)
+        nativeInterface.closeDefaultInterfaceMonitor(listener)
     }
 }

@@ -3275,6 +3275,7 @@
     <string name="hotspot_share_tether_channels_title">Tethering Channels</string>
     <string name="hotspot_share_tether_channel_wifi">Wi-Fi</string>
     <string name="hotspot_share_tether_channel_usb">USB</string>
+    <string name="hotspot_share_tether_channel_usb_soon">USB (Coming soon)</string>
     <string name="hotspot_share_tether_channel_bt">Bluetooth</string>
     <string name="hotspot_share_tether_shizuku_required">Shizuku permission is required to toggle tethering channels directly. You can enable it in System Tethering Settings.</string>
     <string name="hotspot_share_tether_toggle_failed">Could not toggle %1$s tethering via Shizuku (%2$s). Open System Tethering Settings to change it manually.</string>

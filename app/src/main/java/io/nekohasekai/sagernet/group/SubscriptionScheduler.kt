@@ -6,6 +6,8 @@ import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequest
+import androidx.work.WorkInfo
+import androidx.work.WorkQuery
 import androidx.work.WorkerParameters
 import androidx.work.multiprocess.RemoteCoroutineWorker
 import androidx.work.multiprocess.RemoteListenableWorker
@@ -20,10 +22,55 @@ import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.app
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+
+internal enum class PeriodicScheduleAction {
+    SKIP_CANCEL,
+    CANCEL,
+    ENQUEUE_KEEP,
+    ENQUEUE_UPDATE,
+}
+
+internal data class PeriodicWorkSnapshot(
+    val state: WorkInfo.State,
+    val tags: Set<String>,
+)
+
+/**
+ * Decides whether a unique periodic WorkManager job should be kept, updated, or cancelled based on a stable
+ * configuration signature tag rather than volatile startup initialDelay values.
+ */
+internal object PeriodicSchedulePolicy {
+    private const val SIGNATURE_TAG_PREFIX = "sig:v1:"
+
+    fun signatureTag(periodSeconds: Long, networkType: NetworkType = NetworkType.CONNECTED): String =
+        "${SIGNATURE_TAG_PREFIX}period=$periodSeconds:net=${networkType.name}"
+
+    fun decide(
+        signatureTag: String?,
+        existingWork: List<PeriodicWorkSnapshot>,
+    ): PeriodicScheduleAction {
+        val active = existingWork.filter { !it.state.isFinished }
+        if (signatureTag == null) {
+            return if (active.isEmpty()) PeriodicScheduleAction.SKIP_CANCEL else PeriodicScheduleAction.CANCEL
+        }
+        if (active.isEmpty()) {
+            return PeriodicScheduleAction.ENQUEUE_KEEP
+        }
+        return if (active.all { signatureTag in it.tags }) {
+            PeriodicScheduleAction.ENQUEUE_KEEP
+        } else {
+            PeriodicScheduleAction.ENQUEUE_UPDATE
+        }
+    }
+}
 
 /**
  * The automatic subscription update (GroupUpdater::CheckAutoUpdate on PeriodicRunner, mainwindow_setup.cpp): each
@@ -48,6 +95,9 @@ object SubscriptionScheduler {
 
     /** autoAttempts (GroupUpdater.hpp): in :bg memory, so a new :bg process retries a failing group once. */
     private val attempts = ConcurrentHashMap<Long, Long>()
+    private val scheduleMutex = Mutex()
+    private val legacyCleanupPending = AtomicBoolean(true)
+    private val activeUpdateTasks = AtomicInteger(0)
 
     /**
      * ResolveAutoUpdate (GroupUpdater.cpp:429-440) in seconds, 0 = not updated automatically: the server's
@@ -103,33 +153,63 @@ object SubscriptionScheduler {
 
     /**
      * Plans the periodic poll from the groups and the settings, or cancels it while nothing is updated automatically.
-     * UPDATE (app start included) registers the job again whatever happened to it, and keeps the current period's start.
+     * Keeps an active periodic job untouched when its period/constraints signature has not changed, and updates it
+     * only when the effective schedule changes.
      */
     fun schedule() {
+        if (activeUpdateTasks.get() > 0) return
         runOnDefaultDispatcher {
-            try {
-                val workManager = RemoteWorkManager.getInstance(app)
-                workManager.cancelUniqueWork(LEGACY_WORK_NAME).await()
-                val plan = plan(nowSeconds())
-                if (plan == null) {
-                    workManager.cancelUniqueWork(WORK_NAME).await()
-                    return@runOnDefaultDispatcher
+            if (activeUpdateTasks.get() > 0) return@runOnDefaultDispatcher
+            scheduleMutex.withLock {
+                if (activeUpdateTasks.get() > 0) return@withLock
+                try {
+                    val workManager = RemoteWorkManager.getInstance(app)
+                    if (legacyCleanupPending.compareAndSet(true, false)) {
+                        val legacyInfos = workManager.getWorkInfos(
+                            WorkQuery.fromUniqueWorkNames(LEGACY_WORK_NAME)
+                        ).await()
+                        if (legacyInfos.any { !it.state.isFinished }) {
+                            workManager.cancelUniqueWork(LEGACY_WORK_NAME).await()
+                        }
+                    }
+                    val plan = plan(nowSeconds())
+                    val signatureTag = plan?.let { PeriodicSchedulePolicy.signatureTag(it.period, NetworkType.CONNECTED) }
+                    val existing = workManager.getWorkInfos(WorkQuery.fromUniqueWorkNames(WORK_NAME)).await()
+                        .map { PeriodicWorkSnapshot(it.state, it.tags) }
+                    val action = PeriodicSchedulePolicy.decide(signatureTag, existing)
+                    when (action) {
+                        PeriodicScheduleAction.SKIP_CANCEL -> return@withLock
+                        PeriodicScheduleAction.CANCEL -> {
+                            workManager.cancelUniqueWork(WORK_NAME).await()
+                        }
+                        PeriodicScheduleAction.ENQUEUE_KEEP,
+                        PeriodicScheduleAction.ENQUEUE_UPDATE -> {
+                            val activePlan = plan!!
+                            val tag = signatureTag!!
+                            val request = PeriodicWorkRequest.Builder(UpdateTask::class.java, activePlan.period, TimeUnit.SECONDS)
+                                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                                .setInitialDelay(activePlan.initialDelay, TimeUnit.SECONDS)
+                                .addTag(tag)
+                                .setInputData(
+                                    // The worker runs in the :bg process, where the queue lives.
+                                    Data.Builder()
+                                        .putString(RemoteListenableWorker.ARGUMENT_PACKAGE_NAME, app.packageName)
+                                        .putString(RemoteListenableWorker.ARGUMENT_CLASS_NAME, RemoteWorkerService::class.java.name)
+                                        .putLong(KEY_PERIOD, activePlan.period)
+                                        .build()
+                                )
+                                .build()
+                            val policy = if (action == PeriodicScheduleAction.ENQUEUE_KEEP) {
+                                ExistingPeriodicWorkPolicy.KEEP
+                            } else {
+                                ExistingPeriodicWorkPolicy.UPDATE
+                            }
+                            workManager.enqueueUniquePeriodicWork(WORK_NAME, policy, request).await()
+                        }
+                    }
+                } catch (e: Throwable) {
+                    Logs.w("SubscriptionScheduler: scheduling failed", e)
                 }
-                val request = PeriodicWorkRequest.Builder(UpdateTask::class.java, plan.period, TimeUnit.SECONDS)
-                    .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-                    .setInitialDelay(plan.initialDelay, TimeUnit.SECONDS)
-                    .setInputData(
-                        // The worker runs in the :bg process, where the queue lives.
-                        Data.Builder()
-                            .putString(RemoteListenableWorker.ARGUMENT_PACKAGE_NAME, app.packageName)
-                            .putString(RemoteListenableWorker.ARGUMENT_CLASS_NAME, RemoteWorkerService::class.java.name)
-                            .putLong(KEY_PERIOD, plan.period)
-                            .build()
-                    )
-                    .build()
-                workManager.enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request).await()
-            } catch (e: Throwable) {
-                Logs.w("SubscriptionScheduler: scheduling failed", e)
             }
         }
     }
@@ -169,7 +249,14 @@ object SubscriptionScheduler {
     class UpdateTask(appContext: Context, params: WorkerParameters) : RemoteCoroutineWorker(appContext, params) {
         override suspend fun doRemoteWork(): Result {
             val period = inputData.getLong(KEY_PERIOD, 0L)
-            if (checkAutoUpdate(period.takeIf { it > 0 } ?: (MIN_INTERVAL_MINUTES * 60L)) > 0) SubscriptionQueue.awaitIdle()
+            activeUpdateTasks.incrementAndGet()
+            try {
+                if (checkAutoUpdate(period.takeIf { it > 0 } ?: (MIN_INTERVAL_MINUTES * 60L)) > 0) {
+                    SubscriptionQueue.awaitIdle()
+                }
+            } finally {
+                activeUpdateTasks.decrementAndGet()
+            }
             // The plan moved without a reschedule (a restored backup, a server interval, a removed group): follow it.
             if (plan(nowSeconds())?.period != period) schedule()
             return Result.success()

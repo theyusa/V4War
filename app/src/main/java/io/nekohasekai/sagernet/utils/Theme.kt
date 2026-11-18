@@ -60,33 +60,33 @@ object Theme {
         cachedCustomThemeColor = null
     }
 
-    private fun appTheme(): Int {
+    fun appTheme(): Int {
         ensureCacheListener()
         val cached = cachedAppTheme
         if (cached != -1) return cached
         return DataStore.appTheme.also { cachedAppTheme = it }
     }
 
-    private fun nightTheme(): Int {
+    fun nightTheme(): Int {
         ensureCacheListener()
         val cached = currentNightMode
         if (cached != -1) return cached
         return DataStore.nightTheme.also { currentNightMode = it }
     }
 
-    private fun amoledTheme(): Boolean {
+    fun amoledTheme(): Boolean {
         ensureCacheListener()
         cachedAmoledTheme?.let { return it }
         return DataStore.amoledTheme.also { cachedAmoledTheme = it }
     }
 
-    private fun useSystemTheme(): Boolean {
+    fun useSystemTheme(): Boolean {
         ensureCacheListener()
         cachedUseSystemTheme?.let { return it }
         return DataStore.useSystemTheme.also { cachedUseSystemTheme = it }
     }
 
-    private fun customThemeColor(): Int {
+    fun customThemeColor(): Int {
         ensureCacheListener()
         cachedCustomThemeColor?.let { return it }
         return DataStore.customThemeColor.also { cachedCustomThemeColor = it }
@@ -650,34 +650,42 @@ object Theme {
     }
 
     fun applyNightTheme() {
-        invalidateCache()
-        if (DataStore.nightTheme == NIGHT_DARK && DataStore.amoledTheme) {
-            DataStore.nightTheme = NIGHT_PURE_AMOLED
+        var night = nightTheme()
+        var amoled = amoledTheme()
+        val appT = appTheme()
+        if (night == NIGHT_DARK && amoled) {
+            night = NIGHT_PURE_AMOLED
+            DataStore.nightTheme = night
         }
-        if (DataStore.appTheme == BLACK && DataStore.nightTheme !in setOf(NIGHT_AMOLED, NIGHT_PURE_AMOLED)) {
-            DataStore.nightTheme = NIGHT_PURE_AMOLED
+        if (appT == BLACK && night !in setOf(NIGHT_AMOLED, NIGHT_PURE_AMOLED)) {
+            night = NIGHT_PURE_AMOLED
+            amoled = true
+            DataStore.nightTheme = night
             DataStore.amoledTheme = true
         }
-        currentNightMode = DataStore.nightTheme
-        when (DataStore.nightTheme) {
-            NIGHT_SYSTEM -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+        currentNightMode = night
+        val targetDefaultNightMode = when (night) {
+            NIGHT_SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
             NIGHT_DARK -> {
-                DataStore.amoledTheme = false
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                if (amoled) DataStore.amoledTheme = false
+                AppCompatDelegate.MODE_NIGHT_YES
             }
             NIGHT_LIGHT -> {
-                DataStore.amoledTheme = false
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                if (amoled) DataStore.amoledTheme = false
+                AppCompatDelegate.MODE_NIGHT_NO
             }
             NIGHT_AMOLED -> {
-                DataStore.amoledTheme = false
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                if (amoled) DataStore.amoledTheme = false
+                AppCompatDelegate.MODE_NIGHT_YES
             }
             NIGHT_PURE_AMOLED -> {
-                DataStore.amoledTheme = true
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                if (!amoled) DataStore.amoledTheme = true
+                AppCompatDelegate.MODE_NIGHT_YES
             }
-            else -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+            else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+        }
+        if (AppCompatDelegate.getDefaultNightMode() != targetDefaultNightMode) {
+            AppCompatDelegate.setDefaultNightMode(targetDefaultNightMode)
         }
     }
 

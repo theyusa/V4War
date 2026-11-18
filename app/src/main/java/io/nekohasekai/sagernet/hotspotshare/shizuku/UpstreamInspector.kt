@@ -110,7 +110,27 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
     @Volatile
     private var procArpBlocked: Boolean = false
 
+    @Volatile
+    private var cachedWifiClientCount: Int = 0
+
+    @Volatile
+    private var cachedWifiClientCountAtMs: Long = 0L
+
     fun observeTethering(): UpstreamObservation = runDumpsys("tethering")
+
+    fun observeWifiClientCountCached(
+        ttlMs: Long = WIFI_COUNT_CACHE_TTL_MS,
+        nowMs: Long = System.currentTimeMillis(),
+    ): Int {
+        val lastAt = cachedWifiClientCountAtMs
+        if (lastAt > 0L && (nowMs - lastAt) in 0L until ttlMs) {
+            return cachedWifiClientCount
+        }
+        val count = observeWifiClientCount()
+        cachedWifiClientCount = count
+        cachedWifiClientCountAtMs = nowMs
+        return count
+    }
 
     fun observeWifiClientCount(): Int {
         // Stream dumpsys wifi line-by-line with a tight deadline instead of buffering
@@ -143,7 +163,8 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
         return maxClients
     }
 
-    fun observeNeighbors(): String {
+    @JvmOverloads
+    fun observeNeighbors(cachedClientHostLines: List<String> = emptyList()): String {
         val neigh = runShellCommand(listOf("ip", "-4", "neigh", "show")).rawOutput
         val arp = if (procArpBlocked) {
             ""
@@ -155,15 +176,11 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
                 ""
             }
         }
-        val tetheringDump = runCatching {
-            observeTethering().rawOutput.lineSequence()
-                .filter { line ->
-                    line.contains("AddressInfo", ignoreCase = true) ||
-                        line.contains("TetheredClient", ignoreCase = true) ||
-                        line.contains("hostname", ignoreCase = true)
-                }
-                .joinToString("\n")
-        }.getOrDefault("")
+        val cachedHosts = cachedClientHostLines
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .joinToString("\n")
         val leaseLines = LEASE_FILES.mapNotNull { path ->
             runCatching { File(path).takeIf { it.canRead() }?.readText() }.getOrNull()
         }.filter { it.isNotBlank() }.joinToString("\n")
@@ -178,14 +195,14 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
                 append(arp)
                 if (!arp.endsWith('\n')) append('\n')
             }
-            if (tetheringDump.isNotBlank() || leaseLines.isNotBlank()) {
+            if (cachedHosts.isNotBlank() || leaseLines.isNotBlank()) {
                 append("---HOSTS---\n")
                 if (leaseLines.isNotBlank()) {
                     append(leaseLines)
                     if (!leaseLines.endsWith('\n')) append('\n')
                 }
-                if (tetheringDump.isNotBlank()) {
-                    append(tetheringDump)
+                if (cachedHosts.isNotBlank()) {
+                    append(cachedHosts)
                     append('\n')
                 }
             }
@@ -243,6 +260,7 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
     companion object {
         const val DEFAULT_DEADLINE_MS = 3_000L
         const val WIFI_COUNT_DEADLINE_MS = 1_200L
+        const val WIFI_COUNT_CACHE_TTL_MS = 10_000L
 
         private val LEASE_FILES = listOf(
             "/data/misc/dhcp/dnsmasq.leases",
@@ -269,12 +287,6 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
 
         private val AVAILABLE_STATE_ERROR_PATTERN =
             Regex("""^\s*([\w.-]+)\s+-\s+AvailableState\s+-\s+lastError\s*=\s*(\d+)""")
-
-        private val PAN_TETHER_ON_PATTERN =
-            Regex("""Profile:\s*PanService[\s\S]{0,800}?mTetherOn:\s*(true|false)""", RegexOption.IGNORE_CASE)
-
-        private val BLUETOOTH_ENABLED_PATTERN =
-            Regex("""^\s*enabled:\s*(true|false)\b""", setOf(RegexOption.MULTILINE, RegexOption.IGNORE_CASE))
 
         private val CONNECTED_CLIENTS_PATTERN =
             Regex("""getConnectedClientList\(\)\.size\(\):\s*(\d+)""")
@@ -353,28 +365,6 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
                 errors[iface] = code
             }
             return errors
-        }
-
-        /**
-         * Parses `mTetherOn: true|false` inside `Profile: PanService` from `dumpsys bluetooth_manager`.
-         */
-        @JvmStatic
-        fun parseBluetoothPanTetherOn(dumpsysBtOutput: String?): Boolean? {
-            if (dumpsysBtOutput.isNullOrBlank()) return null
-            val value = PAN_TETHER_ON_PATTERN.find(dumpsysBtOutput)?.groupValues?.get(1)?.lowercase()
-                ?: return null
-            return value == "true"
-        }
-
-        /**
-         * Parses top-level `enabled: true|false` from `dumpsys bluetooth_manager`.
-         */
-        @JvmStatic
-        fun parseBluetoothEnabled(dumpsysBtOutput: String?): Boolean? {
-            if (dumpsysBtOutput.isNullOrBlank()) return null
-            val value = BLUETOOTH_ENABLED_PATTERN.find(dumpsysBtOutput)?.groupValues?.get(1)?.lowercase()
-                ?: return null
-            return value == "true"
         }
 
         @JvmStatic

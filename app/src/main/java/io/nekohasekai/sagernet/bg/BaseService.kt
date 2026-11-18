@@ -233,18 +233,68 @@ class BaseService {
             }
         }
 
-        override fun urlTest(): Int {
-            val proxy = data?.proxy?.takeIf { it.isInitialized() } ?: error("core not started")
-            try {
-                return runBlocking {
-                    urlTestCurrent(
-                        proxy.box, proxy.core, DataStore.testUrl, DataStore.urlTestTimeoutMs,
-                        exitsThroughVpn(proxy.profile),
-                    )
+        private val urlTestLock = Any()
+        private var urlTestJob: Job? = null
+        private val pendingUrlTestRequests = LinkedHashSet<Int>()
+
+        override fun startUrlTest(requestId: Int) {
+            val proxy = data?.proxy?.takeIf { it.isInitialized() }
+            if (proxy == null) {
+                launch(Dispatchers.Default) {
+                    broadcast { it.cbUrlTestResult(requestId, -1, "core not started") }
                 }
-            } catch (e: Exception) {
-                error(Protocols.genFriendlyMsg(e.readableMessage))
+                return
             }
+            synchronized(urlTestLock) {
+                pendingUrlTestRequests.add(requestId)
+                if (urlTestJob?.isActive == true) return
+                urlTestJob = launch(Dispatchers.IO) {
+                    var latencyMs = -1
+                    var errorMsg = ""
+                    try {
+                        latencyMs = urlTestCurrent(
+                            proxy.box,
+                            proxy.core,
+                            DataStore.testUrl,
+                            DataStore.urlTestTimeoutMs,
+                            exitsThroughVpn(proxy.profile),
+                        )
+                    } catch (e: CancellationException) {
+                        synchronized(urlTestLock) {
+                            if (urlTestJob === coroutineContext[Job]) {
+                                urlTestJob = null
+                                pendingUrlTestRequests.clear()
+                            }
+                        }
+                        throw e
+                    } catch (e: Exception) {
+                        latencyMs = -1
+                        errorMsg = Protocols.genFriendlyMsg(e.readableMessage)
+                    }
+                    while (true) {
+                        val requestIds = synchronized(urlTestLock) {
+                            if (pendingUrlTestRequests.isEmpty()) {
+                                if (urlTestJob === coroutineContext[Job]) urlTestJob = null
+                                emptyList()
+                            } else {
+                                pendingUrlTestRequests.toList().also { pendingUrlTestRequests.clear() }
+                            }
+                        }
+                        if (requestIds.isEmpty()) break
+                        for (id in requestIds) {
+                            broadcast { it.cbUrlTestResult(id, latencyMs, errorMsg) }
+                        }
+                    }
+                }
+            }
+        }
+
+        fun cancelUrlTest() {
+            val job = synchronized(urlTestLock) {
+                pendingUrlTestRequests.clear()
+                urlTestJob.also { urlTestJob = null }
+            }
+            job?.cancel()
         }
 
         /**
@@ -280,6 +330,7 @@ class BaseService {
         }
 
         override fun close() {
+            cancelUrlTest()
             callbacks.kill()
             cancel()
             data = null
@@ -370,6 +421,7 @@ class BaseService {
             // re-arms it in preInit().
             HotspotGatewayManager.stopServiceMonitor()
 
+            data.binder.cancelUrlTest()
             try {
                 if (proxy != null) withContext(coreDispatcher) { proxy.close() }
                 Logs.i(

@@ -182,13 +182,38 @@ class DataStoreMigrationAndRoutingTest {
     }
 
     @Test
-    fun shareSocksInboundOnlyEnabledWhenHotspotShareNeedsLoopbackSocks() {
-        assertFalse(SettingsMapper.isShareSocksInboundNeeded(enabled = false, method = "auto"))
-        assertFalse(SettingsMapper.isShareSocksInboundNeeded(enabled = false, method = "shizuku"))
-        assertFalse(SettingsMapper.isShareSocksInboundNeeded(enabled = true, method = "root"))
-        assertFalse(SettingsMapper.isShareSocksInboundNeeded(enabled = true, method = "lan_proxy"))
+    fun shareSocksInboundEnabledWheneverMethodAllowsShizuku() {
+        assertTrue(SettingsMapper.isShareSocksInboundNeeded(enabled = false, method = "auto"))
+        assertTrue(SettingsMapper.isShareSocksInboundNeeded(enabled = false, method = "shizuku"))
         assertTrue(SettingsMapper.isShareSocksInboundNeeded(enabled = true, method = "auto"))
         assertTrue(SettingsMapper.isShareSocksInboundNeeded(enabled = true, method = "shizuku"))
+        assertFalse(SettingsMapper.isShareSocksInboundNeeded(enabled = false, method = "root"))
+        assertFalse(SettingsMapper.isShareSocksInboundNeeded(enabled = false, method = "lan_proxy"))
+        assertFalse(SettingsMapper.isShareSocksInboundNeeded(enabled = true, method = "root"))
+        assertFalse(SettingsMapper.isShareSocksInboundNeeded(enabled = true, method = "lan_proxy"))
+    }
+
+    @Test
+    fun tunInboundSetsFixedInterfaceNameToSkipNetlinkProbing() {
+        val profile = Vless().apply {
+            server = "185.157.217.124"
+            serverPort = 443
+            uuid = "a7c60bce-79c0-4442-9369-7a652b36c625"
+            tls.enabled = true
+            tls.server_name = "example.com"
+        }
+        val result = ConfigGenerator(
+            profiles = ProfileProvider { id -> if (id == 1L) profile else null },
+            settings = GeneratorSettings(vpnMode = true),
+            buildContext = BuildContext.DEFAULT,
+        ).build(1L)
+        assertTrue(result.error, result.ok)
+
+        val json = JsonInput.parseObject(result.coreConfig)
+        val tunInbound = json.array("inbounds").filterIsInstance<JsonObject>()
+            .firstOrNull { it.string("tag") == Tags.TUN_IN }
+        assertEquals("tun", tunInbound?.string("type"))
+        assertEquals("tun0", tunInbound?.string("interface_name"))
     }
 
     @Test

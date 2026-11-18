@@ -20,18 +20,18 @@
 
             <TextView
                 android:id="@+id/tx"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:ellipsize="marquee"
+                android:ellipsize="end"
                 android:singleLine="true"
                 android:textColor="?whiteOrTextPrimary"
                 android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/rx"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:ellipsize="marquee"
+                android:ellipsize="end"
                 android:singleLine="true"
                 android:textColor="?whiteOrTextPrimary"
                 android:textSize="14sp" />

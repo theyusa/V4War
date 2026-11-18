@@ -31,8 +31,8 @@ interface IShareUserService {
     boolean adoptExistingTestNetwork(String expectedIface);
 
     /**
-     * Ensures all channels present in targetMask (1=WIFI, 2=USB, 4=BLUETOOTH) are started,
-     * used to finish a downstream restart after a USB ADB reset killed the previous service binder.
+     * Ensures all supported channels present in targetMask (1=WIFI, 2=USB when enabled) are started,
+     * used to finish a downstream restart after a binder reset.
      */
     boolean ensureTetherMaskStarted(int targetMask, boolean preferNcm);
 
@@ -81,13 +81,13 @@ interface IShareUserService {
     String checkUpstreamHealth();
 
     /**
-     * Returns connected hotspot client count from `dumpsys wifi`.
+     * Returns connected hotspot client count (from SoftAp/Tethering callbacks, or cached fallback).
      */
     int getConnectedClientCount();
 
     /**
-     * Returns raw neighbor table output (`ip -4 neigh show` + `/proc/net/arp`)
-     * executed as shell UID 2000 for accurate client IP discovery.
+     * Returns raw neighbor table output (`ip -4 neigh show` + `/proc/net/arp` + cached client hosts)
+     * executed as shell UID 2000 for accurate client IP discovery without dumpsys tethering overhead.
      */
     String getNeighborDump();
 
@@ -123,18 +123,24 @@ interface IShareUserService {
     void destroy();
 
     /**
-     * Starts a specific tethering channel type (0=WIFI, 1=USB, 2=BLUETOOTH, 4=NCM).
+     * Starts a specific tethering channel type (0=WIFI; 1=USB, 4=NCM when enabled).
      */
     boolean startTetheringType(int type);
 
     /**
-     * Stops a specific tethering channel type (0=WIFI, 1=USB, 2=BLUETOOTH, 4=NCM).
+     * Stops a specific tethering channel type (0=WIFI; 1=USB, 4=NCM when enabled).
      */
     void stopTetheringType(int type);
 
     /**
-     * Returns bitmask of currently active tethering channels
-     * (1=WIFI, 2=USB, 4=BLUETOOTH).
+     * Returns bitmask of currently active supported tethering channels
+     * (1=WIFI, 2=USB when enabled).
      */
     int getActiveTetherMask();
+
+    /**
+     * Returns active tethered downstream interface names observed via TetheringEventCallback
+     * (or platform fallback if callback is unavailable).
+     */
+    List<String> getTetheredIfaces();
 }

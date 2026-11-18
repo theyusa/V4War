@@ -5,6 +5,8 @@ import io.nekohasekai.sagernet.bg.test.TestTags
 import io.nekohasekai.sagernet.database.ProfileManager
 import io.nekohasekai.sagernet.database.ProxyEntity
 import io.nekohasekai.sagernet.ktx.completeWith
+import io.nekohasekai.sagernet.outbound.json.JsonInput
+import io.nekohasekai.sagernet.outbound.json.JsonObject
 import io.nekohasekai.sagernet.outbound.types.Chain
 import io.throneproj.mobile.Instance
 import io.throneproj.mobile.Mobile
@@ -16,23 +18,46 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * The URL test through the running instance's `proxy` outbound (the stats bar's ISagerNetService.urlTest). With
+ * Resolves outbound tags for `testCurrent = true`. Custom full configs may omit `"proxy"`, so tags absent from the
+ * core config are dropped and an empty list is passed (letting sing-box's `testCurrent` pick the default outbound,
+ * matching [io.nekohasekai.sagernet.bg.test.UrlTestRunner.runCurrent]).
+ */
+internal fun currentTestOutboundTags(core: CoreConfig): List<String> {
+    if (core.coreConfig.isBlank()) return core.outboundTags
+    val config = JsonInput.parseObjectOrNull(core.coreConfig) ?: return core.outboundTags
+    val presentTags = HashSet<String>()
+    for (section in listOf("outbounds", "endpoints")) {
+        for (item in config.array(section)) {
+            val tag = (item as? JsonObject)?.string("tag").orEmpty()
+            if (tag.isNotEmpty()) presentTags.add(tag)
+        }
+    }
+    return core.outboundTags.filter { it in presentTags }
+}
+
+/**
+ * The URL test through the running instance's current outbound (the stats bar's ISagerNetService.startUrlTest). With
  * [vpnExit] a failure whose tunnel is up is [ProxyEntity.LATENCY_CONNECT_ONLY] (url_test_current,
  * mainwindow_view.cpp:405-433).
  */
 suspend fun urlTestCurrent(instance: Instance, core: CoreConfig, url: String, timeoutMs: Int, vpnExit: Boolean): Int {
+    val currentTag = if (JsonInput.parseObjectOrNull(core.coreConfig) != null) {
+        TestTags.ofCurrent(core.coreConfig)
+    } else {
+        CoreConfig.TAG_PROXY
+    }
     val request = TestRequest().apply {
         testCurrent = true
         this.url = url
         this.timeoutMs = timeoutMs
         maxConcurrency = 1
-        core.outboundTags.forEach(::addOutboundTag)
-        if (vpnExit) addVPNEndpointTag(CoreConfig.TAG_PROXY)
+        currentTestOutboundTags(core).forEach(::addOutboundTag)
+        if (vpnExit) addVPNEndpointTag(currentTag)
     }
     val latency = AtomicInteger(-1)
     val failure = AtomicReference<String?>(null)
     val tunnelUp = AtomicBoolean(false)
-    TestTags.holding(listOf(TestTags.ofCurrent(core.coreConfig), TestTags.CURRENT)) {
+    TestTags.holding(listOf(currentTag, TestTags.CURRENT)) {
         suspendCancellableCoroutine<Unit> { continuation ->
             Mobile.startURLTest(instance, CoreRuntime.platform, request, object : URLTestHandler {
                 override fun onResult(tag: String?, latencyMs: Int, error: String?) {

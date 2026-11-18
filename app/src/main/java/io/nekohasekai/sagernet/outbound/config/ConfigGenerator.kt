@@ -684,15 +684,18 @@ class ConfigGenerator @JvmOverloads constructor(
     }
 
     /**
-     * The tun inbound of :1141-1180 with the Android field set of design §2.4: no interface_name / auto_redirect
-     * (the platform opens the device), per-app package lists instead of uid rules, the opt-in system HTTP proxy handed
-     * to the VpnService builder through `platform.http_proxy`, and an explicit 1.14 `dns_mode`. No `stack`: sing-tun's
-     * default, as on the desktop.
+     * The tun inbound of :1141-1180 with the Android field set of design §2.4: fixed interface_name ("tun0") to skip
+     * netlink interface probing on CoreLifecycle, no auto_redirect (the platform opens the device), per-app package
+     * lists instead of uid rules, the opt-in system HTTP proxy handed to the VpnService builder through
+     * `platform.http_proxy`, and an explicit 1.14 `dns_mode`. No `stack`: sing-tun's default, as on the desktop.
      */
     private fun buildTunInbound(state: BuildState): JsonObject {
         val tun = JsonObject()
         tun["tag"] = Tags.TUN_IN
         tun["type"] = "tun"
+        // Fixed placeholder skips sing-tun.CalculateInterfaceName -> net.Interfaces() -> bind(AF_NETLINK),
+        // which Android 11+ SELinux blocks; VpnService.Builder opens the real tunX FD independently.
+        tun["interface_name"] = "tun0"
         tun["auto_route"] = true
         tun["mtu"] = settings.tunMtu
         tun["strict_route"] = settings.tunStrictRoute

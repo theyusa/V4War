@@ -1,3 +1,11 @@
+#### 2.1.4
+
+* Bump release version to `2.1.4` (`VERSION_CODE=129`)
+* Eliminate `ISagerNetService` (`urlTest`) Binder thread stalls: asynchronous `startUrlTest` + `cbUrlTestResult`, visible error/timeout states on `StatsBar`, custom full-config outbound tag support, and skipping `ExitIp.refresh()` on failed tests
+* Unblock DNS & network monitoring: dedicated bounded `LocalResolverImpl` callback executor, non-blocking `DefaultNetworkListener` per-registration callbacks, off-actor interface update retries, and stable `SubscriptionScheduler` / `RemoteRouteUpdater` periodic policies
+* Optimize Shizuku Hotspot Share: remove Shizuku Bluetooth PAN support (preserving Root mode), temporarily deactivate USB tethering (`USB_TETHER_ENABLED = false`), eliminate per-tick `dumpsys` forks via `TetheringEventCallback` + `SoftApCallback` caching, isolate per-package `testtun*` ownership, guard API 30+ hidden reflection and `/proc/net/*` SELinux denials, and fix rapid stop/start bind races
+* Improve UI & startup responsiveness: move `SagerNet`, `MainActivity`, `ConfigurationFragment`, `LanSharingActivity`, `FirstStartPrompts`, and `TetherWatchService` blocking I/O/Binder/Room work off the Main thread and eliminate layout-pass `requestLayout()` / speed relayout churn
+
 #### 2.1.3
 
 * Bump release version to `2.1.3` (`VERSION_CODE=128`) with aligned APK filenames and `v4war-update.json` metadata

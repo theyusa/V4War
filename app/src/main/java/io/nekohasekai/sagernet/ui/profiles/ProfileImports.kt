@@ -1,13 +1,13 @@
 package io.nekohasekai.sagernet.ui.profiles
 
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.view.Menu
 import android.view.MenuItem
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.database.ProfileManager
@@ -61,11 +61,20 @@ class ProfileImports(private val host: ConfigurationFragment) {
 
     /** Devices without a camera (TVs) have nothing to scan with. */
     fun prepare(menu: Menu) {
-        menu.findItem(R.id.action_scan_qr_code)?.isVisible = hasCamera(host.requireContext())
+        val scanItem = menu.findItem(R.id.action_scan_qr_code) ?: return
+        val cached = SagerNet.cachedHasCamera()
+        if (cached != null) {
+            scanItem.isVisible = cached
+            return
+        }
+        scanItem.isVisible = !SagerNet.isTv
+        host.viewLifecycleOwner.lifecycleScope.launch {
+            val available = SagerNet.hasCamera()
+            if (host.view != null) {
+                scanItem.isVisible = available
+            }
+        }
     }
-
-    private fun hasCamera(context: Context) =
-        context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
 
     fun onMenuItemClick(item: MenuItem): Boolean {
         when (item.itemId) {

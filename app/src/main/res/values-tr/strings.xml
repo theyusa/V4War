@@ -3056,6 +3056,7 @@
     <string name="hotspot_share_tether_channels_title">Tethering Kanalları</string>
     <string name="hotspot_share_tether_channel_wifi">Wi-Fi</string>
     <string name="hotspot_share_tether_channel_usb">USB</string>
+    <string name="hotspot_share_tether_channel_usb_soon">USB (Yakında)</string>
     <string name="hotspot_share_tether_channel_bt">Bluetooth</string>
     <string name="hotspot_share_tether_shizuku_required">Tethering kanallarını doğrudan değiştirmek için Shizuku izni gerekir. Sistem Tethering Ayarları üzerinden manuel açabilirsiniz.</string>
     <string name="hotspot_share_tether_toggle_failed">%1$s tethering Shizuku üzerinden değiştirilemedi (%2$s). Manuel değiştirmek için Sistem Tethering Ayarlarını açın.</string>

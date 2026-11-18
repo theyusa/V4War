@@ -177,7 +177,11 @@ class RootBackend(
         if (dumpsysOut.isNotBlank()) {
             merged += UpstreamInspector.parseTetheredDownstreams(dumpsysOut)
         }
-        return merged.toList()
+        return if (LanSharingNetwork.USB_TETHER_ENABLED) {
+            merged.toList()
+        } else {
+            merged.filterNot { LanSharingNetwork.getTetherKindForInterface(it) == TetherKind.USB }
+        }
     }
 
     private fun tryAutoStartHotspot(): Boolean {
@@ -317,7 +321,7 @@ class RootBackend(
     private fun stopHotspot() {
         val activeKinds = appliedIfaces.map { LanSharingNetwork.getTetherKindForInterface(it) }.toSet()
         val stopWifi = activeKinds.isEmpty() || TetherKind.WIFI in activeKinds
-        val stopUsb = TetherKind.USB in activeKinds
+        val stopUsb = LanSharingNetwork.USB_TETHER_ENABLED && TetherKind.USB in activeKinds
         val stopBt = TetherKind.BLUETOOTH in activeKinds
 
         if (stopWifi) {
@@ -479,30 +483,12 @@ class RootBackend(
         fun getActiveTetheredInterfaces(context: Context): List<String> {
             val tethered = mutableListOf<String>()
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                runCatching {
-                    val tm = context.getSystemService("tethering")
-                    if (tm != null) {
-                        val method = tm.javaClass.getMethod("getTetheredIfaces")
-                        val ifaces = method.invoke(tm) as? Array<*>
-                        ifaces?.forEach { iface ->
-                            if (iface is String && iface.isNotBlank()) tethered.add(iface)
-                        }
-                    }
-                }
-            }
-
-            if (tethered.isEmpty()) {
-                runCatching {
-                    val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-                    if (cm != null) {
-                        val method = cm.javaClass.getMethod("getTetheredIfaces")
-                        val ifaces = method.invoke(cm) as? Array<*>
-                        ifaces?.forEach { iface ->
-                            if (iface is String && iface.isNotBlank()) tethered.add(iface)
-                        }
-                    }
-                }
+            if (LanSharingNetwork.canReflectTetheredIfaces()) {
+                tethered += LanSharingNetwork.getTetheredIfaces(
+                    context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager,
+                )
+            } else {
+                tethered += LanSharingNetwork.readStickyTetheredIfaces(context)
             }
 
             if (tethered.isEmpty()) {
@@ -531,7 +517,12 @@ class RootBackend(
                 }
             }
 
-            return tethered.distinct()
+            return if (LanSharingNetwork.USB_TETHER_ENABLED) {
+                tethered.distinct()
+            } else {
+                tethered.distinct()
+                    .filterNot { LanSharingNetwork.getTetherKindForInterface(it) == TetherKind.USB }
+            }
         }
     }
 }

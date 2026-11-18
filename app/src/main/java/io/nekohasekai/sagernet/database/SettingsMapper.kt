@@ -144,8 +144,10 @@ object SettingsMapper {
         )
     }
 
-    internal fun isShareSocksInboundNeeded(enabled: Boolean, method: String): Boolean =
-        enabled && method != "root" && method != "lan_proxy"
+    internal fun isShareSocksInboundNeeded(
+        @Suppress("UNUSED_PARAMETER") enabled: Boolean,
+        method: String,
+    ): Boolean = method == "auto" || method == "shizuku"
 
     /**
      * DataStore -> BuildContext: the preset globals and the domain strategies, with direct_dns_disable_ipv6 from [dns],

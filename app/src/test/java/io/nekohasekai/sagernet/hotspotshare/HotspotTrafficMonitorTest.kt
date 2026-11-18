@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HotspotTrafficMonitorTest {
@@ -102,5 +103,18 @@ testtun0:   50000     100    0    0    0     0          0         0    60000    
             HotspotTrafficMonitor.stop()
             job.cancel()
         }
+    }
+
+    @Test
+    fun tetherWatchServiceThrottlesShizukuTrafficPollingWhenUiNotForeground() {
+        val fgShizuku = TetherWatchService.resolveTrafficPollIntervalMs(ShareMethod.SHIZUKU, uiForeground = true)
+        val bgShizuku = TetherWatchService.resolveTrafficPollIntervalMs(ShareMethod.SHIZUKU, uiForeground = false)
+        assertEquals(1_000L, fgShizuku)
+        assertTrue(bgShizuku >= 2_000L)
+
+        val fgRoot = TetherWatchService.resolveTrafficPollIntervalMs(ShareMethod.ROOT, uiForeground = true)
+        val bgRoot = TetherWatchService.resolveTrafficPollIntervalMs(ShareMethod.ROOT, uiForeground = false)
+        assertEquals(1_000L, fgRoot)
+        assertTrue(bgRoot >= 2_000L)
     }
 }

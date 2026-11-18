@@ -7,12 +7,12 @@ interface ISagerNetService {
   int getState();
   String getProfileName();
 
-  void registerCallback(in ISagerNetServiceCallback cb, int id);
+  oneway void registerCallback(in ISagerNetServiceCallback cb, int id);
   oneway void unregisterCallback(in ISagerNetServiceCallback cb);
   oneway void resetTraffic(in long[] profileIds);
 
-  // The running instance's URL test in ms, or -2 when it failed through an OpenVPN/OpenConnect exit whose tunnel is up.
-  int urlTest();
+  // Starts an async URL test of the running instance; result is delivered via ISagerNetServiceCallback.cbUrlTestResult.
+  oneway void startUrlTest(int requestId);
 
   // Refreshes the running instance's remote rule-sets; blocks up to about 60 s. Returns {"updated":n,"error":"text"}.
   String updateRuleSets();

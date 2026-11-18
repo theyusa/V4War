@@ -76,7 +76,8 @@ abstract class BoxInstance(
         // hop, route or selector that merely uses the managed profile gets null back and starts normally.
         HotspotGatewayManager.beforeCoreConnect(profile.id)?.let { profile = it }
         buildConfig()
-        core = CoreConfig.from(config, listOf(CoreConfig.TAG_PROXY))
+        val outboundTags = if (isCustomFullConfig()) emptyList() else listOf(CoreConfig.TAG_PROXY)
+        core = CoreConfig.from(config, outboundTags)
         CoreRuntime.applyLogLevel(config.coreConfig)
         ensureXrayAssets()
         // Before the start: the core downloads the dashboard itself when it finds the dir empty.

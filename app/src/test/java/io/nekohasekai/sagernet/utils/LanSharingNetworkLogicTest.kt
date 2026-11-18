@@ -5,6 +5,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.net.InetAddress
+import java.net.ServerSocket
 
 /**
  * Pure JVM tests for [LanSharingNetwork]: Clash API URL construction from sign-encoded port,
@@ -146,5 +148,53 @@ class LanSharingNetworkLogicTest {
         )
         assertNull(blankAuth)
         assertNull(failed)
+    }
+
+    @Test
+    fun reflectionAndProcNetGuardsRespectApiLevelAndUid() {
+        // Untrusted app process on Android 11+ (API 30+) must never reflect getTetheredIfaces
+        assertFalse(LanSharingNetwork.canReflectTetheredIfaces(sdkInt = 30, uid = 10000))
+        assertFalse(LanSharingNetwork.canReflectTetheredIfaces(sdkInt = 35, uid = 10234))
+        // Shell (2000), root (0), and pre-R devices remain allowed
+        assertTrue(LanSharingNetwork.canReflectTetheredIfaces(sdkInt = 35, uid = 2000))
+        assertTrue(LanSharingNetwork.canReflectTetheredIfaces(sdkInt = 35, uid = 0))
+        assertTrue(LanSharingNetwork.canReflectTetheredIfaces(sdkInt = 29, uid = 10234))
+
+        // /proc/net/* is restricted in untrusted app processes on Android 10+ (API 29+)
+        assertTrue(LanSharingNetwork.isProcNetRestrictedForCurrentProcess(sdkInt = 29, uid = 10000))
+        assertTrue(LanSharingNetwork.isProcNetRestrictedForCurrentProcess(sdkInt = 35, uid = 10234))
+        assertFalse(LanSharingNetwork.isProcNetRestrictedForCurrentProcess(sdkInt = 33, uid = 2000))
+        assertFalse(LanSharingNetwork.isProcNetRestrictedForCurrentProcess(sdkInt = 33, uid = 0))
+        assertFalse(LanSharingNetwork.isProcNetRestrictedForCurrentProcess(sdkInt = 28, uid = 10234))
+    }
+
+    @Test
+    fun loopbackOnlyPortProbeDetectsMismatchWithoutProcNet() {
+        ServerSocket(0, 8, InetAddress.getByName("127.0.0.1")).use { server ->
+            val port = server.localPort
+            assertTrue(LanSharingNetwork.isTcpEndpointOpen("127.0.0.1", port, timeoutMs = 250))
+            assertTrue(
+                LanSharingNetwork.isPortBoundLoopbackOnly(
+                    port = port,
+                    nonLoopbackLocalIps = listOf("192.168.43.1"),
+                    endpointOpenProbe = { host, p, t ->
+                        if (host == "127.0.0.1") LanSharingNetwork.isTcpEndpointOpen(host, p, t) else false
+                    },
+                ),
+            )
+            assertFalse(
+                LanSharingNetwork.isPortBoundLoopbackOnly(
+                    port = port,
+                    nonLoopbackLocalIps = listOf("192.168.43.1"),
+                    endpointOpenProbe = { _, _, _ -> true },
+                ),
+            )
+            assertFalse(
+                LanSharingNetwork.isPortBoundLoopbackOnly(
+                    port = port,
+                    nonLoopbackLocalIps = emptyList(),
+                ),
+            )
+        }
     }
 }

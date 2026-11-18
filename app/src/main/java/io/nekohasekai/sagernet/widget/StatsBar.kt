@@ -39,10 +39,13 @@ import io.nekohasekai.sagernet.ui.MainActivity
 import io.nekohasekai.sagernet.ui.test.TestFormat
 import io.nekohasekai.sagernet.SagerNet
 import kotlin.math.abs
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 class StatsBar @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null,
@@ -51,6 +54,13 @@ class StatsBar @JvmOverloads constructor(
     companion object {
         private const val INITIAL_HIDE_DELAY_MS = 100L
         private const val SCROLL_TOGGLE_THRESHOLD_DP = 8f
+        private const val CLIENT_URL_TEST_SAFETY_MARGIN_MS = 3000L
+        private const val MIN_CLIENT_URL_TEST_TIMEOUT_MS = 4000L
+
+        internal fun computeClientUrlTestTimeoutMs(urlTestTimeoutMs: Int): Long {
+            val base = urlTestTimeoutMs.coerceAtLeast(1000).toLong()
+            return (base + CLIENT_URL_TEST_SAFETY_MARGIN_MS).coerceAtLeast(MIN_CLIENT_URL_TEST_TIMEOUT_MS)
+        }
     }
 
     private enum class Transition {
@@ -72,6 +82,8 @@ class StatsBar @JvmOverloads constructor(
     private var currentState = BaseService.State.Idle
     private var pendingTransition: Transition? = Transition.HideImmediate
     private var transitionJob: Job? = null
+    private var testJob: Job? = null
+    private var hasTestStatus = false
 
     private var scrollHidden = false
     private var scrollDirection = 0 // 1 = hide (dy>0), -1 = show (dy<0), 0 = none
@@ -246,6 +258,7 @@ class StatsBar @JvmOverloads constructor(
 
     // A rotation keeps the lookup; a destroyed activity drops it, since the service may restart unseen meanwhile.
     override fun onDetachedFromWindow() {
+        cancelConnectionTest()
         if (ExitIp.listener === exitListener) ExitIp.listener = null
         if ((context as? Activity)?.isChangingConfigurations != true) ExitIp.clear()
         super.onDetachedFromWindow()
@@ -441,9 +454,16 @@ class StatsBar @JvmOverloads constructor(
         return pendingTransition == Transition.HideAfterStart || transitionJob != null
     }
 
+    private fun cancelConnectionTest() {
+        testJob?.cancel()
+        testJob = null
+        isEnabled = true
+    }
+
     fun changeState(state: BaseService.State) {
         ensureViews()
         updateThemeColors()
+        val wasConnected = currentState == BaseService.State.Connected
         currentState = state
         updateHideOnScroll()
         when {
@@ -454,8 +474,12 @@ class StatsBar @JvmOverloads constructor(
         stateReported = true
         showExit()
         if (state == BaseService.State.Connected) {
-            setStatus(app.getText(R.string.vpn_connected))
+            if (!wasConnected || (!hasTestStatus && testJob?.isActive != true)) {
+                setStatus(app.getText(R.string.vpn_connected))
+            }
         } else {
+            cancelConnectionTest()
+            hasTestStatus = false
             updateSpeed(0, 0)
             setStatus(
                 context.getText(
@@ -484,44 +508,55 @@ class StatsBar @JvmOverloads constructor(
     }
 
     fun testConnection() {
-        val activity = context as MainActivity
+        if (testJob?.isActive == true || currentState != BaseService.State.Connected) return
+        val activity = context as? MainActivity ?: return
         isEnabled = false
+        hasTestStatus = true
         setStatus(app.getText(R.string.connection_test_testing))
-        runOnDefaultDispatcher {
+        val clientTimeoutMs = computeClientUrlTestTimeoutMs(DataStore.urlTestTimeoutMs)
+        testJob = activity.lifecycleScope.launch(Dispatchers.Main.immediate) {
             try {
-                val elapsed = activity.urlTest()
-                onMainDispatcher {
-                    isEnabled = true
-                    setStatus(
-                        if (elapsed == ProxyEntity.LATENCY_CONNECT_ONLY) {
-                            app.getText(R.string.test_connect_ok)
-                        } else {
-                            app.getString(
-                                if (DataStore.testUrl.startsWith("https://")) {
-                                    R.string.connection_test_available
-                                } else {
-                                    R.string.connection_test_available_http
-                                }, elapsed
-                            )
-                        }
-                    )
+                val elapsed = withTimeout(clientTimeoutMs) {
+                    activity.urlTest()
                 }
-
+                hasTestStatus = true
+                setStatus(
+                    if (elapsed == ProxyEntity.LATENCY_CONNECT_ONLY) {
+                        app.getText(R.string.test_connect_ok)
+                    } else {
+                        app.getString(
+                            if (DataStore.testUrl.startsWith("https://")) {
+                                R.string.connection_test_available
+                            } else {
+                                R.string.connection_test_available_http
+                            },
+                            elapsed,
+                        )
+                    }
+                )
+                // Only refresh exit IP after a successful URL test; never fire a 20s probe chain on failure/timeout.
+                ExitIp.refresh()
+            } catch (_: TimeoutCancellationException) {
+                hasTestStatus = true
+                val timeoutText = app.getString(R.string.connection_test_timeout_error)
+                val status = app.getString(R.string.connection_test_error, timeoutText)
+                setStatus(status)
+                activity.snackbar(status).show()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logs.w(e.toString())
-                onMainDispatcher {
-                    isEnabled = true
-                    setStatus(app.getText(R.string.vpn_connected))
-
-                    activity.snackbar(
-                        app.getString(
-                            R.string.connection_test_error, e.readableMessage
-                        )
-                    ).show()
+                hasTestStatus = true
+                val reason = e.readableMessage.ifBlank {
+                    app.getString(R.string.connection_test_timeout_error)
                 }
+                val status = app.getString(R.string.connection_test_error, reason)
+                setStatus(status)
+                activity.snackbar(status).show()
+            } finally {
+                isEnabled = true
+                testJob = null
             }
-            // After the test, not beside it: one request at a time through the running connection.
-            onMainDispatcher { ExitIp.refresh() }
         }
     }
 

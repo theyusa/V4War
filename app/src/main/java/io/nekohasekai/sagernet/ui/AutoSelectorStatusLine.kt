@@ -13,6 +13,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.withContext
@@ -30,7 +31,7 @@ object AutoSelectorStatusLine {
     @OptIn(ExperimentalCoroutinesApi::class)
     suspend fun follow(fragment: ConfigurationFragment) {
         if (fragment.select) return
-        val selection = MutableStateFlow(DataStore.selectedProxy)
+        val selection = MutableStateFlow<Long?>(null)
         val listener = object : OnPreferenceDataStoreChangeListener {
             override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
                 if (key == Key.PROFILE_ID) selection.value = DataStore.selectedProxy
@@ -38,7 +39,9 @@ object AutoSelectorStatusLine {
         }
         DataStore.configurationStore.registerChangeListener(listener)
         try {
-            val selectedSelector = selection.mapLatest { id ->
+            val initialSelected = withContext(Dispatchers.IO) { DataStore.selectedProxy }
+            selection.compareAndSet(null, initialSelected)
+            val selectedSelector = selection.filterNotNull().mapLatest { id ->
                 withContext(Dispatchers.IO) {
                     runCatching { AutoSelectorProfiles.runningSelectorOf(ProfileManager.getProfile(id))?.id }.getOrNull()
                 }

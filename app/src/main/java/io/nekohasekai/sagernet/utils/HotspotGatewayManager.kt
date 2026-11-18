@@ -8,6 +8,7 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Build
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.Looper
 import android.os.SystemClock
 import io.nekohasekai.sagernet.Action
@@ -68,6 +69,14 @@ object HotspotGatewayManager {
         val verified: Boolean,
         val checkedAtMs: Long,
     )
+
+    private val callbackHandler: Handler by lazy {
+        val thread = HandlerThread("HotspotGateway-cb").apply {
+            isDaemon = true
+            start()
+        }
+        Handler(thread.looper)
+    }
 
     private val debounceHandler = Handler(Looper.getMainLooper())
 
@@ -563,12 +572,14 @@ object HotspotGatewayManager {
             .build()
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
+                if (!isRegistered || networkCallback !== this) return
                 if (!track(network, cm.getNetworkCapabilities(network))) return
                 lastCapabilityOutcome = null
                 scheduleCheck()
             }
 
             override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                if (!isRegistered || networkCallback !== this) return
                 val wasTracked = isTracked(network)
                 if (!track(network, networkCapabilities)) {
                     if (wasTracked) {
@@ -596,13 +607,18 @@ object HotspotGatewayManager {
             }
 
             override fun onLost(network: Network) {
+                if (!isRegistered || networkCallback !== this) return
                 forget(network)
                 lastCapabilityOutcome = null
                 scheduleCheck()
             }
         }
         try {
-            cm.registerNetworkCallback(request, callback)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                cm.registerNetworkCallback(request, callback, callbackHandler)
+            } else {
+                cm.registerNetworkCallback(request, callback)
+            }
             networkCallback = callback
             isRegistered = true
         } catch (e: Throwable) {

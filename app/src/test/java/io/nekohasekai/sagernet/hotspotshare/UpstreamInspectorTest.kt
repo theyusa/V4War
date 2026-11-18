@@ -7,8 +7,10 @@ import io.nekohasekai.sagernet.hotspotshare.shizuku.UpstreamTolerance
 import io.nekohasekai.sagernet.hotspotshare.shizuku.classifyUpstream
 import io.nekohasekai.sagernet.utils.LanSharingAddress
 import io.nekohasekai.sagernet.utils.LanSharingIface
+import io.nekohasekai.sagernet.utils.LanSharingLogics
 import io.nekohasekai.sagernet.utils.LanSharingNetwork
 import io.nekohasekai.sagernet.utils.TetherKind
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -255,15 +257,12 @@ class UpstreamInspectorTest {
         assertTrue(ShareUserService.isUsbDownstreamName("ncm0"))
         assertFalse(ShareUserService.isUsbDownstreamName("bt-pan"))
 
-        assertTrue(ShareUserService.isBluetoothDownstreamName("bt-pan"))
-        assertTrue(ShareUserService.isBluetoothDownstreamName("bt-pan0"))
-        assertTrue(ShareUserService.isBluetoothDownstreamName("bnep0"))
-        assertFalse(ShareUserService.isBluetoothDownstreamName("rndis0"))
-
         assertTrue(ShareUserService.isAnyTetherDownstreamName("ap0"))
-        assertTrue(ShareUserService.isAnyTetherDownstreamName("ncm0"))
-        assertTrue(ShareUserService.isAnyTetherDownstreamName("bnep0"))
-        // Confirmed downstreams from dumpsys/TetheringManager include wlan0 (single-radio SoftAP).
+        assertEquals(LanSharingNetwork.USB_TETHER_ENABLED, ShareUserService.isAnyTetherDownstreamName("ncm0"))
+        // Bluetooth is removed from Shizuku mode.
+        assertFalse(ShareUserService.isAnyTetherDownstreamName("bnep0"))
+        assertFalse(ShareUserService.isAnyTetherDownstreamName("bt-pan"))
+        // Confirmed downstreams from TetheringManager include wlan0 (single-radio SoftAP).
         assertTrue(ShareUserService.isWifiDownstreamName("wlan0"))
         assertTrue(ShareUserService.isAnyTetherDownstreamName("wlan0"))
         assertFalse(ShareUserService.isAnyTetherDownstreamName("rmnet_data0"))
@@ -272,17 +271,13 @@ class UpstreamInspectorTest {
 
         assertEquals(0, ShizukuBackend.TETHERING_WIFI)
         assertEquals(1, ShizukuBackend.TETHERING_USB)
-        assertEquals(2, ShizukuBackend.TETHERING_BLUETOOTH)
         assertEquals(4, ShizukuBackend.TETHERING_NCM)
         assertEquals(1, ShizukuBackend.TETHER_MASK_WIFI)
         assertEquals(2, ShizukuBackend.TETHER_MASK_USB)
-        assertEquals(4, ShizukuBackend.TETHER_MASK_BLUETOOTH)
         assertEquals(ShareUserService.TETHERING_WIFI, ShizukuBackend.TETHERING_WIFI)
         assertEquals(ShareUserService.TETHERING_USB, ShizukuBackend.TETHERING_USB)
-        assertEquals(ShareUserService.TETHERING_BLUETOOTH, ShizukuBackend.TETHERING_BLUETOOTH)
         assertEquals(ShareUserService.TETHER_MASK_WIFI, ShizukuBackend.TETHER_MASK_WIFI)
         assertEquals(ShareUserService.TETHER_MASK_USB, ShizukuBackend.TETHER_MASK_USB)
-        assertEquals(ShareUserService.TETHER_MASK_BLUETOOTH, ShizukuBackend.TETHER_MASK_BLUETOOTH)
     }
 
     @Test
@@ -300,32 +295,122 @@ class UpstreamInspectorTest {
     }
 
     @Test
-    fun parsesBluetoothPanTetherOnFromDumpsysBluetoothManager() {
-        val enabledDump = """
-            enabled: true
-            state: ON
-            Profile: PanService
-              mMaxPanDevices: 5
-              mPanIfName: bt-pan
-              mTetherOn: true
-              mPanDevices:
-        """.trimIndent()
-        val disabledDump = """
-            enabled: false
-            state: OFF
-            Profile: PanService
-              mMaxPanDevices: 5
-              mPanIfName: bt-pan
-              mTetherOn: false
-        """.trimIndent()
+    fun usbTetheringIsDeactivatedAndBluetoothRemovedFromShizukuMasks() {
+        assertFalse(LanSharingNetwork.USB_TETHER_ENABLED)
 
-        assertEquals(true, UpstreamInspector.parseBluetoothEnabled(enabledDump))
-        assertEquals(false, UpstreamInspector.parseBluetoothEnabled(disabledDump))
-        assertNull(UpstreamInspector.parseBluetoothEnabled("state: ON"))
+        // When USB is deactivated, USB and Bluetooth interfaces never set bits in Shizuku's tether mask.
+        val disabledMask = ShareUserService.computeActiveTetherMaskFromInputs(
+            wifiApActive = false,
+            downstreams = listOf("rndis0", "ncm0", "bt-pan", "bnep0"),
+            networkInterfaces = listOf("usb0", "bnep0"),
+            usbEnabled = false,
+        )
+        assertEquals(0, disabledMask)
 
-        assertEquals(true, UpstreamInspector.parseBluetoothPanTetherOn(enabledDump))
-        assertEquals(false, UpstreamInspector.parseBluetoothPanTetherOn(disabledDump))
-        assertNull(UpstreamInspector.parseBluetoothPanTetherOn("Profile: GattService"))
-        assertNull(UpstreamInspector.parseBluetoothPanTetherOn(null))
+        // Wi-Fi AP and confirmed Wi-Fi downstreams still set TETHER_MASK_WIFI; Bluetooth stays excluded.
+        val wifiOnlyMask = ShareUserService.computeActiveTetherMaskFromInputs(
+            wifiApActive = true,
+            downstreams = listOf("wlan0", "bt-pan"),
+            networkInterfaces = listOf("bnep0"),
+            usbEnabled = false,
+        )
+        assertEquals(ShareUserService.TETHER_MASK_WIFI, wifiOnlyMask)
+
+        // When USB flag is flipped on, USB mask works while Bluetooth remains excluded.
+        val usbEnabledMask = ShareUserService.computeActiveTetherMaskFromInputs(
+            wifiApActive = false,
+            downstreams = listOf("rndis0", "bt-pan"),
+            networkInterfaces = listOf("bnep0"),
+            usbEnabled = true,
+        )
+        assertEquals(ShareUserService.TETHER_MASK_USB, usbEnabledMask)
+
+        assertEquals(
+            ShizukuBackend.TETHER_MASK_WIFI,
+            ShizukuBackend.sanitizeActiveTetherMask(0b111, usbEnabled = false),
+        )
+        assertEquals(
+            ShizukuBackend.TETHER_MASK_WIFI or ShizukuBackend.TETHER_MASK_USB,
+            ShizukuBackend.sanitizeActiveTetherMask(0b111, usbEnabled = true),
+        )
+    }
+
+    @Test
+    fun disabledUsbAndRemovedBluetoothRejectSetTetherTypeEnabledImmediately() = runBlocking {
+        val btResult = ShizukuBackend.setTetherTypeEnabled(type = 2, enabled = true, context = null)
+        assertTrue(btResult.isFailure)
+
+        val usbResult = ShizukuBackend.setTetherTypeEnabled(
+            type = ShizukuBackend.TETHERING_USB,
+            enabled = true,
+            context = null,
+        )
+        assertTrue(usbResult.isFailure)
+
+        val ncmResult = ShizukuBackend.setTetherTypeEnabled(
+            type = ShizukuBackend.TETHERING_NCM,
+            enabled = true,
+            context = null,
+        )
+        assertTrue(ncmResult.isFailure)
+    }
+
+    @Test
+    fun callbackClientCountAvoidsFallbackWhenRegisteredAndFormatsHostLines() {
+        var fallbackCalls = 0
+        val fromCallbacks = ShareUserService.resolveConnectedClientCount(
+            softApRegistered = true,
+            softApCount = 2,
+            tetherRegistered = true,
+            tetherCount = 3,
+            fallback = {
+                fallbackCalls++
+                99
+            },
+        )
+        assertEquals(3, fromCallbacks)
+        assertEquals(0, fallbackCalls)
+
+        val zeroFromSoftAp = ShareUserService.resolveConnectedClientCount(
+            softApRegistered = true,
+            softApCount = 0,
+            tetherRegistered = false,
+            tetherCount = 0,
+            fallback = {
+                fallbackCalls++
+                5
+            },
+        )
+        assertEquals(0, zeroFromSoftAp)
+        assertEquals(0, fallbackCalls)
+
+        val fallbackCount = ShareUserService.resolveConnectedClientCount(
+            softApRegistered = false,
+            softApCount = 0,
+            tetherRegistered = false,
+            tetherCount = 0,
+            fallback = {
+                fallbackCalls++
+                4
+            },
+        )
+        assertEquals(4, fallbackCount)
+        assertEquals(1, fallbackCalls)
+
+        val hostLines = ShareUserService.formatCachedClientHostLines(
+            listOf(
+                ShareUserService.CachedTetherClient("192.168.43.10", "MyLaptop", "aa:bb:cc:dd:ee:ff", 0),
+                ShareUserService.CachedTetherClient("192.168.43.11", null, "11:22:33:44:55:66", 0),
+            ),
+        )
+        assertEquals(listOf("AddressInfo {address 192.168.43.10/24, hostname MyLaptop}"), hostLines)
+        assertEquals(
+            mapOf("192.168.43.10" to "MyLaptop"),
+            LanSharingLogics.parseNeighborHostnames(hostLines.joinToString("\n")),
+        )
+        assertEquals(
+            listOf("ap0", "wlan2"),
+            ShareUserService.extractTetheredIfaceNames(listOf("ap0", "wlan2", "ap0", "")),
+        )
     }
 }

@@ -16,9 +16,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.ObsoleteCoroutinesApi
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.actor
-import kotlinx.coroutines.runBlocking
 import java.net.UnknownHostException
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 internal interface DefaultNetworkMonitor {
     suspend fun start(key: Any, listener: (Network?) -> Unit)
@@ -31,6 +33,7 @@ internal class NetworkListenerEngine(
     private val unregisterCallback: () -> Unit,
     private val activeNetworkFallback: () -> Network?,
     private val elapsedRealtime: () -> Long = { SystemClock.elapsedRealtime() },
+    private val describeNetwork: (Network) -> String = { it.toString() },
     private val logInfo: (String) -> Unit = { Logs.i(it) },
     private val logDebug: (String) -> Unit = { Logs.d(it) },
     private val logWarn: (Throwable) -> Unit = { Logs.w(it) },
@@ -62,7 +65,7 @@ internal class NetworkListenerEngine(
     @Volatile
     private var fallback = false
 
-    private val networkActor = scope.actor<NetworkMessage>(Dispatchers.Unconfined) {
+    private val networkActor = scope.actor<NetworkMessage>(Dispatchers.Unconfined, capacity = Channel.UNLIMITED) {
         val listeners = mutableMapOf<Any, (Network?) -> Unit>()
         var registered = false
         var network: Network? = null
@@ -129,10 +132,10 @@ internal class NetworkListenerEngine(
                         logWarn(e)
                     }
                 }
-                logInfo("DefaultNetworkListener Put network=${message.network} listeners=${listeners.size} elapsed=${elapsedRealtime() - start}ms thread=${Thread.currentThread().name}")
+                logInfo("DefaultNetworkListener Put network=${describeNetwork(message.network)} listeners=${listeners.size} elapsed=${elapsedRealtime() - start}ms thread=${Thread.currentThread().name}")
             }
 
-            is NetworkMessage.Update -> if (network == message.network) {
+            is NetworkMessage.Update -> if (network === message.network || network == message.network) {
                 // This event storms (onCapabilitiesChanged) while switching networks or on a flaky signal: debug level
                 val start = elapsedRealtime()
                 listeners.values.forEach { listener ->
@@ -142,10 +145,10 @@ internal class NetworkListenerEngine(
                         logWarn(e)
                     }
                 }
-                logDebug("DefaultNetworkListener Update network=${message.network} listeners=${listeners.size} elapsed=${elapsedRealtime() - start}ms thread=${Thread.currentThread().name}")
+                logDebug("DefaultNetworkListener Update network=${describeNetwork(message.network)} listeners=${listeners.size} elapsed=${elapsedRealtime() - start}ms thread=${Thread.currentThread().name}")
             }
 
-            is NetworkMessage.Lost -> if (network == message.network) {
+            is NetworkMessage.Lost -> if (network === message.network || network == message.network) {
                 val start = elapsedRealtime()
                 network = null
                 listeners.values.forEach { listener ->
@@ -155,7 +158,7 @@ internal class NetworkListenerEngine(
                         logWarn(e)
                     }
                 }
-                logInfo("DefaultNetworkListener Lost network=${message.network} listeners=${listeners.size} elapsed=${elapsedRealtime() - start}ms thread=${Thread.currentThread().name}")
+                logInfo("DefaultNetworkListener Lost network=${describeNetwork(message.network)} listeners=${listeners.size} elapsed=${elapsedRealtime() - start}ms thread=${Thread.currentThread().name}")
             }
         }
     }
@@ -191,6 +194,63 @@ internal class NetworkListenerEngine(
     suspend fun put(network: Network) = networkActor.send(NetworkMessage.Put(network))
     suspend fun update(network: Network) = networkActor.send(NetworkMessage.Update(network))
     suspend fun lost(network: Network) = networkActor.send(NetworkMessage.Lost(network))
+
+    fun postPut(network: Network) {
+        networkActor.trySend(NetworkMessage.Put(network))
+    }
+
+    fun postUpdate(network: Network) {
+        networkActor.trySend(NetworkMessage.Update(network))
+    }
+
+    fun postLost(network: Network) {
+        networkActor.trySend(NetworkMessage.Lost(network))
+    }
+}
+
+/**
+ * Tracks a single active platform network callback instance so each registration allocates a fresh
+ * callback, unregisters that exact instance at most once, and ignores stale deliveries after unregister.
+ */
+internal class NetworkCallbackRegistry<T : Any>(
+    private val createCallback: (isActive: () -> Boolean) -> T,
+    private val registerPlatform: (T) -> Unit,
+    private val unregisterPlatform: (T) -> Unit,
+    private val logWarn: (Throwable) -> Unit = {},
+) {
+    private class Entry<T : Any>(val callback: T) {
+        val active = AtomicBoolean(true)
+    }
+
+    private val current = AtomicReference<Entry<T>?>(null)
+
+    fun register(): Boolean {
+        current.getAndSet(null)?.let { previous ->
+            previous.active.set(false)
+            runCatching { unregisterPlatform(previous.callback) }.onFailure(logWarn)
+        }
+        lateinit var entry: Entry<T>
+        val callback = createCallback { entry.active.get() && current.get() === entry }
+        entry = Entry(callback)
+        current.set(entry)
+        return try {
+            registerPlatform(callback)
+            true
+        } catch (e: Exception) {
+            entry.active.set(false)
+            current.compareAndSet(entry, null)
+            logWarn(e)
+            false
+        }
+    }
+
+    fun unregister() {
+        val entry = current.getAndSet(null) ?: return
+        entry.active.set(false)
+        unregisterPlatform(entry.callback)
+    }
+
+    fun activeCallback(): T? = current.get()?.callback
 }
 
 object DefaultNetworkListener : DefaultNetworkMonitor {
@@ -211,24 +271,31 @@ object DefaultNetworkListener : DefaultNetworkMonitor {
 
     // NB: below API 26 this runs on ConnectivityThread; 26+ dispatches through the callbackHandler given to register
     // onto a dedicated worker thread (dispatching to the main thread through mainHandler once blocked the UI
-    // for seconds with several test listeners and onCapabilitiesChanged storms)
-    private object Callback : ConnectivityManager.NetworkCallback() {
+    // for seconds with several test listeners and onCapabilitiesChanged storms).
+    // A fresh instance is allocated per registration so ConnectivityManager never reuses a Callback identity
+    // across stop/start cycles, and late callbacks from a previously unregistered instance are ignored.
+    private class ListeningCallback(
+        private val isActive: () -> Boolean,
+    ) : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
+            if (!isActive()) return
             Logs.d("DefaultNetworkListener onAvailable enter network=$network thread=${Thread.currentThread().name}")
-            runBlocking { engine.put(network) }
+            engine.postPut(network)
         }
 
         override fun onCapabilitiesChanged(
             network: Network, networkCapabilities: NetworkCapabilities
         ) { // it's a good idea to refresh capabilities
+            if (!isActive()) return
             // Storm source: debug per event (info would flood the log)
             Logs.d("DefaultNetworkListener onCapabilitiesChanged enter network=$network thread=${Thread.currentThread().name}")
-            runBlocking { engine.update(network) }
+            engine.postUpdate(network)
         }
 
         override fun onLost(network: Network) {
+            if (!isActive()) return
             Logs.d("DefaultNetworkListener onLost enter network=$network thread=${Thread.currentThread().name}")
-            runBlocking { engine.lost(network) }
+            engine.postLost(network)
         }
     }
 
@@ -245,6 +312,36 @@ object DefaultNetworkListener : DefaultNetworkMonitor {
     private val callbackThread by lazy { HandlerThread("DefaultNetworkListener").apply { start() } }
     private val callbackHandler by lazy { Handler(callbackThread.looper) }
 
+    private val callbackRegistry = NetworkCallbackRegistry(
+        createCallback = { isActive -> ListeningCallback(isActive) },
+        registerPlatform = { callback ->
+            when (Build.VERSION.SDK_INT) {
+                in 31..Int.MAX_VALUE -> @TargetApi(31) {
+                    SagerNet.connectivity.registerBestMatchingNetworkCallback(
+                        request, callback, callbackHandler
+                    )
+                }
+                in 28 until 31 -> @TargetApi(28) {  // we want REQUEST here instead of LISTEN
+                    SagerNet.connectivity.requestNetwork(request, callback, callbackHandler)
+                }
+                in 26 until 28 -> @TargetApi(26) {
+                    SagerNet.connectivity.registerDefaultNetworkCallback(callback, callbackHandler)
+                }
+                in 24 until 26 -> @TargetApi(24) {
+                    SagerNet.connectivity.registerDefaultNetworkCallback(callback)
+                }
+                else -> {
+                    SagerNet.connectivity.requestNetwork(request, callback)
+                    // known bug on API 23: https://stackoverflow.com/a/33509180/2245107
+                }
+            }
+        },
+        unregisterPlatform = { callback ->
+            SagerNet.connectivity.unregisterNetworkCallback(callback)
+        },
+        logWarn = { Logs.w(it) },
+    )
+
     /**
      * Unfortunately registerDefaultNetworkCallback is going to return VPN interface since Android P DP1:
      * https://android.googlesource.com/platform/frameworks/base/+/dda156ab0c5d66ad82bdcf76cda07cbc0a9c8a2e
@@ -255,34 +352,7 @@ object DefaultNetworkListener : DefaultNetworkMonitor {
      *
      * Source: https://android.googlesource.com/platform/frameworks/base/+/2df4c7d/services/core/java/com/android/server/ConnectivityService.java#887
      */
-    private fun register(): Boolean {
-        return try {
-            when (Build.VERSION.SDK_INT) {
-                in 31..Int.MAX_VALUE -> @TargetApi(31) {
-                    SagerNet.connectivity.registerBestMatchingNetworkCallback(
-                        request, Callback, callbackHandler
-                    )
-                }
-                in 28 until 31 -> @TargetApi(28) {  // we want REQUEST here instead of LISTEN
-                    SagerNet.connectivity.requestNetwork(request, Callback, callbackHandler)
-                }
-                in 26 until 28 -> @TargetApi(26) {
-                    SagerNet.connectivity.registerDefaultNetworkCallback(Callback, callbackHandler)
-                }
-                in 24 until 26 -> @TargetApi(24) {
-                    SagerNet.connectivity.registerDefaultNetworkCallback(Callback)
-                }
-                else -> {
-                    SagerNet.connectivity.requestNetwork(request, Callback)
-                    // known bug on API 23: https://stackoverflow.com/a/33509180/2245107
-                }
-            }
-            true
-        } catch (e: Exception) {
-            Logs.w(e)
-            false
-        }
-    }
+    private fun register(): Boolean = callbackRegistry.register()
 
-    private fun unregister() = SagerNet.connectivity.unregisterNetworkCallback(Callback)
+    private fun unregister() = callbackRegistry.unregister()
 }
