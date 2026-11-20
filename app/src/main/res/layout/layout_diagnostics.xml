@@ -88,8 +88,7 @@
                         style="@style/Widget.SagerNet.Button"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/diagnostics_start"
-                        app:cornerRadius="24dp" />
+                        android:text="@string/diagnostics_start" />
 
                     <com.google.android.material.progressindicator.LinearProgressIndicator
                         android:id="@+id/diagnostics_progress"
@@ -107,8 +106,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/stop"
-                        android:visibility="gone"
-                        app:cornerRadius="24dp" />
+                        android:visibility="gone" />
 
                 </LinearLayout>
 
@@ -133,8 +131,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/share"
-                        app:cornerRadius="24dp" />
+                        android:text="@string/share" />
 
                     <Space
                         android:layout_width="12dp"
@@ -146,8 +143,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/diagnostics_save"
-                        app:cornerRadius="24dp" />
+                        android:text="@string/diagnostics_save" />
 
                 </LinearLayout>
 

@@ -702,7 +702,6 @@ object ExpressiveSettingsHelper {
             else -> contrastOnColor(accent)
         }
         applyUnifiedButtonTypography(button)
-        button.cornerRadius = dp2px(16)
         button.backgroundTintList = ColorStateList.valueOf(accent)
         button.setTextColor(onAccent)
         button.iconTint = ColorStateList.valueOf(onAccent)
@@ -725,7 +724,6 @@ object ExpressiveSettingsHelper {
             else -> accent
         }
         applyUnifiedButtonTypography(button)
-        button.cornerRadius = dp2px(16)
         button.strokeColor = ColorStateList.valueOf(strokeColor)
         button.strokeWidth = dp2px(1)
         button.setTextColor(textColor)

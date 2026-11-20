@@ -152,7 +152,6 @@
                     android:text="@string/backup_create"
                     android:textAllCaps="false"
                     android:textSize="13.5sp"
-                    app:cornerRadius="16dp"
                     app:icon="@drawable/ic_baseline_download_24"
                     app:iconGravity="textStart" />
 
@@ -179,7 +178,6 @@
                         android:text="@string/share"
                         android:textAllCaps="false"
                         android:textSize="13sp"
-                        app:cornerRadius="16dp"
                         app:icon="@drawable/ic_social_share"
                         app:iconGravity="textStart"
                         app:iconPadding="6dp" />
@@ -204,7 +202,6 @@
                         android:text="@string/backup_restore"
                         android:textAllCaps="false"
                         android:textSize="13sp"
-                        app:cornerRadius="16dp"
                         app:icon="@drawable/ic_baseline_upload_24"
                         app:iconGravity="textStart"
                         app:iconPadding="6dp" />
@@ -272,7 +269,6 @@
                     android:text="@string/backup_to_webdav"
                     android:textAllCaps="false"
                     android:textSize="13.5sp"
-                    app:cornerRadius="16dp"
                     app:icon="@drawable/ic_baseline_upload_24"
                     app:iconGravity="textStart" />
 
@@ -291,7 +287,6 @@
                     android:text="@string/restore_from_webdav"
                     android:textAllCaps="false"
                     android:textSize="13.5sp"
-                    app:cornerRadius="16dp"
                     app:icon="@drawable/ic_baseline_download_24"
                     app:iconGravity="textStart"
                     app:iconPadding="8dp" />
@@ -311,7 +306,6 @@
                     android:text="@string/webdav_settings"
                     android:textAllCaps="false"
                     android:textSize="13.5sp"
-                    app:cornerRadius="16dp"
                     app:icon="@drawable/ic_action_settings"
                     app:iconGravity="textStart"
                     app:iconPadding="8dp" />

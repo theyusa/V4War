@@ -204,8 +204,7 @@
                         android:paddingVertical="10dp"
                         android:text="@string/cellular_network_radio_info_modern"
                         android:textAllCaps="false"
-                        android:textSize="13.5sp"
-                        app:cornerRadius="16dp" />
+                        android:textSize="13.5sp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnRadioInfoLegacy"
@@ -219,8 +218,7 @@
                         android:paddingVertical="10dp"
                         android:text="@string/cellular_network_radio_info_legacy"
                         android:textAllCaps="false"
-                        android:textSize="13sp"
-                        app:cornerRadius="16dp" />
+                        android:textSize="13sp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnTestingMenu"
@@ -234,8 +232,7 @@
                         android:paddingVertical="10dp"
                         android:text="@string/cellular_network_testing_menu"
                         android:textAllCaps="false"
-                        android:textSize="13sp"
-                        app:cornerRadius="16dp" />
+                        android:textSize="13sp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnStandardSettings"
@@ -249,8 +246,7 @@
                         android:paddingVertical="10dp"
                         android:text="@string/cellular_network_standard_settings"
                         android:textAllCaps="false"
-                        android:textSize="13sp"
-                        app:cornerRadius="16dp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

@@ -1545,7 +1545,6 @@
                                 android:paddingHorizontal="12dp"
                                 android:text="@string/hotspot_share_log_drawer_actions"
                                 android:textSize="12sp"
-                                app:cornerRadius="18dp"
                                 app:icon="@drawable/ic_baseline_tune_24"
                                 app:iconPadding="6dp"
                                 app:iconSize="16dp" />
@@ -1564,7 +1563,6 @@
                                 android:paddingHorizontal="12dp"
                                 android:text="@string/hotspot_share_log_drawer_filters"
                                 android:textSize="12sp"
-                                app:cornerRadius="18dp"
                                 app:icon="@drawable/ic_baseline_filter_list_24"
                                 app:iconPadding="6dp"
                                 app:iconSize="16dp" />
@@ -1801,8 +1799,7 @@
                                     android:paddingHorizontal="10dp"
                                     android:text="@string/hotspot_share_log_filter_reset"
                                     android:textSize="11.5sp"
-                                    android:visibility="gone"
-                                    app:cornerRadius="16dp" />
+                                    android:visibility="gone" />
                             </LinearLayout>
                         </LinearLayout>
 

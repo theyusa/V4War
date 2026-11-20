@@ -722,8 +722,7 @@
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">@dimen/button_corner_radius</item>
     </style>
-    <style name="Widget.SagerNet.Button" parent="Widget.MaterialComponents.Button">
-        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.SagerNet.Button</item>
+    <style name="Widget.SagerNet.Button" parent="Widget.Material3Expressive.Button">
         <item name="android:textAppearance">@style/TextAppearance.SagerNet.Button</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="fontFamily">sans-serif-medium</item>
@@ -738,8 +737,7 @@
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">24dp</item>
     </style>
-    <style name="Widget.SagerNet.DrawerSettingsButton" parent="Widget.MaterialComponents.Button">
-        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.SagerNet.DrawerButton</item>
+    <style name="Widget.SagerNet.DrawerSettingsButton" parent="Widget.Material3Expressive.Button">
         <item name="android:textColor">@color/ownbox_drawer_action_text</item>
         <item name="iconTint">@color/ownbox_drawer_action_text</item>
         <item name="backgroundTint">@color/ownbox_drawer_action_fill</item>
@@ -2901,8 +2899,7 @@
         <item name="windowFixedHeightMinor">@null</item>
     </style>
 
-    <style name="Widget.SagerNet.Button.OutlinedButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
-        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.SagerNet.Button</item>
+    <style name="Widget.SagerNet.Button.OutlinedButton" parent="Widget.Material3Expressive.Button.OutlinedButton">
         <item name="android:textAppearance">@style/TextAppearance.SagerNet.Button</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="fontFamily">sans-serif-medium</item>
@@ -2915,8 +2912,7 @@
         <item name="rippleColor">@color/dialog_button_ripple</item>
     </style>
 
-    <style name="Widget.SagerNet.Button.TextButton" parent="Widget.MaterialComponents.Button.TextButton">
-        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.SagerNet.Button</item>
+    <style name="Widget.SagerNet.Button.TextButton" parent="Widget.Material3Expressive.Button.TextButton">
         <item name="android:textAppearance">@style/TextAppearance.SagerNet.Button</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="fontFamily">sans-serif-medium</item>
@@ -2928,13 +2924,12 @@
         <item name="rippleColor">@color/dialog_button_ripple</item>
     </style>
 
-    <style name="Widget.SagerNet.Button.TextButton.Dialog" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+    <style name="Widget.SagerNet.Button.TextButton.Dialog" parent="Widget.Material3Expressive.Button.TextButton.Dialog">
         <item name="android:textAppearance">@style/TextAppearance.SagerNet.Button</item>
         <item name="android:textColor">@color/dialog_button_text</item>
         <item name="rippleColor">@color/dialog_button_ripple</item>
         <item name="android:paddingLeft">12dp</item>
         <item name="android:paddingRight">12dp</item>
-        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.SagerNet.Pill</item>
     </style>
 
     <style name="Widget.SagerNet.Button.TextButton.Dialog.Flush">

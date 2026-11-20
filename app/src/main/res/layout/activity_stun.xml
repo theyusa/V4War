@@ -327,7 +327,6 @@
                         android:text="@string/stun_action_start"
                         android:textAllCaps="false"
                         android:textSize="13.5sp"
-                        app:cornerRadius="16dp"
                         app:icon="@drawable/ic_hardware_router"
                         app:iconGravity="textStart" />
 
@@ -574,7 +573,6 @@
                         android:text="@string/stun_show_details"
                         android:textAllCaps="false"
                         android:textSize="13sp"
-                        app:cornerRadius="16dp"
                         app:icon="@drawable/ic_baseline_expand_more_24"
                         app:iconGravity="textEnd" />
 
@@ -647,7 +645,6 @@
                         android:text="@string/stun_copy_result"
                         android:textAllCaps="false"
                         android:textSize="13sp"
-                        app:cornerRadius="14dp"
                         app:icon="@drawable/ic_content_copy" />
 
                 </LinearLayout>
