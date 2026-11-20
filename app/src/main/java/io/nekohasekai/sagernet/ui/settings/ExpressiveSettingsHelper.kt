@@ -928,7 +928,7 @@ private fun attachPreferenceInfoHelper(list: androidx.recyclerview.widget.Recycl
         }
 
         val fullSummary = (pref?.summary ?: summaryView.text)?.toString()?.trim().orEmpty()
-        val isLong = fullSummary.length > 72 || fullSummary.contains('\n')
+        val isLong = fullSummary.length > 52 || fullSummary.contains('\n')
 
         if (!isLong) {
             existingBtn?.visibility = View.GONE
@@ -936,7 +936,7 @@ private fun attachPreferenceInfoHelper(list: androidx.recyclerview.widget.Recycl
             return
         }
 
-        summaryView.maxLines = 2
+        summaryView.maxLines = 1
         summaryView.ellipsize = android.text.TextUtils.TruncateAt.END
 
         val ctx = view.context

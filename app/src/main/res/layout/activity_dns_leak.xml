@@ -78,8 +78,7 @@
                                 android:layout_height="wrap_content"
                                 android:fontFamily="sans-serif-medium"
                                 android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="16sp"
-                                android:textStyle="bold"
+                                android:textSize="15.5sp"
                                 tools:text="DNS Queries Protected" />
 
                             <TextView
@@ -89,8 +88,8 @@
                                 android:layout_marginTop="4dp"
                                 android:paddingHorizontal="10dp"
                                 android:paddingVertical="3dp"
-                                android:textSize="12.5sp"
-                                android:textStyle="bold"
+                                android:fontFamily="sans-serif-medium"
+                                android:textSize="11.5sp"
                                 tools:text="SECURE (No Leak)" />
                         </LinearLayout>
                     </LinearLayout>
