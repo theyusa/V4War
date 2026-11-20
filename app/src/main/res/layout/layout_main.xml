@@ -53,6 +53,7 @@
         <!-- We double trackThickness as half of it will be invisible -->
         <com.google.android.material.progressindicator.CircularProgressIndicator
             android:id="@+id/fabProgress"
+            style="@style/Widget.Material3Expressive.CircularProgressIndicator.Wavy"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:max="1"

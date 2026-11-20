@@ -34,15 +34,16 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <ProgressBar
+            <com.google.android.material.loadingindicator.LoadingIndicator
                 android:id="@+id/progressServer"
-                style="?android:attr/progressBarStyleSmall"
                 android:layout_width="16dp"
                 android:layout_height="16dp"
                 android:layout_marginEnd="6dp"
-                android:indeterminate="true"
-                android:indeterminateTint="?attr/colorPrimary"
                 android:visibility="gone"
+                app:containerHeight="16dp"
+                app:containerWidth="16dp"
+                app:indicatorColor="?attr/colorPrimary"
+                app:indicatorSize="14dp"
                 tools:visibility="visible" />
 
             <TextView

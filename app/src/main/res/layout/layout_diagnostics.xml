@@ -92,6 +92,7 @@
 
                     <com.google.android.material.progressindicator.LinearProgressIndicator
                         android:id="@+id/diagnostics_progress"
+                        style="@style/Widget.Material3Expressive.LinearProgressIndicator.Wavy"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"

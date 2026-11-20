@@ -332,6 +332,7 @@
 
                     <com.google.android.material.progressindicator.LinearProgressIndicator
                         android:id="@+id/progressBarStun"
+                        style="@style/Widget.Material3Expressive.LinearProgressIndicator.Wavy"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
