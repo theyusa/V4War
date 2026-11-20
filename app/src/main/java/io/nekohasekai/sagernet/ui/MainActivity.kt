@@ -599,6 +599,7 @@ class MainActivity : ThemedActivity(),
     ) {
         val showControls = fragment is ConfigurationFragment
         binding.stats.useExternalScrollDriver = fragment is ConfigurationFragment
+        binding.stats.visibility = if (showControls) View.VISIBLE else View.GONE
         binding.stats.syncMainControls(
             showControls,
             DataStore.serviceState,

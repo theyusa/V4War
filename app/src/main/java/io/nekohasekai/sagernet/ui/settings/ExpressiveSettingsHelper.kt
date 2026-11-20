@@ -914,56 +914,70 @@ private fun attachPreferenceInfoHelper(list: androidx.recyclerview.widget.Recycl
             adapter.getItem(pos)
         } else null
 
+        val rootRow = view as? android.view.ViewGroup
+        val existingBtn = rootRow?.findViewWithTag<View>(TAG_INFO_BUTTON)
         val widgetFrame = view.findViewById<android.view.ViewGroup>(android.R.id.widget_frame)
-        val existingBtn = widgetFrame?.findViewWithTag<View>(TAG_INFO_BUTTON)
         val summaryView = view.findViewById<TextView>(android.R.id.summary)
         val titleView = view.findViewById<TextView>(android.R.id.title)
 
+        // Ensure long titles wrap cleanly without crowding the switch
+        titleView?.apply {
+            textSize = 15f
+            maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+
         if (pref is androidx.preference.PreferenceCategory || pref?.key == "themeStudio" ||
-            summaryView == null || summaryView.visibility != View.VISIBLE || widgetFrame == null
+            rootRow == null || summaryView == null
         ) {
             existingBtn?.visibility = View.GONE
-            summaryView?.maxLines = 4
             return
         }
 
         val fullSummary = (pref?.summary ?: summaryView.text)?.toString()?.trim().orEmpty()
-        val isLong = fullSummary.length > 52 || fullSummary.contains('\n')
-
-        if (!isLong) {
+        if (fullSummary.isEmpty()) {
             existingBtn?.visibility = View.GONE
-            summaryView.maxLines = 4
+            summaryView.visibility = View.GONE
             return
         }
 
-        summaryView.maxLines = 1
-        summaryView.ellipsize = android.text.TextUtils.TruncateAt.END
+        val isLong = fullSummary.length > 44 || fullSummary.contains('\n')
+        if (!isLong) {
+            existingBtn?.visibility = View.GONE
+            summaryView.visibility = View.VISIBLE
+            summaryView.maxLines = 2
+            return
+        }
+
+        // Hide long inline description so the card stays clean & minimal; expose via '?' button
+        summaryView.visibility = View.GONE
 
         val ctx = view.context
         val infoBtn = (existingBtn as? android.widget.ImageButton) ?: android.widget.ImageButton(ctx).apply {
             tag = TAG_INFO_BUTTON
-            val sizePx = dp2px(36)
+            val sizePx = dp2px(32)
             layoutParams = android.widget.LinearLayout.LayoutParams(sizePx, sizePx).apply {
                 gravity = android.view.Gravity.CENTER_VERTICAL
-                marginEnd = dp2px(2)
+                marginStart = dp2px(4)
+                marginEnd = dp2px(4)
             }
             val outValue = android.util.TypedValue()
             ctx.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, outValue, true)
             setBackgroundResource(outValue.resourceId)
             scaleType = ImageView.ScaleType.CENTER_INSIDE
-            setPadding(dp2px(8), dp2px(8), dp2px(8), dp2px(8))
-            setImageResource(R.drawable.ic_baseline_info_24)
+            setPadding(dp2px(6), dp2px(6), dp2px(6), dp2px(6))
+            setImageResource(R.drawable.ic_baseline_help_outline_24)
             contentDescription = titleView?.text?.toString() ?: "Info"
             val tint = ctx.getColorAttr(android.R.attr.textColorSecondary)
-            imageTintList = ColorStateList.valueOf(ColorUtils.setAlphaComponent(tint, 190))
-            if (widgetFrame is android.widget.LinearLayout) {
-                widgetFrame.orientation = android.widget.LinearLayout.HORIZONTAL
-                widgetFrame.gravity = android.view.Gravity.CENTER_VERTICAL
+            imageTintList = ColorStateList.valueOf(ColorUtils.setAlphaComponent(tint, 185))
+            val widgetIndex = if (widgetFrame != null) rootRow.indexOfChild(widgetFrame) else -1
+            if (widgetIndex >= 0) {
+                rootRow.addView(this, widgetIndex)
+            } else {
+                rootRow.addView(this)
             }
-            widgetFrame.addView(this, 0)
         }
 
-        widgetFrame.visibility = View.VISIBLE
         infoBtn.visibility = View.VISIBLE
         infoBtn.setOnClickListener {
             val titleText = pref?.title ?: titleView?.text ?: ""
