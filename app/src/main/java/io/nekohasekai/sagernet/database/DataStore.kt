@@ -118,6 +118,8 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var updateLastCheckTime by configurationStore.long(Key.UPDATE_LAST_CHECK_TIME)
     var customThemeColor by configurationStore.int("custom_theme_color") { 0x00E676 }
     var lastSeedTheme by configurationStore.int("last_seed_theme") { 22 }
+    var materialPaletteStyle by configurationStore.int("material_palette_style") { 0 }
+    var materialSeedColor by configurationStore.int("material_seed_color") { 0xFF30A370.toInt() }
     var appLanguage by configurationStore.string(Key.APP_LANGUAGE) { "" }
     var serviceMode by configurationStore.string(Key.SERVICE_MODE) { Key.MODE_VPN }
 

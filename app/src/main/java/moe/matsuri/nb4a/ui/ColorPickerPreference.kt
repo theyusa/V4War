@@ -41,6 +41,9 @@ import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
 import io.nekohasekai.sagernet.ui.settings.ExpressiveShape
+import io.nekohasekai.sagernet.utils.MaterialPaletteStyle
+import io.nekohasekai.sagernet.utils.MaterialSchemeEngine
+import io.nekohasekai.sagernet.utils.MaterialSeedPreset
 import io.nekohasekai.sagernet.utils.Theme
 
 /**
@@ -106,6 +109,7 @@ constructor(
             Theme.MATERIAL_CORAL -> Color.parseColor("#9C4128")
             Theme.MATERIAL_INDIGO -> Color.parseColor("#3F5AA9")
             Theme.MATERIAL_AMBER -> Color.parseColor("#795900")
+            Theme.MATERIAL_DYNAMIC -> 0xFF000000.toInt() or Theme.materialSeedColor()
             Theme.CUSTOM -> 0xFF000000.toInt() or DataStore.customThemeColor
             else -> context.getColorAttr(androidx.appcompat.R.attr.colorPrimary)
         }
@@ -125,6 +129,7 @@ constructor(
             Theme.MATERIAL_CORAL -> if (isTr) "Material Terakota" else "Material Terracotta"
             Theme.MATERIAL_INDIGO -> if (isTr) "Material İndigo" else "Material Indigo"
             Theme.MATERIAL_AMBER -> if (isTr) "Material Kehribar" else "Material Amber"
+            Theme.MATERIAL_DYNAMIC -> "${MaterialSchemeEngine.findSeedName(Theme.materialSeedColor(), isTr)} · ${Theme.materialPaletteStyle().label(isTr)}"
             Theme.VERDANT_MINT -> if (isTr) "Nane Yeşili" else "Verdant Mint"
             Theme.BLUE -> if (isTr) "Klasik Mavi" else "Classic Blue"
             Theme.RED -> if (isTr) "Alev Kırmızısı" else "Flame Red"
@@ -218,8 +223,17 @@ constructor(
 
     private var recreateScheduled = false
 
+    private fun scheduleRecreate() {
+        val host = context as? Activity ?: return
+        host.window?.decorView?.post {
+            if (!host.isFinishing && !host.isDestroyed) {
+                ActivityCompat.recreate(host)
+            }
+        }
+    }
+
     private fun applyTheme(themeId: Int) {
-        if (themeId != Theme.CUSTOM && themeId == Theme.activeThemeId()) return
+        if (themeId != Theme.CUSTOM && themeId != Theme.MATERIAL_DYNAMIC && themeId == Theme.activeThemeId()) return
         if (recreateScheduled) return
         recreateScheduled = true
         if (Theme.isColorfulSeed(themeId)) {
@@ -227,15 +241,113 @@ constructor(
         }
         DataStore.appTheme = themeId
         DataStore.useSystemTheme = (themeId == Theme.MONET)
+        Theme.invalidateCache()
         Theme.applyNightTheme()
         notifyChanged()
         callChangeListener(themeId)
-        val host = context as? Activity ?: return
-        host.window?.decorView?.post {
-            if (!host.isFinishing && !host.isDestroyed) {
-                ActivityCompat.recreate(host)
-            }
+        scheduleRecreate()
+    }
+
+    private fun applyMaterialSeed(seedArgb: Int) {
+        if (recreateScheduled) return
+        recreateScheduled = true
+        DataStore.materialSeedColor = 0xFF000000.toInt() or seedArgb
+        DataStore.appTheme = Theme.MATERIAL_DYNAMIC
+        DataStore.useSystemTheme = false
+        Theme.rememberSeedTheme(Theme.MATERIAL_DYNAMIC)
+        Theme.invalidateCache()
+        Theme.applyNightTheme()
+        notifyChanged()
+        callChangeListener(Theme.MATERIAL_DYNAMIC)
+        scheduleRecreate()
+    }
+
+    private fun applyMaterialPaletteStyle(style: MaterialPaletteStyle) {
+        if (recreateScheduled) return
+        recreateScheduled = true
+        DataStore.materialPaletteStyle = style.id
+        if (Theme.activeThemeId() != Theme.MATERIAL_DYNAMIC) {
+            DataStore.appTheme = Theme.MATERIAL_DYNAMIC
+            DataStore.useSystemTheme = false
+            Theme.rememberSeedTheme(Theme.MATERIAL_DYNAMIC)
         }
+        Theme.invalidateCache()
+        Theme.applyNightTheme()
+        notifyChanged()
+        callChangeListener(Theme.MATERIAL_DYNAMIC)
+        scheduleRecreate()
+    }
+
+    private fun showPaletteStyleDialog(isTr: Boolean, currentSeed: Int, currentStyle: MaterialPaletteStyle) {
+        val dialogContext = context
+        val isDark = Theme.usingNightMode(dialogContext)
+        val scroll = android.widget.ScrollView(dialogContext)
+        val listLayout = LinearLayout(dialogContext).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp2px(16), dp2px(8), dp2px(16), dp2px(12))
+        }
+        scroll.addView(listLayout)
+
+        var dialog: androidx.appcompat.app.AlertDialog? = null
+        val styles = MaterialPaletteStyle.entries
+        styles.forEachIndexed { idx, style ->
+            val selected = style == currentStyle
+            val styleTonal = MaterialSchemeEngine.buildTonalColors(
+                primarySeedArgb = currentSeed,
+                paletteStyle = style,
+                isDark = isDark,
+            )
+            val row = LinearLayout(dialogContext).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp2px(12), dp2px(8), dp2px(12), dp2px(8))
+                isClickable = true
+                isFocusable = true
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    if (idx < styles.lastIndex) bottomMargin = dp2px(4)
+                }
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp2px(16).toFloat()
+                    setColor(if (selected) styleTonal.primaryContainer else styleTonal.surfaceContainerLow)
+                    if (selected) {
+                        setStroke(dp2px(1), styleTonal.primary)
+                    }
+                }
+            }
+            val wheel = PaletteWheelView(dialogContext).apply {
+                keyColors = MaterialSchemeEngine.getPaletteKeyColors(currentSeed, style)
+                isCheckedWheel = selected
+                layoutParams = LinearLayout.LayoutParams(dp2px(44), dp2px(44)).apply {
+                    marginEnd = dp2px(14)
+                }
+            }
+            val title = TextView(dialogContext).apply {
+                text = style.label(isTr)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+                typeface = Typeface.create(if (selected) "sans-serif-medium" else "sans-serif", Typeface.NORMAL)
+                setTextColor(if (selected) styleTonal.onPrimaryContainer else styleTonal.onSurface)
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            row.addView(wheel)
+            row.addView(title)
+            row.setOnClickListener {
+                dialog?.dismiss()
+                if (style != currentStyle || Theme.activeThemeId() != Theme.MATERIAL_DYNAMIC) {
+                    applyMaterialPaletteStyle(style)
+                }
+            }
+            listLayout.addView(row)
+        }
+
+        dialog = MaterialAlertDialogBuilder(dialogContext)
+            .setTitle(if (isTr) "Palet Stili" else "Palette Style")
+            .setView(scroll)
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     override fun onBindViewHolder(holder: PreferenceViewHolder) {
@@ -282,6 +394,153 @@ constructor(
 
         var showingMaterialFamily = Theme.isMaterialTheme(activeThemeId)
 
+        fun renderMaterialWheelGrid() {
+            presetsGrid.removeAllViews()
+            val currentStyle = Theme.materialPaletteStyle()
+            val activeSeed = 0xFF000000.toInt() or Theme.materialSeedColor()
+
+            // Palette Style selector pill (aShellYou-inspired)
+            val styleRow = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                isClickable = true
+                isFocusable = true
+                setPadding(dp2px(12), dp2px(10), dp2px(12), dp2px(10))
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    bottomMargin = dp2px(12)
+                }
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp2px(14).toFloat()
+                    setColor(Theme.resolveNestedBoxBackground(context))
+                    setStroke(
+                        Theme.resolveCardStrokeWidthPx(context, selected = false).toInt().coerceAtLeast(1),
+                        Theme.resolveCardStrokeColor(context, selected = false),
+                    )
+                }
+                setOnClickListener {
+                    showPaletteStyleDialog(isTr, activeSeed, currentStyle)
+                }
+            }
+            val miniWheel = PaletteWheelView(context).apply {
+                keyColors = MaterialSchemeEngine.getPaletteKeyColors(activeSeed, currentStyle)
+                isCheckedWheel = false
+                layoutParams = LinearLayout.LayoutParams(dp2px(32), dp2px(32)).apply {
+                    marginEnd = dp2px(10)
+                }
+            }
+            val styleTextCol = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            styleTextCol.addView(
+                TextView(context).apply {
+                    text = if (isTr) "Palet Stili" else "Palette Style"
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+                    setTextColor(textSecondary)
+                },
+            )
+            styleTextCol.addView(
+                TextView(context).apply {
+                    text = currentStyle.label(isTr)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                    typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                    setTextColor(textPrimary)
+                },
+            )
+            val styleChevron = ImageView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(dp2px(20), dp2px(20))
+                ResourcesCompat.getDrawable(context.resources, R.drawable.ic_baseline_expand_more_24, null)?.mutate()?.let {
+                    DrawableCompat.setTint(it, textSecondary)
+                    setImageDrawable(it)
+                }
+            }
+            styleRow.addView(miniWheel)
+            styleRow.addView(styleTextCol)
+            styleRow.addView(styleChevron)
+            presetsGrid.addView(styleRow)
+
+            // Build Material wheel entries: Material You (Monet) + 20 aShellYou HCT Seed Colors
+            data class WheelEntry(
+                val label: String,
+                val seedArgb: Int,
+                val isMonet: Boolean,
+                val isSelected: Boolean,
+            )
+
+            val entries = mutableListOf<WheelEntry>()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                entries.add(
+                    WheelEntry(
+                        label = "Material You",
+                        seedArgb = resolveSwatchColor(Theme.MONET),
+                        isMonet = true,
+                        isSelected = activeThemeId == Theme.MONET,
+                    ),
+                )
+            }
+            for (preset: MaterialSeedPreset in MaterialSchemeEngine.SEED_COLORS) {
+                entries.add(
+                    WheelEntry(
+                        label = preset.label(isTr),
+                        seedArgb = preset.seedArgb,
+                        isMonet = false,
+                        isSelected = activeThemeId == Theme.MATERIAL_DYNAMIC && activeSeed == preset.seedArgb,
+                    ),
+                )
+            }
+
+            val columns = 5
+            val rows = entries.chunked(columns)
+            rows.forEachIndexed { rowIdx, chunk ->
+                val row = LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ).apply {
+                        if (rowIdx < rows.lastIndex) bottomMargin = dp2px(8)
+                    }
+                }
+                for (colIdx in 0 until columns) {
+                    val cell = FrameLayout(context).apply {
+                        layoutParams = LinearLayout.LayoutParams(0, dp2px(58), 1f).apply {
+                            if (colIdx < columns - 1) marginEnd = dp2px(6)
+                        }
+                    }
+                    val item = chunk.getOrNull(colIdx)
+                    if (item != null) {
+                        val wheel = PaletteWheelView(context).apply {
+                            keyColors = MaterialSchemeEngine.getPaletteKeyColors(item.seedArgb, currentStyle)
+                            isCheckedWheel = item.isSelected
+                            isDynamicWallpaperBadge = item.isMonet
+                            contentDescription = item.label
+                            isClickable = true
+                            isFocusable = true
+                            layoutParams = FrameLayout.LayoutParams(
+                                FrameLayout.LayoutParams.MATCH_PARENT,
+                                FrameLayout.LayoutParams.MATCH_PARENT,
+                            )
+                            setOnClickListener {
+                                if (item.isMonet) {
+                                    applyTheme(Theme.MONET)
+                                } else {
+                                    applyMaterialSeed(item.seedArgb)
+                                }
+                            }
+                        }
+                        cell.addView(wheel)
+                    }
+                    row.addView(cell)
+                }
+                presetsGrid.addView(row)
+            }
+        }
+
         fun renderSwatchRows(presets: List<PresetTheme>) {
             presetsGrid.removeAllViews()
             val columns = 6
@@ -309,6 +568,14 @@ constructor(
                     row.addView(cell)
                 }
                 presetsGrid.addView(row)
+            }
+        }
+
+        fun renderActiveFamily() {
+            if (showingMaterialFamily) {
+                renderMaterialWheelGrid()
+            } else {
+                renderSwatchRows(buildCustomPresets(isTr))
             }
         }
 
@@ -379,7 +646,7 @@ constructor(
                 if (container.isAttachedToWindow && container.isLaidOut) {
                     TransitionManager.beginDelayedTransition(container, AutoTransition().apply { duration = 120L })
                 }
-                renderSwatchRows(buildCustomPresets(isTr))
+                renderActiveFamily()
             }
         }
         materialTabBtn.apply {
@@ -394,13 +661,13 @@ constructor(
                 if (container.isAttachedToWindow && container.isLaidOut) {
                     TransitionManager.beginDelayedTransition(container, AutoTransition().apply { duration = 120L })
                 }
-                renderSwatchRows(buildMaterialPresets(isTr))
+                renderActiveFamily()
             }
         }
         familyToggleRow.addView(customTabBtn)
         familyToggleRow.addView(materialTabBtn)
         updateFamilyTabs()
-        renderSwatchRows(if (showingMaterialFamily) buildMaterialPresets(isTr) else buildCustomPresets(isTr))
+        renderActiveFamily()
 
         gridContainer.addView(familyToggleRow)
         gridContainer.addView(presetsGrid)

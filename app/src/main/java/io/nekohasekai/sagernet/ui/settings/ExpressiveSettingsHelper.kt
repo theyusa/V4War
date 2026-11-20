@@ -246,6 +246,24 @@ object ExpressiveSettingsHelper {
             return containerColor to iconColor
         }
 
+        if (Theme.isMaterialTheme(Theme.activeThemeId())) {
+            val containerAttr = if (tintIcons) {
+                com.google.android.material.R.attr.colorSecondaryContainer
+            } else {
+                com.google.android.material.R.attr.colorSurfaceContainerHighest
+            }
+            val onContainerAttr = if (tintIcons) {
+                com.google.android.material.R.attr.colorOnSecondaryContainer
+            } else {
+                com.google.android.material.R.attr.colorOnSurfaceVariant
+            }
+            val m3Container = context.getColorAttr(containerAttr)
+            val m3OnContainer = context.getColorAttr(onContainerAttr)
+            if (m3Container != 0 && m3OnContainer != 0) {
+                return m3Container to m3OnContainer
+            }
+        }
+
         val themeAccent = Theme.getSeedPrimaryColor(context).takeIf { it != 0 && it != Color.WHITE }
             ?: context.getColorAttr(androidx.appcompat.R.attr.colorAccent).takeIf { it != 0 && it != Color.WHITE }
             ?: ContextCompat.getColor(context, R.color.material_blue_accent_200)

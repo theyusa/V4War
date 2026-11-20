@@ -42,6 +42,7 @@ class ThemePolicyTest {
         Theme.MATERIAL_CORAL,
         Theme.MATERIAL_INDIGO,
         Theme.MATERIAL_AMBER,
+        Theme.MATERIAL_DYNAMIC,
     )
 
     @Test
@@ -93,5 +94,31 @@ class ThemePolicyTest {
         val pureAmoledStyles = (customSeedIds + materialOriginalIds).map { Theme.getAmoledTheme(it) }
         assertEquals(pureAmoledStyles.size, pureAmoledStyles.toSet().size)
         assertFalse(R.style.Theme_SagerNet_Black in pureAmoledStyles)
+    }
+
+    @Test
+    fun materialSchemeEngineGeneratesDistinctHctPalettesAcrossStyles() {
+        assertEquals(20, MaterialSchemeEngine.SEED_COLORS.size)
+        assertEquals(9, MaterialPaletteStyle.entries.size)
+
+        val seed = MaterialSchemeEngine.SEED_COLORS[0].seedArgb
+        for (style in MaterialPaletteStyle.entries) {
+            val light = MaterialSchemeEngine.buildTonalColors(seed, style, isDark = false)
+            val dark = MaterialSchemeEngine.buildTonalColors(seed, style, isDark = true)
+            val amoled = MaterialSchemeEngine.buildTonalColors(seed, style, isDark = true, isAmoled = true)
+            val pure = MaterialSchemeEngine.buildTonalColors(seed, style, isDark = true, isPureAmoled = true)
+
+            assertEquals(34, light.toResourceOverrideMap().size)
+            assertEquals(34, dark.toResourceOverrideMap().size)
+            assertEquals(android.graphics.Color.BLACK, amoled.surface)
+            assertEquals(android.graphics.Color.BLACK, pure.surfaceContainerLow)
+            assertNotEquals(light.surface, dark.surface)
+        }
+
+        val tonalSpot = MaterialSchemeEngine.buildTonalColors(seed, MaterialPaletteStyle.TONAL_SPOT, isDark = true)
+        val expressive = MaterialSchemeEngine.buildTonalColors(seed, MaterialPaletteStyle.EXPRESSIVE, isDark = true)
+        val monochrome = MaterialSchemeEngine.buildTonalColors(seed, MaterialPaletteStyle.MONOCHROME, isDark = true)
+        assertNotEquals(tonalSpot.tertiary, expressive.tertiary)
+        assertNotEquals(tonalSpot.primary, monochrome.primary)
     }
 }

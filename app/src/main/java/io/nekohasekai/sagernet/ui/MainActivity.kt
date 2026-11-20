@@ -113,9 +113,17 @@ class MainActivity : ThemedActivity(),
         val isAmoled = Theme.isAnyAmoled(this)
         val isBlackTheme = Theme.isBlackTheme(this)
 
+        val isMaterialOriginal = Theme.isMaterialTheme(Theme.activeThemeId())
         val fabBgColor = when {
             Theme.isWhiteTheme(this) -> ContextCompat.getColor(this, R.color.color_white_theme_fab)
             Theme.isLightGrayTheme(this) -> Color.parseColor("#1F2937")
+            isMaterialOriginal -> {
+                MaterialColors.getColor(
+                    binding.root,
+                    com.google.android.material.R.attr.colorPrimaryContainer,
+                    MaterialColors.getColor(binding.root, R.attr.fabColorBackground, Color.BLACK),
+                )
+            }
             isBlackTheme || isAmoled -> {
                 val hasSeed = Theme.appTheme() !in setOf(Theme.BLACK, Theme.WHITE, Theme.LIGHT_GRAY)
                 if (hasSeed) {
@@ -144,7 +152,13 @@ class MainActivity : ThemedActivity(),
             }
         }
         binding.fab.backgroundTintList = ColorStateList.valueOf(fabBgColor)
-        val fabIconColor = if (ColorUtils.calculateLuminance(fabBgColor) > 0.56) {
+        val fabIconColor = if (isMaterialOriginal) {
+            MaterialColors.getColor(
+                binding.root,
+                com.google.android.material.R.attr.colorOnPrimaryContainer,
+                if (ColorUtils.calculateLuminance(fabBgColor) > 0.56) Color.parseColor("#111827") else Color.WHITE,
+            )
+        } else if (ColorUtils.calculateLuminance(fabBgColor) > 0.56) {
             Color.parseColor("#111827")
         } else {
             Color.WHITE

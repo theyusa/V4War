@@ -4197,4 +4197,113 @@
         <item name="colorOnTertiaryContainer">@color/m3_amber_on_tertiary_container</item>
     </style>
 
+    <!-- Dynamic HCT Material 3 Expressive themes driven by MaterialSchemeEngine (aShellYou-grade palettes) -->
+    <style name="Theme.SagerNet.Material.Dynamic" parent="Theme.SagerNet.Material">
+        <item name="colorPrimary">@color/m3_dyn_primary</item>
+        <item name="colorOnPrimary">@color/m3_dyn_on_primary</item>
+        <item name="colorPrimaryDark">@color/m3_dyn_inverse_primary</item>
+        <item name="colorPrimaryContainer">@color/m3_dyn_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/m3_dyn_on_primary_container</item>
+        <item name="colorPrimaryInverse">@color/m3_dyn_inverse_primary</item>
+        <item name="colorAccent">@color/m3_dyn_primary</item>
+        <item name="colorSecondary">@color/m3_dyn_secondary</item>
+        <item name="colorOnSecondary">@color/m3_dyn_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/m3_dyn_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/m3_dyn_on_secondary_container</item>
+        <item name="colorTertiary">@color/m3_dyn_tertiary</item>
+        <item name="colorOnTertiary">@color/m3_dyn_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_dyn_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_dyn_on_tertiary_container</item>
+        <item name="colorError">@color/m3_dyn_error</item>
+        <item name="colorOnError">@color/m3_dyn_on_error</item>
+        <item name="colorErrorContainer">@color/m3_dyn_error_container</item>
+        <item name="colorOnErrorContainer">@color/m3_dyn_on_error_container</item>
+        <item name="android:colorBackground">@color/m3_dyn_background</item>
+        <item name="android:windowBackground">@color/m3_dyn_background</item>
+        <item name="colorOnBackground">@color/m3_dyn_on_background</item>
+        <item name="colorSurface">@color/m3_dyn_surface</item>
+        <item name="colorOnSurface">@color/m3_dyn_on_surface</item>
+        <item name="colorSurfaceVariant">@color/m3_dyn_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/m3_dyn_on_surface_variant</item>
+        <item name="colorSurfaceDim">@color/m3_dyn_surface_dim</item>
+        <item name="colorSurfaceBright">@color/m3_dyn_surface_bright</item>
+        <item name="colorSurfaceContainerLowest">@color/m3_dyn_surface_container_lowest</item>
+        <item name="colorSurfaceContainerLow">@color/m3_dyn_surface_container_low</item>
+        <item name="colorSurfaceContainer">@color/m3_dyn_surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/m3_dyn_surface_container_high</item>
+        <item name="colorSurfaceContainerHighest">@color/m3_dyn_surface_container_highest</item>
+        <item name="colorSurfaceInverse">@color/m3_dyn_inverse_surface</item>
+        <item name="colorOnSurfaceInverse">@color/m3_dyn_inverse_on_surface</item>
+        <item name="colorOutline">@color/m3_dyn_outline</item>
+        <item name="colorOutlineVariant">@color/m3_dyn_outline_variant</item>
+        <item name="cardElevatedSurfaceColor">@color/m3_dyn_surface_container_low</item>
+        <item name="profileCardStrokeColor">@color/m3_dyn_outline_variant</item>
+        <item name="fabColorBackground">@color/m3_dyn_primary_container</item>
+        <item name="itemShapeFillColor">@color/m3_dyn_secondary_container</item>
+        <item name="android:statusBarColor">@color/m3_dyn_surface</item>
+        <item name="android:navigationBarColor">@color/m3_dyn_surface</item>
+        <item name="android:textColorPrimary">@color/m3_dyn_on_surface</item>
+        <item name="android:textColorSecondary">@color/m3_dyn_on_surface_variant</item>
+    </style>
+
+    <style name="Theme.SagerNet.Dialog.Material.Dynamic" parent="Theme.SagerNet.Dialog.Material">
+        <item name="colorPrimary">@color/m3_dyn_primary</item>
+        <item name="colorOnPrimary">@color/m3_dyn_on_primary</item>
+        <item name="colorPrimaryDark">@color/m3_dyn_inverse_primary</item>
+        <item name="colorPrimaryContainer">@color/m3_dyn_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/m3_dyn_on_primary_container</item>
+        <item name="colorPrimaryInverse">@color/m3_dyn_inverse_primary</item>
+        <item name="colorAccent">@color/m3_dyn_primary</item>
+        <item name="colorSecondary">@color/m3_dyn_secondary</item>
+        <item name="colorOnSecondary">@color/m3_dyn_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/m3_dyn_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/m3_dyn_on_secondary_container</item>
+        <item name="colorTertiary">@color/m3_dyn_tertiary</item>
+        <item name="colorOnTertiary">@color/m3_dyn_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_dyn_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_dyn_on_tertiary_container</item>
+        <item name="colorError">@color/m3_dyn_error</item>
+        <item name="colorOnError">@color/m3_dyn_on_error</item>
+        <item name="colorErrorContainer">@color/m3_dyn_error_container</item>
+        <item name="colorOnErrorContainer">@color/m3_dyn_on_error_container</item>
+        <item name="android:colorBackground">@color/m3_dyn_surface_container_high</item>
+        <item name="colorOnBackground">@color/m3_dyn_on_surface</item>
+        <item name="colorSurface">@color/m3_dyn_surface_container_high</item>
+        <item name="colorOnSurface">@color/m3_dyn_on_surface</item>
+        <item name="colorSurfaceVariant">@color/m3_dyn_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/m3_dyn_on_surface_variant</item>
+        <item name="colorSurfaceContainerLowest">@color/m3_dyn_surface_container_lowest</item>
+        <item name="colorSurfaceContainerLow">@color/m3_dyn_surface_container_low</item>
+        <item name="colorSurfaceContainer">@color/m3_dyn_surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/m3_dyn_surface_container_high</item>
+        <item name="colorSurfaceContainerHighest">@color/m3_dyn_surface_container_highest</item>
+        <item name="colorSurfaceInverse">@color/m3_dyn_inverse_surface</item>
+        <item name="colorOnSurfaceInverse">@color/m3_dyn_inverse_on_surface</item>
+        <item name="colorOutline">@color/m3_dyn_outline</item>
+        <item name="colorOutlineVariant">@color/m3_dyn_outline_variant</item>
+    </style>
+
+    <style name="Theme.SagerNet.Amoled.Material.Dynamic" parent="Theme.SagerNet.Material.Dynamic">
+        <item name="android:colorBackground">@color/black</item>
+        <item name="android:windowBackground">@color/black</item>
+        <item name="colorSurface">@color/black</item>
+        <item name="android:statusBarColor">@color/black</item>
+        <item name="android:navigationBarColor">@color/black</item>
+        <item name="cardElevatedSurfaceColor">@color/m3_dyn_surface_container_low</item>
+    </style>
+
+    <style name="Theme.SagerNet.PureAmoled.Material.Dynamic" parent="Theme.SagerNet.Amoled.Material.Dynamic">
+        <item name="cardElevatedSurfaceColor">@color/black</item>
+    </style>
+
+    <style name="Theme.SagerNet.Dialog.Amoled.Material.Dynamic" parent="Theme.SagerNet.Dialog.Material.Dynamic">
+        <item name="android:colorBackground">@color/m3_dyn_surface_container_low</item>
+        <item name="colorSurface">@color/m3_dyn_surface_container_low</item>
+    </style>
+
+    <style name="Theme.SagerNet.Dialog.PureAmoled.Material.Dynamic" parent="Theme.SagerNet.Dialog.Material.Dynamic">
+        <item name="android:colorBackground">@color/black</item>
+        <item name="colorSurface">@color/black</item>
+    </style>
+
 </resources>

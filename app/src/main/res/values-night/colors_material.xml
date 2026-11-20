@@ -225,4 +225,40 @@
     <color name="m3_amber_inverse_surface">#EBE1D4</color>
     <color name="m3_amber_inverse_on_surface">#353027</color>
     <color name="m3_amber_inverse_primary">#785A0B</color>
+
+    <!-- Runtime Dynamic HCT Material 3 Expressive tokens (overridden via ColorResourcesOverride) -->
+    <color name="m3_dyn_primary">#88D9B0</color>
+    <color name="m3_dyn_on_primary">#003825</color>
+    <color name="m3_dyn_primary_container">#005137</color>
+    <color name="m3_dyn_on_primary_container">#A4F6CB</color>
+    <color name="m3_dyn_inverse_primary">#1A835C</color>
+    <color name="m3_dyn_secondary">#B4CCBD</color>
+    <color name="m3_dyn_on_secondary">#1F352A</color>
+    <color name="m3_dyn_secondary_container">#364B40</color>
+    <color name="m3_dyn_on_secondary_container">#CFE9D9</color>
+    <color name="m3_dyn_tertiary">#A5CCDF</color>
+    <color name="m3_dyn_on_tertiary">#073543</color>
+    <color name="m3_dyn_tertiary_container">#244C5B</color>
+    <color name="m3_dyn_on_tertiary_container">#C1E8FB</color>
+    <color name="m3_dyn_error">#FFB4AB</color>
+    <color name="m3_dyn_on_error">#690005</color>
+    <color name="m3_dyn_error_container">#93000A</color>
+    <color name="m3_dyn_on_error_container">#FFDAD6</color>
+    <color name="m3_dyn_background">#0F1512</color>
+    <color name="m3_dyn_on_background">#DFE4DD</color>
+    <color name="m3_dyn_surface">#0F1512</color>
+    <color name="m3_dyn_on_surface">#DFE4DD</color>
+    <color name="m3_dyn_surface_variant">#404943</color>
+    <color name="m3_dyn_on_surface_variant">#C0C9C1</color>
+    <color name="m3_dyn_surface_dim">#0F1512</color>
+    <color name="m3_dyn_surface_bright">#353B37</color>
+    <color name="m3_dyn_surface_container_lowest">#0A0F0D</color>
+    <color name="m3_dyn_surface_container_low">#171D1A</color>
+    <color name="m3_dyn_surface_container">#1B211E</color>
+    <color name="m3_dyn_surface_container_high">#262B28</color>
+    <color name="m3_dyn_surface_container_highest">#303632</color>
+    <color name="m3_dyn_inverse_surface">#DFE4DD</color>
+    <color name="m3_dyn_inverse_on_surface">#2C322E</color>
+    <color name="m3_dyn_outline">#8A938C</color>
+    <color name="m3_dyn_outline_variant">#404943</color>
 </resources>
