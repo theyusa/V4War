@@ -117,6 +117,14 @@ object Theme {
     const val VERDANT_MINT = 22
     const val WHITE = 23
     const val LIGHT_GRAY = 24
+    const val MATERIAL_BASELINE = 30
+    const val MATERIAL_BLUE = 31
+    const val MATERIAL_TEAL = 32
+    const val MATERIAL_GREEN = 33
+    const val MATERIAL_ROSE = 34
+    const val MATERIAL_CORAL = 35
+    const val MATERIAL_INDIGO = 36
+    const val MATERIAL_AMBER = 37
     const val CUSTOM = 99
 
     private fun defaultTheme() = VERDANT_MINT
@@ -135,6 +143,10 @@ object Theme {
         }
     }
 
+    fun isMaterialTheme(themeId: Int): Boolean {
+        return themeId == MONET || themeId in MATERIAL_BASELINE..MATERIAL_AMBER
+    }
+
     fun isColorfulSeed(themeId: Int): Boolean {
         return themeId !in setOf(BLACK, WHITE, LIGHT_GRAY) && isValidTheme(themeId)
     }
@@ -151,7 +163,7 @@ object Theme {
     }
 
     fun isValidTheme(themeId: Int): Boolean {
-        return themeId in MONET..LIGHT_GRAY || themeId == CUSTOM
+        return themeId in MONET..LIGHT_GRAY || themeId in MATERIAL_BASELINE..MATERIAL_AMBER || themeId == CUSTOM
     }
 
     fun getClosestThemeForColor(color: Int): Int {
@@ -206,7 +218,7 @@ object Theme {
             !isWhiteTheme(context) && !isLightGrayTheme(context) && !isBlackTheme(context) &&
             context is android.app.Activity
         ) {
-            com.google.android.material.color.DynamicColors.applyIfAvailable(context)
+            com.google.android.material.color.DynamicColors.applyToActivityIfAvailable(context)
         }
     }
 
@@ -217,7 +229,7 @@ object Theme {
             !isWhiteTheme(context) && !isLightGrayTheme(context) && !isBlackTheme(context) &&
             context is android.app.Activity
         ) {
-            com.google.android.material.color.DynamicColors.applyIfAvailable(context)
+            com.google.android.material.color.DynamicColors.applyToActivityIfAvailable(context)
         }
     }
 
@@ -316,6 +328,38 @@ object Theme {
         VERDANT_MINT to AmoledStyleQuad(
             R.style.Theme_SagerNet_Amoled_VerdantMint, R.style.Theme_SagerNet_Dialog_Amoled_VerdantMint,
             R.style.Theme_SagerNet_PureAmoled_VerdantMint, R.style.Theme_SagerNet_Dialog_PureAmoled_VerdantMint,
+        ),
+        MATERIAL_BASELINE to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Baseline, R.style.Theme_SagerNet_Dialog_Amoled_Material_Baseline,
+            R.style.Theme_SagerNet_PureAmoled_Material_Baseline, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Baseline,
+        ),
+        MATERIAL_BLUE to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Blue, R.style.Theme_SagerNet_Dialog_Amoled_Material_Blue,
+            R.style.Theme_SagerNet_PureAmoled_Material_Blue, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Blue,
+        ),
+        MATERIAL_TEAL to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Teal, R.style.Theme_SagerNet_Dialog_Amoled_Material_Teal,
+            R.style.Theme_SagerNet_PureAmoled_Material_Teal, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Teal,
+        ),
+        MATERIAL_GREEN to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Green, R.style.Theme_SagerNet_Dialog_Amoled_Material_Green,
+            R.style.Theme_SagerNet_PureAmoled_Material_Green, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Green,
+        ),
+        MATERIAL_ROSE to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Rose, R.style.Theme_SagerNet_Dialog_Amoled_Material_Rose,
+            R.style.Theme_SagerNet_PureAmoled_Material_Rose, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Rose,
+        ),
+        MATERIAL_CORAL to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Coral, R.style.Theme_SagerNet_Dialog_Amoled_Material_Coral,
+            R.style.Theme_SagerNet_PureAmoled_Material_Coral, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Coral,
+        ),
+        MATERIAL_INDIGO to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Indigo, R.style.Theme_SagerNet_Dialog_Amoled_Material_Indigo,
+            R.style.Theme_SagerNet_PureAmoled_Material_Indigo, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Indigo,
+        ),
+        MATERIAL_AMBER to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Amber, R.style.Theme_SagerNet_Dialog_Amoled_Material_Amber,
+            R.style.Theme_SagerNet_PureAmoled_Material_Amber, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Amber,
         ),
     )
 
@@ -431,6 +475,14 @@ object Theme {
             VERDANT_MINT -> R.style.Theme_SagerNet_VerdantMint
             WHITE -> R.style.Theme_SagerNet_White
             LIGHT_GRAY -> R.style.Theme_SagerNet_LightGray
+            MATERIAL_BASELINE -> R.style.Theme_SagerNet_Material_Baseline
+            MATERIAL_BLUE -> R.style.Theme_SagerNet_Material_Blue
+            MATERIAL_TEAL -> R.style.Theme_SagerNet_Material_Teal
+            MATERIAL_GREEN -> R.style.Theme_SagerNet_Material_Green
+            MATERIAL_ROSE -> R.style.Theme_SagerNet_Material_Rose
+            MATERIAL_CORAL -> R.style.Theme_SagerNet_Material_Coral
+            MATERIAL_INDIGO -> R.style.Theme_SagerNet_Material_Indigo
+            MATERIAL_AMBER -> R.style.Theme_SagerNet_Material_Amber
             else -> R.style.Theme_SagerNet_LightGray
         }
     }
@@ -463,6 +515,14 @@ object Theme {
             VERDANT_MINT -> R.style.Theme_SagerNet_Dialog_VerdantMint
             WHITE -> R.style.Theme_SagerNet_Dialog_White
             LIGHT_GRAY -> R.style.Theme_SagerNet_Dialog_LightGray
+            MATERIAL_BASELINE -> R.style.Theme_SagerNet_Dialog_Material_Baseline
+            MATERIAL_BLUE -> R.style.Theme_SagerNet_Dialog_Material_Blue
+            MATERIAL_TEAL -> R.style.Theme_SagerNet_Dialog_Material_Teal
+            MATERIAL_GREEN -> R.style.Theme_SagerNet_Dialog_Material_Green
+            MATERIAL_ROSE -> R.style.Theme_SagerNet_Dialog_Material_Rose
+            MATERIAL_CORAL -> R.style.Theme_SagerNet_Dialog_Material_Coral
+            MATERIAL_INDIGO -> R.style.Theme_SagerNet_Dialog_Material_Indigo
+            MATERIAL_AMBER -> R.style.Theme_SagerNet_Dialog_Material_Amber
             else -> R.style.Theme_SagerNet_Dialog_LightGray
         }
     }
@@ -543,7 +603,7 @@ object Theme {
             return Color.BLACK
         }
         if (isTintedAmoled(context)) {
-            if (activeThemeId() in setOf(MONET, CUSTOM)) {
+            if (activeThemeId() in setOf(MONET, CUSTOM) || isMaterialTheme(activeThemeId())) {
                 val prim = getSeedPrimaryColor(context)
                 return ColorUtils.blendARGB(Color.BLACK, prim, 0.11f)
             }

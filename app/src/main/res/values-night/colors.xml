@@ -81,4 +81,42 @@
     <color name="dialog_button_indigo">#9FA8DA</color>
     <color name="dialog_button_brown">#BCAAA4</color>
     <color name="dialog_button_blue_grey">#B0BEC5</color>
+
+    <!-- Material 3 Semantic Tokens for Custom Themes (Dark Mode) -->
+    <color name="drawer_divider">#1AFFFFFF</color>
+    <color name="md3_surface_inverse">#ECEEF1</color>
+    <color name="md3_on_surface_inverse">#1C1B1F</color>
+    <color name="md3_on_primary_container">#FFFFFF</color>
+    <color name="md3_outline_variant">#1FFFFFFF</color>
+    <color name="md3_surface_container_lowest">#0E0E0E</color>
+    <color name="md3_surface_container_low">#18181A</color>
+    <color name="md3_surface_container">#1E1E20</color>
+    <color name="md3_surface_container_high">#27272A</color>
+    <color name="md3_surface_container_highest">#313135</color>
+    <color name="md3_error">#F2B8B5</color>
+    <color name="md3_on_error">#601410</color>
+    <color name="md3_error_container">#8C1D18</color>
+    <color name="md3_on_error_container">#F9DEDC</color>
+
+    <!-- High-contrast inverse primary for Snackbar action buttons (Dark Mode -> light snackbar) -->
+    <color name="inverse_primary_pink">@color/material_pink_700</color>
+    <color name="inverse_primary_red">@color/material_red_700</color>
+    <color name="inverse_primary_verdant_mint">@color/color_verdant_mint_dark</color>
+    <color name="inverse_primary_blue">@color/material_blue_700</color>
+    <color name="inverse_primary_light_blue">@color/material_light_blue_700</color>
+    <color name="inverse_primary_cyan">@color/material_cyan_800</color>
+    <color name="inverse_primary_teal">@color/material_teal_700</color>
+    <color name="inverse_primary_green">@color/material_green_700</color>
+    <color name="inverse_primary_light_green">@color/material_light_green_800</color>
+    <color name="inverse_primary_lime">@color/material_lime_900</color>
+    <color name="inverse_primary_yellow">#795900</color>
+    <color name="inverse_primary_amber">@color/material_amber_900</color>
+    <color name="inverse_primary_orange">@color/material_orange_800</color>
+    <color name="inverse_primary_deep_orange">@color/material_deep_orange_700</color>
+    <color name="inverse_primary_purple">@color/material_purple_700</color>
+    <color name="inverse_primary_deep_purple">@color/material_deep_purple_700</color>
+    <color name="inverse_primary_indigo">@color/material_indigo_700</color>
+    <color name="inverse_primary_brown">@color/material_brown_700</color>
+    <color name="inverse_primary_grey">@color/material_grey_700</color>
+    <color name="inverse_primary_blue_grey">@color/material_blue_grey_700</color>
 </resources>

@@ -404,7 +404,7 @@ object ExpressiveSettingsHelper {
         }
         val titleText = TextView(context).apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f)
-            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             letterSpacing = 0f
             includeFontPadding = false
             setTextColor(textPrimary)

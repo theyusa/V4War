@@ -126,6 +126,8 @@
     <string name="theme_special_white">Beyaz</string>
     <string name="theme_special_light_gray">Açık Gri</string>
     <string name="theme_custom_color">Özel</string>
+    <string name="theme_family_custom">Özel Paletler</string>
+    <string name="theme_family_material">Material Orijinal</string>
     <string name="lines">%d Satır</string>
     <string name="license">Lisans</string>
     <string name="need_reload">Değişiklikleri uygulamak için vekil sunucu servisini yeniden başlatın</string>

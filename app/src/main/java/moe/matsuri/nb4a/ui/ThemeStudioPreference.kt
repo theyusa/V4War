@@ -170,8 +170,8 @@ class ThemeStudioPreference @JvmOverloads constructor(
             addView(TextView(context).apply {
                 text = context.getString(R.string.theme_studio_special)
                 textSize = 12f
-                setTypeface(null, Typeface.BOLD)
-                letterSpacing = 0.04f
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                letterSpacing = 0f
                 setTextColor(textSecondary)
                 setPadding(dp2px(2), dp2px(12), dp2px(2), dp2px(6))
             })
@@ -344,7 +344,8 @@ class ThemeStudioPreference @JvmOverloads constructor(
         titleCol.addView(TextView(context).apply {
             text = title
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15.5f)
-            setTypeface(null, Typeface.BOLD)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            letterSpacing = 0f
             setTextColor(textPrimary)
             maxLines = 1
             ellipsize = TextUtils.TruncateAt.END
@@ -352,6 +353,8 @@ class ThemeStudioPreference @JvmOverloads constructor(
         titleCol.addView(TextView(context).apply {
             text = subtitle
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+            letterSpacing = 0f
             setTextColor(textSecondary)
             maxLines = 1
             ellipsize = TextUtils.TruncateAt.END
@@ -447,7 +450,8 @@ class ThemeStudioPreference @JvmOverloads constructor(
         topBar.addView(TextView(context).apply {
             text = context.getString(R.string.app_name)
             textSize = 13.5f
-            setTypeface(null, Typeface.BOLD)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            letterSpacing = 0f
             setTextColor(onCanvasText)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         })
@@ -460,7 +464,8 @@ class ThemeStudioPreference @JvmOverloads constructor(
         topBar.addView(TextView(context).apply {
             text = modeBadgeText
             textSize = 10.5f
-            setTypeface(null, Typeface.BOLD)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            letterSpacing = 0f
             setTextColor(badgeTextColor)
             setPadding(dp2px(9), dp2px(3), dp2px(9), dp2px(3))
             background = GradientDrawable().apply {
@@ -843,7 +848,8 @@ class ThemeStudioPreference @JvmOverloads constructor(
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
                 gravity = Gravity.CENTER
-                setTypeface(null, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
+                typeface = Typeface.create(if (isSelected) "sans-serif-medium" else "sans-serif", Typeface.NORMAL)
+                letterSpacing = 0f
                 setTextColor(if (isSelected) textPrimary else textSecondary)
             })
 
@@ -941,7 +947,8 @@ class ThemeStudioPreference @JvmOverloads constructor(
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
-                setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
+                typeface = Typeface.create(if (selected) "sans-serif-medium" else "sans-serif", Typeface.NORMAL)
+                letterSpacing = 0f
                 setTextColor(textPrimary)
             })
             row.addView(chip)

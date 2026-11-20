@@ -144,7 +144,12 @@ class MainActivity : ThemedActivity(),
             }
         }
         binding.fab.backgroundTintList = ColorStateList.valueOf(fabBgColor)
-        binding.fab.imageTintList = ColorStateList.valueOf(Color.WHITE)
+        val fabIconColor = if (ColorUtils.calculateLuminance(fabBgColor) > 0.56) {
+            Color.parseColor("#111827")
+        } else {
+            Color.WHITE
+        }
+        binding.fab.imageTintList = ColorStateList.valueOf(fabIconColor)
         if (themeResId !in intArrayOf(
                 R.style.Theme_SagerNet_Black,
                 // The White theme and its night fallback read ?itemShapeFillColor too, so the selection stays visible

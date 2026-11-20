@@ -98,6 +98,14 @@ constructor(
             Theme.BROWN -> Color.parseColor("#795548")
             Theme.BLUE_GREY -> Color.parseColor("#607D8B")
             Theme.GREY -> Color.parseColor("#9E9E9E")
+            Theme.MATERIAL_BASELINE -> Color.parseColor("#6750A4")
+            Theme.MATERIAL_BLUE -> Color.parseColor("#0061A4")
+            Theme.MATERIAL_TEAL -> Color.parseColor("#006A6A")
+            Theme.MATERIAL_GREEN -> Color.parseColor("#386A20")
+            Theme.MATERIAL_ROSE -> Color.parseColor("#984061")
+            Theme.MATERIAL_CORAL -> Color.parseColor("#9C4128")
+            Theme.MATERIAL_INDIGO -> Color.parseColor("#3F5AA9")
+            Theme.MATERIAL_AMBER -> Color.parseColor("#795900")
             Theme.CUSTOM -> 0xFF000000.toInt() or DataStore.customThemeColor
             else -> context.getColorAttr(androidx.appcompat.R.attr.colorPrimary)
         }
@@ -109,6 +117,14 @@ constructor(
             Theme.WHITE -> context.getString(R.string.theme_special_white)
             Theme.LIGHT_GRAY -> context.getString(R.string.theme_special_light_gray)
             Theme.MONET -> "Material You"
+            Theme.MATERIAL_BASELINE -> if (isTr) "Material Menekşe" else "Material Violet"
+            Theme.MATERIAL_BLUE -> if (isTr) "Material Okyanus" else "Material Ocean"
+            Theme.MATERIAL_TEAL -> if (isTr) "Material Deniz" else "Material Teal"
+            Theme.MATERIAL_GREEN -> if (isTr) "Material Adaçayı" else "Material Sage"
+            Theme.MATERIAL_ROSE -> if (isTr) "Material Gül" else "Material Rose"
+            Theme.MATERIAL_CORAL -> if (isTr) "Material Terakota" else "Material Terracotta"
+            Theme.MATERIAL_INDIGO -> if (isTr) "Material İndigo" else "Material Indigo"
+            Theme.MATERIAL_AMBER -> if (isTr) "Material Kehribar" else "Material Amber"
             Theme.VERDANT_MINT -> if (isTr) "Nane Yeşili" else "Verdant Mint"
             Theme.BLUE -> if (isTr) "Klasik Mavi" else "Classic Blue"
             Theme.RED -> if (isTr) "Alev Kırmızısı" else "Flame Red"
@@ -141,11 +157,8 @@ constructor(
         return getThemeName(activeThemeId, isTr)
     }
 
-    private fun buildPresets(isTr: Boolean): List<PresetTheme> {
+    private fun buildCustomPresets(isTr: Boolean): List<PresetTheme> {
         val list = mutableListOf<PresetTheme>()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            list.add(PresetTheme(Theme.MONET, "Material You", resolveSwatchColor(Theme.MONET)))
-        }
         val seedIds = listOf(
             Theme.VERDANT_MINT,
             Theme.BLUE,
@@ -179,6 +192,27 @@ constructor(
                 0xFF000000.toInt() or DataStore.customThemeColor,
             ),
         )
+        return list
+    }
+
+    private fun buildMaterialPresets(isTr: Boolean): List<PresetTheme> {
+        val list = mutableListOf<PresetTheme>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            list.add(PresetTheme(Theme.MONET, "Material You", resolveSwatchColor(Theme.MONET)))
+        }
+        val materialIds = listOf(
+            Theme.MATERIAL_BASELINE,
+            Theme.MATERIAL_BLUE,
+            Theme.MATERIAL_TEAL,
+            Theme.MATERIAL_GREEN,
+            Theme.MATERIAL_ROSE,
+            Theme.MATERIAL_CORAL,
+            Theme.MATERIAL_INDIGO,
+            Theme.MATERIAL_AMBER,
+        )
+        for (id in materialIds) {
+            list.add(PresetTheme(id, getThemeName(id, isTr), resolveSwatchColor(id)))
+        }
         return list
     }
 
@@ -238,33 +272,138 @@ constructor(
             visibility = if (DataStore.appearancePaletteExpanded) View.VISIBLE else View.GONE
         }
 
-        val presets = buildPresets(isTr)
-        val columns = 6
-        val rows = presets.chunked(columns)
-        rows.forEachIndexed { rowIdx, chunk ->
-            val row = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                ).apply {
-                    if (rowIdx < rows.lastIndex) bottomMargin = dp2px(10)
-                }
-            }
-            for (colIdx in 0 until columns) {
-                val cell = FrameLayout(context).apply {
-                    layoutParams = LinearLayout.LayoutParams(0, dp2px(46), 1f)
-                }
-                val preset = chunk.getOrNull(colIdx)
-                if (preset != null) {
-                    val isSelected = activeThemeId == preset.id
-                    cell.addView(buildSwatchItem(preset, isSelected, isNight, textSecondary))
-                }
-                row.addView(cell)
-            }
-            gridContainer.addView(row)
+        val presetsGrid = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            )
         }
+
+        var showingMaterialFamily = Theme.isMaterialTheme(activeThemeId)
+
+        fun renderSwatchRows(presets: List<PresetTheme>) {
+            presetsGrid.removeAllViews()
+            val columns = 6
+            val rows = presets.chunked(columns)
+            rows.forEachIndexed { rowIdx, chunk ->
+                val row = LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ).apply {
+                        if (rowIdx < rows.lastIndex) bottomMargin = dp2px(10)
+                    }
+                }
+                for (colIdx in 0 until columns) {
+                    val cell = FrameLayout(context).apply {
+                        layoutParams = LinearLayout.LayoutParams(0, dp2px(46), 1f)
+                    }
+                    val preset = chunk.getOrNull(colIdx)
+                    if (preset != null) {
+                        val isSelected = activeThemeId == preset.id
+                        cell.addView(buildSwatchItem(preset, isSelected, isNight, textSecondary))
+                    }
+                    row.addView(cell)
+                }
+                presetsGrid.addView(row)
+            }
+        }
+
+        val familyToggleRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                bottomMargin = dp2px(12)
+            }
+            setPadding(dp2px(4), dp2px(4), dp2px(4), dp2px(4))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp2px(14).toFloat()
+                setColor(Theme.resolveNestedBoxBackground(context))
+                if (isAmoledBorder) {
+                    setStroke(
+                        Theme.resolveCardStrokeWidthPx(context, selected = false).toInt().coerceAtLeast(1),
+                        Theme.resolveCardStrokeColor(context, selected = false),
+                    )
+                }
+            }
+        }
+
+        val customTabBtn = TextView(context)
+        val materialTabBtn = TextView(context)
+        fun updateFamilyTabs() {
+            val activePillBg = ColorUtils.setAlphaComponent(effectiveRing, if (isNight) 48 else 30)
+            val activePillStroke = effectiveRing
+            val activeTextCol = if (isNight) Color.WHITE else effectiveRing
+
+            fun styleTab(btn: TextView, selected: Boolean) {
+                btn.gravity = Gravity.CENTER
+                btn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+                btn.typeface = Typeface.create(if (selected) "sans-serif-medium" else "sans-serif", Typeface.NORMAL)
+                btn.letterSpacing = 0f
+                btn.maxLines = 1
+                btn.ellipsize = TextUtils.TruncateAt.END
+                btn.setPadding(dp2px(10), dp2px(7), dp2px(10), dp2px(7))
+                btn.setTextColor(if (selected) activeTextCol else textSecondary)
+                btn.background = if (selected) {
+                    GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
+                        cornerRadius = dp2px(10).toFloat()
+                        setColor(activePillBg)
+                        setStroke(dp2px(1), activePillStroke)
+                    }
+                } else {
+                    null
+                }
+            }
+            styleTab(customTabBtn, !showingMaterialFamily)
+            styleTab(materialTabBtn, showingMaterialFamily)
+        }
+
+        customTabBtn.apply {
+            text = context.getString(R.string.theme_family_custom)
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginEnd = dp2px(4)
+            }
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                if (!showingMaterialFamily) return@setOnClickListener
+                showingMaterialFamily = false
+                updateFamilyTabs()
+                if (container.isAttachedToWindow && container.isLaidOut) {
+                    TransitionManager.beginDelayedTransition(container, AutoTransition().apply { duration = 120L })
+                }
+                renderSwatchRows(buildCustomPresets(isTr))
+            }
+        }
+        materialTabBtn.apply {
+            text = context.getString(R.string.theme_family_material)
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                if (showingMaterialFamily) return@setOnClickListener
+                showingMaterialFamily = true
+                updateFamilyTabs()
+                if (container.isAttachedToWindow && container.isLaidOut) {
+                    TransitionManager.beginDelayedTransition(container, AutoTransition().apply { duration = 120L })
+                }
+                renderSwatchRows(buildMaterialPresets(isTr))
+            }
+        }
+        familyToggleRow.addView(customTabBtn)
+        familyToggleRow.addView(materialTabBtn)
+        updateFamilyTabs()
+        renderSwatchRows(if (showingMaterialFamily) buildMaterialPresets(isTr) else buildCustomPresets(isTr))
+
+        gridContainer.addView(familyToggleRow)
+        gridContainer.addView(presetsGrid)
 
         val chevronIcon = ImageView(context).apply {
             layoutParams = FrameLayout.LayoutParams(dp2px(18), dp2px(18), Gravity.CENTER)
@@ -340,7 +479,8 @@ constructor(
         titleCol.addView(TextView(context).apply {
             text = title ?: context.getString(R.string.theme_studio_seed_color)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15.5f)
-            setTypeface(null, Typeface.BOLD)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            letterSpacing = 0f
             setTextColor(textPrimary)
         })
 
@@ -410,7 +550,8 @@ constructor(
         customPill.addView(TextView(context).apply {
             text = context.getString(R.string.theme_custom_color)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setTypeface(null, Typeface.BOLD)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            letterSpacing = 0f
             setTextColor(textPrimary)
         })
         header.addView(customPill)
@@ -519,7 +660,7 @@ constructor(
                 )
                 text = "+"
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
-                setTypeface(null, Typeface.BOLD)
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                 setTextColor(checkIconColor)
                 includeFontPadding = false
             })

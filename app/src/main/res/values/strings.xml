@@ -239,6 +239,8 @@
     <string name="theme_special_white">White</string>
     <string name="theme_special_light_gray">Light Gray</string>
     <string name="theme_custom_color">Custom</string>
+    <string name="theme_family_custom">Custom Palettes</string>
+    <string name="theme_family_material">Material Original</string>
     <string name="language">Language</string>
     <string name="follow_system">Follow system</string>
     <string name="enable">Enable</string>

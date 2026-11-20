@@ -435,4 +435,42 @@
     <color name="dialog_button_indigo">@color/material_indigo_500</color>
     <color name="dialog_button_brown">@color/material_brown_500</color>
     <color name="dialog_button_blue_grey">@color/material_blue_grey_500</color>
+
+    <!-- Material 3 Semantic Tokens for Custom Themes (Light Mode) -->
+    <color name="drawer_divider">#1A000000</color>
+    <color name="md3_surface_inverse">#2B2D30</color>
+    <color name="md3_on_surface_inverse">#F4F5F7</color>
+    <color name="md3_on_primary_container">#111827</color>
+    <color name="md3_outline_variant">#1F000000</color>
+    <color name="md3_surface_container_lowest">#FFFFFF</color>
+    <color name="md3_surface_container_low">#FFFFFF</color>
+    <color name="md3_surface_container">#F4F5F7</color>
+    <color name="md3_surface_container_high">#ECEEF2</color>
+    <color name="md3_surface_container_highest">#E3E6EC</color>
+    <color name="md3_error">#B3261E</color>
+    <color name="md3_on_error">#FFFFFF</color>
+    <color name="md3_error_container">#F9DEDC</color>
+    <color name="md3_on_error_container">#410E0B</color>
+
+    <!-- High-contrast inverse primary for Snackbar action buttons (Light Mode -> dark snackbar) -->
+    <color name="inverse_primary_pink">@color/material_pink_accent_100</color>
+    <color name="inverse_primary_red">@color/material_red_accent_100</color>
+    <color name="inverse_primary_verdant_mint">@color/color_verdant_mint_accent</color>
+    <color name="inverse_primary_blue">@color/material_blue_accent_100</color>
+    <color name="inverse_primary_light_blue">@color/material_light_blue_accent_100</color>
+    <color name="inverse_primary_cyan">@color/material_cyan_accent_100</color>
+    <color name="inverse_primary_teal">@color/material_teal_accent_100</color>
+    <color name="inverse_primary_green">@color/material_green_accent_100</color>
+    <color name="inverse_primary_light_green">@color/material_light_green_accent_100</color>
+    <color name="inverse_primary_lime">@color/material_lime_accent_100</color>
+    <color name="inverse_primary_yellow">@color/material_yellow_accent_100</color>
+    <color name="inverse_primary_amber">@color/material_amber_accent_100</color>
+    <color name="inverse_primary_orange">@color/material_orange_accent_100</color>
+    <color name="inverse_primary_deep_orange">@color/material_deep_orange_accent_100</color>
+    <color name="inverse_primary_purple">@color/material_purple_accent_100</color>
+    <color name="inverse_primary_deep_purple">@color/material_deep_purple_accent_100</color>
+    <color name="inverse_primary_indigo">@color/material_indigo_accent_100</color>
+    <color name="inverse_primary_brown">@color/material_brown_200</color>
+    <color name="inverse_primary_grey">@color/material_grey_200</color>
+    <color name="inverse_primary_blue_grey">@color/material_blue_grey_200</color>
 </resources>
