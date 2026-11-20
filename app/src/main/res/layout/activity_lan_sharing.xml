@@ -1393,15 +1393,25 @@
                         android:text="@string/lan_sharing_not_detected"
                         android:textSize="12sp" />
 
-                    <ImageButton
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnRefreshDevices"
+                        style="@style/Widget.Material3Expressive.Button.IconButton.Standard"
                         android:layout_width="40dp"
                         android:layout_height="40dp"
                         android:layout_marginStart="4dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
                         android:contentDescription="@string/lan_sharing_action_refresh"
-                        android:src="@drawable/ic_baseline_refresh_24"
-                        app:tint="?attr/colorControlNormal" />
+                        android:insetLeft="0dp"
+                        android:insetTop="0dp"
+                        android:insetRight="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:padding="0dp"
+                        app:icon="@drawable/ic_baseline_refresh_24"
+                        app:iconGravity="textStart"
+                        app:iconPadding="0dp"
+                        app:iconSize="22dp"
+                        app:iconTint="?attr/colorControlNormal" />
                 </LinearLayout>
 
                 <TextView

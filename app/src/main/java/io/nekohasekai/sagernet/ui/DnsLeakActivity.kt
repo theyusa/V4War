@@ -106,8 +106,8 @@ class DnsLeakActivity : ThemedActivity() {
         binding.progressIndicator.setIndicatorColor(accent)
         binding.progressIndicator.trackColor = ColorUtils.setAlphaComponent(accent, 45)
         binding.iconRecommendation.imageTintList = ColorStateList.valueOf(accent)
-        binding.btnCopyEgressIp.imageTintList = ColorStateList.valueOf(accent)
-        binding.btnCopyResolverIp.imageTintList = ColorStateList.valueOf(accent)
+        binding.btnCopyEgressIp.iconTint = ColorStateList.valueOf(accent)
+        binding.btnCopyResolverIp.iconTint = ColorStateList.valueOf(accent)
 
         ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeVerdict)
         ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeFakeIp)

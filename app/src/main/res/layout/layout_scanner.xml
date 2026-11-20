@@ -15,30 +15,49 @@
         android:layout_height="match_parent"
         app:frameRatio="0.85" />
 
-    <ImageButton
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/ivFlashlight"
+        style="@style/Widget.Material3Expressive.Button.IconButton.Tonal"
         android:layout_width="56dp"
         android:layout_height="56dp"
         android:layout_gravity="bottom|start"
         android:layout_marginStart="24dp"
         android:layout_marginBottom="32dp"
-        android:background="@drawable/scanner_action_background"
         android:contentDescription="@string/scanner_toggle_flashlight"
-        android:padding="14dp"
-        android:scaleType="centerInside"
-        android:src="@drawable/zxl_flashlight_selector" />
+        android:insetLeft="0dp"
+        android:insetTop="0dp"
+        android:insetRight="0dp"
+        android:insetBottom="0dp"
+        android:minWidth="56dp"
+        android:minHeight="56dp"
+        android:padding="0dp"
+        app:backgroundTint="#80000000"
+        app:icon="@drawable/zxl_flashlight_selector"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="26dp"
+        app:iconTint="@android:color/white" />
 
-    <ImageButton
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/ivPhotoLibrary"
+        style="@style/Widget.Material3Expressive.Button.IconButton.Tonal"
         android:layout_width="56dp"
         android:layout_height="56dp"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="24dp"
         android:layout_marginBottom="32dp"
-        android:background="@drawable/scanner_action_background"
         android:contentDescription="@string/scanner_select_image"
-        android:padding="16dp"
-        android:scaleType="centerInside"
-        android:src="@drawable/ic_image_photo"
-        android:tint="@android:color/white" />
+        android:insetLeft="0dp"
+        android:insetTop="0dp"
+        android:insetRight="0dp"
+        android:insetBottom="0dp"
+        android:minWidth="56dp"
+        android:minHeight="56dp"
+        android:padding="0dp"
+        app:backgroundTint="#80000000"
+        app:icon="@drawable/ic_image_photo"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="24dp"
+        app:iconTint="@android:color/white" />
 </FrameLayout>
