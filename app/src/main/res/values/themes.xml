@@ -609,6 +609,9 @@
 
     <!-- Snackbar: M3 semantic colors & clean typography -->
     <style name="Widget.SagerNet.Snackbar" parent="Widget.Material3.Snackbar" />
+    <style name="Widget.SagerNet.Snackbar.Amoled" parent="Widget.SagerNet.Snackbar">
+        <item name="backgroundTint">@null</item>
+    </style>
     <style name="Widget.SagerNet.Snackbar.TextView" parent="Widget.Material3.Snackbar.TextView">
         <item name="android:textAppearance">@style/TextAppearance.SagerNet.BodyMedium</item>
     </style>
@@ -787,6 +790,11 @@
         <item name="colorTertiary">@color/color_pink_ssr</item>
         <item name="colorTertiaryContainer">@color/container_pink_ssr</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_pink</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_pink_ssr</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_pink_ssr</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_pink_ssr</item>
+        <item name="colorSurfaceContainerHigh">@color/container_pink_ssr</item>
+        <item name="colorSurfaceContainerHighest">@color/container_pink_ssr</item>
     </style>
 
     <style name="Theme.SagerNet.Amber" parent="Theme.SagerNet">
@@ -802,6 +810,11 @@
         <item name="colorTertiary">@color/material_amber_700</item>
         <item name="colorTertiaryContainer">@color/container_amber</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_amber</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_amber</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_amber</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_amber</item>
+        <item name="colorSurfaceContainerHigh">@color/container_amber</item>
+        <item name="colorSurfaceContainerHighest">@color/container_amber</item>
     </style>
 
     <style name="Theme.SagerNet.Blue" parent="Theme.SagerNet">
@@ -824,6 +837,11 @@
         <item name="colorTertiary">@color/material_blue_700</item>
         <item name="colorTertiaryContainer">@color/container_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_blue</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_blue</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_blue</item>
+        <item name="colorSurfaceContainerHigh">@color/container_blue</item>
+        <item name="colorSurfaceContainerHighest">@color/container_blue</item>
     </style>
 
     <style name="Theme.SagerNet.BlueGrey" parent="Theme.SagerNet">
@@ -839,6 +857,11 @@
         <item name="colorTertiary">@color/material_blue_grey_700</item>
         <item name="colorTertiaryContainer">@color/container_blue_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue_grey</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_blue_grey</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_blue_grey</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_blue_grey</item>
+        <item name="colorSurfaceContainerHigh">@color/container_blue_grey</item>
+        <item name="colorSurfaceContainerHighest">@color/container_blue_grey</item>
     </style>
 
     <style name="Theme.SagerNet.Brown" parent="Theme.SagerNet">
@@ -854,6 +877,11 @@
         <item name="colorTertiary">@color/material_brown_700</item>
         <item name="colorTertiaryContainer">@color/container_brown</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_brown</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_brown</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_brown</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_brown</item>
+        <item name="colorSurfaceContainerHigh">@color/container_brown</item>
+        <item name="colorSurfaceContainerHighest">@color/container_brown</item>
     </style>
 
     <style name="Theme.SagerNet.Cyan" parent="Theme.SagerNet">
@@ -869,6 +897,11 @@
         <item name="colorTertiary">@color/material_cyan_700</item>
         <item name="colorTertiaryContainer">@color/container_cyan</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_cyan</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_cyan</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_cyan</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_cyan</item>
+        <item name="colorSurfaceContainerHigh">@color/container_cyan</item>
+        <item name="colorSurfaceContainerHighest">@color/container_cyan</item>
     </style>
 
     <style name="Theme.SagerNet.DeepOrange" parent="Theme.SagerNet">
@@ -884,6 +917,11 @@
         <item name="colorTertiary">@color/material_deep_orange_700</item>
         <item name="colorTertiaryContainer">@color/container_deep_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_orange</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_deep_orange</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_deep_orange</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_deep_orange</item>
+        <item name="colorSurfaceContainerHigh">@color/container_deep_orange</item>
+        <item name="colorSurfaceContainerHighest">@color/container_deep_orange</item>
     </style>
 
     <style name="Theme.SagerNet.DeepPurple" parent="Theme.SagerNet">
@@ -899,6 +937,11 @@
         <item name="colorTertiary">@color/material_deep_purple_700</item>
         <item name="colorTertiaryContainer">@color/container_deep_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_purple</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_deep_purple</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_deep_purple</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_deep_purple</item>
+        <item name="colorSurfaceContainerHigh">@color/container_deep_purple</item>
+        <item name="colorSurfaceContainerHighest">@color/container_deep_purple</item>
     </style>
 
     <style name="Theme.SagerNet.Green" parent="Theme.SagerNet">
@@ -914,6 +957,11 @@
         <item name="colorTertiary">@color/material_green_700</item>
         <item name="colorTertiaryContainer">@color/container_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_green</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_green</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_green</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_green</item>
+        <item name="colorSurfaceContainerHigh">@color/container_green</item>
+        <item name="colorSurfaceContainerHighest">@color/container_green</item>
     </style>
 
     <style name="Theme.SagerNet.Grey" parent="Theme.SagerNet">
@@ -929,6 +977,11 @@
         <item name="colorTertiary">@color/material_grey_700</item>
         <item name="colorTertiaryContainer">@color/container_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_grey</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_grey</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_grey</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_grey</item>
+        <item name="colorSurfaceContainerHigh">@color/container_grey</item>
+        <item name="colorSurfaceContainerHighest">@color/container_grey</item>
     </style>
 
     <style name="Theme.SagerNet.Indigo" parent="Theme.SagerNet">
@@ -944,6 +997,11 @@
         <item name="colorTertiary">@color/material_indigo_700</item>
         <item name="colorTertiaryContainer">@color/container_indigo</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_indigo</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_indigo</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_indigo</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_indigo</item>
+        <item name="colorSurfaceContainerHigh">@color/container_indigo</item>
+        <item name="colorSurfaceContainerHighest">@color/container_indigo</item>
     </style>
 
     <style name="Theme.SagerNet.LightBlue" parent="Theme.SagerNet">
@@ -959,6 +1017,11 @@
         <item name="colorTertiary">@color/material_light_blue_700</item>
         <item name="colorTertiaryContainer">@color/container_light_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_blue</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_light_blue</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_light_blue</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_light_blue</item>
+        <item name="colorSurfaceContainerHigh">@color/container_light_blue</item>
+        <item name="colorSurfaceContainerHighest">@color/container_light_blue</item>
     </style>
 
     <style name="Theme.SagerNet.LightGreen" parent="Theme.SagerNet">
@@ -974,6 +1037,11 @@
         <item name="colorTertiary">@color/material_light_green_700</item>
         <item name="colorTertiaryContainer">@color/container_light_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_green</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_light_green</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_light_green</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_light_green</item>
+        <item name="colorSurfaceContainerHigh">@color/container_light_green</item>
+        <item name="colorSurfaceContainerHighest">@color/container_light_green</item>
     </style>
 
     <style name="Theme.SagerNet.Lime" parent="Theme.SagerNet">
@@ -991,6 +1059,11 @@
         <item name="colorPrimaryInverse">@color/inverse_primary_lime</item>
         <item name="colorOnPrimary">@color/black</item>
         <item name="colorOnSecondary">@color/black</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_lime</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_lime</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_lime</item>
+        <item name="colorSurfaceContainerHigh">@color/container_lime</item>
+        <item name="colorSurfaceContainerHighest">@color/container_lime</item>
     </style>
 
     <style name="Theme.SagerNet.Orange" parent="Theme.SagerNet">
@@ -1013,6 +1086,11 @@
         <item name="colorTertiary">@color/material_orange_700</item>
         <item name="colorTertiaryContainer">@color/container_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_orange</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_orange</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_orange</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_orange</item>
+        <item name="colorSurfaceContainerHigh">@color/container_orange</item>
+        <item name="colorSurfaceContainerHighest">@color/container_orange</item>
     </style>
 
     <style name="Theme.SagerNet.Purple" parent="Theme.SagerNet">
@@ -1035,6 +1113,11 @@
         <item name="colorTertiary">@color/material_purple_700</item>
         <item name="colorTertiaryContainer">@color/container_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_purple</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_purple</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_purple</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_purple</item>
+        <item name="colorSurfaceContainerHigh">@color/container_purple</item>
+        <item name="colorSurfaceContainerHighest">@color/container_purple</item>
     </style>
 
     <style name="Theme.SagerNet.Red" parent="Theme.SagerNet">
@@ -1057,6 +1140,11 @@
         <item name="colorTertiary">@color/material_red_700</item>
         <item name="colorTertiaryContainer">@color/container_red</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_red</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_red</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_red</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_red</item>
+        <item name="colorSurfaceContainerHigh">@color/container_red</item>
+        <item name="colorSurfaceContainerHighest">@color/container_red</item>
     </style>
 
     <style name="Theme.SagerNet.Teal" parent="Theme.SagerNet">
@@ -1072,6 +1160,11 @@
         <item name="colorTertiary">@color/material_teal_700</item>
         <item name="colorTertiaryContainer">@color/container_teal</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_teal</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_teal</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_teal</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_teal</item>
+        <item name="colorSurfaceContainerHigh">@color/container_teal</item>
+        <item name="colorSurfaceContainerHighest">@color/container_teal</item>
     </style>
 
     <style name="Theme.SagerNet.Yellow" parent="Theme.SagerNet">
@@ -1088,6 +1181,11 @@
         <item name="colorTertiary">@color/material_yellow_700</item>
         <item name="colorTertiaryContainer">@color/container_yellow</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_yellow</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_yellow</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_yellow</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_yellow</item>
+        <item name="colorSurfaceContainerHigh">@color/container_yellow</item>
+        <item name="colorSurfaceContainerHighest">@color/container_yellow</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Amber" parent="Theme.SagerNet.Dialog">
@@ -1103,6 +1201,11 @@
         <item name="colorTertiary">@color/material_amber_700</item>
         <item name="colorTertiaryContainer">@color/container_amber</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_amber</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_amber</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_amber</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_amber</item>
+        <item name="colorSurfaceContainerHigh">@color/container_amber</item>
+        <item name="colorSurfaceContainerHighest">@color/container_amber</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Blue" parent="Theme.SagerNet.Dialog">
@@ -1118,6 +1221,11 @@
         <item name="colorTertiary">@color/material_blue_700</item>
         <item name="colorTertiaryContainer">@color/container_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_blue</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_blue</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_blue</item>
+        <item name="colorSurfaceContainerHigh">@color/container_blue</item>
+        <item name="colorSurfaceContainerHighest">@color/container_blue</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.BlueGrey" parent="Theme.SagerNet.Dialog">
@@ -1133,6 +1241,11 @@
         <item name="colorTertiary">@color/material_blue_grey_700</item>
         <item name="colorTertiaryContainer">@color/container_blue_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue_grey</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_blue_grey</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_blue_grey</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_blue_grey</item>
+        <item name="colorSurfaceContainerHigh">@color/container_blue_grey</item>
+        <item name="colorSurfaceContainerHighest">@color/container_blue_grey</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Brown" parent="Theme.SagerNet.Dialog">
@@ -1148,6 +1261,11 @@
         <item name="colorTertiary">@color/material_brown_700</item>
         <item name="colorTertiaryContainer">@color/container_brown</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_brown</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_brown</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_brown</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_brown</item>
+        <item name="colorSurfaceContainerHigh">@color/container_brown</item>
+        <item name="colorSurfaceContainerHighest">@color/container_brown</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Cyan" parent="Theme.SagerNet.Dialog">
@@ -1163,6 +1281,11 @@
         <item name="colorTertiary">@color/material_cyan_700</item>
         <item name="colorTertiaryContainer">@color/container_cyan</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_cyan</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_cyan</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_cyan</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_cyan</item>
+        <item name="colorSurfaceContainerHigh">@color/container_cyan</item>
+        <item name="colorSurfaceContainerHighest">@color/container_cyan</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.DeepOrange" parent="Theme.SagerNet.Dialog">
@@ -1178,6 +1301,11 @@
         <item name="colorTertiary">@color/material_deep_orange_700</item>
         <item name="colorTertiaryContainer">@color/container_deep_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_orange</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_deep_orange</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_deep_orange</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_deep_orange</item>
+        <item name="colorSurfaceContainerHigh">@color/container_deep_orange</item>
+        <item name="colorSurfaceContainerHighest">@color/container_deep_orange</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.DeepPurple" parent="Theme.SagerNet.Dialog">
@@ -1193,6 +1321,11 @@
         <item name="colorTertiary">@color/material_deep_purple_700</item>
         <item name="colorTertiaryContainer">@color/container_deep_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_purple</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_deep_purple</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_deep_purple</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_deep_purple</item>
+        <item name="colorSurfaceContainerHigh">@color/container_deep_purple</item>
+        <item name="colorSurfaceContainerHighest">@color/container_deep_purple</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Green" parent="Theme.SagerNet.Dialog">
@@ -1208,6 +1341,11 @@
         <item name="colorTertiary">@color/material_green_700</item>
         <item name="colorTertiaryContainer">@color/container_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_green</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_green</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_green</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_green</item>
+        <item name="colorSurfaceContainerHigh">@color/container_green</item>
+        <item name="colorSurfaceContainerHighest">@color/container_green</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Grey" parent="Theme.SagerNet.Dialog">
@@ -1223,6 +1361,11 @@
         <item name="colorTertiary">@color/material_grey_700</item>
         <item name="colorTertiaryContainer">@color/container_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_grey</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_grey</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_grey</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_grey</item>
+        <item name="colorSurfaceContainerHigh">@color/container_grey</item>
+        <item name="colorSurfaceContainerHighest">@color/container_grey</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Indigo" parent="Theme.SagerNet.Dialog">
@@ -1238,6 +1381,11 @@
         <item name="colorTertiary">@color/material_indigo_700</item>
         <item name="colorTertiaryContainer">@color/container_indigo</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_indigo</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_indigo</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_indigo</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_indigo</item>
+        <item name="colorSurfaceContainerHigh">@color/container_indigo</item>
+        <item name="colorSurfaceContainerHighest">@color/container_indigo</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.LightBlue" parent="Theme.SagerNet.Dialog">
@@ -1253,6 +1401,11 @@
         <item name="colorTertiary">@color/material_light_blue_700</item>
         <item name="colorTertiaryContainer">@color/container_light_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_blue</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_light_blue</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_light_blue</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_light_blue</item>
+        <item name="colorSurfaceContainerHigh">@color/container_light_blue</item>
+        <item name="colorSurfaceContainerHighest">@color/container_light_blue</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.LightGreen" parent="Theme.SagerNet.Dialog">
@@ -1268,6 +1421,11 @@
         <item name="colorTertiary">@color/material_light_green_700</item>
         <item name="colorTertiaryContainer">@color/container_light_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_green</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_light_green</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_light_green</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_light_green</item>
+        <item name="colorSurfaceContainerHigh">@color/container_light_green</item>
+        <item name="colorSurfaceContainerHighest">@color/container_light_green</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Lime" parent="Theme.SagerNet.Dialog">
@@ -1285,6 +1443,11 @@
         <item name="colorPrimaryInverse">@color/inverse_primary_lime</item>
         <item name="colorOnPrimary">@color/black</item>
         <item name="colorOnSecondary">@color/black</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_lime</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_lime</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_lime</item>
+        <item name="colorSurfaceContainerHigh">@color/container_lime</item>
+        <item name="colorSurfaceContainerHighest">@color/container_lime</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Orange" parent="Theme.SagerNet.Dialog">
@@ -1300,6 +1463,11 @@
         <item name="colorTertiary">@color/material_orange_700</item>
         <item name="colorTertiaryContainer">@color/container_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_orange</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_orange</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_orange</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_orange</item>
+        <item name="colorSurfaceContainerHigh">@color/container_orange</item>
+        <item name="colorSurfaceContainerHighest">@color/container_orange</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Purple" parent="Theme.SagerNet.Dialog">
@@ -1315,6 +1483,11 @@
         <item name="colorTertiary">@color/material_purple_700</item>
         <item name="colorTertiaryContainer">@color/container_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_purple</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_purple</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_purple</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_purple</item>
+        <item name="colorSurfaceContainerHigh">@color/container_purple</item>
+        <item name="colorSurfaceContainerHighest">@color/container_purple</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Red" parent="Theme.SagerNet.Dialog">
@@ -1330,6 +1503,11 @@
         <item name="colorTertiary">@color/material_red_700</item>
         <item name="colorTertiaryContainer">@color/container_red</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_red</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_red</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_red</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_red</item>
+        <item name="colorSurfaceContainerHigh">@color/container_red</item>
+        <item name="colorSurfaceContainerHighest">@color/container_red</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Pink_SSR" parent="Theme.SagerNet.Dialog">
@@ -1345,6 +1523,11 @@
         <item name="colorTertiary">@color/color_pink_ssr</item>
         <item name="colorTertiaryContainer">@color/container_pink_ssr</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_pink</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_pink_ssr</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_pink_ssr</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_pink_ssr</item>
+        <item name="colorSurfaceContainerHigh">@color/container_pink_ssr</item>
+        <item name="colorSurfaceContainerHighest">@color/container_pink_ssr</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Teal" parent="Theme.SagerNet.Dialog">
@@ -1360,6 +1543,11 @@
         <item name="colorTertiary">@color/material_teal_700</item>
         <item name="colorTertiaryContainer">@color/container_teal</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_teal</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_teal</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_teal</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_teal</item>
+        <item name="colorSurfaceContainerHigh">@color/container_teal</item>
+        <item name="colorSurfaceContainerHighest">@color/container_teal</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Yellow" parent="Theme.SagerNet.Dialog">
@@ -1376,6 +1564,11 @@
         <item name="colorTertiary">@color/material_yellow_700</item>
         <item name="colorTertiaryContainer">@color/container_yellow</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_yellow</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_yellow</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_yellow</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_yellow</item>
+        <item name="colorSurfaceContainerHigh">@color/container_yellow</item>
+        <item name="colorSurfaceContainerHighest">@color/container_yellow</item>
     </style>
 
     <style name="Theme.SagerNet.Black" parent="Theme.SagerNet">
@@ -1421,6 +1614,7 @@
         <item name="actionBarTheme">@style/ThemeOverlay.SagerNet.Toolbar.Black</item>
         <item name="actionBarPopupTheme">@style/ThemeOverlay.SagerNet.Popup</item>
         <item name="appBarLayoutStyle">@style/Widget.SagerNet.AppBarLayout.Black</item>
+        <item name="snackbarStyle">@style/Widget.SagerNet.Snackbar.Amoled</item>
         <item name="colorPrimaryContainer">@color/color_black_theme_material_100</item>
         <item name="colorOnPrimaryContainer">@color/white</item>
         <item name="colorSecondary">@color/white</item>
@@ -1435,9 +1629,14 @@
         <item name="colorSurfaceContainer">@color/color_black_theme_material_100</item>
         <item name="colorSurfaceContainerHigh">@color/color_black_theme_material_300</item>
         <item name="colorSurfaceContainerHighest">@color/color_black_theme_material_300</item>
-        <item name="colorSurfaceInverse">#ECEEF1</item>
-        <item name="colorOnSurfaceInverse">#1C1B1F</item>
-        <item name="colorPrimaryInverse">#111827</item>
+        <item name="colorSurfaceInverse">@color/material_light_white</item>
+        <item name="colorOnSurfaceInverse">@color/material_light_black</item>
+        <item name="colorPrimaryInverse">@color/color_light_gray_text_primary</item>
+        <item name="colorOutlineVariant">@color/card_stroke</item>
+        <item name="colorError">@color/md3_error</item>
+        <item name="colorOnError">@color/md3_on_error</item>
+        <item name="colorErrorContainer">@color/md3_error_container</item>
+        <item name="colorOnErrorContainer">@color/md3_on_error_container</item>
     </style>
 
     <style name="Theme.SagerNet.VerdantMint" parent="Theme.SagerNet">
@@ -1460,6 +1659,11 @@
         <item name="colorTertiary">@color/color_verdant_mint_dark</item>
         <item name="colorTertiaryContainer">@color/container_verdant_mint</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_verdant_mint</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_verdant_mint</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_verdant_mint</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_verdant_mint</item>
+        <item name="colorSurfaceContainerHigh">@color/container_verdant_mint</item>
+        <item name="colorSurfaceContainerHighest">@color/container_verdant_mint</item>
     </style>
 
     <style name="Theme.SagerNet.White" parent="Theme.SagerNet">
@@ -1509,9 +1713,14 @@
         <item name="colorSurfaceContainer">@color/color_white_theme_material_100</item>
         <item name="colorSurfaceContainerHigh">@color/color_white_theme_material_300</item>
         <item name="colorSurfaceContainerHighest">@color/color_white_theme_material_300</item>
-        <item name="colorSurfaceInverse">#1F2937</item>
+        <item name="colorSurfaceInverse">@color/color_light_gray_primary</item>
         <item name="colorOnSurfaceInverse">@color/white</item>
-        <item name="colorPrimaryInverse">#E5E7EB</item>
+        <item name="colorPrimaryInverse">@color/color_light_gray_material_300</item>
+        <item name="colorOutlineVariant">@color/md3_outline_variant</item>
+        <item name="colorError">@color/md3_error</item>
+        <item name="colorOnError">@color/md3_on_error</item>
+        <item name="colorErrorContainer">@color/md3_error_container</item>
+        <item name="colorOnErrorContainer">@color/md3_on_error_container</item>
     </style>
     <style name="Theme.SagerNet.LightGray" parent="Theme.SagerNet">
         <item name="colorPrimary">@color/color_light_gray_primary</item>
@@ -1559,9 +1768,14 @@
         <item name="colorSurfaceContainer">@color/color_light_gray_bg</item>
         <item name="colorSurfaceContainerHigh">@color/color_light_gray_material_300</item>
         <item name="colorSurfaceContainerHighest">@color/color_light_gray_material_300</item>
-        <item name="colorSurfaceInverse">#1F2937</item>
+        <item name="colorSurfaceInverse">@color/color_light_gray_primary</item>
         <item name="colorOnSurfaceInverse">@color/white</item>
-        <item name="colorPrimaryInverse">#93C5FD</item>
+        <item name="colorPrimaryInverse">@color/material_blue_200</item>
+        <item name="colorOutlineVariant">@color/md3_outline_variant</item>
+        <item name="colorError">@color/md3_error</item>
+        <item name="colorOnError">@color/md3_on_error</item>
+        <item name="colorErrorContainer">@color/md3_error_container</item>
+        <item name="colorOnErrorContainer">@color/md3_on_error_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Black" parent="Theme.SagerNet.Dialog">
         <item name="android:windowBackground">@drawable/bg_dialog</item>
@@ -1587,6 +1801,7 @@
         <item name="colorOnPrimary">@color/black</item>
         <item name="colorOnSurface">?android:textColorPrimary</item>
         <item name="colorOnSurfaceVariant">?android:textColorSecondary</item>
+        <item name="snackbarStyle">@style/Widget.SagerNet.Snackbar.Amoled</item>
         <item name="colorPrimaryContainer">@color/color_black_theme_material_100</item>
         <item name="colorOnPrimaryContainer">@color/white</item>
         <item name="colorSecondary">@color/white</item>
@@ -1601,9 +1816,14 @@
         <item name="colorSurfaceContainer">@color/color_black_theme_material_100</item>
         <item name="colorSurfaceContainerHigh">@color/color_black_theme_material_300</item>
         <item name="colorSurfaceContainerHighest">@color/color_black_theme_material_300</item>
-        <item name="colorSurfaceInverse">#ECEEF1</item>
-        <item name="colorOnSurfaceInverse">#1C1B1F</item>
-        <item name="colorPrimaryInverse">#111827</item>
+        <item name="colorSurfaceInverse">@color/material_light_white</item>
+        <item name="colorOnSurfaceInverse">@color/material_light_black</item>
+        <item name="colorPrimaryInverse">@color/color_light_gray_text_primary</item>
+        <item name="colorOutlineVariant">@color/card_stroke</item>
+        <item name="colorError">@color/md3_error</item>
+        <item name="colorOnError">@color/md3_on_error</item>
+        <item name="colorErrorContainer">@color/md3_error_container</item>
+        <item name="colorOnErrorContainer">@color/md3_on_error_container</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.VerdantMint" parent="Theme.SagerNet.Dialog">
@@ -1619,6 +1839,11 @@
         <item name="colorTertiary">@color/color_verdant_mint_dark</item>
         <item name="colorTertiaryContainer">@color/container_verdant_mint</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_verdant_mint</item>
+        <item name="colorSurfaceContainerLowest">@color/bg_verdant_mint</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_verdant_mint</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_verdant_mint</item>
+        <item name="colorSurfaceContainerHigh">@color/container_verdant_mint</item>
+        <item name="colorSurfaceContainerHighest">@color/container_verdant_mint</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.White" parent="Theme.SagerNet.Dialog">
@@ -1650,9 +1875,14 @@
         <item name="colorSurfaceContainer">@color/color_white_theme_material_100</item>
         <item name="colorSurfaceContainerHigh">@color/color_white_theme_material_300</item>
         <item name="colorSurfaceContainerHighest">@color/color_white_theme_material_300</item>
-        <item name="colorSurfaceInverse">#1F2937</item>
+        <item name="colorSurfaceInverse">@color/color_light_gray_primary</item>
         <item name="colorOnSurfaceInverse">@color/white</item>
-        <item name="colorPrimaryInverse">#E5E7EB</item>
+        <item name="colorPrimaryInverse">@color/color_light_gray_material_300</item>
+        <item name="colorOutlineVariant">@color/md3_outline_variant</item>
+        <item name="colorError">@color/md3_error</item>
+        <item name="colorOnError">@color/md3_on_error</item>
+        <item name="colorErrorContainer">@color/md3_error_container</item>
+        <item name="colorOnErrorContainer">@color/md3_on_error_container</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.LightGray" parent="Theme.SagerNet.Dialog">
@@ -1684,9 +1914,14 @@
         <item name="colorSurfaceContainer">@color/color_light_gray_bg</item>
         <item name="colorSurfaceContainerHigh">@color/color_light_gray_material_300</item>
         <item name="colorSurfaceContainerHighest">@color/color_light_gray_material_300</item>
-        <item name="colorSurfaceInverse">#1F2937</item>
+        <item name="colorSurfaceInverse">@color/color_light_gray_primary</item>
         <item name="colorOnSurfaceInverse">@color/white</item>
-        <item name="colorPrimaryInverse">#93C5FD</item>
+        <item name="colorPrimaryInverse">@color/material_blue_200</item>
+        <item name="colorOutlineVariant">@color/md3_outline_variant</item>
+        <item name="colorError">@color/md3_error</item>
+        <item name="colorOnError">@color/md3_on_error</item>
+        <item name="colorErrorContainer">@color/md3_error_container</item>
+        <item name="colorOnErrorContainer">@color/md3_on_error_container</item>
     </style>
 
     <style name="Theme.SagerNet.Monet" parent="Theme.SagerNet.Material" />
@@ -1770,13 +2005,14 @@
         <item name="actionBarTheme">@style/ThemeOverlay.SagerNet.Toolbar.Amoled</item>
         <item name="actionBarPopupTheme">@style/ThemeOverlay.SagerNet.Popup</item>
         <item name="appBarLayoutStyle">@style/Widget.SagerNet.AppBarLayout.Black</item>
+        <item name="snackbarStyle">@style/Widget.SagerNet.Snackbar.Amoled</item>
         <item name="colorSurfaceContainerLowest">@color/black</item>
-        <item name="colorSurfaceContainerLow">#0F0F11</item>
-        <item name="colorSurfaceContainer">#141416</item>
-        <item name="colorSurfaceContainerHigh">#1C1C1F</item>
-        <item name="colorSurfaceContainerHighest">#242428</item>
-        <item name="colorSurfaceInverse">#ECEEF1</item>
-        <item name="colorOnSurfaceInverse">#1C1B1F</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_black</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_black</item>
+        <item name="colorSurfaceContainerHigh">@color/color_black_theme_material_100</item>
+        <item name="colorSurfaceContainerHighest">@color/color_black_theme_material_300</item>
+        <item name="colorSurfaceInverse">@color/material_light_white</item>
+        <item name="colorOnSurfaceInverse">@color/material_light_black</item>
         <item name="colorPrimaryInverse">?attr/colorPrimaryDark</item>
         <item name="colorOnPrimary">@color/black</item>
         <item name="colorOnSecondary">@color/black</item>
@@ -1784,6 +2020,11 @@
         <item name="colorOnPrimaryContainer">@color/white</item>
         <item name="colorOnSecondaryContainer">@color/white</item>
         <item name="colorOnTertiaryContainer">@color/white</item>
+        <item name="colorOutlineVariant">@color/card_stroke</item>
+        <item name="colorError">@color/md3_error</item>
+        <item name="colorOnError">@color/md3_on_error</item>
+        <item name="colorErrorContainer">@color/md3_error_container</item>
+        <item name="colorOnErrorContainer">@color/md3_on_error_container</item>
     </style>
 
     <!-- Pure AMOLED (100% #000000 Boxes & Background + Ultra-Thin Seed-Colored Outline) -->
@@ -1795,6 +2036,12 @@
         <item name="popupStrokeColor">@color/pure_amoled_outline_soft</item>
         <item name="drawerCardStrokeColor">@color/pure_amoled_hairline</item>
         <item name="cardStrokeWidth">@dimen/card_stroke_width_amoled</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/black</item>
+        <item name="colorSurfaceContainer">@color/black</item>
+        <item name="colorSurfaceContainerHigh">@color/black</item>
+        <item name="colorSurfaceContainerHighest">@color/black</item>
+        <item name="colorOutlineVariant">@color/pure_amoled_outline_soft</item>
     </style>
 
     <!-- Normal AMOLED Seed Color Variants (Pure Black Bg + Tinted Seed Card Surfaces) -->
@@ -1811,6 +2058,11 @@
         <item name="colorTertiary">@color/material_red_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_red</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_red</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_red</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_red</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_red</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_red</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.VerdantMint" parent="Theme.SagerNet.Amoled">
@@ -1826,6 +2078,11 @@
         <item name="colorTertiary">@color/color_verdant_mint_accent</item>
         <item name="colorTertiaryContainer">@color/card_elevated_verdant_mint</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_verdant_mint</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_verdant_mint</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_verdant_mint</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_verdant_mint</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_verdant_mint</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.Blue" parent="Theme.SagerNet.Amoled">
@@ -1841,6 +2098,11 @@
         <item name="colorTertiary">@color/material_blue_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_blue</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_blue</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_blue</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_blue</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.LightBlue" parent="Theme.SagerNet.Amoled">
@@ -1856,6 +2118,11 @@
         <item name="colorTertiary">@color/material_light_blue_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_light_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_blue</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_light_blue</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_light_blue</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_light_blue</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_light_blue</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.Cyan" parent="Theme.SagerNet.Amoled">
@@ -1871,6 +2138,11 @@
         <item name="colorTertiary">@color/material_cyan_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_cyan</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_cyan</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_cyan</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_cyan</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_cyan</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_cyan</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.Teal" parent="Theme.SagerNet.Amoled">
@@ -1886,6 +2158,11 @@
         <item name="colorTertiary">@color/material_teal_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_teal</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_teal</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_teal</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_teal</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_teal</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_teal</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.Green" parent="Theme.SagerNet.Amoled">
@@ -1901,6 +2178,11 @@
         <item name="colorTertiary">@color/material_green_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_green</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_green</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_green</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_green</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_green</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.LightGreen" parent="Theme.SagerNet.Amoled">
@@ -1916,6 +2198,11 @@
         <item name="colorTertiary">@color/material_light_green_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_light_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_green</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_light_green</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_light_green</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_light_green</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_light_green</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.Lime" parent="Theme.SagerNet.Amoled">
@@ -1931,6 +2218,11 @@
         <item name="colorTertiary">@color/material_lime_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_lime</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_lime</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_lime</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_lime</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_lime</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_lime</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.Yellow" parent="Theme.SagerNet.Amoled">
@@ -1946,6 +2238,11 @@
         <item name="colorTertiary">@color/material_yellow_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_yellow</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_yellow</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_yellow</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_yellow</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_yellow</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_yellow</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.Amber" parent="Theme.SagerNet.Amoled">
@@ -1961,6 +2258,11 @@
         <item name="colorTertiary">@color/material_amber_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_amber</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_amber</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_amber</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_amber</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_amber</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_amber</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.Orange" parent="Theme.SagerNet.Amoled">
@@ -1976,6 +2278,11 @@
         <item name="colorTertiary">@color/material_orange_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_orange</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_orange</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_orange</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_orange</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_orange</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.DeepOrange" parent="Theme.SagerNet.Amoled">
@@ -1991,6 +2298,11 @@
         <item name="colorTertiary">@color/material_deep_orange_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_deep_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_orange</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_deep_orange</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_deep_orange</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_deep_orange</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_deep_orange</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.Purple" parent="Theme.SagerNet.Amoled">
@@ -2006,6 +2318,11 @@
         <item name="colorTertiary">@color/material_purple_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_purple</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_purple</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_purple</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_purple</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_purple</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.DeepPurple" parent="Theme.SagerNet.Amoled">
@@ -2021,6 +2338,11 @@
         <item name="colorTertiary">@color/material_deep_purple_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_deep_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_purple</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_deep_purple</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_deep_purple</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_deep_purple</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_deep_purple</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.Indigo" parent="Theme.SagerNet.Amoled">
@@ -2036,6 +2358,11 @@
         <item name="colorTertiary">@color/material_indigo_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_indigo</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_indigo</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_indigo</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_indigo</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_indigo</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_indigo</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.Pink" parent="Theme.SagerNet.Amoled">
@@ -2051,6 +2378,11 @@
         <item name="colorTertiary">@color/material_pink_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_pink</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_pink</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_pink</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_pink</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_pink</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_pink</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.PinkSSR" parent="Theme.SagerNet.Amoled">
@@ -2066,6 +2398,11 @@
         <item name="colorTertiary">@color/color_pink_ssr</item>
         <item name="colorTertiaryContainer">@color/card_elevated_pink_ssr</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_pink</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_pink_ssr</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_pink_ssr</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_pink_ssr</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_pink_ssr</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.Brown" parent="Theme.SagerNet.Amoled">
@@ -2081,6 +2418,11 @@
         <item name="colorTertiary">@color/dialog_button_brown</item>
         <item name="colorTertiaryContainer">@color/card_elevated_brown</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_brown</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_brown</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_brown</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_brown</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_brown</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.Grey" parent="Theme.SagerNet.Amoled">
@@ -2096,6 +2438,11 @@
         <item name="colorTertiary">@color/md3_text_primary</item>
         <item name="colorTertiaryContainer">@color/card_elevated_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_grey</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_grey</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_grey</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_grey</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_grey</item>
     </style>
 
     <style name="Theme.SagerNet.Amoled.BlueGrey" parent="Theme.SagerNet.Amoled">
@@ -2111,6 +2458,11 @@
         <item name="colorTertiary">@color/dialog_button_blue_grey</item>
         <item name="colorTertiaryContainer">@color/card_elevated_blue_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue_grey</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_blue_grey</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_blue_grey</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_blue_grey</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_blue_grey</item>
     </style>
 
     <!-- Pure AMOLED Seed Color Variants (#000000 Bg + #000000 Boxes + Thin Seed Hairline) -->
@@ -2364,13 +2716,14 @@
         <item name="accentOrTextSecondary">?colorAccent</item>
         <item name="dialogButtonColor">?colorPrimary</item>
         <item name="colorControlActivated">?colorPrimary</item>
+        <item name="snackbarStyle">@style/Widget.SagerNet.Snackbar.Amoled</item>
         <item name="colorSurfaceContainerLowest">@color/black</item>
-        <item name="colorSurfaceContainerLow">#0F0F11</item>
-        <item name="colorSurfaceContainer">#141416</item>
-        <item name="colorSurfaceContainerHigh">#1C1C1F</item>
-        <item name="colorSurfaceContainerHighest">#242428</item>
-        <item name="colorSurfaceInverse">#ECEEF1</item>
-        <item name="colorOnSurfaceInverse">#1C1B1F</item>
+        <item name="colorSurfaceContainerLow">@color/card_elevated_black</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_black</item>
+        <item name="colorSurfaceContainerHigh">@color/color_black_theme_material_100</item>
+        <item name="colorSurfaceContainerHighest">@color/color_black_theme_material_300</item>
+        <item name="colorSurfaceInverse">@color/material_light_white</item>
+        <item name="colorOnSurfaceInverse">@color/material_light_black</item>
         <item name="colorPrimaryInverse">?attr/colorPrimaryDark</item>
         <item name="colorOnPrimary">@color/black</item>
         <item name="colorOnSecondary">@color/black</item>
@@ -2378,6 +2731,11 @@
         <item name="colorOnPrimaryContainer">@color/white</item>
         <item name="colorOnSecondaryContainer">@color/white</item>
         <item name="colorOnTertiaryContainer">@color/white</item>
+        <item name="colorOutlineVariant">@color/card_stroke</item>
+        <item name="colorError">@color/md3_error</item>
+        <item name="colorOnError">@color/md3_on_error</item>
+        <item name="colorErrorContainer">@color/md3_error_container</item>
+        <item name="colorOnErrorContainer">@color/md3_on_error_container</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.PureAmoled" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2387,6 +2745,12 @@
         <item name="popupStrokeColor">@color/pure_amoled_outline_soft</item>
         <item name="drawerCardStrokeColor">@color/pure_amoled_hairline</item>
         <item name="cardStrokeWidth">@dimen/card_stroke_width_amoled</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/black</item>
+        <item name="colorSurfaceContainer">@color/black</item>
+        <item name="colorSurfaceContainerHigh">@color/black</item>
+        <item name="colorSurfaceContainerHighest">@color/black</item>
+        <item name="colorOutlineVariant">@color/pure_amoled_outline_soft</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Amoled.Red" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2399,6 +2763,11 @@
         <item name="colorTertiary">@color/material_red_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_red</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_red</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_red</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_red</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_red</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_red</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.VerdantMint" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/color_verdant_mint_accent</item>
@@ -2410,6 +2779,11 @@
         <item name="colorTertiary">@color/color_verdant_mint_accent</item>
         <item name="colorTertiaryContainer">@color/card_elevated_verdant_mint</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_verdant_mint</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_verdant_mint</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_verdant_mint</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_verdant_mint</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_verdant_mint</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Blue" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_blue_accent_200</item>
@@ -2421,6 +2795,11 @@
         <item name="colorTertiary">@color/material_blue_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_blue</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_blue</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_blue</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_blue</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.LightBlue" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_light_blue_accent_200</item>
@@ -2432,6 +2811,11 @@
         <item name="colorTertiary">@color/material_light_blue_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_light_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_blue</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_light_blue</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_light_blue</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_light_blue</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_light_blue</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Cyan" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_cyan_accent_200</item>
@@ -2443,6 +2827,11 @@
         <item name="colorTertiary">@color/material_cyan_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_cyan</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_cyan</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_cyan</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_cyan</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_cyan</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_cyan</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Teal" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_teal_accent_200</item>
@@ -2454,6 +2843,11 @@
         <item name="colorTertiary">@color/material_teal_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_teal</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_teal</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_teal</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_teal</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_teal</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_teal</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Green" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_green_accent_200</item>
@@ -2465,6 +2859,11 @@
         <item name="colorTertiary">@color/material_green_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_green</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_green</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_green</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_green</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_green</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.LightGreen" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_light_green_accent_200</item>
@@ -2476,6 +2875,11 @@
         <item name="colorTertiary">@color/material_light_green_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_light_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_green</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_light_green</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_light_green</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_light_green</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_light_green</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Lime" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_lime_accent_200</item>
@@ -2487,6 +2891,11 @@
         <item name="colorTertiary">@color/material_lime_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_lime</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_lime</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_lime</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_lime</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_lime</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_lime</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Yellow" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_yellow_accent_200</item>
@@ -2498,6 +2907,11 @@
         <item name="colorTertiary">@color/material_yellow_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_yellow</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_yellow</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_yellow</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_yellow</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_yellow</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_yellow</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Amber" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_amber_accent_200</item>
@@ -2509,6 +2923,11 @@
         <item name="colorTertiary">@color/material_amber_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_amber</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_amber</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_amber</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_amber</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_amber</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_amber</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Orange" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_orange_accent_200</item>
@@ -2520,6 +2939,11 @@
         <item name="colorTertiary">@color/material_orange_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_orange</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_orange</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_orange</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_orange</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_orange</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.DeepOrange" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_deep_orange_accent_200</item>
@@ -2531,6 +2955,11 @@
         <item name="colorTertiary">@color/material_deep_orange_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_deep_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_orange</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_deep_orange</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_deep_orange</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_deep_orange</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_deep_orange</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Purple" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_purple_accent_200</item>
@@ -2542,6 +2971,11 @@
         <item name="colorTertiary">@color/material_purple_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_purple</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_purple</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_purple</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_purple</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_purple</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.DeepPurple" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_deep_purple_accent_200</item>
@@ -2553,6 +2987,11 @@
         <item name="colorTertiary">@color/material_deep_purple_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_deep_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_purple</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_deep_purple</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_deep_purple</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_deep_purple</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_deep_purple</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Indigo" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_indigo_accent_200</item>
@@ -2564,6 +3003,11 @@
         <item name="colorTertiary">@color/material_indigo_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_indigo</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_indigo</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_indigo</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_indigo</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_indigo</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_indigo</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Pink" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/material_pink_accent_200</item>
@@ -2575,6 +3019,11 @@
         <item name="colorTertiary">@color/material_pink_accent_200</item>
         <item name="colorTertiaryContainer">@color/card_elevated_pink</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_pink</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_pink</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_pink</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_pink</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_pink</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.PinkSSR" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/color_pink_ssr</item>
@@ -2586,6 +3035,11 @@
         <item name="colorTertiary">@color/color_pink_ssr</item>
         <item name="colorTertiaryContainer">@color/card_elevated_pink_ssr</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_pink</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_pink_ssr</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_pink_ssr</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_pink_ssr</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_pink_ssr</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Brown" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/dialog_button_brown</item>
@@ -2597,6 +3051,11 @@
         <item name="colorTertiary">@color/dialog_button_brown</item>
         <item name="colorTertiaryContainer">@color/card_elevated_brown</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_brown</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_brown</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_brown</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_brown</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_brown</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Grey" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/md3_text_primary</item>
@@ -2608,6 +3067,11 @@
         <item name="colorTertiary">@color/md3_text_primary</item>
         <item name="colorTertiaryContainer">@color/card_elevated_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_grey</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_grey</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_grey</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_grey</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_grey</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.BlueGrey" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/dialog_button_blue_grey</item>
@@ -2619,6 +3083,11 @@
         <item name="colorTertiary">@color/dialog_button_blue_grey</item>
         <item name="colorTertiaryContainer">@color/card_elevated_blue_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue_grey</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceContainerLow">@color/bg_blue_grey</item>
+        <item name="colorSurfaceContainer">@color/card_elevated_blue_grey</item>
+        <item name="colorSurfaceContainerHigh">@color/card_elevated_blue_grey</item>
+        <item name="colorSurfaceContainerHighest">@color/card_elevated_blue_grey</item>
     </style>
 
     <!-- Dialog Pure AMOLED seed variants -->
