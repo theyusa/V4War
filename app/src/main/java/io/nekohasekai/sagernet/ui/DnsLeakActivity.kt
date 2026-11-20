@@ -302,9 +302,10 @@ class DnsLeakActivity : ThemedActivity() {
         binding.btnRerunTest.isEnabled = true
         binding.btnRerunTest.setText(R.string.start_dns_leak_test)
 
-        val colorError = MaterialColors.getColor(binding.root, androidx.appcompat.R.attr.colorError)
+        val colorError = ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.ERROR)
+        val colorSuccess = ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.SUCCESS)
+        val colorInfo = ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.INFO)
         val textColorPrimary = getColorAttr(android.R.attr.textColorPrimary)
-        val safeAccent = ExpressiveSettingsHelper.resolveAccentColor(this)
         val isNight = io.nekohasekai.sagernet.utils.Theme.usingNightMode(this)
 
         // 1. Fake-IP Card
@@ -355,7 +356,7 @@ class DnsLeakActivity : ThemedActivity() {
         binding.badgeResolverStatus.visibility = View.VISIBLE
         ExpressiveSettingsHelper.styleExpressiveBadge(
             binding.badgeResolverStatus,
-            if (resolverIp != null) safeAccent else colorError,
+            if (resolverIp != null) colorSuccess else colorError,
         )
         binding.badgeResolverStatus.text = if (resolverIp != null) "EDNS Probe Success" else "Probe Inconclusive"
         binding.textResolverNote.visibility = View.GONE
@@ -379,15 +380,29 @@ class DnsLeakActivity : ThemedActivity() {
 
         when {
             !isVpnConnected -> {
-                ExpressiveSettingsHelper.applySquircleIcon(binding.imageVerdictIcon, R.drawable.ic_baseline_info_24, sizeDp = 42, iconSizeDp = 22)
-                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeVerdict)
+                ExpressiveSettingsHelper.applySquircleIcon(
+                    binding.imageVerdictIcon,
+                    R.drawable.ic_baseline_info_24,
+                    sizeDp = 42,
+                    iconSizeDp = 22,
+                    customContainerColor = ColorUtils.setAlphaComponent(colorInfo, if (isNight) 54 else 34),
+                    customIconColor = colorInfo,
+                )
+                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeVerdict, colorInfo)
                 binding.badgeVerdict.text = getString(R.string.dns_leak_direct_title)
                 binding.textVerdictDesc.text = getString(R.string.dns_leak_direct_desc)
                 binding.textRecommendation.text = "Connect to V4War VPN to protect your DNS queries and mask your public IP address."
             }
             fakeIpDetected -> {
-                ExpressiveSettingsHelper.applySquircleIcon(binding.imageVerdictIcon, R.drawable.ic_baseline_check_circle_24, sizeDp = 42, iconSizeDp = 22)
-                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeVerdict, safeAccent)
+                ExpressiveSettingsHelper.applySquircleIcon(
+                    binding.imageVerdictIcon,
+                    R.drawable.ic_baseline_check_circle_24,
+                    sizeDp = 42,
+                    iconSizeDp = 22,
+                    customContainerColor = ColorUtils.setAlphaComponent(colorSuccess, if (isNight) 54 else 34),
+                    customIconColor = colorSuccess,
+                )
+                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeVerdict, colorSuccess)
                 binding.badgeVerdict.text = getString(R.string.dns_leak_fakeip_title)
                 binding.textVerdictDesc.text = getString(R.string.dns_leak_fakeip_desc)
                 binding.textRecommendation.text = getString(R.string.dns_leak_rec_fakeip)
@@ -408,8 +423,15 @@ class DnsLeakActivity : ThemedActivity() {
                 binding.textRecommendation.text = getString(R.string.dns_leak_rec_fix)
             }
             isVpnConnected -> {
-                ExpressiveSettingsHelper.applySquircleIcon(binding.imageVerdictIcon, R.drawable.ic_baseline_check_circle_24, sizeDp = 42, iconSizeDp = 22)
-                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeVerdict, safeAccent)
+                ExpressiveSettingsHelper.applySquircleIcon(
+                    binding.imageVerdictIcon,
+                    R.drawable.ic_baseline_check_circle_24,
+                    sizeDp = 42,
+                    iconSizeDp = 22,
+                    customContainerColor = ColorUtils.setAlphaComponent(colorSuccess, if (isNight) 54 else 34),
+                    customIconColor = colorSuccess,
+                )
+                ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeVerdict, colorSuccess)
                 binding.badgeVerdict.text = getString(R.string.dns_leak_safe_title)
                 binding.textVerdictDesc.text = getString(R.string.dns_leak_safe_desc)
                 binding.textRecommendation.text = getString(R.string.dns_leak_rec_safe)

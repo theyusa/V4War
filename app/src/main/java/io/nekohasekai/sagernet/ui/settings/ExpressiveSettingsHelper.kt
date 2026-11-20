@@ -648,6 +648,25 @@ object ExpressiveSettingsHelper {
         }
     }
 
+    enum class SemanticRole {
+        SUCCESS,
+        WARNING,
+        ERROR,
+        INFO,
+        NEUTRAL,
+    }
+
+    fun resolveSemanticColor(context: Context, role: SemanticRole): Int {
+        val isNight = Theme.usingNightMode(context)
+        return when (role) {
+            SemanticRole.SUCCESS -> if (isNight) 0xFF10B981.toInt() else 0xFF059669.toInt()
+            SemanticRole.WARNING -> if (isNight) 0xFFF59E0B.toInt() else 0xFFD97706.toInt()
+            SemanticRole.ERROR -> if (isNight) 0xFFEF4444.toInt() else 0xFFDC2626.toInt()
+            SemanticRole.INFO -> if (isNight) 0xFF38BDF8.toInt() else 0xFF0284C7.toInt()
+            SemanticRole.NEUTRAL -> if (isNight) 0xFF9CA3AF.toInt() else 0xFF6B7280.toInt()
+        }
+    }
+
     fun styleExpressiveBadge(
         textView: TextView,
         accentColor: Int? = null,
@@ -877,4 +896,90 @@ fun PreferenceFragmentCompat.applyExpressiveSettingsStyle() {
 
     val (containerColor, iconColor) = ExpressiveSettingsHelper.resolveBadgeColors(ctx, isNight, isAmoled)
     preferenceScreen?.applyMaskedIconBadges(ctx, containerColor, iconColor)
+
+    attachPreferenceInfoHelper(list)
+}
+
+private const val TAG_INFO_LISTENER_ATTACHED = 0x56415701
+private const val TAG_INFO_BUTTON = "v4war_pref_info_btn"
+
+private fun attachPreferenceInfoHelper(list: androidx.recyclerview.widget.RecyclerView) {
+    if (list.getTag(TAG_INFO_LISTENER_ATTACHED) == true) return
+    list.setTag(TAG_INFO_LISTENER_ATTACHED, true)
+
+    fun updateRowInfoButton(view: View) {
+        val adapter = list.adapter as? androidx.preference.PreferenceGroupAdapter ?: return
+        val pos = list.getChildAdapterPosition(view)
+        val pref = if (pos != androidx.recyclerview.widget.RecyclerView.NO_POSITION && pos in 0 until adapter.itemCount) {
+            adapter.getItem(pos)
+        } else null
+
+        val widgetFrame = view.findViewById<android.view.ViewGroup>(android.R.id.widget_frame)
+        val existingBtn = widgetFrame?.findViewWithTag<View>(TAG_INFO_BUTTON)
+        val summaryView = view.findViewById<TextView>(android.R.id.summary)
+        val titleView = view.findViewById<TextView>(android.R.id.title)
+
+        if (pref is androidx.preference.PreferenceCategory || pref?.key == "themeStudio" ||
+            summaryView == null || summaryView.visibility != View.VISIBLE || widgetFrame == null
+        ) {
+            existingBtn?.visibility = View.GONE
+            summaryView?.maxLines = 4
+            return
+        }
+
+        val fullSummary = (pref?.summary ?: summaryView.text)?.toString()?.trim().orEmpty()
+        val isLong = fullSummary.length > 72 || fullSummary.contains('\n')
+
+        if (!isLong) {
+            existingBtn?.visibility = View.GONE
+            summaryView.maxLines = 4
+            return
+        }
+
+        summaryView.maxLines = 2
+        summaryView.ellipsize = android.text.TextUtils.TruncateAt.END
+
+        val ctx = view.context
+        val infoBtn = (existingBtn as? android.widget.ImageButton) ?: android.widget.ImageButton(ctx).apply {
+            tag = TAG_INFO_BUTTON
+            val sizePx = dp2px(36)
+            layoutParams = android.widget.LinearLayout.LayoutParams(sizePx, sizePx).apply {
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                marginEnd = dp2px(2)
+            }
+            val outValue = android.util.TypedValue()
+            ctx.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, outValue, true)
+            setBackgroundResource(outValue.resourceId)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(dp2px(8), dp2px(8), dp2px(8), dp2px(8))
+            setImageResource(R.drawable.ic_baseline_info_24)
+            contentDescription = titleView?.text?.toString() ?: "Info"
+            val tint = ctx.getColorAttr(android.R.attr.textColorSecondary)
+            imageTintList = ColorStateList.valueOf(ColorUtils.setAlphaComponent(tint, 190))
+            if (widgetFrame is android.widget.LinearLayout) {
+                widgetFrame.orientation = android.widget.LinearLayout.HORIZONTAL
+                widgetFrame.gravity = android.view.Gravity.CENTER_VERTICAL
+            }
+            widgetFrame.addView(this, 0)
+        }
+
+        widgetFrame.visibility = View.VISIBLE
+        infoBtn.visibility = View.VISIBLE
+        infoBtn.setOnClickListener {
+            val titleText = pref?.title ?: titleView?.text ?: ""
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
+                .setTitle(titleText)
+                .setMessage(fullSummary)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+        }
+    }
+
+    list.addOnChildAttachStateChangeListener(object : androidx.recyclerview.widget.RecyclerView.OnChildAttachStateChangeListener {
+        override fun onChildViewAttachedToWindow(view: View) {
+            view.post { updateRowInfoButton(view) }
+        }
+
+        override fun onChildViewDetachedFromWindow(view: View) = Unit
+    })
 }

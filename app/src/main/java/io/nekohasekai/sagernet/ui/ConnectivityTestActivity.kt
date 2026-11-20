@@ -323,12 +323,12 @@ class ConnectivityTestActivity : ThemedActivity(), SagerConnection.Callback {
         )
 
         val (badgeText, badgeAccent) = when (item.status) {
-            ConnectivityStatus.PENDING -> getString(R.string.connectivity_status_ready) to null
-            ConnectivityStatus.TESTING -> getString(R.string.connectivity_status_testing) to null
-            ConnectivityStatus.AVAILABLE -> getString(R.string.connectivity_status_ok) to getColor(R.color.material_green_700)
-            ConnectivityStatus.PARTIAL -> getString(R.string.connectivity_status_partial) to getColor(R.color.material_amber_900)
-            ConnectivityStatus.BLOCKED -> getString(R.string.connectivity_status_blocked) to getColor(R.color.material_red_500)
-            ConnectivityStatus.ERROR -> getString(R.string.connectivity_status_error) to getColor(R.color.material_red_500)
+            ConnectivityStatus.PENDING -> getString(R.string.connectivity_status_ready) to ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.NEUTRAL)
+            ConnectivityStatus.TESTING -> getString(R.string.connectivity_status_testing) to ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.INFO)
+            ConnectivityStatus.AVAILABLE -> getString(R.string.connectivity_status_ok) to ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.SUCCESS)
+            ConnectivityStatus.PARTIAL -> getString(R.string.connectivity_status_partial) to ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.WARNING)
+            ConnectivityStatus.BLOCKED -> getString(R.string.connectivity_status_blocked) to ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.ERROR)
+            ConnectivityStatus.ERROR -> getString(R.string.connectivity_status_error) to ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.ERROR)
         }
 
         val badge = TextView(this).apply {

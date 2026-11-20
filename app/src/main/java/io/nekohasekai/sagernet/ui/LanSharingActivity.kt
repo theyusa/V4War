@@ -2753,9 +2753,9 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             val levelStart = sb.length
             sb.append(parsed.level)
             val levelColor = when (parsed.level) {
-                "ERROR" -> redColor
-                "WARN" -> amberColor
-                else -> accentColor
+                "ERROR" -> ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.ERROR)
+                "WARN" -> ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.WARNING)
+                else -> ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.INFO)
             }
             sb.setSpan(ForegroundColorSpan(levelColor), levelStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             sb.setSpan(StyleSpan(Typeface.BOLD), levelStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)

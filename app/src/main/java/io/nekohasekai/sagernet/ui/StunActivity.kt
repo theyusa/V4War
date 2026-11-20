@@ -397,14 +397,21 @@ class StunActivity : ThemedActivity() {
     }
 
     private fun natBadgeColor(natType: Int, kind: StunAssessmentKind?): Int = when (natType) {
-        StunProtocolCodes.NAT_NONE, StunProtocolCodes.NAT_FULL -> Color.parseColor("#10B981")
-        StunProtocolCodes.NAT_RESTRICTED -> Color.parseColor("#22C55E")
-        StunProtocolCodes.NAT_PORT_RESTRICTED -> Color.parseColor("#F59E0B")
-        StunProtocolCodes.NAT_SYMMETRIC -> Color.parseColor("#EF4444")
-        StunProtocolCodes.NAT_CONE -> ExpressiveSettingsHelper.resolveAccentColor(this)
-        StunProtocolCodes.NAT_BLOCKED -> Color.parseColor("#EF4444")
-        else -> if (kind == StunAssessmentKind.FAILED) Color.parseColor("#EF4444")
-        else ExpressiveSettingsHelper.resolveAccentColor(this)
+        StunProtocolCodes.NAT_NONE, StunProtocolCodes.NAT_FULL ->
+            ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.SUCCESS)
+        StunProtocolCodes.NAT_RESTRICTED ->
+            ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.SUCCESS)
+        StunProtocolCodes.NAT_PORT_RESTRICTED ->
+            ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.WARNING)
+        StunProtocolCodes.NAT_SYMMETRIC, StunProtocolCodes.NAT_BLOCKED ->
+            ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.ERROR)
+        StunProtocolCodes.NAT_CONE ->
+            ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.INFO)
+        else -> if (kind == StunAssessmentKind.FAILED) {
+            ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.ERROR)
+        } else {
+            ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.INFO)
+        }
     }
 
     private fun buildTechnicalSummary(results: List<StunServerUiResult>, assessment: StunAssessment?): String {
