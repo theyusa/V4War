@@ -110,10 +110,12 @@
         <!-- New lines wait while the view is scrolled up. -->
         <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
             android:id="@+id/log_jump_latest"
+            style="@style/Widget.Material3Expressive.ExtendedFloatingActionButton.Small"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|center_horizontal"
             android:layout_margin="16dp"
+            android:textAppearance="@style/TextAppearance.SagerNet.Button"
             android:visibility="gone"
             app:icon="@drawable/ic_baseline_expand_more_24"
             tools:text="@string/log_jump_latest"

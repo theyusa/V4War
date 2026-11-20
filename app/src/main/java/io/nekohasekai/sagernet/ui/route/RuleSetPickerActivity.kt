@@ -193,7 +193,10 @@ class RuleSetPickerActivity : ThemedActivity() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
             RowHolder(LayoutRuleSetItemBinding.inflate(layoutInflater, parent, false))
 
-        override fun onBindViewHolder(holder: RowHolder, position: Int) = holder.bind(rows[position])
+        override fun onBindViewHolder(holder: RowHolder, position: Int) {
+            holder.bind(rows[position])
+            holder.binding.itemLayout.updateAppearance(position, rows.size)
+        }
 
         override fun getItemCount() = rows.size
 
@@ -210,7 +213,9 @@ class RuleSetPickerActivity : ThemedActivity() {
         init {
             binding.root.setOnClickListener {
                 if (!selected.remove(row.entry)) selected.add(row.entry)
-                binding.check.isChecked = row.entry in selected
+                val checked = row.entry in selected
+                binding.check.isChecked = checked
+                binding.root.isChecked = checked
                 updateSubtitle()
             }
         }
@@ -231,7 +236,9 @@ class RuleSetPickerActivity : ThemedActivity() {
             } else {
                 binding.source.setTextColor(sourceColors)
             }
-            binding.check.isChecked = row.entry in selected
+            val checked = row.entry in selected
+            binding.check.isChecked = checked
+            binding.root.isChecked = checked
         }
     }
 }
