@@ -239,6 +239,14 @@ class RuleSetPickerActivity : ThemedActivity() {
             val checked = row.entry in selected
             binding.check.isChecked = checked
             binding.root.isChecked = checked
+            val strokePx = io.nekohasekai.sagernet.utils.Theme.resolveCardStrokeWidthPx(this@RuleSetPickerActivity).toInt()
+            if (strokePx > 0) {
+                binding.root.strokeWidth = strokePx
+                binding.root.strokeColor = io.nekohasekai.sagernet.utils.Theme.resolveCardStrokeColor(
+                    this@RuleSetPickerActivity,
+                    selected = checked,
+                )
+            }
         }
     }
 }

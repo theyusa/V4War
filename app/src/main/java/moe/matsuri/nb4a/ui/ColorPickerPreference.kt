@@ -288,6 +288,12 @@ constructor(
         }
         scroll.addView(listLayout)
 
+        val activeTonal = MaterialSchemeEngine.buildTonalColors(
+            primarySeedArgb = currentSeed,
+            paletteStyle = currentStyle,
+            isDark = isDark,
+        )
+        val unselectedRowBg = Theme.resolveNestedBoxBackground(dialogContext)
         var dialog: androidx.appcompat.app.AlertDialog? = null
         val styles = MaterialPaletteStyle.entries
         styles.forEachIndexed { idx, style ->
@@ -312,7 +318,7 @@ constructor(
                 background = GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
                     cornerRadius = dp2px(16).toFloat()
-                    setColor(if (selected) styleTonal.primaryContainer else styleTonal.surfaceContainerLow)
+                    setColor(if (selected) styleTonal.primaryContainer else unselectedRowBg)
                     if (selected) {
                         setStroke(dp2px(1), styleTonal.primary)
                     }
@@ -329,7 +335,7 @@ constructor(
                 text = style.label(isTr)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
                 typeface = Typeface.create(if (selected) "sans-serif-medium" else "sans-serif", Typeface.NORMAL)
-                setTextColor(if (selected) styleTonal.onPrimaryContainer else styleTonal.onSurface)
+                setTextColor(if (selected) styleTonal.onPrimaryContainer else activeTonal.onSurface)
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             }
             row.addView(wheel)
