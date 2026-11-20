@@ -34,6 +34,7 @@ import androidx.preference.PreferenceViewHolder
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
+import io.nekohasekai.sagernet.utils.HapticHelper
 import io.nekohasekai.sagernet.utils.Theme
 
 /**
@@ -57,7 +58,34 @@ open class SimpleMenuPreference
         val mSpinner = holder.itemView.findViewById<Spinner>(androidx.preference.R.id.spinner)
         mSpinner.layoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT
         mSpinner.dropDownVerticalOffset = dp2px(4)
-        mSpinner.setPopupBackgroundResource(R.drawable.bg_popup_menu)
+        val ctx = holder.itemView.context
+        val isBorderTheme = Theme.isAnyAmoled(ctx) || Theme.isMonochromeBlack(ctx)
+        val strokeCol = Theme.resolveCardStrokeColor(ctx, selected = false)
+        val pad = dp2px(6)
+        val popupBg = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp2px(20).toFloat()
+            setColor(ColorUtils.setAlphaComponent(Theme.resolveCardBackground(ctx), 0xFF))
+            setStroke(
+                dp2px(1),
+                if (isBorderTheme) strokeCol else ColorUtils.setAlphaComponent(strokeCol, 140),
+            )
+            setPadding(pad, pad, pad, pad)
+        }
+        mSpinner.setPopupBackgroundDrawable(popupBg)
+    }
+
+    override fun onClick() {
+        HapticHelper.perform(context, kind = HapticHelper.HapticKind.TAP)
+        super.onClick()
+    }
+
+    override fun callChangeListener(newValue: Any?): Boolean {
+        val accepted = super.callChangeListener(newValue)
+        if (accepted && key != "haptic_strength") {
+            HapticHelper.perform(context, kind = HapticHelper.HapticKind.SELECTION)
+        }
+        return accepted
     }
 
     override fun createAdapter(): ArrayAdapter<CharSequence?> {

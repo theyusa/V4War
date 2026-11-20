@@ -41,6 +41,14 @@ class SettingsFragment : ToolbarFragment(R.layout.layout_config_settings),
                 prefFrag.applyExpressiveSettingsStyle()
             }
         }
+
+        override fun onFragmentStarted(fm: FragmentManager, f: Fragment) {
+            if (f is androidx.fragment.app.DialogFragment) {
+                (f.dialog as? androidx.appcompat.app.AlertDialog)?.let {
+                    ExpressiveSettingsHelper.styleExpressiveAlertDialog(it)
+                }
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

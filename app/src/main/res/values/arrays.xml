@@ -854,4 +854,15 @@
         <item>@string/warp_http3_only</item>
         <item>HTTP/2</item>
     </string-array>
+
+    <string-array name="haptic_strength_entries">
+        <item>@string/haptic_strength_light</item>
+        <item>@string/haptic_strength_medium</item>
+        <item>@string/haptic_strength_strong</item>
+    </string-array>
+    <string-array name="haptic_strength_values" translatable="false">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </string-array>
 </resources>

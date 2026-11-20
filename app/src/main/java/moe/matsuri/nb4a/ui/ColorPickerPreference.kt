@@ -44,6 +44,7 @@ import io.nekohasekai.sagernet.ui.settings.ExpressiveShape
 import io.nekohasekai.sagernet.utils.MaterialPaletteStyle
 import io.nekohasekai.sagernet.utils.MaterialSchemeEngine
 import io.nekohasekai.sagernet.utils.MaterialSeedPreset
+import io.nekohasekai.sagernet.utils.HapticHelper
 import io.nekohasekai.sagernet.utils.Theme
 
 /**
@@ -341,6 +342,7 @@ constructor(
             row.addView(wheel)
             row.addView(title)
             row.setOnClickListener {
+                HapticHelper.perform(dialogContext, row, HapticHelper.HapticKind.SELECTION)
                 dialog?.dismiss()
                 if (style != currentStyle || Theme.activeThemeId() != Theme.MATERIAL_DYNAMIC) {
                     applyMaterialPaletteStyle(style)
@@ -349,11 +351,16 @@ constructor(
             listLayout.addView(row)
         }
 
-        dialog = MaterialAlertDialogBuilder(dialogContext)
+        val createdDialog = MaterialAlertDialogBuilder(dialogContext)
             .setTitle(if (isTr) "Palet Stili" else "Palette Style")
             .setView(scroll)
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .create()
+        dialog = createdDialog
+        createdDialog.setOnShowListener {
+            ExpressiveSettingsHelper.styleExpressiveAlertDialog(createdDialog)
+        }
+        createdDialog.show()
     }
 
     override fun onBindViewHolder(holder: PreferenceViewHolder) {
@@ -428,6 +435,7 @@ constructor(
                     )
                 }
                 setOnClickListener {
+                    HapticHelper.perform(context, this, HapticHelper.HapticKind.TAP)
                     showPaletteStyleDialog(isTr, activeSeed, currentStyle)
                 }
             }
@@ -532,6 +540,7 @@ constructor(
                                 FrameLayout.LayoutParams.MATCH_PARENT,
                             )
                             setOnClickListener {
+                                HapticHelper.perform(context, this, HapticHelper.HapticKind.SELECTION)
                                 if (item.isMonet) {
                                     applyTheme(Theme.MONET)
                                 } else {
@@ -646,6 +655,7 @@ constructor(
             isClickable = true
             isFocusable = true
             setOnClickListener {
+                HapticHelper.perform(context, this, HapticHelper.HapticKind.SELECTION)
                 if (!showingMaterialFamily) return@setOnClickListener
                 showingMaterialFamily = false
                 updateFamilyTabs()
@@ -661,6 +671,7 @@ constructor(
             isClickable = true
             isFocusable = true
             setOnClickListener {
+                HapticHelper.perform(context, this, HapticHelper.HapticKind.SELECTION)
                 if (showingMaterialFamily) return@setOnClickListener
                 showingMaterialFamily = true
                 updateFamilyTabs()
@@ -709,6 +720,7 @@ constructor(
                 mask,
             )
             setOnClickListener {
+                HapticHelper.perform(context, this, HapticHelper.HapticKind.TAP)
                 isExpanded = !isExpanded
                 DataStore.appearancePaletteExpanded = isExpanded
                 updateChevron(isExpanded)
@@ -818,7 +830,10 @@ constructor(
                 bgShape,
                 mask,
             )
-            setOnClickListener { showCustomColorDialog() }
+            setOnClickListener {
+                HapticHelper.perform(context, this, HapticHelper.HapticKind.TAP)
+                showCustomColorDialog()
+            }
         }
         customPill.addView(TextView(context).apply {
             text = context.getString(R.string.theme_custom_color)
@@ -867,6 +882,7 @@ constructor(
                 GradientDrawable().apply { shape = GradientDrawable.OVAL },
             )
             setOnClickListener {
+                HapticHelper.perform(context, this, HapticHelper.HapticKind.SELECTION)
                 if (preset.id == Theme.CUSTOM) {
                     showCustomColorDialog()
                 } else {
@@ -1178,25 +1194,7 @@ constructor(
             .create()
 
         dialog.setOnShowListener {
-            val inset = context.resources.getDimensionPixelSize(R.dimen.dialog_background_inset)
-            val surfaceBg = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = context.resources.getDimension(R.dimen.dialog_corner_radius)
-                setColor(cardBg)
-                setStroke(
-                    dp2px(0.8f).coerceAtLeast(1),
-                    if (isAmoledBorder) strokeCol else ColorUtils.setAlphaComponent(textSecondary, 55),
-                )
-            }
-            dialog.window?.setBackgroundDrawable(InsetDrawable(surfaceBg, inset))
-            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)?.apply {
-                isAllCaps = false
-                setTextColor(accentColor)
-            }
-            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE)?.apply {
-                isAllCaps = false
-                setTextColor(textSecondary)
-            }
+            ExpressiveSettingsHelper.styleExpressiveAlertDialog(dialog)
         }
         dialog.show()
     }

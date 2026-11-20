@@ -10,6 +10,7 @@ import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceGroup
+import androidx.preference.TwoStatePreference
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.database.DataStore
@@ -22,6 +23,7 @@ import moe.matsuri.nb4a.ui.EditConfigPreference
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import io.nekohasekai.sagernet.ktx.getColorAttr
+import io.nekohasekai.sagernet.utils.HapticHelper
 import io.nekohasekai.sagernet.utils.Theme
 
 /**
@@ -167,13 +169,28 @@ abstract class SettingsScreenFragment(@XmlRes private val preferences: Int) : Pr
         return validation.bind(key, rule).gate()
     }
 
+    override fun onPreferenceTreeClick(preference: Preference): Boolean {
+        val kind = when (preference) {
+            is TwoStatePreference -> HapticHelper.HapticKind.TOGGLE
+            else -> HapticHelper.HapticKind.TAP
+        }
+        if (preference.key != "haptic_enabled") {
+            HapticHelper.perform(context, view, kind)
+        }
+        return super.onPreferenceTreeClick(preference)
+    }
+
     /** The refusal dialog of a gate, for checks a [ValidationForm.Field.gate] cannot express. */
     protected fun refuse(preference: Preference, message: String) {
-        MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(preference.title?.toString()?.ifEmpty { null } ?: getString(R.string.validation_form_title))
             .setMessage(message)
             .setPositiveButton(android.R.string.ok, null)
-            .show()
+            .create()
+        dialog.setOnShowListener {
+            ExpressiveSettingsHelper.styleExpressiveAlertDialog(dialog)
+        }
+        dialog.show()
     }
 
     companion object {

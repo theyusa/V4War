@@ -31,6 +31,7 @@ import io.nekohasekai.sagernet.ui.MainActivity
 import io.nekohasekai.sagernet.utils.AlwaysOnVpn
 import io.nekohasekai.sagernet.utils.AppLocale
 import io.nekohasekai.sagernet.utils.BatteryOptimizations
+import io.nekohasekai.sagernet.utils.HapticHelper
 import io.nekohasekai.sagernet.utils.OemBackground
 import io.nekohasekai.sagernet.utils.Theme
 import moe.matsuri.nb4a.ui.ColorPickerPreference
@@ -151,6 +152,32 @@ class AppearanceSettingsFragment : SettingsScreenFragment(R.xml.settings_appeara
             AppLocale.apply(newValue as String)
             true
         }
+        pref<SwitchPreference>("haptic_enabled").setOnPreferenceChangeListener { _, newValue ->
+            val enabled = newValue as Boolean
+            DataStore.hapticEnabled = enabled
+            if (enabled) {
+                HapticHelper.perform(
+                    requireContext(),
+                    listView,
+                    HapticHelper.HapticKind.TOGGLE,
+                    forceStrength = DataStore.hapticStrength,
+                )
+            }
+            true
+        }
+        pref<SimpleMenuPreference>("haptic_strength").setOnPreferenceChangeListener { _, newValue ->
+            val strength = (newValue as? String)?.toIntOrNull() ?: HapticHelper.STRENGTH_MEDIUM
+            DataStore.hapticStrength = strength
+            if (DataStore.hapticEnabled) {
+                HapticHelper.perform(
+                    requireContext(),
+                    listView,
+                    HapticHelper.HapticKind.TOGGLE,
+                    forceStrength = strength,
+                )
+            }
+            true
+        }
         DataStore.configurationStore.registerChangeListener(notificationListener)
 
         pref<MultiSelectListPreference>(Key.NOTIFICATION_ACTIONS).summaryProvider =
@@ -206,16 +233,25 @@ class AppearanceSettingsFragment : SettingsScreenFragment(R.xml.settings_appeara
             val full = boxes.count { it.isChecked } >= ServiceNotification.MAX_ACTIONS
             for (box in boxes) box.isEnabled = box.isChecked || !full
         }
-        for (box in boxes) box.setOnCheckedChangeListener { _, _ -> sync() }
+        for (box in boxes) {
+            box.setOnCheckedChangeListener { _, _ ->
+                HapticHelper.perform(requireContext(), box, HapticHelper.HapticKind.TOGGLE)
+                sync()
+            }
+        }
         sync()
-        builder.setTitle(preference.title)
+        val dialog = builder.setTitle(preference.title)
             .setView(view)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val chosen = values.filterIndexedTo(HashSet()) { i, _ -> boxes[i].isChecked }
                 if (preference.callChangeListener(chosen)) preference.values = chosen
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .create()
+        dialog.setOnShowListener {
+            ExpressiveSettingsHelper.styleExpressiveAlertDialog(dialog)
+        }
+        dialog.show()
     }
 
     override fun onResume() {

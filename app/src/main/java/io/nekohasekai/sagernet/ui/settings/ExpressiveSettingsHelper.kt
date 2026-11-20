@@ -13,6 +13,7 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
 import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.RippleDrawable
 import android.text.TextUtils
@@ -24,7 +25,9 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
@@ -40,6 +43,7 @@ import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.shape.CornerFamily
 import com.google.android.material.shape.ShapeAppearanceModel
@@ -49,6 +53,7 @@ import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.FixedLinearLayoutManager
 import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
+import io.nekohasekai.sagernet.utils.HapticHelper
 import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.widget.ExpressivePreferenceDecoration
 import java.util.WeakHashMap
@@ -351,7 +356,10 @@ object ExpressiveSettingsHelper {
             root.visibility = View.VISIBLE
             titleView.text = title
             navButton.contentDescription = contentDescription
-            navButton.setOnClickListener { onNavClick() }
+            navButton.setOnClickListener {
+                HapticHelper.perform(context, navButton, HapticHelper.HapticKind.TAP)
+                onNavClick()
+            }
             val drawable = ResourcesCompat.getDrawable(context.resources, iconRes, null)?.mutate()
             if (drawable != null) {
                 DrawableCompat.setTint(drawable, textPrimary)
@@ -724,6 +732,7 @@ object ExpressiveSettingsHelper {
         button.backgroundTintList = ColorStateList.valueOf(accent)
         button.setTextColor(onAccent)
         button.iconTint = ColorStateList.valueOf(onAccent)
+        HapticHelper.attachTapHaptic(button, HapticHelper.HapticKind.TAP)
     }
 
     fun styleOutlinedButton(button: MaterialButton) {
@@ -748,6 +757,7 @@ object ExpressiveSettingsHelper {
         button.setTextColor(textColor)
         button.iconTint = ColorStateList.valueOf(textColor)
         button.rippleColor = ColorStateList.valueOf(ColorUtils.setAlphaComponent(accent, 38))
+        HapticHelper.attachTapHaptic(button, HapticHelper.HapticKind.TAP)
     }
 
     fun styleExpressiveChip(chip: Chip, cornerRadiusDp: Float = 12f) {
@@ -813,6 +823,214 @@ object ExpressiveSettingsHelper {
         chip.textEndPadding = dp2px(4).toFloat()
         chip.iconStartPadding = dp2px(2).toFloat()
         chip.iconEndPadding = dp2px(2).toFloat()
+        HapticHelper.attachTapHaptic(chip, HapticHelper.HapticKind.SELECTION)
+    }
+
+    fun showExpressiveInfoDialog(
+        context: Context,
+        title: CharSequence,
+        message: CharSequence,
+        iconDrawable: Drawable? = null,
+    ) {
+        val isNight = Theme.usingNightMode(context)
+        val isAmoled = Theme.isBlackTheme(context)
+        val isBorderTheme = Theme.isAnyAmoled(context) || Theme.isMonochromeBlack(context)
+        val textPrimary = context.getColorAttr(android.R.attr.textColorPrimary)
+        val textSecondary = context.getColorAttr(android.R.attr.textColorSecondary)
+        val cardBg = Theme.resolveCardBackground(context)
+        val nestedBg = Theme.resolveNestedBoxBackground(context)
+        val strokeCol = Theme.resolveCardStrokeColor(context, selected = false)
+        val strokeWidthPx = dp2px(1)
+
+        val (containerColor, iconColor) = resolveBadgeColors(context, isNight, isAmoled)
+        val rawIcon = iconDrawable?.let { unwrapOriginalIcon(it) }
+            ?: ResourcesCompat.getDrawable(context.resources, R.drawable.ic_baseline_help_outline_24, null)
+        val badgeIcon = rawIcon?.let {
+            createMaskedIcon(
+                context = context,
+                originalDrawable = it,
+                containerColor = containerColor,
+                iconColor = iconColor,
+                sizeDp = 44,
+                iconSizeDp = 22,
+                shape = ExpressiveShape.SQUIRCLE,
+            )
+        }
+
+        val cardRoot = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp2px(22), dp2px(20), dp2px(22), dp2px(18))
+        }
+
+        val headerRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            )
+        }
+        if (badgeIcon != null) {
+            headerRow.addView(ImageView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(dp2px(44), dp2px(44)).apply {
+                    marginEnd = dp2px(14)
+                }
+                setImageDrawable(badgeIcon)
+            })
+        }
+        headerRow.addView(TextView(context).apply {
+            text = title
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            letterSpacing = 0f
+            setTextColor(textPrimary)
+            maxLines = 2
+            ellipsize = TextUtils.TruncateAt.END
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        })
+        cardRoot.addView(headerRow)
+
+        val messageBox = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp2px(14)
+            }
+            setPadding(dp2px(16), dp2px(14), dp2px(16), dp2px(14))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp2px(18).toFloat()
+                setColor(nestedBg)
+                setStroke(
+                    strokeWidthPx,
+                    if (isBorderTheme) strokeCol else ColorUtils.setAlphaComponent(strokeCol, 140),
+                )
+            }
+        }
+
+        val maxBodyHeight = (context.resources.displayMetrics.heightPixels * 0.42f).toInt().coerceAtLeast(dp2px(140))
+        val scrollView = object : ScrollView(context) {
+            override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+                val cappedHeightSpec = MeasureSpec.makeMeasureSpec(maxBodyHeight, MeasureSpec.AT_MOST)
+                super.onMeasure(widthMeasureSpec, cappedHeightSpec)
+            }
+        }.apply {
+            isVerticalScrollBarEnabled = true
+            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
+        }
+        scrollView.addView(TextView(context).apply {
+            text = message
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setLineSpacing(dp2px(2).toFloat(), 1.25f)
+            setTextColor(textPrimary)
+        })
+        messageBox.addView(scrollView)
+        cardRoot.addView(messageBox)
+
+        var dialog: AlertDialog? = null
+        val actionRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp2px(18)
+            }
+        }
+        val okButton = MaterialButton(context).apply {
+            text = context.getString(android.R.string.ok)
+            cornerRadius = dp2px(99)
+            minHeight = dp2px(42)
+            minimumHeight = dp2px(42)
+            minWidth = dp2px(96)
+            insetTop = 0
+            insetBottom = 0
+            stylePrimaryButton(this)
+            setOnClickListener {
+                HapticHelper.perform(context, this, HapticHelper.HapticKind.TAP)
+                dialog?.dismiss()
+            }
+        }
+        actionRow.addView(okButton)
+        cardRoot.addView(actionRow)
+
+        dialog = MaterialAlertDialogBuilder(context)
+            .setView(cardRoot)
+            .create()
+
+        dialog.setOnShowListener {
+            val inset = context.resources.getDimensionPixelSize(R.dimen.dialog_background_inset)
+            val surfaceBg = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp2px(28).toFloat()
+                setColor(ColorUtils.setAlphaComponent(cardBg, 0xFF))
+                setStroke(
+                    strokeWidthPx,
+                    if (isBorderTheme) strokeCol else ColorUtils.setAlphaComponent(textSecondary, 60),
+                )
+            }
+            dialog.window?.setBackgroundDrawable(InsetDrawable(surfaceBg, inset))
+        }
+        dialog.show()
+    }
+
+    fun styleExpressiveAlertDialog(dialog: AlertDialog) {
+        val ctx = dialog.context
+        val isBorderTheme = Theme.isAnyAmoled(ctx) || Theme.isMonochromeBlack(ctx)
+        val cardBg = Theme.resolveCardBackground(ctx)
+        val strokeCol = Theme.resolveCardStrokeColor(ctx, selected = false)
+        val textPrimary = ctx.getColorAttr(android.R.attr.textColorPrimary)
+        val textSecondary = ctx.getColorAttr(android.R.attr.textColorSecondary)
+        val accent = resolveAccentColor(ctx)
+        val strokePx = dp2px(1)
+
+        val inset = ctx.resources.getDimensionPixelSize(R.dimen.dialog_background_inset)
+        val surfaceBg = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp2px(28).toFloat()
+            setColor(ColorUtils.setAlphaComponent(cardBg, 0xFF))
+            setStroke(
+                strokePx,
+                if (isBorderTheme) strokeCol else ColorUtils.setAlphaComponent(textSecondary, 55),
+            )
+        }
+        dialog.window?.setBackgroundDrawable(InsetDrawable(surfaceBg, inset))
+
+        dialog.findViewById<TextView>(androidx.appcompat.R.id.alertTitle)?.apply {
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            setTextColor(textPrimary)
+        }
+        dialog.findViewById<TextView>(android.R.id.message)?.apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setLineSpacing(dp2px(2).toFloat(), 1.2f)
+            setTextColor(textSecondary)
+        }
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.let { btn ->
+            if (btn is MaterialButton) {
+                btn.cornerRadius = dp2px(99)
+                btn.insetTop = 0
+                btn.insetBottom = 0
+                btn.minHeight = dp2px(40)
+                btn.setPadding(dp2px(18), btn.paddingTop, dp2px(18), btn.paddingBottom)
+                stylePrimaryButton(btn)
+            } else {
+                btn.isAllCaps = false
+                btn.typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                btn.setTextColor(accent)
+                HapticHelper.attachTapHaptic(btn, HapticHelper.HapticKind.TAP)
+            }
+        }
+        listOf(AlertDialog.BUTTON_NEGATIVE, AlertDialog.BUTTON_NEUTRAL).forEach { which ->
+            dialog.getButton(which)?.let { btn ->
+                btn.isAllCaps = false
+                btn.typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                btn.setTextColor(textSecondary)
+                HapticHelper.attachTapHaptic(btn, HapticHelper.HapticKind.TAP)
+            }
+        }
     }
 
     fun styleExpressiveChips(root: View) {
@@ -980,12 +1198,14 @@ private fun attachPreferenceInfoHelper(list: androidx.recyclerview.widget.Recycl
 
         infoBtn.visibility = View.VISIBLE
         infoBtn.setOnClickListener {
+            HapticHelper.perform(ctx, infoBtn, HapticHelper.HapticKind.TAP)
             val titleText = pref?.title ?: titleView?.text ?: ""
-            com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
-                .setTitle(titleText)
-                .setMessage(fullSummary)
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+            ExpressiveSettingsHelper.showExpressiveInfoDialog(
+                context = ctx,
+                title = titleText,
+                message = fullSummary,
+                iconDrawable = pref?.icon,
+            )
         }
     }
 

@@ -248,6 +248,13 @@
     <string name="amoled_theme_summary">Gece modunda saf siyah arka plan kullan</string>
     <string name="tint_preference_icons">Ayar simgelerini renklendir</string>
     <string name="tint_preference_icons_summary">Ayar simgelerine tema vurgu rengini uygula</string>
+    <string name="cag_haptics">Dokunsal Geri Bildirim</string>
+    <string name="haptic_feedback">Titreşim geri bildirimi</string>
+    <string name="haptic_feedback_sum">Dokunmalar, anahtarlar ve gezinme için titreşim</string>
+    <string name="haptic_strength">Titreşim gücü</string>
+    <string name="haptic_strength_light">Hafif</string>
+    <string name="haptic_strength_medium">Orta</string>
+    <string name="haptic_strength_strong">Güçlü</string>
     <string name="menu_dashboard">sing-box paneli</string>
     <string name="action_copy">Kopyala</string>
     <string name="update_all_subscription">Tüm abonelikleri güncelle</string>

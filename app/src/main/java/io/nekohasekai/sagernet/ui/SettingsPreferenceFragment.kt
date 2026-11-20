@@ -10,6 +10,7 @@ import io.nekohasekai.sagernet.ktx.FixedLinearLayoutManager
 import io.nekohasekai.sagernet.ktx.confirmAction
 import io.nekohasekai.sagernet.ktx.triggerFullRestart
 import io.nekohasekai.sagernet.ui.settings.applyExpressiveSettingsStyle
+import io.nekohasekai.sagernet.utils.HapticHelper
 
 /**
  * The settings root: one entry per sub-screen (io.nekohasekai.sagernet.ui.settings, opened by [SettingsFragment]),
@@ -44,6 +45,11 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             }
             true
         }
+    }
+
+    override fun onPreferenceTreeClick(preference: Preference): Boolean {
+        HapticHelper.perform(context, view, HapticHelper.HapticKind.TAP)
+        return super.onPreferenceTreeClick(preference)
     }
 
     private companion object {

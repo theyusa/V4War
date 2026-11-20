@@ -110,6 +110,8 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var nightTheme by configurationStore.stringToInt(Key.NIGHT_THEME)
     var amoledTheme by configurationStore.boolean(Key.AMOLED_THEME)
     var tintPreferenceIcons by configurationStore.boolean(Key.TINT_PREFERENCE_ICONS) { true }
+    var hapticEnabled by configurationStore.boolean("haptic_enabled") { true }
+    var hapticStrength by configurationStore.stringToInt("haptic_strength") { 2 }
     var appearancePreviewExpanded by configurationStore.boolean(Key.APPEARANCE_PREVIEW_EXPANDED) { true }
     var appearanceModeExpanded by configurationStore.boolean(Key.APPEARANCE_MODE_EXPANDED) { false }
     var appearancePaletteExpanded by configurationStore.boolean(Key.APPEARANCE_PALETTE_EXPANDED) { false }

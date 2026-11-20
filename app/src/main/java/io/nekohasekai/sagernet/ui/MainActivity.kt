@@ -65,6 +65,7 @@ import io.nekohasekai.sagernet.ui.MessageStore
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.database.RouteManager
 import io.nekohasekai.sagernet.utils.AppShortcuts
+import io.nekohasekai.sagernet.utils.HapticHelper
 import io.nekohasekai.sagernet.utils.PlatformNotifications
 import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.utils.WifiStateAccess
@@ -226,9 +227,16 @@ class MainActivity : ThemedActivity(),
             }
         }
 
-        binding.fab.setOnClickListener { toggleService() }
-        binding.stats.setOnClickListener { if (DataStore.serviceState.connected) binding.stats.testConnection() }
+        binding.fab.setOnClickListener {
+            HapticHelper.perform(this, binding.fab, HapticHelper.HapticKind.HEAVY)
+            toggleService()
+        }
+        binding.stats.setOnClickListener {
+            HapticHelper.perform(this, binding.stats, HapticHelper.HapticKind.TAP)
+            if (DataStore.serviceState.connected) binding.stats.testConnection()
+        }
         binding.stats.setOnLongClickListener {
+            HapticHelper.perform(this, binding.stats, HapticHelper.HapticKind.HEAVY)
             showStatsMenu()
             true
         }
@@ -514,6 +522,7 @@ class MainActivity : ThemedActivity(),
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        HapticHelper.perform(this, binding.navView, HapticHelper.HapticKind.SELECTION)
         if (item.isChecked) binding.drawerLayout.closeDrawers() else {
             return displayFragmentWithId(item.itemId)
         }

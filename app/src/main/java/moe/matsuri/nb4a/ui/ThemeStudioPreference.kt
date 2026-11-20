@@ -35,6 +35,7 @@ import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
 import io.nekohasekai.sagernet.ui.settings.ExpressiveShape
+import io.nekohasekai.sagernet.utils.HapticHelper
 import io.nekohasekai.sagernet.utils.Theme
 
 /**
@@ -76,6 +77,7 @@ class ThemeStudioPreference @JvmOverloads constructor(
     }
 
     private fun selectSurfaceMode(mode: Int) {
+        HapticHelper.perform(context, kind = HapticHelper.HapticKind.SELECTION)
         DataStore.nightTheme = mode
         Theme.currentNightMode = mode
         DataStore.amoledTheme = (mode == Theme.NIGHT_PURE_AMOLED)
@@ -95,6 +97,7 @@ class ThemeStudioPreference @JvmOverloads constructor(
     }
 
     private fun selectSpecialTheme(themeId: Int) {
+        HapticHelper.perform(context, kind = HapticHelper.HapticKind.SELECTION)
         if (Theme.isColorfulSeed(DataStore.appTheme)) {
             Theme.rememberSeedTheme(DataStore.appTheme)
         }
@@ -300,6 +303,7 @@ class ThemeStudioPreference @JvmOverloads constructor(
                     mask,
                 )
                 setOnClickListener {
+                    HapticHelper.perform(context, this, HapticHelper.HapticKind.TAP)
                     currentExpanded = !currentExpanded
                     onToggle(currentExpanded)
                     updateChevron(currentExpanded)
