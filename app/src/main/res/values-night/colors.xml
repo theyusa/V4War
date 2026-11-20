@@ -119,4 +119,27 @@
     <color name="inverse_primary_brown">@color/material_brown_700</color>
     <color name="inverse_primary_grey">@color/material_grey_700</color>
     <color name="inverse_primary_blue_grey">@color/material_blue_grey_700</color>
+
+    <!-- Day/Night-aware container tokens for Custom Themes (Dark -> dark tonal container for #FFFFFF ink) -->
+    <color name="container_pink">@color/card_elevated_pink</color>
+    <color name="container_pink_ssr">@color/card_elevated_pink_ssr</color>
+    <color name="container_red">@color/card_elevated_red</color>
+    <color name="container_verdant_mint">@color/card_elevated_verdant_mint</color>
+    <color name="container_blue">@color/card_elevated_blue</color>
+    <color name="container_light_blue">@color/card_elevated_light_blue</color>
+    <color name="container_cyan">@color/card_elevated_cyan</color>
+    <color name="container_teal">@color/card_elevated_teal</color>
+    <color name="container_green">@color/card_elevated_green</color>
+    <color name="container_light_green">@color/card_elevated_light_green</color>
+    <color name="container_lime">@color/card_elevated_lime</color>
+    <color name="container_yellow">@color/card_elevated_yellow</color>
+    <color name="container_amber">@color/card_elevated_amber</color>
+    <color name="container_orange">@color/card_elevated_orange</color>
+    <color name="container_deep_orange">@color/card_elevated_deep_orange</color>
+    <color name="container_purple">@color/card_elevated_purple</color>
+    <color name="container_deep_purple">@color/card_elevated_deep_purple</color>
+    <color name="container_indigo">@color/card_elevated_indigo</color>
+    <color name="container_brown">@color/card_elevated_brown</color>
+    <color name="container_grey">@color/card_elevated_grey</color>
+    <color name="container_blue_grey">@color/card_elevated_blue_grey</color>
 </resources>

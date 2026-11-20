@@ -208,7 +208,7 @@ class LocalPingActivity : ThemedActivity(), SagerConnection.Callback {
                 text = if (sample.success) String.format("%.1f ms", sample.rttMs) else "TIMEOUT"
                 textSize = 13f
                 fontFeatureSettings = "tnum"
-                typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                 setTextColor(
                     if (sample.success) getColorAttr(android.R.attr.textColorPrimary)
                     else getColor(R.color.material_red_500),

@@ -642,7 +642,7 @@ class ThemeStudioPreference @JvmOverloads constructor(
             row.addView(TextView(context).apply {
                 text = if (selected) "38 ms" else "64 ms"
                 textSize = 9.5f
-                setTypeface(null, Typeface.BOLD)
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                 setTextColor(if (selected) accentColor else ColorUtils.setAlphaComponent(primaryBarCol, 150))
             })
             addView(row)

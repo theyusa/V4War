@@ -273,7 +273,7 @@ class IpLookupActivity : ThemedActivity(), SagerConnection.Callback {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             text = info.ip
             textSize = 16f
-            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             fontFeatureSettings = "tnum"
             setTextColor(getColorAttr(android.R.attr.textColorPrimary))
         }

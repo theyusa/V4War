@@ -102,7 +102,7 @@ open class SimpleMenuPreference
                 view.background = selectedPillDrawable
                 checkedView?.apply {
                     isChecked = true
-                    setTypeface(null, Typeface.BOLD)
+                    typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                     setTextColor(textPrimary)
                     val checkIcon = ResourcesCompat.getDrawable(
                         context.resources,
@@ -123,7 +123,7 @@ open class SimpleMenuPreference
                 view.background = null
                 checkedView?.apply {
                     isChecked = false
-                    setTypeface(null, Typeface.NORMAL)
+                    typeface = Typeface.create("sans-serif", Typeface.NORMAL)
                     setTextColor(textPrimary)
                     checkMarkDrawable = null
                     setCompoundDrawablesRelative(null, null, null, null)

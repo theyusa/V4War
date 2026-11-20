@@ -319,7 +319,7 @@ class TrafficUsageActivity : ThemedActivity(), SagerConnection.Callback {
             text = "#$rank"
             textSize = 11f
             fontFeatureSettings = "tnum"
-            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             setPadding(dp2px(7), dp2px(3), dp2px(7), dp2px(3))
         }
         ExpressiveSettingsHelper.styleExpressiveBadge(rankBadge)
@@ -333,7 +333,7 @@ class TrafficUsageActivity : ThemedActivity(), SagerConnection.Callback {
             TextView(this).apply {
                 text = entry.title
                 textSize = 14.5f
-                typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                 setTextColor(getColorAttr(android.R.attr.textColorPrimary))
             },
         )

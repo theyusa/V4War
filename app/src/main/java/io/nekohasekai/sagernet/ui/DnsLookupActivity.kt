@@ -210,7 +210,7 @@ class DnsLookupActivity : ThemedActivity(), SagerConnection.Callback {
             TextView(this).apply {
                 text = res.label
                 textSize = 15.5f
-                typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                 setTextColor(getColorAttr(android.R.attr.textColorPrimary))
             },
         )

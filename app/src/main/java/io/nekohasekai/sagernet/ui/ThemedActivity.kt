@@ -173,6 +173,19 @@ abstract class ThemedActivity : AppCompatActivity {
                 if (Theme.isMonochromeBlack(this@ThemedActivity)) Color.WHITE
                 else Theme.getSeedPrimaryColor(this@ThemedActivity),
             )
+        } else if (Theme.activeThemeId() == Theme.CUSTOM) {
+            val seed = Theme.getSeedPrimaryColor(this@ThemedActivity)
+            val isNight = Theme.usingNightMode(this@ThemedActivity)
+            val inverseSurface = getColorAttr(com.google.android.material.R.attr.colorSurfaceInverse)
+                .takeIf { it != 0 } ?: if (isNight) Color.parseColor("#ECEEF1") else Color.parseColor("#2B2D30")
+            var actionCol = seed
+            val targetInk = if (isNight) Color.BLACK else Color.WHITE
+            var step = 0.25f
+            while (ColorUtils.calculateContrast(actionCol, inverseSurface) < 4.5 && step <= 0.9f) {
+                actionCol = ColorUtils.blendARGB(seed, targetInk, step)
+                step += 0.15f
+            }
+            setActionTextColor(actionCol)
         }
     }
 

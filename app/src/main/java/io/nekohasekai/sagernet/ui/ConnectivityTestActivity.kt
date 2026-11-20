@@ -301,7 +301,7 @@ class ConnectivityTestActivity : ThemedActivity(), SagerConnection.Callback {
             TextView(this).apply {
                 text = item.spec.name
                 textSize = 15f
-                typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                 setTextColor(getColorAttr(android.R.attr.textColorPrimary))
             },
         )

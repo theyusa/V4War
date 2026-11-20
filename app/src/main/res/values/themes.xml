@@ -12,15 +12,15 @@
         <item name="colorPrimaryDark">@color/material_pink_700</item>
         <item name="colorAccent">@color/material_pink_accent_200</item>
         <item name="colorOnPrimary">@color/white</item>
-        <item name="colorPrimaryContainer">@color/material_pink_100</item>
+        <item name="colorPrimaryContainer">@color/container_pink</item>
         <item name="colorOnPrimaryContainer">@color/md3_on_primary_container</item>
         <item name="colorSecondary">@color/material_pink_accent_200</item>
         <item name="colorOnSecondary">@color/white</item>
-        <item name="colorSecondaryContainer">@color/material_pink_100</item>
+        <item name="colorSecondaryContainer">@color/container_pink</item>
         <item name="colorOnSecondaryContainer">@color/md3_on_primary_container</item>
         <item name="colorTertiary">@color/material_pink_700</item>
         <item name="colorOnTertiary">@color/white</item>
-        <item name="colorTertiaryContainer">@color/material_pink_100</item>
+        <item name="colorTertiaryContainer">@color/container_pink</item>
         <item name="colorOnTertiaryContainer">@color/md3_on_primary_container</item>
         <item name="colorSurfaceInverse">@color/md3_surface_inverse</item>
         <item name="colorOnSurfaceInverse">@color/md3_on_surface_inverse</item>
@@ -143,6 +143,7 @@
         <item name="actionOverflowMenuStyle">@style/Widget.SagerNet.PopupMenu.Overflow</item>
         <item name="bottomSheetDialogTheme">@style/ThemeOverlay.SagerNet.BottomSheetDialog</item>
         <item name="materialButtonStyle">@style/Widget.SagerNet.Button</item>
+        <item name="textAppearanceButton">@style/TextAppearance.SagerNet.Button</item>
 
     </style>
 
@@ -156,15 +157,15 @@
         <item name="colorPrimaryDark">@color/material_pink_700</item>
         <item name="colorAccent">@color/material_pink_accent_200</item>
         <item name="colorOnPrimary">@color/white</item>
-        <item name="colorPrimaryContainer">@color/material_pink_100</item>
+        <item name="colorPrimaryContainer">@color/container_pink</item>
         <item name="colorOnPrimaryContainer">@color/md3_on_primary_container</item>
         <item name="colorSecondary">@color/material_pink_accent_200</item>
         <item name="colorOnSecondary">@color/white</item>
-        <item name="colorSecondaryContainer">@color/material_pink_100</item>
+        <item name="colorSecondaryContainer">@color/container_pink</item>
         <item name="colorOnSecondaryContainer">@color/md3_on_primary_container</item>
         <item name="colorTertiary">@color/material_pink_700</item>
         <item name="colorOnTertiary">@color/white</item>
-        <item name="colorTertiaryContainer">@color/material_pink_100</item>
+        <item name="colorTertiaryContainer">@color/container_pink</item>
         <item name="colorOnTertiaryContainer">@color/md3_on_primary_container</item>
         <item name="colorSurfaceInverse">@color/md3_surface_inverse</item>
         <item name="colorOnSurfaceInverse">@color/md3_on_surface_inverse</item>
@@ -273,6 +274,7 @@
         <item name="actionOverflowMenuStyle">@style/Widget.SagerNet.PopupMenu.Overflow</item>
         <item name="bottomSheetDialogTheme">@style/ThemeOverlay.SagerNet.BottomSheetDialog</item>
         <item name="materialButtonStyle">@style/Widget.SagerNet.Button</item>
+        <item name="textAppearanceButton">@style/TextAppearance.SagerNet.Button</item>
 
         <item name="android:dialogCornerRadius">@dimen/dialog_corner_radius</item>
 
@@ -282,14 +284,18 @@
 
     <style name="AppearanceFoundation.Title" parent="TextAppearance.AppCompat.Title">
         <item name="android:textColor">?attr/colorOnSurface</item>
-        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:letterSpacing">0</item>
     </style>
 
-    <style name="ThemeOverlay.MaterialComponents.MaterialAlertDialog.SagerNet">
+    <style name="ThemeOverlay.MaterialComponents.MaterialAlertDialog.SagerNet" parent="ThemeOverlay.Material3Expressive.MaterialAlertDialog">
         <item name="colorSurface">?attr/cardElevatedSurfaceColor</item>
         <item name="android:colorBackgroundFloating">?attr/cardElevatedSurfaceColor</item>
         <item name="colorControlActivated">?attr/primaryOrTextPrimary</item>
         <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.SagerNet.Dialog</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/MaterialAlertDialog.SagerNet.Title.Text</item>
         <item name="buttonBarPositiveButtonStyle">
             @style/Widget.SagerNet.Button.TextButton.Dialog
         </item>
@@ -536,14 +542,14 @@
         <item name="android:textAllCaps">false</item>
         <item name="textAllCaps">false</item>
     </style>
-    <style name="TextAppearance.SagerNet.ListItem" parent="TextAppearance.Material3.BodyLarge">
+    <style name="TextAppearance.SagerNet.ListItem" parent="TextAppearance.AppCompat.Subhead">
         <item name="android:fontFamily">sans-serif</item>
         <item name="fontFamily">sans-serif</item>
         <item name="android:textSize">16sp</item>
         <item name="android:letterSpacing">0</item>
         <item name="android:textAllCaps">false</item>
     </style>
-    <style name="TextAppearance.SagerNet.ListItemSecondary" parent="TextAppearance.Material3.BodyMedium">
+    <style name="TextAppearance.SagerNet.ListItemSecondary" parent="TextAppearance.AppCompat.Body1">
         <item name="android:fontFamily">sans-serif</item>
         <item name="fontFamily">sans-serif</item>
         <item name="android:textSize">14sp</item>
@@ -772,11 +778,11 @@
         <item name="colorMaterial100">@color/material_pink_accent_100</item>
         <item name="colorMaterial300">@color/color_pink_ssr</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_pink_ssr</item>
-        <item name="colorPrimaryContainer">@color/material_pink_accent_100</item>
+        <item name="colorPrimaryContainer">@color/container_pink_ssr</item>
         <item name="colorSecondary">@color/material_pink_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_pink_accent_100</item>
+        <item name="colorSecondaryContainer">@color/container_pink_ssr</item>
         <item name="colorTertiary">@color/color_pink_ssr</item>
-        <item name="colorTertiaryContainer">@color/material_pink_accent_100</item>
+        <item name="colorTertiaryContainer">@color/container_pink_ssr</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_pink</item>
     </style>
 
@@ -787,11 +793,11 @@
         <item name="colorMaterial100">@color/material_amber_100</item>
         <item name="colorMaterial300">@color/material_amber_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_amber</item>
-        <item name="colorPrimaryContainer">@color/material_amber_100</item>
+        <item name="colorPrimaryContainer">@color/container_amber</item>
         <item name="colorSecondary">@color/material_amber_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_amber_100</item>
+        <item name="colorSecondaryContainer">@color/container_amber</item>
         <item name="colorTertiary">@color/material_amber_700</item>
-        <item name="colorTertiaryContainer">@color/material_amber_100</item>
+        <item name="colorTertiaryContainer">@color/container_amber</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_amber</item>
     </style>
 
@@ -809,11 +815,11 @@
         <item name="tabIndicatorColor">@color/material_blue_accent_200</item>
         <item name="fabColorBackground">@color/material_blue_accent_200</item>
         <item name="selectedColorPrimary">@color/material_blue_accent_200</item>
-        <item name="colorPrimaryContainer">@color/material_blue_100</item>
+        <item name="colorPrimaryContainer">@color/container_blue</item>
         <item name="colorSecondary">@color/material_blue_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_blue_100</item>
+        <item name="colorSecondaryContainer">@color/container_blue</item>
         <item name="colorTertiary">@color/material_blue_700</item>
-        <item name="colorTertiaryContainer">@color/material_blue_100</item>
+        <item name="colorTertiaryContainer">@color/container_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue</item>
     </style>
 
@@ -824,11 +830,11 @@
         <item name="colorMaterial100">@color/material_blue_grey_100</item>
         <item name="colorMaterial300">@color/material_blue_grey_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_blue_grey</item>
-        <item name="colorPrimaryContainer">@color/material_blue_grey_100</item>
+        <item name="colorPrimaryContainer">@color/container_blue_grey</item>
         <item name="colorSecondary">@color/material_blue_grey_200</item>
-        <item name="colorSecondaryContainer">@color/material_blue_grey_100</item>
+        <item name="colorSecondaryContainer">@color/container_blue_grey</item>
         <item name="colorTertiary">@color/material_blue_grey_700</item>
-        <item name="colorTertiaryContainer">@color/material_blue_grey_100</item>
+        <item name="colorTertiaryContainer">@color/container_blue_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue_grey</item>
     </style>
 
@@ -839,11 +845,11 @@
         <item name="colorMaterial100">@color/material_brown_100</item>
         <item name="colorMaterial300">@color/material_brown_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_brown</item>
-        <item name="colorPrimaryContainer">@color/material_brown_100</item>
+        <item name="colorPrimaryContainer">@color/container_brown</item>
         <item name="colorSecondary">@color/material_brown_200</item>
-        <item name="colorSecondaryContainer">@color/material_brown_100</item>
+        <item name="colorSecondaryContainer">@color/container_brown</item>
         <item name="colorTertiary">@color/material_brown_700</item>
-        <item name="colorTertiaryContainer">@color/material_brown_100</item>
+        <item name="colorTertiaryContainer">@color/container_brown</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_brown</item>
     </style>
 
@@ -854,11 +860,11 @@
         <item name="colorMaterial100">@color/material_cyan_100</item>
         <item name="colorMaterial300">@color/material_cyan_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_cyan</item>
-        <item name="colorPrimaryContainer">@color/material_cyan_100</item>
+        <item name="colorPrimaryContainer">@color/container_cyan</item>
         <item name="colorSecondary">@color/material_cyan_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_cyan_100</item>
+        <item name="colorSecondaryContainer">@color/container_cyan</item>
         <item name="colorTertiary">@color/material_cyan_700</item>
-        <item name="colorTertiaryContainer">@color/material_cyan_100</item>
+        <item name="colorTertiaryContainer">@color/container_cyan</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_cyan</item>
     </style>
 
@@ -869,11 +875,11 @@
         <item name="colorMaterial100">@color/material_deep_orange_100</item>
         <item name="colorMaterial300">@color/material_deep_orange_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_deep_orange</item>
-        <item name="colorPrimaryContainer">@color/material_deep_orange_100</item>
+        <item name="colorPrimaryContainer">@color/container_deep_orange</item>
         <item name="colorSecondary">@color/material_deep_orange_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_deep_orange_100</item>
+        <item name="colorSecondaryContainer">@color/container_deep_orange</item>
         <item name="colorTertiary">@color/material_deep_orange_700</item>
-        <item name="colorTertiaryContainer">@color/material_deep_orange_100</item>
+        <item name="colorTertiaryContainer">@color/container_deep_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_orange</item>
     </style>
 
@@ -884,11 +890,11 @@
         <item name="colorMaterial100">@color/material_deep_purple_100</item>
         <item name="colorMaterial300">@color/material_deep_purple_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_deep_purple</item>
-        <item name="colorPrimaryContainer">@color/material_deep_purple_100</item>
+        <item name="colorPrimaryContainer">@color/container_deep_purple</item>
         <item name="colorSecondary">@color/material_deep_purple_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_deep_purple_100</item>
+        <item name="colorSecondaryContainer">@color/container_deep_purple</item>
         <item name="colorTertiary">@color/material_deep_purple_700</item>
-        <item name="colorTertiaryContainer">@color/material_deep_purple_100</item>
+        <item name="colorTertiaryContainer">@color/container_deep_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_purple</item>
     </style>
 
@@ -899,11 +905,11 @@
         <item name="colorMaterial100">@color/material_green_100</item>
         <item name="colorMaterial300">@color/material_green_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_green</item>
-        <item name="colorPrimaryContainer">@color/material_green_100</item>
+        <item name="colorPrimaryContainer">@color/container_green</item>
         <item name="colorSecondary">@color/material_green_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_green_100</item>
+        <item name="colorSecondaryContainer">@color/container_green</item>
         <item name="colorTertiary">@color/material_green_700</item>
-        <item name="colorTertiaryContainer">@color/material_green_100</item>
+        <item name="colorTertiaryContainer">@color/container_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_green</item>
     </style>
 
@@ -914,11 +920,11 @@
         <item name="colorMaterial100">@color/material_grey_100</item>
         <item name="colorMaterial300">@color/material_grey_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_grey</item>
-        <item name="colorPrimaryContainer">@color/material_grey_200</item>
+        <item name="colorPrimaryContainer">@color/container_grey</item>
         <item name="colorSecondary">@color/material_grey_200</item>
-        <item name="colorSecondaryContainer">@color/material_grey_200</item>
+        <item name="colorSecondaryContainer">@color/container_grey</item>
         <item name="colorTertiary">@color/material_grey_700</item>
-        <item name="colorTertiaryContainer">@color/material_grey_200</item>
+        <item name="colorTertiaryContainer">@color/container_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_grey</item>
     </style>
 
@@ -929,11 +935,11 @@
         <item name="colorMaterial100">@color/material_indigo_100</item>
         <item name="colorMaterial300">@color/material_indigo_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_indigo</item>
-        <item name="colorPrimaryContainer">@color/material_indigo_100</item>
+        <item name="colorPrimaryContainer">@color/container_indigo</item>
         <item name="colorSecondary">@color/material_indigo_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_indigo_100</item>
+        <item name="colorSecondaryContainer">@color/container_indigo</item>
         <item name="colorTertiary">@color/material_indigo_700</item>
-        <item name="colorTertiaryContainer">@color/material_indigo_100</item>
+        <item name="colorTertiaryContainer">@color/container_indigo</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_indigo</item>
     </style>
 
@@ -944,11 +950,11 @@
         <item name="colorMaterial100">@color/material_light_blue_100</item>
         <item name="colorMaterial300">@color/material_light_blue_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_light_blue</item>
-        <item name="colorPrimaryContainer">@color/material_light_blue_100</item>
+        <item name="colorPrimaryContainer">@color/container_light_blue</item>
         <item name="colorSecondary">@color/material_light_blue_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_light_blue_100</item>
+        <item name="colorSecondaryContainer">@color/container_light_blue</item>
         <item name="colorTertiary">@color/material_light_blue_700</item>
-        <item name="colorTertiaryContainer">@color/material_light_blue_100</item>
+        <item name="colorTertiaryContainer">@color/container_light_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_blue</item>
     </style>
 
@@ -959,11 +965,11 @@
         <item name="colorMaterial100">@color/material_light_green_100</item>
         <item name="colorMaterial300">@color/material_light_green_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_light_green</item>
-        <item name="colorPrimaryContainer">@color/material_light_green_100</item>
+        <item name="colorPrimaryContainer">@color/container_light_green</item>
         <item name="colorSecondary">@color/material_light_green_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_light_green_100</item>
+        <item name="colorSecondaryContainer">@color/container_light_green</item>
         <item name="colorTertiary">@color/material_light_green_700</item>
-        <item name="colorTertiaryContainer">@color/material_light_green_100</item>
+        <item name="colorTertiaryContainer">@color/container_light_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_green</item>
     </style>
 
@@ -974,12 +980,14 @@
         <item name="colorMaterial100">@color/material_lime_100</item>
         <item name="colorMaterial300">@color/material_lime_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_lime</item>
-        <item name="colorPrimaryContainer">@color/material_lime_100</item>
+        <item name="colorPrimaryContainer">@color/container_lime</item>
         <item name="colorSecondary">@color/material_lime_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_lime_100</item>
+        <item name="colorSecondaryContainer">@color/container_lime</item>
         <item name="colorTertiary">@color/material_lime_700</item>
-        <item name="colorTertiaryContainer">@color/material_lime_100</item>
+        <item name="colorTertiaryContainer">@color/container_lime</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_lime</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorOnSecondary">@color/black</item>
     </style>
 
     <style name="Theme.SagerNet.Orange" parent="Theme.SagerNet">
@@ -996,11 +1004,11 @@
         <item name="tabIndicatorColor">@color/material_orange_accent_200</item>
         <item name="fabColorBackground">@color/material_orange_accent_200</item>
         <item name="selectedColorPrimary">@color/material_orange_accent_200</item>
-        <item name="colorPrimaryContainer">@color/material_orange_100</item>
+        <item name="colorPrimaryContainer">@color/container_orange</item>
         <item name="colorSecondary">@color/material_orange_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_orange_100</item>
+        <item name="colorSecondaryContainer">@color/container_orange</item>
         <item name="colorTertiary">@color/material_orange_700</item>
-        <item name="colorTertiaryContainer">@color/material_orange_100</item>
+        <item name="colorTertiaryContainer">@color/container_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_orange</item>
     </style>
 
@@ -1018,11 +1026,11 @@
         <item name="tabIndicatorColor">@color/material_purple_accent_200</item>
         <item name="fabColorBackground">@color/material_purple_accent_200</item>
         <item name="selectedColorPrimary">@color/material_purple_accent_200</item>
-        <item name="colorPrimaryContainer">@color/material_purple_100</item>
+        <item name="colorPrimaryContainer">@color/container_purple</item>
         <item name="colorSecondary">@color/material_purple_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_purple_100</item>
+        <item name="colorSecondaryContainer">@color/container_purple</item>
         <item name="colorTertiary">@color/material_purple_700</item>
-        <item name="colorTertiaryContainer">@color/material_purple_100</item>
+        <item name="colorTertiaryContainer">@color/container_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_purple</item>
     </style>
 
@@ -1040,11 +1048,11 @@
         <item name="tabIndicatorColor">@color/material_red_accent_200</item>
         <item name="fabColorBackground">@color/material_red_accent_200</item>
         <item name="selectedColorPrimary">@color/material_red_accent_200</item>
-        <item name="colorPrimaryContainer">@color/material_red_100</item>
+        <item name="colorPrimaryContainer">@color/container_red</item>
         <item name="colorSecondary">@color/material_red_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_red_100</item>
+        <item name="colorSecondaryContainer">@color/container_red</item>
         <item name="colorTertiary">@color/material_red_700</item>
-        <item name="colorTertiaryContainer">@color/material_red_100</item>
+        <item name="colorTertiaryContainer">@color/container_red</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_red</item>
     </style>
 
@@ -1055,11 +1063,11 @@
         <item name="colorMaterial100">@color/material_teal_100</item>
         <item name="colorMaterial300">@color/material_teal_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_teal</item>
-        <item name="colorPrimaryContainer">@color/material_teal_100</item>
+        <item name="colorPrimaryContainer">@color/container_teal</item>
         <item name="colorSecondary">@color/material_teal_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_teal_100</item>
+        <item name="colorSecondaryContainer">@color/container_teal</item>
         <item name="colorTertiary">@color/material_teal_700</item>
-        <item name="colorTertiaryContainer">@color/material_teal_100</item>
+        <item name="colorTertiaryContainer">@color/container_teal</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_teal</item>
     </style>
 
@@ -1071,11 +1079,11 @@
         <item name="colorMaterial300">@color/material_yellow_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_yellow</item>
         <item name="colorOnPrimarySurface">@color/black</item>
-        <item name="colorPrimaryContainer">@color/material_yellow_100</item>
+        <item name="colorPrimaryContainer">@color/container_yellow</item>
         <item name="colorSecondary">@color/material_yellow_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_yellow_100</item>
+        <item name="colorSecondaryContainer">@color/container_yellow</item>
         <item name="colorTertiary">@color/material_yellow_700</item>
-        <item name="colorTertiaryContainer">@color/material_yellow_100</item>
+        <item name="colorTertiaryContainer">@color/container_yellow</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_yellow</item>
     </style>
 
@@ -1086,11 +1094,11 @@
         <item name="colorMaterial100">@color/material_amber_100</item>
         <item name="colorMaterial300">@color/material_amber_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_amber</item>
-        <item name="colorPrimaryContainer">@color/material_amber_100</item>
+        <item name="colorPrimaryContainer">@color/container_amber</item>
         <item name="colorSecondary">@color/material_amber_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_amber_100</item>
+        <item name="colorSecondaryContainer">@color/container_amber</item>
         <item name="colorTertiary">@color/material_amber_700</item>
-        <item name="colorTertiaryContainer">@color/material_amber_100</item>
+        <item name="colorTertiaryContainer">@color/container_amber</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_amber</item>
     </style>
 
@@ -1101,11 +1109,11 @@
         <item name="colorMaterial100">@color/material_blue_100</item>
         <item name="colorMaterial300">@color/material_blue_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_blue</item>
-        <item name="colorPrimaryContainer">@color/material_blue_100</item>
+        <item name="colorPrimaryContainer">@color/container_blue</item>
         <item name="colorSecondary">@color/material_blue_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_blue_100</item>
+        <item name="colorSecondaryContainer">@color/container_blue</item>
         <item name="colorTertiary">@color/material_blue_700</item>
-        <item name="colorTertiaryContainer">@color/material_blue_100</item>
+        <item name="colorTertiaryContainer">@color/container_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue</item>
     </style>
 
@@ -1116,11 +1124,11 @@
         <item name="colorMaterial100">@color/material_blue_grey_100</item>
         <item name="colorMaterial300">@color/material_blue_grey_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_blue_grey</item>
-        <item name="colorPrimaryContainer">@color/material_blue_grey_100</item>
+        <item name="colorPrimaryContainer">@color/container_blue_grey</item>
         <item name="colorSecondary">@color/material_blue_grey_200</item>
-        <item name="colorSecondaryContainer">@color/material_blue_grey_100</item>
+        <item name="colorSecondaryContainer">@color/container_blue_grey</item>
         <item name="colorTertiary">@color/material_blue_grey_700</item>
-        <item name="colorTertiaryContainer">@color/material_blue_grey_100</item>
+        <item name="colorTertiaryContainer">@color/container_blue_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue_grey</item>
     </style>
 
@@ -1131,11 +1139,11 @@
         <item name="colorMaterial100">@color/material_brown_100</item>
         <item name="colorMaterial300">@color/material_brown_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_brown</item>
-        <item name="colorPrimaryContainer">@color/material_brown_100</item>
+        <item name="colorPrimaryContainer">@color/container_brown</item>
         <item name="colorSecondary">@color/material_brown_200</item>
-        <item name="colorSecondaryContainer">@color/material_brown_100</item>
+        <item name="colorSecondaryContainer">@color/container_brown</item>
         <item name="colorTertiary">@color/material_brown_700</item>
-        <item name="colorTertiaryContainer">@color/material_brown_100</item>
+        <item name="colorTertiaryContainer">@color/container_brown</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_brown</item>
     </style>
 
@@ -1146,11 +1154,11 @@
         <item name="colorMaterial100">@color/material_cyan_100</item>
         <item name="colorMaterial300">@color/material_cyan_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_cyan</item>
-        <item name="colorPrimaryContainer">@color/material_cyan_100</item>
+        <item name="colorPrimaryContainer">@color/container_cyan</item>
         <item name="colorSecondary">@color/material_cyan_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_cyan_100</item>
+        <item name="colorSecondaryContainer">@color/container_cyan</item>
         <item name="colorTertiary">@color/material_cyan_700</item>
-        <item name="colorTertiaryContainer">@color/material_cyan_100</item>
+        <item name="colorTertiaryContainer">@color/container_cyan</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_cyan</item>
     </style>
 
@@ -1161,11 +1169,11 @@
         <item name="colorMaterial100">@color/material_deep_orange_100</item>
         <item name="colorMaterial300">@color/material_deep_orange_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_deep_orange</item>
-        <item name="colorPrimaryContainer">@color/material_deep_orange_100</item>
+        <item name="colorPrimaryContainer">@color/container_deep_orange</item>
         <item name="colorSecondary">@color/material_deep_orange_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_deep_orange_100</item>
+        <item name="colorSecondaryContainer">@color/container_deep_orange</item>
         <item name="colorTertiary">@color/material_deep_orange_700</item>
-        <item name="colorTertiaryContainer">@color/material_deep_orange_100</item>
+        <item name="colorTertiaryContainer">@color/container_deep_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_orange</item>
     </style>
 
@@ -1176,11 +1184,11 @@
         <item name="colorMaterial100">@color/material_deep_purple_100</item>
         <item name="colorMaterial300">@color/material_deep_purple_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_deep_purple</item>
-        <item name="colorPrimaryContainer">@color/material_deep_purple_100</item>
+        <item name="colorPrimaryContainer">@color/container_deep_purple</item>
         <item name="colorSecondary">@color/material_deep_purple_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_deep_purple_100</item>
+        <item name="colorSecondaryContainer">@color/container_deep_purple</item>
         <item name="colorTertiary">@color/material_deep_purple_700</item>
-        <item name="colorTertiaryContainer">@color/material_deep_purple_100</item>
+        <item name="colorTertiaryContainer">@color/container_deep_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_purple</item>
     </style>
 
@@ -1191,11 +1199,11 @@
         <item name="colorMaterial100">@color/material_green_100</item>
         <item name="colorMaterial300">@color/material_green_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_green</item>
-        <item name="colorPrimaryContainer">@color/material_green_100</item>
+        <item name="colorPrimaryContainer">@color/container_green</item>
         <item name="colorSecondary">@color/material_green_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_green_100</item>
+        <item name="colorSecondaryContainer">@color/container_green</item>
         <item name="colorTertiary">@color/material_green_700</item>
-        <item name="colorTertiaryContainer">@color/material_green_100</item>
+        <item name="colorTertiaryContainer">@color/container_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_green</item>
     </style>
 
@@ -1206,11 +1214,11 @@
         <item name="colorMaterial100">@color/material_grey_100</item>
         <item name="colorMaterial300">@color/material_grey_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_grey</item>
-        <item name="colorPrimaryContainer">@color/material_grey_200</item>
+        <item name="colorPrimaryContainer">@color/container_grey</item>
         <item name="colorSecondary">@color/material_grey_200</item>
-        <item name="colorSecondaryContainer">@color/material_grey_200</item>
+        <item name="colorSecondaryContainer">@color/container_grey</item>
         <item name="colorTertiary">@color/material_grey_700</item>
-        <item name="colorTertiaryContainer">@color/material_grey_200</item>
+        <item name="colorTertiaryContainer">@color/container_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_grey</item>
     </style>
 
@@ -1221,11 +1229,11 @@
         <item name="colorMaterial100">@color/material_indigo_100</item>
         <item name="colorMaterial300">@color/material_indigo_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_indigo</item>
-        <item name="colorPrimaryContainer">@color/material_indigo_100</item>
+        <item name="colorPrimaryContainer">@color/container_indigo</item>
         <item name="colorSecondary">@color/material_indigo_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_indigo_100</item>
+        <item name="colorSecondaryContainer">@color/container_indigo</item>
         <item name="colorTertiary">@color/material_indigo_700</item>
-        <item name="colorTertiaryContainer">@color/material_indigo_100</item>
+        <item name="colorTertiaryContainer">@color/container_indigo</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_indigo</item>
     </style>
 
@@ -1236,11 +1244,11 @@
         <item name="colorMaterial100">@color/material_light_blue_100</item>
         <item name="colorMaterial300">@color/material_light_blue_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_light_blue</item>
-        <item name="colorPrimaryContainer">@color/material_light_blue_100</item>
+        <item name="colorPrimaryContainer">@color/container_light_blue</item>
         <item name="colorSecondary">@color/material_light_blue_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_light_blue_100</item>
+        <item name="colorSecondaryContainer">@color/container_light_blue</item>
         <item name="colorTertiary">@color/material_light_blue_700</item>
-        <item name="colorTertiaryContainer">@color/material_light_blue_100</item>
+        <item name="colorTertiaryContainer">@color/container_light_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_blue</item>
     </style>
 
@@ -1251,11 +1259,11 @@
         <item name="colorMaterial100">@color/material_light_green_100</item>
         <item name="colorMaterial300">@color/material_light_green_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_light_green</item>
-        <item name="colorPrimaryContainer">@color/material_light_green_100</item>
+        <item name="colorPrimaryContainer">@color/container_light_green</item>
         <item name="colorSecondary">@color/material_light_green_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_light_green_100</item>
+        <item name="colorSecondaryContainer">@color/container_light_green</item>
         <item name="colorTertiary">@color/material_light_green_700</item>
-        <item name="colorTertiaryContainer">@color/material_light_green_100</item>
+        <item name="colorTertiaryContainer">@color/container_light_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_green</item>
     </style>
 
@@ -1266,12 +1274,14 @@
         <item name="colorMaterial100">@color/material_lime_100</item>
         <item name="colorMaterial300">@color/material_lime_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_lime</item>
-        <item name="colorPrimaryContainer">@color/material_lime_100</item>
+        <item name="colorPrimaryContainer">@color/container_lime</item>
         <item name="colorSecondary">@color/material_lime_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_lime_100</item>
+        <item name="colorSecondaryContainer">@color/container_lime</item>
         <item name="colorTertiary">@color/material_lime_700</item>
-        <item name="colorTertiaryContainer">@color/material_lime_100</item>
+        <item name="colorTertiaryContainer">@color/container_lime</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_lime</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorOnSecondary">@color/black</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Orange" parent="Theme.SagerNet.Dialog">
@@ -1281,11 +1291,11 @@
         <item name="colorMaterial100">@color/material_orange_100</item>
         <item name="colorMaterial300">@color/material_orange_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_orange</item>
-        <item name="colorPrimaryContainer">@color/material_orange_100</item>
+        <item name="colorPrimaryContainer">@color/container_orange</item>
         <item name="colorSecondary">@color/material_orange_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_orange_100</item>
+        <item name="colorSecondaryContainer">@color/container_orange</item>
         <item name="colorTertiary">@color/material_orange_700</item>
-        <item name="colorTertiaryContainer">@color/material_orange_100</item>
+        <item name="colorTertiaryContainer">@color/container_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_orange</item>
     </style>
 
@@ -1296,11 +1306,11 @@
         <item name="colorMaterial100">@color/material_purple_100</item>
         <item name="colorMaterial300">@color/material_purple_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_purple</item>
-        <item name="colorPrimaryContainer">@color/material_purple_100</item>
+        <item name="colorPrimaryContainer">@color/container_purple</item>
         <item name="colorSecondary">@color/material_purple_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_purple_100</item>
+        <item name="colorSecondaryContainer">@color/container_purple</item>
         <item name="colorTertiary">@color/material_purple_700</item>
-        <item name="colorTertiaryContainer">@color/material_purple_100</item>
+        <item name="colorTertiaryContainer">@color/container_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_purple</item>
     </style>
 
@@ -1311,11 +1321,11 @@
         <item name="colorMaterial100">@color/material_red_100</item>
         <item name="colorMaterial300">@color/material_red_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_red</item>
-        <item name="colorPrimaryContainer">@color/material_red_100</item>
+        <item name="colorPrimaryContainer">@color/container_red</item>
         <item name="colorSecondary">@color/material_red_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_red_100</item>
+        <item name="colorSecondaryContainer">@color/container_red</item>
         <item name="colorTertiary">@color/material_red_700</item>
-        <item name="colorTertiaryContainer">@color/material_red_100</item>
+        <item name="colorTertiaryContainer">@color/container_red</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_red</item>
     </style>
 
@@ -1326,11 +1336,11 @@
         <item name="colorMaterial100">@color/material_pink_accent_100</item>
         <item name="colorMaterial300">@color/color_pink_ssr</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_pink_ssr</item>
-        <item name="colorPrimaryContainer">@color/material_pink_accent_100</item>
+        <item name="colorPrimaryContainer">@color/container_pink_ssr</item>
         <item name="colorSecondary">@color/material_pink_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_pink_accent_100</item>
+        <item name="colorSecondaryContainer">@color/container_pink_ssr</item>
         <item name="colorTertiary">@color/color_pink_ssr</item>
-        <item name="colorTertiaryContainer">@color/material_pink_accent_100</item>
+        <item name="colorTertiaryContainer">@color/container_pink_ssr</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_pink</item>
     </style>
 
@@ -1341,11 +1351,11 @@
         <item name="colorMaterial100">@color/material_teal_100</item>
         <item name="colorMaterial300">@color/material_teal_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_teal</item>
-        <item name="colorPrimaryContainer">@color/material_teal_100</item>
+        <item name="colorPrimaryContainer">@color/container_teal</item>
         <item name="colorSecondary">@color/material_teal_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_teal_100</item>
+        <item name="colorSecondaryContainer">@color/container_teal</item>
         <item name="colorTertiary">@color/material_teal_700</item>
-        <item name="colorTertiaryContainer">@color/material_teal_100</item>
+        <item name="colorTertiaryContainer">@color/container_teal</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_teal</item>
     </style>
 
@@ -1357,11 +1367,11 @@
         <item name="colorMaterial300">@color/material_yellow_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_yellow</item>
         <item name="colorOnPrimarySurface">@color/black</item>
-        <item name="colorPrimaryContainer">@color/material_yellow_100</item>
+        <item name="colorPrimaryContainer">@color/container_yellow</item>
         <item name="colorSecondary">@color/material_yellow_accent_200</item>
-        <item name="colorSecondaryContainer">@color/material_yellow_100</item>
+        <item name="colorSecondaryContainer">@color/container_yellow</item>
         <item name="colorTertiary">@color/material_yellow_700</item>
-        <item name="colorTertiaryContainer">@color/material_yellow_100</item>
+        <item name="colorTertiaryContainer">@color/container_yellow</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_yellow</item>
     </style>
 
@@ -1441,11 +1451,11 @@
         <item name="tabIndicatorColor">@color/color_verdant_mint_accent</item>
         <item name="fabColorBackground">@color/color_verdant_mint_accent</item>
         <item name="selectedColorPrimary">@color/color_verdant_mint_accent</item>
-        <item name="colorPrimaryContainer">@color/color_verdant_mint_100</item>
+        <item name="colorPrimaryContainer">@color/container_verdant_mint</item>
         <item name="colorSecondary">@color/color_verdant_mint_accent</item>
-        <item name="colorSecondaryContainer">@color/color_verdant_mint_100</item>
+        <item name="colorSecondaryContainer">@color/container_verdant_mint</item>
         <item name="colorTertiary">@color/color_verdant_mint_dark</item>
-        <item name="colorTertiaryContainer">@color/color_verdant_mint_100</item>
+        <item name="colorTertiaryContainer">@color/container_verdant_mint</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_verdant_mint</item>
     </style>
 
@@ -1600,11 +1610,11 @@
         <item name="colorMaterial100">@color/color_verdant_mint_100</item>
         <item name="colorMaterial300">@color/color_verdant_mint_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_verdant_mint</item>
-        <item name="colorPrimaryContainer">@color/color_verdant_mint_100</item>
+        <item name="colorPrimaryContainer">@color/container_verdant_mint</item>
         <item name="colorSecondary">@color/color_verdant_mint_accent</item>
-        <item name="colorSecondaryContainer">@color/color_verdant_mint_100</item>
+        <item name="colorSecondaryContainer">@color/container_verdant_mint</item>
         <item name="colorTertiary">@color/color_verdant_mint_dark</item>
-        <item name="colorTertiaryContainer">@color/color_verdant_mint_100</item>
+        <item name="colorTertiaryContainer">@color/container_verdant_mint</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_verdant_mint</item>
     </style>
 
@@ -1733,6 +1743,8 @@
         <item name="colorOnSurface">@color/white</item>
         <item name="colorOnSurfaceVariant">@color/color_black_theme_text_secondary</item>
         <item name="colorOnPrimary">@color/black</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorOnTertiary">@color/black</item>
 
         <item name="tabTextColor">@color/color_black_theme_tab_unselected</item>
         <item name="tabSelectedTextColor">?colorPrimary</item>
@@ -1763,6 +1775,9 @@
         <item name="colorSurfaceInverse">#ECEEF1</item>
         <item name="colorOnSurfaceInverse">#1C1B1F</item>
         <item name="colorPrimaryInverse">?attr/colorPrimaryDark</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorOnTertiary">@color/black</item>
         <item name="colorOnPrimaryContainer">@color/white</item>
         <item name="colorOnSecondaryContainer">@color/white</item>
         <item name="colorOnTertiaryContainer">@color/white</item>
@@ -1791,6 +1806,7 @@
         <item name="colorSecondary">@color/material_red_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_red</item>
         <item name="colorTertiary">@color/material_red_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_red</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_red</item>
     </style>
 
@@ -1805,6 +1821,7 @@
         <item name="colorSecondary">@color/color_verdant_mint_accent</item>
         <item name="colorSecondaryContainer">@color/card_elevated_verdant_mint</item>
         <item name="colorTertiary">@color/color_verdant_mint_accent</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_verdant_mint</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_verdant_mint</item>
     </style>
 
@@ -1819,6 +1836,7 @@
         <item name="colorSecondary">@color/material_blue_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_blue</item>
         <item name="colorTertiary">@color/material_blue_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue</item>
     </style>
 
@@ -1833,6 +1851,7 @@
         <item name="colorSecondary">@color/material_light_blue_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_light_blue</item>
         <item name="colorTertiary">@color/material_light_blue_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_light_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_blue</item>
     </style>
 
@@ -1847,6 +1866,7 @@
         <item name="colorSecondary">@color/material_cyan_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_cyan</item>
         <item name="colorTertiary">@color/material_cyan_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_cyan</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_cyan</item>
     </style>
 
@@ -1861,6 +1881,7 @@
         <item name="colorSecondary">@color/material_teal_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_teal</item>
         <item name="colorTertiary">@color/material_teal_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_teal</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_teal</item>
     </style>
 
@@ -1875,6 +1896,7 @@
         <item name="colorSecondary">@color/material_green_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_green</item>
         <item name="colorTertiary">@color/material_green_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_green</item>
     </style>
 
@@ -1889,6 +1911,7 @@
         <item name="colorSecondary">@color/material_light_green_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_light_green</item>
         <item name="colorTertiary">@color/material_light_green_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_light_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_green</item>
     </style>
 
@@ -1903,6 +1926,7 @@
         <item name="colorSecondary">@color/material_lime_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_lime</item>
         <item name="colorTertiary">@color/material_lime_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_lime</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_lime</item>
     </style>
 
@@ -1917,6 +1941,7 @@
         <item name="colorSecondary">@color/material_yellow_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_yellow</item>
         <item name="colorTertiary">@color/material_yellow_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_yellow</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_yellow</item>
     </style>
 
@@ -1931,6 +1956,7 @@
         <item name="colorSecondary">@color/material_amber_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_amber</item>
         <item name="colorTertiary">@color/material_amber_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_amber</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_amber</item>
     </style>
 
@@ -1945,6 +1971,7 @@
         <item name="colorSecondary">@color/material_orange_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_orange</item>
         <item name="colorTertiary">@color/material_orange_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_orange</item>
     </style>
 
@@ -1959,6 +1986,7 @@
         <item name="colorSecondary">@color/material_deep_orange_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_deep_orange</item>
         <item name="colorTertiary">@color/material_deep_orange_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_deep_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_orange</item>
     </style>
 
@@ -1973,6 +2001,7 @@
         <item name="colorSecondary">@color/material_purple_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_purple</item>
         <item name="colorTertiary">@color/material_purple_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_purple</item>
     </style>
 
@@ -1987,6 +2016,7 @@
         <item name="colorSecondary">@color/material_deep_purple_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_deep_purple</item>
         <item name="colorTertiary">@color/material_deep_purple_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_deep_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_purple</item>
     </style>
 
@@ -2001,6 +2031,7 @@
         <item name="colorSecondary">@color/material_indigo_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_indigo</item>
         <item name="colorTertiary">@color/material_indigo_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_indigo</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_indigo</item>
     </style>
 
@@ -2015,6 +2046,7 @@
         <item name="colorSecondary">@color/material_pink_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_pink</item>
         <item name="colorTertiary">@color/material_pink_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_pink</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_pink</item>
     </style>
 
@@ -2029,6 +2061,7 @@
         <item name="colorSecondary">@color/color_pink_ssr</item>
         <item name="colorSecondaryContainer">@color/card_elevated_pink_ssr</item>
         <item name="colorTertiary">@color/color_pink_ssr</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_pink_ssr</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_pink</item>
     </style>
 
@@ -2043,6 +2076,7 @@
         <item name="colorSecondary">@color/dialog_button_brown</item>
         <item name="colorSecondaryContainer">@color/card_elevated_brown</item>
         <item name="colorTertiary">@color/dialog_button_brown</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_brown</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_brown</item>
     </style>
 
@@ -2057,6 +2091,7 @@
         <item name="colorSecondary">@color/md3_text_primary</item>
         <item name="colorSecondaryContainer">@color/card_elevated_grey</item>
         <item name="colorTertiary">@color/md3_text_primary</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_grey</item>
     </style>
 
@@ -2071,6 +2106,7 @@
         <item name="colorSecondary">@color/dialog_button_blue_grey</item>
         <item name="colorSecondaryContainer">@color/card_elevated_blue_grey</item>
         <item name="colorTertiary">@color/dialog_button_blue_grey</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_blue_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue_grey</item>
     </style>
 
@@ -2083,6 +2119,7 @@
         <item name="colorSecondary">@color/material_red_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_red</item>
         <item name="colorTertiary">@color/material_red_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_red</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_red</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.VerdantMint" parent="Theme.SagerNet.PureAmoled">
@@ -2093,6 +2130,7 @@
         <item name="colorSecondary">@color/color_verdant_mint_accent</item>
         <item name="colorSecondaryContainer">@color/card_elevated_verdant_mint</item>
         <item name="colorTertiary">@color/color_verdant_mint_accent</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_verdant_mint</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_verdant_mint</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Blue" parent="Theme.SagerNet.PureAmoled">
@@ -2103,6 +2141,7 @@
         <item name="colorSecondary">@color/material_blue_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_blue</item>
         <item name="colorTertiary">@color/material_blue_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.LightBlue" parent="Theme.SagerNet.PureAmoled">
@@ -2113,6 +2152,7 @@
         <item name="colorSecondary">@color/material_light_blue_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_light_blue</item>
         <item name="colorTertiary">@color/material_light_blue_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_light_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_blue</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Cyan" parent="Theme.SagerNet.PureAmoled">
@@ -2123,6 +2163,7 @@
         <item name="colorSecondary">@color/material_cyan_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_cyan</item>
         <item name="colorTertiary">@color/material_cyan_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_cyan</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_cyan</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Teal" parent="Theme.SagerNet.PureAmoled">
@@ -2133,6 +2174,7 @@
         <item name="colorSecondary">@color/material_teal_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_teal</item>
         <item name="colorTertiary">@color/material_teal_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_teal</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_teal</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Green" parent="Theme.SagerNet.PureAmoled">
@@ -2143,6 +2185,7 @@
         <item name="colorSecondary">@color/material_green_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_green</item>
         <item name="colorTertiary">@color/material_green_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_green</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.LightGreen" parent="Theme.SagerNet.PureAmoled">
@@ -2153,6 +2196,7 @@
         <item name="colorSecondary">@color/material_light_green_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_light_green</item>
         <item name="colorTertiary">@color/material_light_green_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_light_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_green</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Lime" parent="Theme.SagerNet.PureAmoled">
@@ -2163,6 +2207,7 @@
         <item name="colorSecondary">@color/material_lime_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_lime</item>
         <item name="colorTertiary">@color/material_lime_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_lime</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_lime</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Yellow" parent="Theme.SagerNet.PureAmoled">
@@ -2173,6 +2218,7 @@
         <item name="colorSecondary">@color/material_yellow_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_yellow</item>
         <item name="colorTertiary">@color/material_yellow_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_yellow</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_yellow</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Amber" parent="Theme.SagerNet.PureAmoled">
@@ -2183,6 +2229,7 @@
         <item name="colorSecondary">@color/material_amber_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_amber</item>
         <item name="colorTertiary">@color/material_amber_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_amber</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_amber</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Orange" parent="Theme.SagerNet.PureAmoled">
@@ -2193,6 +2240,7 @@
         <item name="colorSecondary">@color/material_orange_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_orange</item>
         <item name="colorTertiary">@color/material_orange_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_orange</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.DeepOrange" parent="Theme.SagerNet.PureAmoled">
@@ -2203,6 +2251,7 @@
         <item name="colorSecondary">@color/material_deep_orange_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_deep_orange</item>
         <item name="colorTertiary">@color/material_deep_orange_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_deep_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_orange</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Purple" parent="Theme.SagerNet.PureAmoled">
@@ -2213,6 +2262,7 @@
         <item name="colorSecondary">@color/material_purple_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_purple</item>
         <item name="colorTertiary">@color/material_purple_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_purple</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.DeepPurple" parent="Theme.SagerNet.PureAmoled">
@@ -2223,6 +2273,7 @@
         <item name="colorSecondary">@color/material_deep_purple_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_deep_purple</item>
         <item name="colorTertiary">@color/material_deep_purple_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_deep_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_purple</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Indigo" parent="Theme.SagerNet.PureAmoled">
@@ -2233,6 +2284,7 @@
         <item name="colorSecondary">@color/material_indigo_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_indigo</item>
         <item name="colorTertiary">@color/material_indigo_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_indigo</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_indigo</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Pink" parent="Theme.SagerNet.PureAmoled">
@@ -2243,6 +2295,7 @@
         <item name="colorSecondary">@color/material_pink_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_pink</item>
         <item name="colorTertiary">@color/material_pink_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_pink</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_pink</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.PinkSSR" parent="Theme.SagerNet.PureAmoled">
@@ -2253,6 +2306,7 @@
         <item name="colorSecondary">@color/color_pink_ssr</item>
         <item name="colorSecondaryContainer">@color/card_elevated_pink_ssr</item>
         <item name="colorTertiary">@color/color_pink_ssr</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_pink_ssr</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_pink</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Brown" parent="Theme.SagerNet.PureAmoled">
@@ -2263,6 +2317,7 @@
         <item name="colorSecondary">@color/dialog_button_brown</item>
         <item name="colorSecondaryContainer">@color/card_elevated_brown</item>
         <item name="colorTertiary">@color/dialog_button_brown</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_brown</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_brown</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Grey" parent="Theme.SagerNet.PureAmoled">
@@ -2273,6 +2328,7 @@
         <item name="colorSecondary">@color/md3_text_primary</item>
         <item name="colorSecondaryContainer">@color/card_elevated_grey</item>
         <item name="colorTertiary">@color/md3_text_primary</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_grey</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.BlueGrey" parent="Theme.SagerNet.PureAmoled">
@@ -2283,6 +2339,7 @@
         <item name="colorSecondary">@color/dialog_button_blue_grey</item>
         <item name="colorSecondaryContainer">@color/card_elevated_blue_grey</item>
         <item name="colorTertiary">@color/dialog_button_blue_grey</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_blue_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue_grey</item>
     </style>
 
@@ -2312,6 +2369,9 @@
         <item name="colorSurfaceInverse">#ECEEF1</item>
         <item name="colorOnSurfaceInverse">#1C1B1F</item>
         <item name="colorPrimaryInverse">?attr/colorPrimaryDark</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorOnTertiary">@color/black</item>
         <item name="colorOnPrimaryContainer">@color/white</item>
         <item name="colorOnSecondaryContainer">@color/white</item>
         <item name="colorOnTertiaryContainer">@color/white</item>
@@ -2334,6 +2394,7 @@
         <item name="colorSecondary">@color/material_red_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_red</item>
         <item name="colorTertiary">@color/material_red_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_red</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_red</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.VerdantMint" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2344,6 +2405,7 @@
         <item name="colorSecondary">@color/color_verdant_mint_accent</item>
         <item name="colorSecondaryContainer">@color/card_elevated_verdant_mint</item>
         <item name="colorTertiary">@color/color_verdant_mint_accent</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_verdant_mint</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_verdant_mint</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Blue" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2354,6 +2416,7 @@
         <item name="colorSecondary">@color/material_blue_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_blue</item>
         <item name="colorTertiary">@color/material_blue_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.LightBlue" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2364,6 +2427,7 @@
         <item name="colorSecondary">@color/material_light_blue_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_light_blue</item>
         <item name="colorTertiary">@color/material_light_blue_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_light_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_blue</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Cyan" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2374,6 +2438,7 @@
         <item name="colorSecondary">@color/material_cyan_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_cyan</item>
         <item name="colorTertiary">@color/material_cyan_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_cyan</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_cyan</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Teal" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2384,6 +2449,7 @@
         <item name="colorSecondary">@color/material_teal_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_teal</item>
         <item name="colorTertiary">@color/material_teal_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_teal</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_teal</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Green" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2394,6 +2460,7 @@
         <item name="colorSecondary">@color/material_green_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_green</item>
         <item name="colorTertiary">@color/material_green_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_green</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.LightGreen" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2404,6 +2471,7 @@
         <item name="colorSecondary">@color/material_light_green_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_light_green</item>
         <item name="colorTertiary">@color/material_light_green_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_light_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_green</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Lime" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2414,6 +2482,7 @@
         <item name="colorSecondary">@color/material_lime_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_lime</item>
         <item name="colorTertiary">@color/material_lime_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_lime</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_lime</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Yellow" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2424,6 +2493,7 @@
         <item name="colorSecondary">@color/material_yellow_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_yellow</item>
         <item name="colorTertiary">@color/material_yellow_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_yellow</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_yellow</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Amber" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2434,6 +2504,7 @@
         <item name="colorSecondary">@color/material_amber_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_amber</item>
         <item name="colorTertiary">@color/material_amber_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_amber</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_amber</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Orange" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2444,6 +2515,7 @@
         <item name="colorSecondary">@color/material_orange_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_orange</item>
         <item name="colorTertiary">@color/material_orange_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_orange</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.DeepOrange" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2454,6 +2526,7 @@
         <item name="colorSecondary">@color/material_deep_orange_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_deep_orange</item>
         <item name="colorTertiary">@color/material_deep_orange_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_deep_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_orange</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Purple" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2464,6 +2537,7 @@
         <item name="colorSecondary">@color/material_purple_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_purple</item>
         <item name="colorTertiary">@color/material_purple_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_purple</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.DeepPurple" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2474,6 +2548,7 @@
         <item name="colorSecondary">@color/material_deep_purple_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_deep_purple</item>
         <item name="colorTertiary">@color/material_deep_purple_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_deep_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_purple</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Indigo" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2484,6 +2559,7 @@
         <item name="colorSecondary">@color/material_indigo_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_indigo</item>
         <item name="colorTertiary">@color/material_indigo_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_indigo</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_indigo</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Pink" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2494,6 +2570,7 @@
         <item name="colorSecondary">@color/material_pink_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_pink</item>
         <item name="colorTertiary">@color/material_pink_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_pink</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_pink</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.PinkSSR" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2504,6 +2581,7 @@
         <item name="colorSecondary">@color/color_pink_ssr</item>
         <item name="colorSecondaryContainer">@color/card_elevated_pink_ssr</item>
         <item name="colorTertiary">@color/color_pink_ssr</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_pink_ssr</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_pink</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Brown" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2514,6 +2592,7 @@
         <item name="colorSecondary">@color/dialog_button_brown</item>
         <item name="colorSecondaryContainer">@color/card_elevated_brown</item>
         <item name="colorTertiary">@color/dialog_button_brown</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_brown</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_brown</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Grey" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2524,6 +2603,7 @@
         <item name="colorSecondary">@color/md3_text_primary</item>
         <item name="colorSecondaryContainer">@color/card_elevated_grey</item>
         <item name="colorTertiary">@color/md3_text_primary</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_grey</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.BlueGrey" parent="Theme.SagerNet.Dialog.Amoled">
@@ -2534,6 +2614,7 @@
         <item name="colorSecondary">@color/dialog_button_blue_grey</item>
         <item name="colorSecondaryContainer">@color/card_elevated_blue_grey</item>
         <item name="colorTertiary">@color/dialog_button_blue_grey</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_blue_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue_grey</item>
     </style>
 
@@ -2545,6 +2626,7 @@
         <item name="colorSecondary">@color/material_red_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_red</item>
         <item name="colorTertiary">@color/material_red_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_red</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_red</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.VerdantMint" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2554,6 +2636,7 @@
         <item name="colorSecondary">@color/color_verdant_mint_accent</item>
         <item name="colorSecondaryContainer">@color/card_elevated_verdant_mint</item>
         <item name="colorTertiary">@color/color_verdant_mint_accent</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_verdant_mint</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_verdant_mint</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Blue" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2563,6 +2646,7 @@
         <item name="colorSecondary">@color/material_blue_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_blue</item>
         <item name="colorTertiary">@color/material_blue_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.LightBlue" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2572,6 +2656,7 @@
         <item name="colorSecondary">@color/material_light_blue_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_light_blue</item>
         <item name="colorTertiary">@color/material_light_blue_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_light_blue</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_blue</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Cyan" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2581,6 +2666,7 @@
         <item name="colorSecondary">@color/material_cyan_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_cyan</item>
         <item name="colorTertiary">@color/material_cyan_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_cyan</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_cyan</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Teal" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2590,6 +2676,7 @@
         <item name="colorSecondary">@color/material_teal_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_teal</item>
         <item name="colorTertiary">@color/material_teal_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_teal</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_teal</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Green" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2599,6 +2686,7 @@
         <item name="colorSecondary">@color/material_green_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_green</item>
         <item name="colorTertiary">@color/material_green_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_green</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.LightGreen" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2608,6 +2696,7 @@
         <item name="colorSecondary">@color/material_light_green_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_light_green</item>
         <item name="colorTertiary">@color/material_light_green_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_light_green</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_light_green</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Lime" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2617,6 +2706,7 @@
         <item name="colorSecondary">@color/material_lime_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_lime</item>
         <item name="colorTertiary">@color/material_lime_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_lime</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_lime</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Yellow" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2626,6 +2716,7 @@
         <item name="colorSecondary">@color/material_yellow_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_yellow</item>
         <item name="colorTertiary">@color/material_yellow_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_yellow</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_yellow</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Amber" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2635,6 +2726,7 @@
         <item name="colorSecondary">@color/material_amber_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_amber</item>
         <item name="colorTertiary">@color/material_amber_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_amber</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_amber</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Orange" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2644,6 +2736,7 @@
         <item name="colorSecondary">@color/material_orange_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_orange</item>
         <item name="colorTertiary">@color/material_orange_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_orange</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.DeepOrange" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2653,6 +2746,7 @@
         <item name="colorSecondary">@color/material_deep_orange_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_deep_orange</item>
         <item name="colorTertiary">@color/material_deep_orange_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_deep_orange</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_orange</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Purple" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2662,6 +2756,7 @@
         <item name="colorSecondary">@color/material_purple_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_purple</item>
         <item name="colorTertiary">@color/material_purple_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_purple</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.DeepPurple" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2671,6 +2766,7 @@
         <item name="colorSecondary">@color/material_deep_purple_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_deep_purple</item>
         <item name="colorTertiary">@color/material_deep_purple_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_deep_purple</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_deep_purple</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Indigo" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2680,6 +2776,7 @@
         <item name="colorSecondary">@color/material_indigo_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_indigo</item>
         <item name="colorTertiary">@color/material_indigo_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_indigo</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_indigo</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Pink" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2689,6 +2786,7 @@
         <item name="colorSecondary">@color/material_pink_accent_200</item>
         <item name="colorSecondaryContainer">@color/card_elevated_pink</item>
         <item name="colorTertiary">@color/material_pink_accent_200</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_pink</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_pink</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.PinkSSR" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2698,6 +2796,7 @@
         <item name="colorSecondary">@color/color_pink_ssr</item>
         <item name="colorSecondaryContainer">@color/card_elevated_pink_ssr</item>
         <item name="colorTertiary">@color/color_pink_ssr</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_pink_ssr</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_pink</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Brown" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2707,6 +2806,7 @@
         <item name="colorSecondary">@color/dialog_button_brown</item>
         <item name="colorSecondaryContainer">@color/card_elevated_brown</item>
         <item name="colorTertiary">@color/dialog_button_brown</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_brown</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_brown</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Grey" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2716,6 +2816,7 @@
         <item name="colorSecondary">@color/md3_text_primary</item>
         <item name="colorSecondaryContainer">@color/card_elevated_grey</item>
         <item name="colorTertiary">@color/md3_text_primary</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_grey</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.BlueGrey" parent="Theme.SagerNet.Dialog.PureAmoled">
@@ -2725,6 +2826,7 @@
         <item name="colorSecondary">@color/dialog_button_blue_grey</item>
         <item name="colorSecondaryContainer">@color/card_elevated_blue_grey</item>
         <item name="colorTertiary">@color/dialog_button_blue_grey</item>
+        <item name="colorTertiaryContainer">@color/card_elevated_blue_grey</item>
         <item name="colorPrimaryInverse">@color/inverse_primary_blue_grey</item>
     </style>
 
@@ -2749,8 +2851,8 @@
         <item name="shapeAppearance">@style/ShapeAppearanceOverlay.SagerNet.Dialog</item>
     </style>
 
-    <style name="MaterialAlertDialog.SagerNet.Title.Text" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
-        <item name="android:textAppearance">?attr/textAppearanceHeadline6</item>
+    <style name="MaterialAlertDialog.SagerNet.Title.Text" parent="MaterialAlertDialog.Material3.Title.Text">
+        <item name="android:textAppearance">@style/TextAppearance.SagerNet.TitleLarge</item>
     </style>
 
     <style name="Preference.Category.SagerNet" parent="Preference.Category.Material">
@@ -2929,6 +3031,7 @@
         <item name="actionOverflowMenuStyle">@style/Widget.SagerNet.PopupMenu.Overflow</item>
         <item name="bottomSheetDialogTheme">@style/ThemeOverlay.SagerNet.BottomSheetDialog</item>
         <item name="materialButtonStyle">@style/Widget.SagerNet.Button</item>
+        <item name="textAppearanceButton">@style/TextAppearance.SagerNet.Button</item>
     </style>
 
     <style name="Theme.SagerNet.Dialog.Material" parent="Theme.Material3Expressive.DayNight.Dialog.Alert">
@@ -3009,6 +3112,7 @@
         <item name="actionOverflowMenuStyle">@style/Widget.SagerNet.PopupMenu.Overflow</item>
         <item name="bottomSheetDialogTheme">@style/ThemeOverlay.SagerNet.BottomSheetDialog</item>
         <item name="materialButtonStyle">@style/Widget.SagerNet.Button</item>
+        <item name="textAppearanceButton">@style/TextAppearance.SagerNet.Button</item>
         <item name="android:dialogCornerRadius">@dimen/dialog_corner_radius</item>
         <item name="windowFixedHeightMajor" type="dimen">95%</item>
     </style>
@@ -3088,6 +3192,12 @@
         <item name="cardElevatedSurfaceColor">@color/m3_baseline_surface_container</item>
         <item name="colorSurfaceVariant">@color/m3_baseline_surface_container_low</item>
         <item name="itemShapeFillColor">@color/m3_baseline_surface_container</item>
+        <item name="colorOnPrimary">@color/m3_baseline_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_baseline_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_baseline_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_baseline_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_baseline_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_baseline_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Material.Baseline" parent="Theme.SagerNet.PureAmoled">
         <item name="colorPrimary">@color/m3_baseline_primary</item>
@@ -3099,6 +3209,12 @@
         <item name="colorSecondaryContainer">@color/m3_baseline_secondary_container</item>
         <item name="colorTertiary">@color/m3_baseline_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_baseline_inverse_primary</item>
+        <item name="colorOnPrimary">@color/m3_baseline_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_baseline_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_baseline_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_baseline_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_baseline_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_baseline_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Material.Baseline" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/m3_baseline_primary</item>
@@ -3111,6 +3227,12 @@
         <item name="colorTertiary">@color/m3_baseline_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_baseline_inverse_primary</item>
         <item name="cardElevatedSurfaceColor">@color/m3_baseline_surface_container</item>
+        <item name="colorOnPrimary">@color/m3_baseline_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_baseline_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_baseline_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_baseline_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_baseline_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_baseline_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Material.Baseline" parent="Theme.SagerNet.Dialog.PureAmoled">
         <item name="colorPrimary">@color/m3_baseline_primary</item>
@@ -3122,6 +3244,12 @@
         <item name="colorSecondaryContainer">@color/m3_baseline_secondary_container</item>
         <item name="colorTertiary">@color/m3_baseline_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_baseline_inverse_primary</item>
+        <item name="colorOnPrimary">@color/m3_baseline_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_baseline_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_baseline_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_baseline_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_baseline_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_baseline_on_tertiary_container</item>
     </style>
 
     <style name="Theme.SagerNet.Material.Blue" parent="Theme.SagerNet.Material">
@@ -3199,6 +3327,12 @@
         <item name="cardElevatedSurfaceColor">@color/m3_blue_surface_container</item>
         <item name="colorSurfaceVariant">@color/m3_blue_surface_container_low</item>
         <item name="itemShapeFillColor">@color/m3_blue_surface_container</item>
+        <item name="colorOnPrimary">@color/m3_blue_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_blue_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_blue_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_blue_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_blue_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_blue_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Material.Blue" parent="Theme.SagerNet.PureAmoled">
         <item name="colorPrimary">@color/m3_blue_primary</item>
@@ -3210,6 +3344,12 @@
         <item name="colorSecondaryContainer">@color/m3_blue_secondary_container</item>
         <item name="colorTertiary">@color/m3_blue_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_blue_inverse_primary</item>
+        <item name="colorOnPrimary">@color/m3_blue_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_blue_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_blue_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_blue_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_blue_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_blue_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Material.Blue" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/m3_blue_primary</item>
@@ -3222,6 +3362,12 @@
         <item name="colorTertiary">@color/m3_blue_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_blue_inverse_primary</item>
         <item name="cardElevatedSurfaceColor">@color/m3_blue_surface_container</item>
+        <item name="colorOnPrimary">@color/m3_blue_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_blue_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_blue_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_blue_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_blue_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_blue_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Material.Blue" parent="Theme.SagerNet.Dialog.PureAmoled">
         <item name="colorPrimary">@color/m3_blue_primary</item>
@@ -3233,6 +3379,12 @@
         <item name="colorSecondaryContainer">@color/m3_blue_secondary_container</item>
         <item name="colorTertiary">@color/m3_blue_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_blue_inverse_primary</item>
+        <item name="colorOnPrimary">@color/m3_blue_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_blue_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_blue_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_blue_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_blue_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_blue_on_tertiary_container</item>
     </style>
 
     <style name="Theme.SagerNet.Material.Teal" parent="Theme.SagerNet.Material">
@@ -3310,6 +3462,12 @@
         <item name="cardElevatedSurfaceColor">@color/m3_teal_surface_container</item>
         <item name="colorSurfaceVariant">@color/m3_teal_surface_container_low</item>
         <item name="itemShapeFillColor">@color/m3_teal_surface_container</item>
+        <item name="colorOnPrimary">@color/m3_teal_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_teal_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_teal_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_teal_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_teal_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_teal_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Material.Teal" parent="Theme.SagerNet.PureAmoled">
         <item name="colorPrimary">@color/m3_teal_primary</item>
@@ -3321,6 +3479,12 @@
         <item name="colorSecondaryContainer">@color/m3_teal_secondary_container</item>
         <item name="colorTertiary">@color/m3_teal_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_teal_inverse_primary</item>
+        <item name="colorOnPrimary">@color/m3_teal_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_teal_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_teal_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_teal_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_teal_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_teal_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Material.Teal" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/m3_teal_primary</item>
@@ -3333,6 +3497,12 @@
         <item name="colorTertiary">@color/m3_teal_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_teal_inverse_primary</item>
         <item name="cardElevatedSurfaceColor">@color/m3_teal_surface_container</item>
+        <item name="colorOnPrimary">@color/m3_teal_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_teal_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_teal_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_teal_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_teal_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_teal_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Material.Teal" parent="Theme.SagerNet.Dialog.PureAmoled">
         <item name="colorPrimary">@color/m3_teal_primary</item>
@@ -3344,6 +3514,12 @@
         <item name="colorSecondaryContainer">@color/m3_teal_secondary_container</item>
         <item name="colorTertiary">@color/m3_teal_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_teal_inverse_primary</item>
+        <item name="colorOnPrimary">@color/m3_teal_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_teal_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_teal_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_teal_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_teal_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_teal_on_tertiary_container</item>
     </style>
 
     <style name="Theme.SagerNet.Material.Green" parent="Theme.SagerNet.Material">
@@ -3421,6 +3597,12 @@
         <item name="cardElevatedSurfaceColor">@color/m3_green_surface_container</item>
         <item name="colorSurfaceVariant">@color/m3_green_surface_container_low</item>
         <item name="itemShapeFillColor">@color/m3_green_surface_container</item>
+        <item name="colorOnPrimary">@color/m3_green_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_green_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_green_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_green_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_green_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_green_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Material.Green" parent="Theme.SagerNet.PureAmoled">
         <item name="colorPrimary">@color/m3_green_primary</item>
@@ -3432,6 +3614,12 @@
         <item name="colorSecondaryContainer">@color/m3_green_secondary_container</item>
         <item name="colorTertiary">@color/m3_green_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_green_inverse_primary</item>
+        <item name="colorOnPrimary">@color/m3_green_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_green_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_green_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_green_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_green_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_green_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Material.Green" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/m3_green_primary</item>
@@ -3444,6 +3632,12 @@
         <item name="colorTertiary">@color/m3_green_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_green_inverse_primary</item>
         <item name="cardElevatedSurfaceColor">@color/m3_green_surface_container</item>
+        <item name="colorOnPrimary">@color/m3_green_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_green_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_green_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_green_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_green_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_green_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Material.Green" parent="Theme.SagerNet.Dialog.PureAmoled">
         <item name="colorPrimary">@color/m3_green_primary</item>
@@ -3455,6 +3649,12 @@
         <item name="colorSecondaryContainer">@color/m3_green_secondary_container</item>
         <item name="colorTertiary">@color/m3_green_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_green_inverse_primary</item>
+        <item name="colorOnPrimary">@color/m3_green_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_green_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_green_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_green_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_green_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_green_on_tertiary_container</item>
     </style>
 
     <style name="Theme.SagerNet.Material.Rose" parent="Theme.SagerNet.Material">
@@ -3532,6 +3732,12 @@
         <item name="cardElevatedSurfaceColor">@color/m3_rose_surface_container</item>
         <item name="colorSurfaceVariant">@color/m3_rose_surface_container_low</item>
         <item name="itemShapeFillColor">@color/m3_rose_surface_container</item>
+        <item name="colorOnPrimary">@color/m3_rose_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_rose_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_rose_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_rose_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_rose_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_rose_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Material.Rose" parent="Theme.SagerNet.PureAmoled">
         <item name="colorPrimary">@color/m3_rose_primary</item>
@@ -3543,6 +3749,12 @@
         <item name="colorSecondaryContainer">@color/m3_rose_secondary_container</item>
         <item name="colorTertiary">@color/m3_rose_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_rose_inverse_primary</item>
+        <item name="colorOnPrimary">@color/m3_rose_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_rose_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_rose_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_rose_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_rose_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_rose_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Material.Rose" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/m3_rose_primary</item>
@@ -3555,6 +3767,12 @@
         <item name="colorTertiary">@color/m3_rose_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_rose_inverse_primary</item>
         <item name="cardElevatedSurfaceColor">@color/m3_rose_surface_container</item>
+        <item name="colorOnPrimary">@color/m3_rose_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_rose_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_rose_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_rose_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_rose_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_rose_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Material.Rose" parent="Theme.SagerNet.Dialog.PureAmoled">
         <item name="colorPrimary">@color/m3_rose_primary</item>
@@ -3566,6 +3784,12 @@
         <item name="colorSecondaryContainer">@color/m3_rose_secondary_container</item>
         <item name="colorTertiary">@color/m3_rose_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_rose_inverse_primary</item>
+        <item name="colorOnPrimary">@color/m3_rose_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_rose_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_rose_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_rose_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_rose_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_rose_on_tertiary_container</item>
     </style>
 
     <style name="Theme.SagerNet.Material.Coral" parent="Theme.SagerNet.Material">
@@ -3643,6 +3867,12 @@
         <item name="cardElevatedSurfaceColor">@color/m3_coral_surface_container</item>
         <item name="colorSurfaceVariant">@color/m3_coral_surface_container_low</item>
         <item name="itemShapeFillColor">@color/m3_coral_surface_container</item>
+        <item name="colorOnPrimary">@color/m3_coral_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_coral_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_coral_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_coral_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_coral_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_coral_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Material.Coral" parent="Theme.SagerNet.PureAmoled">
         <item name="colorPrimary">@color/m3_coral_primary</item>
@@ -3654,6 +3884,12 @@
         <item name="colorSecondaryContainer">@color/m3_coral_secondary_container</item>
         <item name="colorTertiary">@color/m3_coral_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_coral_inverse_primary</item>
+        <item name="colorOnPrimary">@color/m3_coral_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_coral_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_coral_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_coral_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_coral_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_coral_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Material.Coral" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/m3_coral_primary</item>
@@ -3666,6 +3902,12 @@
         <item name="colorTertiary">@color/m3_coral_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_coral_inverse_primary</item>
         <item name="cardElevatedSurfaceColor">@color/m3_coral_surface_container</item>
+        <item name="colorOnPrimary">@color/m3_coral_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_coral_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_coral_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_coral_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_coral_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_coral_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Material.Coral" parent="Theme.SagerNet.Dialog.PureAmoled">
         <item name="colorPrimary">@color/m3_coral_primary</item>
@@ -3677,6 +3919,12 @@
         <item name="colorSecondaryContainer">@color/m3_coral_secondary_container</item>
         <item name="colorTertiary">@color/m3_coral_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_coral_inverse_primary</item>
+        <item name="colorOnPrimary">@color/m3_coral_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_coral_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_coral_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_coral_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_coral_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_coral_on_tertiary_container</item>
     </style>
 
     <style name="Theme.SagerNet.Material.Indigo" parent="Theme.SagerNet.Material">
@@ -3754,6 +4002,12 @@
         <item name="cardElevatedSurfaceColor">@color/m3_indigo_surface_container</item>
         <item name="colorSurfaceVariant">@color/m3_indigo_surface_container_low</item>
         <item name="itemShapeFillColor">@color/m3_indigo_surface_container</item>
+        <item name="colorOnPrimary">@color/m3_indigo_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_indigo_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_indigo_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_indigo_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_indigo_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_indigo_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Material.Indigo" parent="Theme.SagerNet.PureAmoled">
         <item name="colorPrimary">@color/m3_indigo_primary</item>
@@ -3765,6 +4019,12 @@
         <item name="colorSecondaryContainer">@color/m3_indigo_secondary_container</item>
         <item name="colorTertiary">@color/m3_indigo_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_indigo_inverse_primary</item>
+        <item name="colorOnPrimary">@color/m3_indigo_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_indigo_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_indigo_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_indigo_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_indigo_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_indigo_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Material.Indigo" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/m3_indigo_primary</item>
@@ -3777,6 +4037,12 @@
         <item name="colorTertiary">@color/m3_indigo_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_indigo_inverse_primary</item>
         <item name="cardElevatedSurfaceColor">@color/m3_indigo_surface_container</item>
+        <item name="colorOnPrimary">@color/m3_indigo_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_indigo_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_indigo_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_indigo_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_indigo_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_indigo_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Material.Indigo" parent="Theme.SagerNet.Dialog.PureAmoled">
         <item name="colorPrimary">@color/m3_indigo_primary</item>
@@ -3788,6 +4054,12 @@
         <item name="colorSecondaryContainer">@color/m3_indigo_secondary_container</item>
         <item name="colorTertiary">@color/m3_indigo_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_indigo_inverse_primary</item>
+        <item name="colorOnPrimary">@color/m3_indigo_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_indigo_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_indigo_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_indigo_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_indigo_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_indigo_on_tertiary_container</item>
     </style>
 
     <style name="Theme.SagerNet.Material.Amber" parent="Theme.SagerNet.Material">
@@ -3865,6 +4137,12 @@
         <item name="cardElevatedSurfaceColor">@color/m3_amber_surface_container</item>
         <item name="colorSurfaceVariant">@color/m3_amber_surface_container_low</item>
         <item name="itemShapeFillColor">@color/m3_amber_surface_container</item>
+        <item name="colorOnPrimary">@color/m3_amber_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_amber_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_amber_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_amber_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_amber_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_amber_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.PureAmoled.Material.Amber" parent="Theme.SagerNet.PureAmoled">
         <item name="colorPrimary">@color/m3_amber_primary</item>
@@ -3876,6 +4154,12 @@
         <item name="colorSecondaryContainer">@color/m3_amber_secondary_container</item>
         <item name="colorTertiary">@color/m3_amber_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_amber_inverse_primary</item>
+        <item name="colorOnPrimary">@color/m3_amber_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_amber_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_amber_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_amber_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_amber_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_amber_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.Amoled.Material.Amber" parent="Theme.SagerNet.Dialog.Amoled">
         <item name="colorPrimary">@color/m3_amber_primary</item>
@@ -3888,6 +4172,12 @@
         <item name="colorTertiary">@color/m3_amber_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_amber_inverse_primary</item>
         <item name="cardElevatedSurfaceColor">@color/m3_amber_surface_container</item>
+        <item name="colorOnPrimary">@color/m3_amber_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_amber_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_amber_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_amber_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_amber_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_amber_on_tertiary_container</item>
     </style>
     <style name="Theme.SagerNet.Dialog.PureAmoled.Material.Amber" parent="Theme.SagerNet.Dialog.PureAmoled">
         <item name="colorPrimary">@color/m3_amber_primary</item>
@@ -3899,6 +4189,12 @@
         <item name="colorSecondaryContainer">@color/m3_amber_secondary_container</item>
         <item name="colorTertiary">@color/m3_amber_tertiary</item>
         <item name="colorPrimaryInverse">@color/m3_amber_inverse_primary</item>
+        <item name="colorOnPrimary">@color/m3_amber_on_primary</item>
+        <item name="colorOnSecondary">@color/m3_amber_on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/m3_amber_on_secondary_container</item>
+        <item name="colorOnTertiary">@color/m3_amber_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_amber_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_amber_on_tertiary_container</item>
     </style>
 
 </resources>

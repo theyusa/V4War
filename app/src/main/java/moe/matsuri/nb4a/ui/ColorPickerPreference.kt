@@ -795,7 +795,7 @@ constructor(
                 gravity = Gravity.CENTER
                 text = label
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-                setTypeface(null, Typeface.BOLD)
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                 setTextColor(tint)
                 background = GradientDrawable().apply {
                     shape = GradientDrawable.OVAL

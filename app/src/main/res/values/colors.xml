@@ -473,4 +473,27 @@
     <color name="inverse_primary_brown">@color/material_brown_200</color>
     <color name="inverse_primary_grey">@color/material_grey_200</color>
     <color name="inverse_primary_blue_grey">@color/material_blue_grey_200</color>
+
+    <!-- Day/Night-aware container tokens for Custom Themes (Light -> soft 100 tint) -->
+    <color name="container_pink">@color/material_pink_100</color>
+    <color name="container_pink_ssr">@color/material_pink_accent_100</color>
+    <color name="container_red">@color/material_red_100</color>
+    <color name="container_verdant_mint">@color/color_verdant_mint_100</color>
+    <color name="container_blue">@color/material_blue_100</color>
+    <color name="container_light_blue">@color/material_light_blue_100</color>
+    <color name="container_cyan">@color/material_cyan_100</color>
+    <color name="container_teal">@color/material_teal_100</color>
+    <color name="container_green">@color/material_green_100</color>
+    <color name="container_light_green">@color/material_light_green_100</color>
+    <color name="container_lime">@color/material_lime_100</color>
+    <color name="container_yellow">@color/material_yellow_100</color>
+    <color name="container_amber">@color/material_amber_100</color>
+    <color name="container_orange">@color/material_orange_100</color>
+    <color name="container_deep_orange">@color/material_deep_orange_100</color>
+    <color name="container_purple">@color/material_purple_100</color>
+    <color name="container_deep_purple">@color/material_deep_purple_100</color>
+    <color name="container_indigo">@color/material_indigo_100</color>
+    <color name="container_brown">@color/material_brown_100</color>
+    <color name="container_grey">@color/material_grey_200</color>
+    <color name="container_blue_grey">@color/material_blue_grey_100</color>
 </resources>
