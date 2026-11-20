@@ -499,12 +499,13 @@
                                     android:textStyle="bold" />
                             </LinearLayout>
 
-                            <LinearLayout
+                            <com.google.android.material.button.MaterialButtonGroup
                                 android:id="@+id/layoutDashActions"
+                                style="@style/Widget.Material3Expressive.MaterialButtonGroup"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
-                                android:orientation="horizontal"
+                                android:spacing="6dp"
                                 android:visibility="gone">
 
                                 <com.google.android.material.button.MaterialButton
@@ -522,12 +523,11 @@
                                     style="@style/Widget.SagerNet.Button.OutlinedButton"
                                     android:layout_width="0dp"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginStart="6dp"
                                     android:layout_weight="1"
                                     android:text="@string/hotspot_share_dash_btn_revive"
                                     android:textSize="11.5sp"
                                     android:visibility="gone" />
-                            </LinearLayout>
+                            </com.google.android.material.button.MaterialButtonGroup>
                         </LinearLayout>
 
                         <!-- Shizuku permission / watchdog row -->
@@ -1038,11 +1038,12 @@
                                 android:text="socks5://192.168.43.1:2080"
                                 android:textSize="13sp" />
 
-                            <LinearLayout
+                            <com.google.android.material.button.MaterialButtonGroup
+                                style="@style/Widget.Material3Expressive.MaterialButtonGroup"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
-                                android:orientation="horizontal">
+                                android:spacing="8dp">
 
                                 <com.google.android.material.button.MaterialButton
                                     android:id="@+id/btnCopyHotspotLink"
@@ -1061,14 +1062,13 @@
                                     style="@style/Widget.SagerNet.Button.OutlinedButton"
                                     android:layout_width="0dp"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginStart="8dp"
                                     android:layout_weight="1"
                                     android:minHeight="38dp"
                                     android:text="@string/lan_sharing_share_link_btn"
                                     android:textSize="12sp"
                                     app:icon="@drawable/ic_social_share"
                                     app:iconSize="16dp" />
-                            </LinearLayout>
+                            </com.google.android.material.button.MaterialButtonGroup>
                         </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -1243,11 +1243,12 @@
                                 android:singleLine="true"
                                 android:textSize="13sp" />
 
-                            <LinearLayout
+                            <com.google.android.material.button.MaterialButtonGroup
+                                style="@style/Widget.Material3Expressive.MaterialButtonGroup"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
-                                android:orientation="horizontal">
+                                android:spacing="8dp">
 
                                 <com.google.android.material.button.MaterialButton
                                     android:id="@+id/btnCopyWifiLink"
@@ -1266,14 +1267,13 @@
                                     style="@style/Widget.SagerNet.Button.OutlinedButton"
                                     android:layout_width="0dp"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginStart="8dp"
                                     android:layout_weight="1"
                                     android:minHeight="38dp"
                                     android:text="@string/lan_sharing_share_link_btn"
                                     android:textSize="12sp"
                                     app:icon="@drawable/ic_social_share"
                                     app:iconSize="16dp" />
-                            </LinearLayout>
+                            </com.google.android.material.button.MaterialButtonGroup>
                         </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>

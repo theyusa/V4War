@@ -238,11 +238,12 @@
                         </LinearLayout>
                     </HorizontalScrollView>
 
-                    <LinearLayout
+                    <com.google.android.material.button.MaterialButtonGroup
+                        style="@style/Widget.Material3Expressive.MaterialButtonGroup"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:orientation="horizontal">
+                        android:spacing="8dp">
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_start_stop"
@@ -257,10 +258,6 @@
                             app:icon="@drawable/ic_test_latency_24"
                             app:iconGravity="textStart" />
 
-                        <Space
-                            android:layout_width="8dp"
-                            android:layout_height="wrap_content" />
-
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_clear"
                             style="@style/Widget.SagerNet.Button.OutlinedButton"
@@ -270,7 +267,7 @@
                             android:insetBottom="0dp"
                             android:minHeight="48dp"
                             android:text="@string/ping_clear" />
-                    </LinearLayout>
+                    </com.google.android.material.button.MaterialButtonGroup>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

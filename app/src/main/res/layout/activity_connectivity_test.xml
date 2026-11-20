@@ -150,12 +150,13 @@
                         android:checked="true"
                         android:text="@string/toolbox_via_proxy" />
 
-                    <LinearLayout
+                    <com.google.android.material.button.MaterialButtonGroup
+                        style="@style/Widget.Material3Expressive.MaterialButtonGroup"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:spacing="8dp">
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_run"
@@ -171,10 +172,6 @@
                             app:icon="@drawable/baseline_public_24"
                             app:iconGravity="textStart" />
 
-                        <Space
-                            android:layout_width="8dp"
-                            android:layout_height="wrap_content" />
-
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_copy_report"
                             style="@style/Widget.SagerNet.Button.OutlinedButton"
@@ -188,7 +185,7 @@
                             app:iconGravity="textStart"
                             app:iconPadding="0dp"
                             tools:ignore="SpeakableTextPresentCheck" />
-                    </LinearLayout>
+                    </com.google.android.material.button.MaterialButtonGroup>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

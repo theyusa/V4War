@@ -47,6 +47,7 @@
 
         <com.google.android.material.button.MaterialButtonToggleGroup
             android:id="@+id/log_search_options"
+            style="@style/Widget.Material3Expressive.MaterialButtonToggleGroup"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
