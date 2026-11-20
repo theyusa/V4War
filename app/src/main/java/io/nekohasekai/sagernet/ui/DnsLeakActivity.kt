@@ -302,7 +302,7 @@ class DnsLeakActivity : ThemedActivity() {
         binding.btnRerunTest.isEnabled = true
         binding.btnRerunTest.setText(R.string.start_dns_leak_test)
 
-        val colorError = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorError)
+        val colorError = MaterialColors.getColor(binding.root, androidx.appcompat.R.attr.colorError)
         val textColorPrimary = getColorAttr(android.R.attr.textColorPrimary)
         val safeAccent = ExpressiveSettingsHelper.resolveAccentColor(this)
         val isNight = io.nekohasekai.sagernet.utils.Theme.usingNightMode(this)

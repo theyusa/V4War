@@ -247,7 +247,7 @@ object ExpressiveSettingsHelper {
         }
 
         val themeAccent = Theme.getSeedPrimaryColor(context).takeIf { it != 0 && it != Color.WHITE }
-            ?: context.getColorAttr(R.attr.colorAccent).takeIf { it != 0 && it != Color.WHITE }
+            ?: context.getColorAttr(androidx.appcompat.R.attr.colorAccent).takeIf { it != 0 && it != Color.WHITE }
             ?: ContextCompat.getColor(context, R.color.material_blue_accent_200)
 
         val containerColor = when {

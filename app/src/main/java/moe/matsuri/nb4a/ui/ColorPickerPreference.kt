@@ -99,7 +99,7 @@ constructor(
             Theme.BLUE_GREY -> Color.parseColor("#607D8B")
             Theme.GREY -> Color.parseColor("#9E9E9E")
             Theme.CUSTOM -> 0xFF000000.toInt() or DataStore.customThemeColor
-            else -> context.getColorAttr(R.attr.colorPrimary)
+            else -> context.getColorAttr(androidx.appcompat.R.attr.colorPrimary)
         }
     }
 

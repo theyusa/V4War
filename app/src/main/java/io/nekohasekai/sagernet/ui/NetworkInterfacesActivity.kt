@@ -256,7 +256,7 @@ class NetworkInterfacesActivity : ThemedActivity() {
             ExpressiveSettingsHelper.styleExpressiveCard(itemBinding.cardInterfaceItem, cornerRadiusDp = 20f)
             val accent = ExpressiveSettingsHelper.resolveAccentColor(this@NetworkInterfacesActivity)
             val secondary = getColorAttr(android.R.attr.textColorSecondary)
-            val errorColor = MaterialColors.getColor(itemBinding.root, com.google.android.material.R.attr.colorError)
+            val errorColor = MaterialColors.getColor(itemBinding.root, androidx.appcompat.R.attr.colorError)
 
             itemBinding.textInterfaceName.text = info.name
 
@@ -328,7 +328,7 @@ class NetworkInterfacesActivity : ThemedActivity() {
                 val noneView = TextView(this@NetworkInterfacesActivity).apply {
                     text = unavailable
                     setTextAppearance(androidx.appcompat.R.style.TextAppearance_AppCompat_Body2)
-                    setTextColor(getColor(R.color.material_grey_600))
+                    setTextColor(getColor(androidx.appcompat.R.color.material_grey_600))
                 }
                 itemBinding.layoutAddresses.addView(noneView)
             } else {

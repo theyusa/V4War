@@ -402,7 +402,7 @@ internal class ProfileRowHolder(view: View, private val adapter: ProfileListAdap
             background = ColorUtils.compositeColors(ColorUtils.setAlphaComponent(primary, tintAlpha), surface)
         }
         if (checked) {
-            val accent = context.getColorAttr(R.attr.colorAccent)
+            val accent = context.getColorAttr(androidx.appcompat.R.attr.colorAccent)
             background = ColorUtils.compositeColors(ColorUtils.setAlphaComponent(accent, 48), background)
         }
         card.setCardBackgroundColor(background)

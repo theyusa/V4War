@@ -261,7 +261,7 @@ class ChainSettingsActivity : ProfileSettingsActivity<Chain>(R.layout.layout_cha
     @ColorInt
     private fun roleColor(role: StepRole): Int = when (role) {
         StepRole.SUCCESS -> TestFormat.latencyColor(1)
-        StepRole.DANGER -> TestFormat.themeColor(this, R.attr.colorError, DANGER_FALLBACK)
+        StepRole.DANGER -> TestFormat.themeColor(this, androidx.appcompat.R.attr.colorError, DANGER_FALLBACK)
         StepRole.MUTED -> getColorAttr(android.R.attr.textColorSecondary)
     }
 
@@ -430,7 +430,7 @@ class ChainSettingsActivity : ProfileSettingsActivity<Chain>(R.layout.layout_cha
     override fun PreferenceFragmentCompat.viewCreated(view: View, savedInstanceState: Bundle?) {
         // the profile list below takes the bottom inset
         listView.applyInsetPadding(horizontal = true)
-        view.rootView.findViewById<RecyclerView>(R.id.recycler_view).apply {
+        view.rootView.findViewById<RecyclerView>(androidx.preference.R.id.recycler_view).apply {
             (layoutParams ?: LinearLayout.LayoutParams(-1, -2)).apply {
                 height = -2
                 layoutParams = this

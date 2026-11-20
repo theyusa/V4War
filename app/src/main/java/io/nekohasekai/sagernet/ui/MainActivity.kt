@@ -132,7 +132,7 @@ class MainActivity : ThemedActivity(),
             else -> {
                 val bg = MaterialColors.getColor(binding.root, R.attr.fabColorBackground, Color.BLACK)
                 if (isNight && ColorUtils.calculateLuminance(bg) > 0.75) {
-                    val primary = MaterialColors.getColor(binding.root, R.attr.colorPrimary, bg)
+                    val primary = MaterialColors.getColor(binding.root, androidx.appcompat.R.attr.colorPrimary, bg)
                     if (ColorUtils.calculateLuminance(primary) > 0.75) {
                         ContextCompat.getColor(this, R.color.color_black_theme_fab)
                     } else {

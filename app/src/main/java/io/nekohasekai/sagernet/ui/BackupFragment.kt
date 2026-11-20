@@ -219,7 +219,7 @@ class BackupFragment : Fragment(R.layout.layout_backup) {
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             send.clipData = ClipData.newRawUri(file.name, uri)
             try {
-                startActivity(Intent.createChooser(send, getString(R.string.abc_shareactionprovider_share_with)))
+                startActivity(Intent.createChooser(send, getString(androidx.appcompat.R.string.abc_shareactionprovider_share_with)))
             } catch (_: ActivityNotFoundException) {
                 snackbar(R.string.share_target_missing).show()
             }

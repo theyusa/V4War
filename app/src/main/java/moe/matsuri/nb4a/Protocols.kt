@@ -17,12 +17,12 @@ object Protocols {
         return when {
             t == "balancer" -> Color.parseColor("#FF9800")
             t == "chain" -> Color.parseColor("#AB47BC")
-            Theme.isWhiteTheme(this) -> getColorAttr(R.attr.colorAccent)
+            Theme.isWhiteTheme(this) -> getColorAttr(androidx.appcompat.R.attr.colorAccent)
             Theme.isBlackTheme(this) -> {
-                val accent = getColorAttr(R.attr.colorAccent)
+                val accent = getColorAttr(androidx.appcompat.R.attr.colorAccent)
                 if (accent == Color.WHITE) Color.parseColor("#F5F5F5") else accent
             }
-            else -> getColorAttr(R.attr.colorPrimary)
+            else -> getColorAttr(androidx.appcompat.R.attr.colorPrimary)
         }
     }
 

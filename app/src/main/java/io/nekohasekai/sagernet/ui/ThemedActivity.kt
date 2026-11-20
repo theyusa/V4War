@@ -71,7 +71,7 @@ abstract class ThemedActivity : AppCompatActivity {
 
     private fun statusBarStyle(): SystemBarStyle {
         val isDark = Theme.isBlackTheme(this)
-        val isLightSurface = !isDark && ColorUtils.calculateLuminance(getColorAttr(R.attr.colorSurface)) > 0.45
+        val isLightSurface = !isDark && ColorUtils.calculateLuminance(getColorAttr(com.google.android.material.R.attr.colorSurface)) > 0.45
         lightStatusBar = isLightSurface
         return if (lightStatusBar) {
             SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)

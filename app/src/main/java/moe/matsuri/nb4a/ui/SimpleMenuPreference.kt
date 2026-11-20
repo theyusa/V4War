@@ -54,7 +54,7 @@ open class SimpleMenuPreference
 
     override fun onBindViewHolder(holder: PreferenceViewHolder) {
         super.onBindViewHolder(holder)
-        val mSpinner = holder.itemView.findViewById<Spinner>(R.id.spinner)
+        val mSpinner = holder.itemView.findViewById<Spinner>(androidx.preference.R.id.spinner)
         mSpinner.layoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT
         mSpinner.dropDownVerticalOffset = dp2px(4)
         mSpinner.setPopupBackgroundResource(R.drawable.bg_popup_menu)
@@ -141,11 +141,11 @@ open class SimpleMenuPreference
  */
 private fun selectedFill(context: Context): Int {
     val elevated = context.getColorAttr(R.attr.cardElevatedSurfaceColor)
-    val baseSurface = if (elevated != 0) elevated else context.getColorAttr(R.attr.colorSurface)
+    val baseSurface = if (elevated != 0) elevated else context.getColorAttr(com.google.android.material.R.attr.colorSurface)
     val surface = ColorUtils.setAlphaComponent(baseSurface, 0xFF)
     val text = context.getColorAttr(android.R.attr.textColorPrimary)
     val dark = ColorUtils.calculateLuminance(surface) < 0.5
-    var fill = ColorUtils.setAlphaComponent(context.getColorAttr(R.attr.colorPrimary), if (dark) 0x66 else 0x48)
+    var fill = ColorUtils.setAlphaComponent(context.getColorAttr(androidx.appcompat.R.attr.colorPrimary), if (dark) 0x66 else 0x48)
     // CIE76 ΔE under 6: the tint reads as the surface itself
     if (labDistance(ColorUtils.compositeColors(fill, surface), surface) < 6) {
         fill = ColorUtils.setAlphaComponent(text, 0x1F)

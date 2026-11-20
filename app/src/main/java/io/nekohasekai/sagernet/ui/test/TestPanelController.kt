@@ -158,7 +158,7 @@ class TestPanelController(
     private val textSecondary = TestFormat.themeColor(context, android.R.attr.textColorSecondary, Color.GRAY)
 
     @ColorInt
-    private val errorColor = TestFormat.themeColor(context, R.attr.colorError, FAILED_COLOR)
+    private val errorColor = TestFormat.themeColor(context, androidx.appcompat.R.attr.colorError, FAILED_COLOR)
 
     @ColorInt
     private val okColor = TestFormat.latencyColor(1)

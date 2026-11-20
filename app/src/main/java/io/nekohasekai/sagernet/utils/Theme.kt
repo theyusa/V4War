@@ -531,7 +531,7 @@ object Theme {
                 return wallpaperColor
             }
         }
-        return context.getColorAttr(R.attr.colorPrimary)
+        return context.getColorAttr(androidx.appcompat.R.attr.colorPrimary)
     }
 
     /**
@@ -615,7 +615,7 @@ object Theme {
         if (appTheme() == CUSTOM) {
             return 0xFF000000.toInt() or customThemeColor()
         }
-        val attr = context.getColorAttr(R.attr.colorPrimary)
+        val attr = context.getColorAttr(androidx.appcompat.R.attr.colorPrimary)
         return if (attr != 0) attr else getPrimaryColor(context)
     }
 
