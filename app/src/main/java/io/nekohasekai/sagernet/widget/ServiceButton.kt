@@ -85,11 +85,32 @@ class ServiceButton @JvmOverloads constructor(
     private val animationQueue = ArrayDeque<AnimatedState>()
 
     private var checked = false
+    private var homeActionMode = false
+    private var lastServiceState = BaseService.State.Idle
     private var delayedAnimation: Job? = null
     private lateinit var progress: BaseProgressIndicator<*>
     fun initProgress(progress: BaseProgressIndicator<*>) {
         this.progress = progress
         progress.progressDrawable?.addSpringAnimationEndListener(this)
+    }
+
+    /** Switches between Home VPN connect/disconnect mode and secondary-tab Home return icon. */
+    fun setHomeActionMode(enabled: Boolean) {
+        if (homeActionMode == enabled) return
+        homeActionMode = enabled
+        if (enabled) {
+            animationQueue.peekFirst()?.stop()
+            animationQueue.clear()
+            hideProgress()
+            checked = false
+            refreshDrawableState()
+            setImageResource(R.drawable.ic_baseline_home_24)
+            val homeDesc = context.getText(R.string.menu_home)
+            contentDescription = homeDesc
+            TooltipCompat.setTooltipText(this, homeDesc)
+        } else {
+            changeState(lastServiceState, lastServiceState, animate = false)
+        }
     }
 
     override fun onAnimationEnd(
@@ -114,6 +135,22 @@ class ServiceButton @JvmOverloads constructor(
     }
 
     fun changeState(state: BaseService.State, previousState: BaseService.State, animate: Boolean) {
+        lastServiceState = state
+        if (homeActionMode) {
+            hideProgress()
+            checked = false
+            refreshDrawableState()
+            setImageResource(R.drawable.ic_baseline_home_24)
+            val homeDesc = context.getText(R.string.menu_home)
+            contentDescription = homeDesc
+            TooltipCompat.setTooltipText(this, homeDesc)
+            isEnabled = true
+            if (Build.VERSION.SDK_INT >= 24) pointerIcon = PointerIcon.getSystemIcon(
+                context,
+                PointerIcon.TYPE_HAND
+            )
+            return
+        }
         when (state) {
             BaseService.State.Connecting -> changeState(iconConnecting, animate)
             BaseService.State.Connected -> changeState(iconConnected, animate)

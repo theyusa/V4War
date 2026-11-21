@@ -236,16 +236,22 @@ class MainActivity : ThemedActivity(),
         binding.toolbarNavProfiles.setOnClickListener {
             HapticHelper.perform(this, binding.toolbarNavProfiles, HapticHelper.HapticKind.SELECTION)
             val current = supportFragmentManager.findFragmentById(R.id.fragment_holder)
-            displayFragmentWithId(if (current is ConfigurationFragment) R.id.nav_home else R.id.nav_configuration)
+            if (current !is ConfigurationFragment) displayFragmentWithId(R.id.nav_configuration)
         }
         binding.toolbarNavTools.setOnClickListener {
             HapticHelper.perform(this, binding.toolbarNavTools, HapticHelper.HapticKind.SELECTION)
             val current = supportFragmentManager.findFragmentById(R.id.fragment_holder)
-            displayFragmentWithId(if (current is ToolsFragment) R.id.nav_home else R.id.nav_tools)
+            if (current !is ToolsFragment) displayFragmentWithId(R.id.nav_tools)
         }
         binding.fab.setOnClickListener {
-            HapticHelper.perform(this, binding.fab, HapticHelper.HapticKind.HEAVY)
-            toggleService()
+            val current = supportFragmentManager.findFragmentById(R.id.fragment_holder)
+            if (current is HomeFragment) {
+                HapticHelper.perform(this, binding.fab, HapticHelper.HapticKind.HEAVY)
+                toggleService()
+            } else {
+                HapticHelper.perform(this, binding.fab, HapticHelper.HapticKind.SELECTION)
+                displayFragmentWithId(R.id.nav_home)
+            }
         }
 
         setContentView(binding.root)
@@ -644,6 +650,7 @@ class MainActivity : ThemedActivity(),
             com.google.android.material.R.attr.colorOnSurfaceVariant,
             MaterialColors.getColor(binding.floatingToolbar, android.R.attr.textColorSecondary, Color.GRAY),
         )
+        binding.fab.setHomeActionMode(fragment !is HomeFragment)
         binding.toolbarNavProfiles.apply {
             isCheckable = true
             isChecked = isProfiles
