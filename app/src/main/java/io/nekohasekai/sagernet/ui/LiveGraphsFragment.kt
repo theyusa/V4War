@@ -336,7 +336,7 @@ class LiveGraphsFragment : ToolbarFragment(R.layout.layout_live_graphs), Toolbar
 }
 
 /** This process's copy of the service's live history, so a later visit only pulls what is new. Main thread. */
-private object LiveHistory {
+internal object LiveHistory {
 
     val series = LiveSeries(LiveStatsRecorder.CAPACITY, LiveStatsBatch.FIELDS)
 

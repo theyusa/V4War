@@ -752,6 +752,7 @@ class MainActivity : ThemedActivity(),
         DataStore.serviceState = state
         refreshConfigurationProfileState()
         when (val fragment = currentMainFragment ?: supportFragmentManager.findFragmentById(R.id.fragment_holder)) {
+            is HomeFragment -> fragment.onServiceStateChanged(state)
             is RouteFragment -> fragment.onServiceStateChanged()
             is DashboardFragment -> fragment.onServiceStateChanged()
         }
@@ -973,11 +974,19 @@ class MainActivity : ThemedActivity(),
     // may NOT called when app is in background
     // ONLY do UI update here, write DB in bg process
     override fun cbSpeedUpdate(stats: SpeedDisplayData) {
-        // Home speed chart cards wire into speed updates in Stage C.
+        val fragment = currentMainFragment ?: supportFragmentManager.findFragmentById(R.id.fragment_holder)
+        (fragment as? HomeFragment)?.onSpeedUpdate(stats)
     }
 
     override suspend fun cbTrafficUpdate(data: TrafficDataBatch) {
         ProfileManager.postUpdate(data.items)
+        withContext(Dispatchers.Main) {
+            if (!isFinishing && !isDestroyed) {
+                val fragment = currentMainFragment
+                    ?: supportFragmentManager.findFragmentById(R.id.fragment_holder)
+                (fragment as? HomeFragment)?.onTrafficUpdated()
+            }
+        }
     }
 
     override fun cbSelectorUpdate(id: Long) {

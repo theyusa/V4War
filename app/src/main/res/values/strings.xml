@@ -8,6 +8,15 @@
     <string name="app_version">Version</string>
     <string name="version_x">Version (%s)</string>
     <string name="menu_home">Home</string>
+    <string name="home_running_mode">Running Mode</string>
+    <string name="home_network_speed">Network Speed</string>
+    <string name="home_status_enabled">Enabled</string>
+    <string name="home_status_disabled">Disabled</string>
+    <string name="home_mode_system_proxy">System Proxy</string>
+    <string name="home_route_rule">Rule</string>
+    <string name="home_route_direct">Direct</string>
+    <string name="home_route_block">Block</string>
+    <string name="home_route_bypass">Bypass</string>
     <string name="menu_configuration">Profiles</string>
     <string name="menu_group">Groups</string>
     <string name="menu_about">About</string>
