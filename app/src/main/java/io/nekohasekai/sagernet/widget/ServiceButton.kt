@@ -1,6 +1,7 @@
 package io.nekohasekai.sagernet.widget
 
 import android.content.Context
+import android.content.ContextWrapper
 import android.graphics.drawable.Drawable
 import android.os.Build
 import android.util.AttributeSet
@@ -58,11 +59,16 @@ class ServiceButton @JvmOverloads constructor(
         fun stop() = icon.stop()
     }
 
+    private fun lifecycleOwner(): LifecycleOwner =
+        generateSequence(context) { (it as? ContextWrapper)?.baseContext }
+            .filterIsInstance<LifecycleOwner>()
+            .first()
+
     private val iconStopped by lazy { AnimatedState(R.drawable.ic_service_stopped) }
     private val iconConnecting by lazy {
         AnimatedState(R.drawable.ic_service_connecting) {
             hideProgress()
-            delayedAnimation = (context as LifecycleOwner).lifecycleScope.launchWhenStarted {
+            delayedAnimation = lifecycleOwner().lifecycleScope.launchWhenStarted {
                 delay(context.resources.getInteger(android.R.integer.config_mediumAnimTime) + 1000L)
                 isIndeterminate = true
                 show()

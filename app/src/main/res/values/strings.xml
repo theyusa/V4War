@@ -7,6 +7,7 @@
     <string name="github">Source code</string>
     <string name="app_version">Version</string>
     <string name="version_x">Version (%s)</string>
+    <string name="menu_home">Home</string>
     <string name="menu_configuration">Profiles</string>
     <string name="menu_group">Groups</string>
     <string name="menu_about">About</string>

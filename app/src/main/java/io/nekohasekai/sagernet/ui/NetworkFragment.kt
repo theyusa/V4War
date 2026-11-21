@@ -11,6 +11,7 @@ import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
 import com.google.android.material.card.MaterialCardView
 import io.nekohasekai.sagernet.R
@@ -41,13 +42,20 @@ class NetworkFragment : Fragment(R.layout.layout_network) {
         view.setBackgroundColor(screenBg)
 
         val binding = LayoutNetworkBinding.bind(view)
+        binding.root.setOnScrollChangeListener(
+            NestedScrollView.OnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
+                val dy = scrollY - oldScrollY
+                if (dy != 0) (activity as? MainActivity)?.driveBottomBar(dy)
+            },
+        )
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
             val bars = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
-            v.updatePadding(bottom = bars.bottom + dp2px(64))
+            v.updatePadding(bottom = bars.bottom + dp2px(120))
             insets
         }
+        ViewCompat.requestApplyInsets(binding.root)
 
         val (badgeContainer, badgeIconColor) = ExpressiveSettingsHelper.resolveBadgeColors(ctx, isNight, isAmoled)
         val chevronTint = ColorUtils.setAlphaComponent(

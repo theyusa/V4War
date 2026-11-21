@@ -20,15 +20,18 @@ import android.graphics.Color
 import androidx.core.graphics.ColorUtils
 import com.google.android.material.color.MaterialColors
 import androidx.annotation.IdRes
-import androidx.appcompat.widget.PopupMenu
+import androidx.appcompat.widget.TooltipCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
+import androidx.core.view.isVisible
 import androidx.core.view.updatePaddingRelative
 import androidx.core.view.WindowCompat
 import androidx.preference.PreferenceDataStore
+import com.google.android.material.behavior.HideViewOnScrollBehavior
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.navigation.NavigationView
+import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.snackbar.Snackbar
 import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.Key
@@ -40,7 +43,6 @@ import io.nekohasekai.sagernet.aidl.SpeedDisplayData
 import io.nekohasekai.sagernet.aidl.TrafficDataBatch
 import io.nekohasekai.sagernet.bg.BaseService
 import io.nekohasekai.sagernet.bg.SagerConnection
-import io.nekohasekai.sagernet.bg.test.TestSpec
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.SettingsRegistry
 import io.nekohasekai.sagernet.database.ProfileManager
@@ -57,7 +59,6 @@ import io.nekohasekai.sagernet.outbound.`import`.ProfileImport
 import io.nekohasekai.sagernet.ui.route.RouteImports
 import io.nekohasekai.sagernet.ui.settings.DnsSettingsFragment
 import io.nekohasekai.sagernet.ui.settings.XrayGeoSettingsFragment
-import io.nekohasekai.sagernet.ui.test.TestSessionClient
 import io.nekohasekai.sagernet.ktx.readableMessage
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
 import io.nekohasekai.sagernet.ktx.runOnIoDispatcher
@@ -117,7 +118,7 @@ class MainActivity : ThemedActivity(),
         val isMaterialOriginal = Theme.isMaterialTheme(Theme.activeThemeId())
         val fabBgColor = when {
             Theme.isWhiteTheme(this) -> ContextCompat.getColor(this, R.color.color_white_theme_fab)
-            Theme.isLightGrayTheme(this) -> Color.parseColor("#1F2937")
+            Theme.isLightGrayTheme(this) -> ContextCompat.getColor(this, R.color.color_light_gray_primary)
             isMaterialOriginal -> {
                 MaterialColors.getColor(
                     binding.root,
@@ -152,19 +153,21 @@ class MainActivity : ThemedActivity(),
                 }
             }
         }
+        val lightOnLightInk = ContextCompat.getColor(this, R.color.material_light_black)
         binding.fab.backgroundTintList = ColorStateList.valueOf(fabBgColor)
         val fabIconColor = if (isMaterialOriginal) {
             MaterialColors.getColor(
                 binding.root,
                 com.google.android.material.R.attr.colorOnPrimaryContainer,
-                if (ColorUtils.calculateLuminance(fabBgColor) > 0.56) Color.parseColor("#111827") else Color.WHITE,
+                if (ColorUtils.calculateLuminance(fabBgColor) > 0.56) lightOnLightInk else Color.WHITE,
             )
         } else if (ColorUtils.calculateLuminance(fabBgColor) > 0.56) {
-            Color.parseColor("#111827")
+            lightOnLightInk
         } else {
             Color.WHITE
         }
         binding.fab.imageTintList = ColorStateList.valueOf(fabIconColor)
+        styleFloatingToolbarContainer(isAmoled = isAmoled, isBlackTheme = isBlackTheme)
         if (themeResId !in intArrayOf(
                 R.style.Theme_SagerNet_Black,
                 // The White theme and its night fallback read ?itemShapeFillColor too, so the selection stays visible
@@ -213,32 +216,36 @@ class MainActivity : ThemedActivity(),
         })
 
         if (savedInstanceState == null) {
-            displayFragmentWithId(R.id.nav_configuration)
+            displayFragmentWithId(R.id.nav_home)
         } else {
             currentMainFragment =
                 supportFragmentManager.findFragmentById(R.id.fragment_holder) as? ToolbarFragment
             syncDrawerCheckedItem(currentMainFragment)
+            syncMainControls(currentMainFragment, showWhenConnected = false, animate = false)
         }
         onBackPressedDispatcher.addCallback {
-            if (supportFragmentManager.findFragmentById(R.id.fragment_holder) is ConfigurationFragment) {
-                moveTaskToBack(true)
-            } else {
-                displayFragmentWithId(R.id.nav_configuration)
+            when {
+                binding.drawerLayout.isOpen -> binding.drawerLayout.closeDrawers()
+                supportFragmentManager.findFragmentById(R.id.fragment_holder) is HomeFragment -> moveTaskToBack(true)
+                else -> displayFragmentWithId(R.id.nav_home)
             }
         }
 
+        TooltipCompat.setTooltipText(binding.toolbarNavProfiles, getString(R.string.menu_configuration))
+        TooltipCompat.setTooltipText(binding.toolbarNavTools, getString(R.string.menu_tools))
+        binding.toolbarNavProfiles.setOnClickListener {
+            HapticHelper.perform(this, binding.toolbarNavProfiles, HapticHelper.HapticKind.SELECTION)
+            val current = supportFragmentManager.findFragmentById(R.id.fragment_holder)
+            displayFragmentWithId(if (current is ConfigurationFragment) R.id.nav_home else R.id.nav_configuration)
+        }
+        binding.toolbarNavTools.setOnClickListener {
+            HapticHelper.perform(this, binding.toolbarNavTools, HapticHelper.HapticKind.SELECTION)
+            val current = supportFragmentManager.findFragmentById(R.id.fragment_holder)
+            displayFragmentWithId(if (current is ToolsFragment) R.id.nav_home else R.id.nav_tools)
+        }
         binding.fab.setOnClickListener {
             HapticHelper.perform(this, binding.fab, HapticHelper.HapticKind.HEAVY)
             toggleService()
-        }
-        binding.stats.setOnClickListener {
-            HapticHelper.perform(this, binding.stats, HapticHelper.HapticKind.TAP)
-            if (DataStore.serviceState.connected) binding.stats.testConnection()
-        }
-        binding.stats.setOnLongClickListener {
-            HapticHelper.perform(this, binding.stats, HapticHelper.HapticKind.HEAVY)
-            showStatsMenu()
-            true
         }
 
         setContentView(binding.root)
@@ -592,43 +599,89 @@ class MainActivity : ThemedActivity(),
         else -> null
     }
 
+    private fun styleFloatingToolbarContainer(isAmoled: Boolean, isBlackTheme: Boolean) {
+        val fillColor = if (isAmoled || isBlackTheme) {
+            Theme.resolveCardBackground(this)
+        } else {
+            MaterialColors.getColor(
+                binding.floatingToolbar,
+                com.google.android.material.R.attr.colorSurfaceContainerHigh,
+                Theme.resolveCardBackground(this),
+            )
+        }
+        val strokeColor = Theme.resolveCardStrokeColor(this, selected = false)
+        val strokeWidth = Theme.resolveCardStrokeWidthPx(this, selected = false)
+        (binding.floatingToolbar.background?.mutate() as? MaterialShapeDrawable)?.let { shape ->
+            shape.fillColor = ColorStateList.valueOf(fillColor)
+            shape.setStroke(strokeWidth, strokeColor)
+            binding.floatingToolbar.background = shape
+        }
+    }
+
     private fun syncDrawerCheckedItem(fragment: Any? = currentMainFragment) {
         if (!::navigation.isInitialized) return
-        val targetId = drawerMenuIdForFragment(fragment) ?: return
         clearMenuChecks(navigation.menu)
+        val targetId = drawerMenuIdForFragment(fragment) ?: return
         navigation.setCheckedItem(targetId)
         navigation.menu.findItem(targetId)?.isChecked = true
+    }
+
+    private fun syncFloatingToolbarSelection(fragment: Any?) {
+        val isProfiles = fragment is ConfigurationFragment
+        val isTools = fragment is ToolsFragment
+        val selectedBg = MaterialColors.getColor(
+            binding.floatingToolbar,
+            com.google.android.material.R.attr.colorSecondaryContainer,
+            Color.TRANSPARENT,
+        )
+        val selectedIcon = MaterialColors.getColor(
+            binding.floatingToolbar,
+            com.google.android.material.R.attr.colorOnSecondaryContainer,
+            MaterialColors.getColor(binding.floatingToolbar, androidx.appcompat.R.attr.colorPrimary, Color.WHITE),
+        )
+        val unselectedIcon = MaterialColors.getColor(
+            binding.floatingToolbar,
+            com.google.android.material.R.attr.colorOnSurfaceVariant,
+            MaterialColors.getColor(binding.floatingToolbar, android.R.attr.textColorSecondary, Color.GRAY),
+        )
+        binding.toolbarNavProfiles.apply {
+            isCheckable = true
+            isChecked = isProfiles
+            isSelected = isProfiles
+            backgroundTintList = ColorStateList.valueOf(if (isProfiles) selectedBg else Color.TRANSPARENT)
+            iconTint = ColorStateList.valueOf(if (isProfiles) selectedIcon else unselectedIcon)
+        }
+        binding.toolbarNavTools.apply {
+            isCheckable = true
+            isChecked = isTools
+            isSelected = isTools
+            backgroundTintList = ColorStateList.valueOf(if (isTools) selectedBg else Color.TRANSPARENT)
+            iconTint = ColorStateList.valueOf(if (isTools) selectedIcon else unselectedIcon)
+        }
     }
 
     private fun syncMainControls(
         fragment: Any? = currentMainFragment
             ?: supportFragmentManager.findFragmentById(R.id.fragment_holder),
-        showWhenConnected: Boolean,
+        @Suppress("UNUSED_PARAMETER") showWhenConnected: Boolean,
         animate: Boolean,
     ) {
-        val showControls = fragment is ConfigurationFragment
-        binding.stats.useExternalScrollDriver = fragment is ConfigurationFragment
-        binding.stats.visibility = if (showControls) View.VISIBLE else View.GONE
-        binding.stats.syncMainControls(
-            showControls,
-            DataStore.serviceState,
-            showWhenConnected,
-            animate,
-        )
+        val showToolbar = fragment is HomeFragment || fragment is ConfigurationFragment || fragment is ToolsFragment
+        syncFloatingToolbarSelection(fragment)
         binding.fab.animate().cancel()
-        if (showControls) {
+        if (showToolbar) {
+            binding.floatingToolbar.visibility = View.VISIBLE
             binding.fab.show()
-            // a start error shown on another screen sits at the bottom, where the FAB now comes back
-            errorBar?.takeIf { it.isShown && it.anchorView == null }?.anchorAboveFab()
+            runCatching {
+                HideViewOnScrollBehavior.from(binding.floatingToolbar).slideIn(binding.floatingToolbar, animate)
+            }
+            // A start error shown on another screen sits at the bottom; re-anchor above the floating toolbar when it returns.
+            errorBar?.takeIf { it.isShown && it.anchorView == null }?.anchorAboveToolbar()
         } else {
             binding.fab.hideProgress()
             binding.fabProgress.hide()
             binding.fabProgress.visibility = View.INVISIBLE
-            if (animate && binding.fab.isLaidOut) {
-                binding.fab.hide()
-            } else {
-                binding.fab.visibility = View.INVISIBLE
-            }
+            binding.floatingToolbar.visibility = View.GONE
         }
     }
 
@@ -639,7 +692,15 @@ class MainActivity : ThemedActivity(),
     }
 
     fun driveBottomBar(scrollDy: Int) {
-        binding.stats.onListScrolled(scrollDy)
+        if (!binding.floatingToolbar.isVisible || scrollDy == 0) return
+        runCatching {
+            val behavior = HideViewOnScrollBehavior.from(binding.floatingToolbar)
+            if (scrollDy > 0) {
+                behavior.slideOut(binding.floatingToolbar)
+            } else {
+                behavior.slideIn(binding.floatingToolbar)
+            }
+        }
     }
 
     fun displayTools(tab: Int = ToolsFragment.TAB_NETWORK) {
@@ -649,10 +710,8 @@ class MainActivity : ThemedActivity(),
 
     fun displayFragmentWithId(@IdRes id: Int, tab: Int = -1): Boolean {
         when (id) {
-            R.id.nav_configuration -> {
-                displayFragment(ConfigurationFragment())
-            }
-
+            R.id.nav_home -> displayFragment(HomeFragment())
+            R.id.nav_configuration -> displayFragment(ConfigurationFragment())
             R.id.nav_group -> displayFragment(GroupFragment())
             R.id.nav_route -> displayFragment(RouteFragment())
             R.id.nav_settings -> displayFragment(SettingsFragment())
@@ -670,8 +729,10 @@ class MainActivity : ThemedActivity(),
             else -> return false
         }
         clearMenuChecks(navigation.menu)
-        navigation.setCheckedItem(id)
-        navigation.menu.findItem(id)?.isChecked = true
+        if (id != R.id.nav_home) {
+            navigation.setCheckedItem(id)
+            navigation.menu.findItem(id)?.isChecked = true
+        }
         return true
     }
 
@@ -681,6 +742,7 @@ class MainActivity : ThemedActivity(),
         animate: Boolean = false,
         animateControls: Boolean = animate,
     ) {
+        val previousState = DataStore.serviceState
         DataStore.serviceState = state
         refreshConfigurationProfileState()
         when (val fragment = currentMainFragment ?: supportFragmentManager.findFragmentById(R.id.fragment_holder)) {
@@ -688,8 +750,7 @@ class MainActivity : ThemedActivity(),
             is DashboardFragment -> fragment.onServiceStateChanged()
         }
 
-        binding.fab.changeState(state, DataStore.serviceState, animate)
-        binding.stats.changeState(state)
+        binding.fab.changeState(state, previousState, animate)
         syncMainControls(
             showWhenConnected = state == BaseService.State.Connected,
             animate = animateControls,
@@ -784,35 +845,16 @@ class MainActivity : ThemedActivity(),
         (supportFragmentManager.findFragmentById(R.id.fragment_holder) as? ConfigurationFragment)?.showGroup(id)
     }
 
-    /** The stats bar's long-press menu: the live graphs, and a speed test of the running connection. */
-    private fun showStatsMenu() {
-        val popup = PopupMenu(this, binding.stats)
-        popup.menuInflater.inflate(R.menu.stats_bar_menu, popup.menu)
-        popup.menu.findItem(R.id.action_test_speed_current).isEnabled = DataStore.serviceState.connected
-        popup.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                R.id.action_live_graphs -> displayFragmentWithId(R.id.nav_live_graphs)
-                R.id.action_test_speed_current -> {
-                    if (!TestSessionClient.startCurrent(TestSpec.KIND_SPEED)) {
-                        snackbar(R.string.profiles_test_busy).show()
-                    }
-                }
-            }
-            true
-        }
-        popup.show()
-    }
-
     override fun snackbarInternal(text: CharSequence): Snackbar {
         return Snackbar.make(binding.coordinator, text, Snackbar.LENGTH_LONG).apply {
-            if (binding.fab.visibility == View.VISIBLE) anchorAboveFab()
+            if (binding.floatingToolbar.visibility == View.VISIBLE) anchorAboveToolbar()
         }
     }
 
     // Visibility, not isShown: the saved start error is shown from the first onResume, before the window is attached.
-    // The layout listener places the bar once the FAB has been laid out.
-    private fun Snackbar.anchorAboveFab() {
-        anchorView = binding.fab
+    // The layout listener places the bar once the floating toolbar has been laid out.
+    private fun Snackbar.anchorAboveToolbar() {
+        anchorView = binding.floatingToolbar
         isAnchorViewLayoutListenerEnabled = true
     }
 
@@ -925,7 +967,7 @@ class MainActivity : ThemedActivity(),
     // may NOT called when app is in background
     // ONLY do UI update here, write DB in bg process
     override fun cbSpeedUpdate(stats: SpeedDisplayData) {
-        binding.stats.updateSpeed(stats.txRateProxy, stats.rxRateProxy)
+        // Home speed chart cards wire into speed updates in Stage C.
     }
 
     override suspend fun cbTrafficUpdate(data: TrafficDataBatch) {
@@ -1030,7 +1072,7 @@ class MainActivity : ThemedActivity(),
             ?.takeIf { it.getGlobalVisibleRect(Rect()) }
     }
 
-    /** D-pad down past the end of the screen's content reaches the FAB, then the stats bar (they float over it). */
+    /** D-pad down past the end of the screen's content reaches the floating toolbar controls. */
     private fun focusMainControls(): Boolean {
         val focused = currentFocus ?: return false
         val root = supportFragmentManager.findFragmentById(R.id.fragment_holder)?.view ?: return false
@@ -1042,10 +1084,17 @@ class MainActivity : ThemedActivity(),
         }
         // Other tabs' pages beside the pager are focusable too: go to what is visible below, if anything.
         screenFocusTarget(View.FOCUS_DOWN)?.let { return it.requestFocus() }
-        return when {
-            binding.fab.isShown && binding.fab.isFocusable -> binding.fab.requestFocus()
-            binding.stats.isShown && binding.stats.isFocusable -> binding.stats.requestFocus()
-            else -> false
+        return if (binding.floatingToolbar.isShown) {
+            when {
+                binding.fab.isShown && binding.fab.isFocusable -> binding.fab.requestFocus()
+                binding.toolbarNavProfiles.isShown && binding.toolbarNavProfiles.isFocusable ->
+                    binding.toolbarNavProfiles.requestFocus()
+                binding.toolbarNavTools.isShown && binding.toolbarNavTools.isFocusable ->
+                    binding.toolbarNavTools.requestFocus()
+                else -> false
+            }
+        } else {
+            false
         }
     }
 

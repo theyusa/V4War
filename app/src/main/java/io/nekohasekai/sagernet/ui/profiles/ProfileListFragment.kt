@@ -41,8 +41,8 @@ class ProfileListFragment : Fragment(R.layout.layout_profile_list) {
     companion object {
         private const val ARG_GROUP_ID = "group_id"
 
-        /** The list clears the FAB and the stats bar (plus the navigation bar, see applyListInsets). */
-        private const val BOTTOM_PADDING_DP = 80
+        /** The list clears the floating toolbar (plus the navigation bar, see applyListInsets). */
+        private const val BOTTOM_PADDING_DP = 120
 
         fun newInstance(groupId: Long) = ProfileListFragment().apply {
             arguments = bundleOf(ARG_GROUP_ID to groupId)

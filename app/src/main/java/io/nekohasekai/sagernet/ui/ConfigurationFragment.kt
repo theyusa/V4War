@@ -380,7 +380,7 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
                         updatePagerMargin()
                     }
                 }
-                floatingViews = (activity as? MainActivity)?.binding?.let { listOf(it.fab, it.stats) }.orEmpty()
+                floatingViews = (activity as? MainActivity)?.binding?.let { listOf(it.floatingToolbar) }.orEmpty()
                 setProfileState(selectedProxy, if (serviceStarted) currentProfile else 0L)
             }
         }
