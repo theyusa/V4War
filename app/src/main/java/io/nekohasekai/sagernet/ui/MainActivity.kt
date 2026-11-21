@@ -593,6 +593,7 @@ class MainActivity : ThemedActivity(),
     }
 
     private fun drawerMenuIdForFragment(fragment: Any?): Int? = when (fragment) {
+        is HomeFragment -> R.id.nav_home
         is ConfigurationFragment -> R.id.nav_configuration
         is GroupFragment -> R.id.nav_group
         is RouteFragment -> R.id.nav_route
@@ -736,10 +737,8 @@ class MainActivity : ThemedActivity(),
             else -> return false
         }
         clearMenuChecks(navigation.menu)
-        if (id != R.id.nav_home) {
-            navigation.setCheckedItem(id)
-            navigation.menu.findItem(id)?.isChecked = true
-        }
+        navigation.setCheckedItem(id)
+        navigation.menu.findItem(id)?.isChecked = true
         return true
     }
 
