@@ -56,7 +56,7 @@ class TrafficRingView @JvmOverloads constructor(
     private var downloadBytes: Long = 0L
     private var uploadBytes: Long = 0L
 
-    private val strokePx = dp2px(12).toFloat()
+    private val strokePx = dp2px(6).toFloat()
     private val rect = RectF()
     private val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE

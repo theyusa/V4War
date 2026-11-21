@@ -2,21 +2,16 @@ package io.nekohasekai.sagernet.ui
 
 import android.content.Intent
 import android.graphics.Color
-import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.RemoteException
-import android.text.TextUtils
 import android.text.format.Formatter
-import android.util.TypedValue
-import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
-import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.Space
 import android.widget.TextView
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.ColorUtils
@@ -55,7 +50,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.hypot
 
-/** Home dashboard screen: top status pill and Stage C1 cards (Running Mode, Network Speed, Traffic Usage). */
+/** Compact Home dashboard screen: top status banner, Network Speed, Traffic Usage, and Routing cards. */
 class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
     private companion object {
@@ -64,22 +59,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         const val CHART_TICK_MS = 15_000L
     }
 
-    private var statusPillContainer: LinearLayout? = null
-    private var statusPillIcon: ImageView? = null
-    private var statusPillText: TextView? = null
-
-    private var chipModeVpn: LinearLayout? = null
-    private var chipModeVpnText: TextView? = null
-    private var chipModeProxy: LinearLayout? = null
-    private var chipModeProxyText: TextView? = null
-    private var routeRow: LinearLayout? = null
-    private var pillRule: LinearLayout? = null
-    private var pillRuleIcon: ImageView? = null
-    private var pillRuleText: TextView? = null
-    private var pillOutboundIcon: ImageView? = null
-    private var pillOutboundText: TextView? = null
-    private var pillBypassIcon: ImageView? = null
-    private var pillBypassText: TextView? = null
+    private var statusBannerCard: MaterialCardView? = null
+    private var statusIconBox: FrameLayout? = null
+    private var statusIcon: ImageView? = null
+    private var statusTitle: TextView? = null
+    private var statusSubtitle: TextView? = null
+    private var statusModeTag: TextView? = null
 
     private var speedRateText: TextView? = null
     private var speedChart: LiveChartView? = null
@@ -91,6 +76,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var trafficUpUnit: TextView? = null
     private var trafficDownValue: TextView? = null
     private var trafficDownUnit: TextView? = null
+
+    private var cardRouting: MaterialCardView? = null
+    private var pillRule: LinearLayout? = null
+    private var pillRuleIcon: ImageView? = null
+    private var pillRuleText: TextView? = null
+    private var routeSummaryText: TextView? = null
 
     private var currentState: BaseService.State = DataStore.serviceState
     private var latestSpeed: SpeedDisplayData = SpeedDisplayData()
@@ -108,22 +99,19 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val appbar = view.findViewById<AppBarLayout>(R.id.appbar)
         appbar?.setBackgroundColor(screenBg)
         toolbar?.visibility = View.GONE
-        val header = ExpressiveSettingsHelper.attachFloatingPillHeader(appbar, ctx)?.apply {
-            update(
-                context = ctx,
-                title = getString(R.string.menu_home),
-                iconRes = R.drawable.ic_navigation_menu,
-                contentDescription = getString(R.string.navigation_open_drawer),
-            ) {
-                (activity as? MainActivity)?.binding?.drawerLayout?.openDrawer(GravityCompat.START)
-            }
+        ExpressiveSettingsHelper.attachFloatingPillHeader(appbar, ctx)?.update(
+            context = ctx,
+            title = getString(R.string.menu_home),
+            iconRes = R.drawable.ic_navigation_menu,
+            contentDescription = getString(R.string.navigation_open_drawer),
+        ) {
+            (activity as? MainActivity)?.binding?.drawerLayout?.openDrawer(GravityCompat.START)
         }
-        header?.let { attachStatusPill(it.root) }
 
         bindViews(view)
         styleCards(view)
         setupSpeedChart()
-        wireClicks()
+        wireClicks(view)
 
         refreshAllCards()
         startLivePollLoop()
@@ -135,7 +123,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 val bars = insets.getInsets(
                     WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
                 )
-                v.updatePadding(bottom = bars.bottom + dp2px(108))
+                v.updatePadding(bottom = bars.bottom + dp2px(100))
                 insets
             }
             target.setOnScrollChangeListener(
@@ -155,21 +143,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     }
 
     override fun onDestroyView() {
-        statusPillContainer = null
-        statusPillIcon = null
-        statusPillText = null
-        chipModeVpn = null
-        chipModeVpnText = null
-        chipModeProxy = null
-        chipModeProxyText = null
-        routeRow = null
-        pillRule = null
-        pillRuleIcon = null
-        pillRuleText = null
-        pillOutboundIcon = null
-        pillOutboundText = null
-        pillBypassIcon = null
-        pillBypassText = null
+        statusBannerCard = null
+        statusIconBox = null
+        statusIcon = null
+        statusTitle = null
+        statusSubtitle = null
+        statusModeTag = null
         speedRateText = null
         speedChart = null
         trafficRing = null
@@ -179,13 +158,18 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         trafficUpUnit = null
         trafficDownValue = null
         trafficDownUnit = null
+        cardRouting = null
+        pillRule = null
+        pillRuleIcon = null
+        pillRuleText = null
+        routeSummaryText = null
         super.onDestroyView()
     }
 
     fun onServiceStateChanged(state: BaseService.State) {
         currentState = state
         if (view == null) return
-        updateStatusPill()
+        updateStatusBanner()
         updateSpeedChart(DataStore.serviceState == BaseService.State.Connected)
         if (!state.connected) {
             latestSpeed = SpeedDisplayData()
@@ -207,18 +191,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     }
 
     private fun bindViews(view: View) {
-        chipModeVpn = view.findViewById(R.id.home_chip_mode_vpn)
-        chipModeVpnText = view.findViewById(R.id.home_chip_mode_vpn_text)
-        chipModeProxy = view.findViewById(R.id.home_chip_mode_proxy)
-        chipModeProxyText = view.findViewById(R.id.home_chip_mode_proxy_text)
-        routeRow = view.findViewById(R.id.home_running_route_row)
-        pillRule = view.findViewById(R.id.home_mode_pill_rule)
-        pillRuleIcon = view.findViewById(R.id.home_mode_pill_rule_icon)
-        pillRuleText = view.findViewById(R.id.home_mode_pill_rule_text)
-        pillOutboundIcon = view.findViewById(R.id.home_mode_pill_outbound_icon)
-        pillOutboundText = view.findViewById(R.id.home_mode_pill_outbound_text)
-        pillBypassIcon = view.findViewById(R.id.home_mode_pill_bypass_icon)
-        pillBypassText = view.findViewById(R.id.home_mode_pill_bypass_text)
+        statusBannerCard = view.findViewById(R.id.home_card_status_banner)
+        statusIconBox = view.findViewById(R.id.home_status_icon_box)
+        statusIcon = view.findViewById(R.id.home_status_icon)
+        statusTitle = view.findViewById(R.id.home_status_title)
+        statusSubtitle = view.findViewById(R.id.home_status_subtitle)
+        statusModeTag = view.findViewById(R.id.home_status_mode_tag)
 
         speedRateText = view.findViewById(R.id.home_speed_rate_text)
         speedChart = view.findViewById(R.id.home_speed_chart)
@@ -230,69 +208,30 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         trafficUpUnit = view.findViewById(R.id.home_traffic_up_unit)
         trafficDownValue = view.findViewById(R.id.home_traffic_down_value)
         trafficDownUnit = view.findViewById(R.id.home_traffic_down_unit)
+
+        cardRouting = view.findViewById(R.id.home_card_running_mode)
+        pillRule = view.findViewById(R.id.home_mode_pill_rule)
+        pillRuleIcon = view.findViewById(R.id.home_mode_pill_rule_icon)
+        pillRuleText = view.findViewById(R.id.home_mode_pill_rule_text)
+        routeSummaryText = view.findViewById(R.id.home_route_summary_text)
     }
 
     private fun styleCards(view: View) {
-        view.findViewById<MaterialCardView>(R.id.home_card_running_mode)?.let {
-            ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 22f)
-        }
+        statusBannerCard?.let { ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 18f) }
         view.findViewById<MaterialCardView>(R.id.home_card_network_speed)?.let {
-            ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 22f)
+            ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 18f)
         }
         view.findViewById<MaterialCardView>(R.id.home_card_traffic_usage)?.let {
-            ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 22f)
+            ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 18f)
         }
+        cardRouting?.let { ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 18f) }
 
         val ctx = requireContext()
         val (_, downloadColor, uploadColor) = TrafficRingView.resolveSegmentColors(ctx)
         trafficUpIcon?.setColorFilter(uploadColor)
         trafficDownIcon?.setColorFilter(downloadColor)
 
-        routeRow?.let { ExpressiveSettingsHelper.styleExpressiveNestedBox(it, cornerRadiusDp = 14f, strokeAlpha = 150) }
-    }
-
-    private fun attachStatusPill(headerRow: LinearLayout) {
-        val ctx = headerRow.context
-        headerRow.addView(
-            Space(ctx).apply {
-                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-            },
-        )
-        val pillHeight = dp2px(36)
-        val pill = LinearLayout(ctx).apply {
-            id = R.id.home_header_status_pill
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            minimumHeight = pillHeight
-            isClickable = false
-            isFocusable = false
-            layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                pillHeight,
-            )
-            setPadding(dp2px(12), 0, dp2px(13), 0)
-        }
-        val icon = ImageView(ctx).apply {
-            layoutParams = LinearLayout.LayoutParams(dp2px(15), dp2px(15)).apply {
-                marginEnd = dp2px(6)
-            }
-            contentDescription = null
-        }
-        val label = TextView(ctx).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-            letterSpacing = 0f
-            includeFontPadding = false
-            maxLines = 1
-            ellipsize = TextUtils.TruncateAt.END
-        }
-        pill.addView(icon)
-        pill.addView(label)
-        headerRow.addView(pill)
-
-        statusPillContainer = pill
-        statusPillIcon = icon
-        statusPillText = label
+        pillRule?.let { ExpressiveSettingsHelper.styleExpressiveNestedBox(it, cornerRadiusDp = 11f, strokeAlpha = 140) }
     }
 
     private fun setupSpeedChart() {
@@ -317,15 +256,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         chart.data = LiveHistory.series
     }
 
-    private fun wireClicks() {
-        routeRow?.setOnClickListener {
-            val v = it
-            context?.let { c -> HapticHelper.perform(c, v, HapticHelper.HapticKind.SELECTION) }
-            RouteQuickSwitch.show(this) {
-                refreshRunningModeCard()
-            }
-        }
-        val cardNetworkSpeed = view?.findViewById<View>(R.id.home_card_network_speed)
+    private fun wireClicks(view: View) {
+        val cardNetworkSpeed = view.findViewById<View>(R.id.home_card_network_speed)
         cardNetworkSpeed?.setOnClickListener { v ->
             context?.let { c -> HapticHelper.perform(c, v, HapticHelper.HapticKind.TAP) }
             (activity as? MainActivity)?.displayFragmentWithId(R.id.nav_live_graphs)
@@ -365,26 +297,35 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 true
             }
         }
-        view?.findViewById<View>(R.id.home_card_traffic_usage)?.setOnClickListener { v ->
+        view.findViewById<View>(R.id.home_card_traffic_usage)?.setOnClickListener { v ->
             val ctx = context ?: return@setOnClickListener
             HapticHelper.perform(ctx, v, HapticHelper.HapticKind.TAP)
             startActivity(Intent(ctx, TrafficUsageActivity::class.java))
         }
+        cardRouting?.setOnClickListener { v ->
+            context?.let { c -> HapticHelper.perform(c, v, HapticHelper.HapticKind.SELECTION) }
+            RouteQuickSwitch.show(this) {
+                refreshRunningModeCard()
+            }
+        }
     }
 
     private fun refreshAllCards() {
-        updateStatusPill()
+        updateStatusBanner()
         refreshRunningModeCard()
         updateSpeedReadout()
         updateSpeedChart(DataStore.serviceState == BaseService.State.Connected)
         refreshTrafficTotals()
     }
 
-    private fun updateStatusPill() {
+    private fun updateStatusBanner() {
         val ctx = context ?: return
-        val pill = statusPillContainer ?: return
-        val icon = statusPillIcon ?: return
-        val label = statusPillText ?: return
+        val card = statusBannerCard ?: return
+        val iconBox = statusIconBox ?: return
+        val icon = statusIcon ?: return
+        val titleTv = statusTitle ?: return
+        val subtitleTv = statusSubtitle ?: return
+        val modeTv = statusModeTag ?: return
 
         val isNight = Theme.usingNightMode(ctx)
         val isAnyAmoled = Theme.isAnyAmoled(ctx) || Theme.isMonochromeBlack(ctx)
@@ -393,6 +334,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val strokeBase = Theme.resolveCardStrokeColor(ctx, selected = false)
         val strokeWidth = Theme.resolveCardStrokeWidthPx(ctx, selected = false).toInt().coerceAtLeast(1)
         val primaryInk = ctx.getColorAttr(android.R.attr.textColorPrimary)
+        val secondaryInk = ctx.getColorAttr(android.R.attr.textColorSecondary)
 
         val stateLabel = when (currentState) {
             BaseService.State.Connected -> getString(R.string.home_status_enabled)
@@ -403,65 +345,84 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val active = currentState == BaseService.State.Connected
         val transitioning = currentState == BaseService.State.Connecting || currentState == BaseService.State.Stopping
 
-        val fillColor = when {
+        val bannerFill = when {
+            active && isAnyAmoled -> ColorUtils.blendARGB(cardBg, accent, 0.10f)
+            active -> ColorUtils.blendARGB(cardBg, accent, if (isNight) 0.14f else 0.08f)
+            else -> cardBg
+        }
+        val bannerStroke = when {
+            active -> ColorUtils.setAlphaComponent(accent, if (isAnyAmoled) 150 else 104)
+            else -> strokeBase
+        }
+        card.setCardBackgroundColor(bannerFill)
+        card.strokeColor = bannerStroke
+        card.strokeWidth = strokeWidth
+
+        val badgeFill = when {
             active -> if (Theme.isMonochromeBlack(ctx)) {
-                ColorUtils.setAlphaComponent(Color.WHITE, 34)
+                ColorUtils.setAlphaComponent(Color.WHITE, 36)
             } else {
                 ColorUtils.setAlphaComponent(accent, if (isNight) 44 else 28)
             }
             transitioning -> Theme.resolveNestedBoxBackground(ctx)
-            else -> cardBg
+            else -> Theme.resolveNestedBoxBackground(ctx)
         }
-        val borderColor = when {
-            active -> ColorUtils.setAlphaComponent(accent, if (isAnyAmoled) 150 else 104)
-            else -> strokeBase
-        }
-        val contentInk = when {
+        val iconInk = when {
             active -> if (Theme.isMonochromeBlack(ctx)) Color.WHITE else accent
             else -> primaryInk
         }
 
-        pill.background = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp2px(18).toFloat()
-            setColor(fillColor)
-            setStroke(strokeWidth, borderColor)
+        iconBox.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(badgeFill)
+            if (active || isAnyAmoled) {
+                setStroke(dp2px(1), ColorUtils.setAlphaComponent(iconInk, if (active) 120 else 48))
+            }
         }
-        label.text = stateLabel
-        label.setTextColor(contentInk)
         val d = ResourcesCompat.getDrawable(resources, R.drawable.ic_power_settings_new_24, null)?.mutate()
         if (d != null) {
-            DrawableCompat.setTint(d, contentInk)
+            DrawableCompat.setTint(d, iconInk)
             icon.setImageDrawable(d)
+        }
+
+        titleTv.text = stateLabel
+        titleTv.setTextColor(if (active) iconInk else primaryInk)
+
+        val modeLabel = if (DataStore.serviceMode == Key.MODE_VPN) {
+            getString(R.string.service_mode_vpn)
+        } else {
+            getString(R.string.route_proxy)
+        }
+        modeTv.text = modeLabel
+        modeTv.setTextColor(secondaryInk)
+        modeTv.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp2px(8).toFloat()
+            setColor(Theme.resolveNestedBoxBackground(ctx))
+        }
+
+        val targetId = if (currentState.started) {
+            DataStore.currentProfile.takeIf { it > 0L } ?: DataStore.selectedProxy
+        } else {
+            DataStore.selectedProxy
+        }
+        if (targetId <= 0L) {
+            subtitleTv.text = getString(R.string.not_connected)
+            return
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val name = withContext(Dispatchers.IO) {
+                SagerDatabase.proxyDao.getById(targetId)?.displayName()
+            }
+            if (view == null) return@launch
+            subtitleTv.text = name?.takeIf { it.isNotBlank() } ?: getString(R.string.not_connected)
         }
     }
 
     private fun refreshRunningModeCard() {
         val ctx = context ?: return
-        val isVpn = DataStore.serviceMode == Key.MODE_VPN
         val isBypass = DataStore.bypass
         val accent = ExpressiveSettingsHelper.resolveAccentColor(ctx)
-        val primaryText = ctx.getColorAttr(android.R.attr.textColorPrimary)
-        val secondaryText = ctx.getColorAttr(android.R.attr.textColorSecondary)
-        val nestedBg = Theme.resolveNestedBoxBackground(ctx)
-        val strokeColor = Theme.resolveCardStrokeColor(ctx, selected = false)
-
-        fun styleModeChip(box: LinearLayout?, tv: TextView?, label: String, selected: Boolean) {
-            if (box == null || tv == null) return
-            val chipFill = if (selected) nestedBg else Color.TRANSPARENT
-            val chipStroke = if (selected) ColorUtils.setAlphaComponent(accent, 110) else strokeColor
-            box.background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = dp2px(13).toFloat()
-                setColor(chipFill)
-                setStroke(dp2px(1), chipStroke)
-            }
-            tv.text = if (selected) "● $label" else "○ $label"
-            tv.setTextColor(if (selected) primaryText else secondaryText)
-        }
-
-        styleModeChip(chipModeVpn, chipModeVpnText, getString(R.string.service_mode_vpn), isVpn)
-        styleModeChip(chipModeProxy, chipModeProxyText, getString(R.string.home_mode_system_proxy), !isVpn)
 
         viewLifecycleOwner.lifecycleScope.launch {
             val route = withContext(Dispatchers.IO) {
@@ -470,37 +431,20 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             }
             val currentCtx = context ?: return@launch
             val routeTitle = route.name.trim().ifEmpty { getString(R.string.home_route_rule) }
-            pillRuleText?.text = if (routeTitle.equals(getString(R.string.home_route_rule), ignoreCase = true)) {
-                routeTitle
-            } else {
-                routeTitle
-            }
+            pillRuleText?.text = routeTitle
 
-            pillOutboundText?.text = when (route.default_outbound_id) {
+            val outboundLabel = when (route.default_outbound_id) {
                 OutboundIds.DIRECT -> getString(R.string.home_route_direct)
                 OutboundIds.BLOCK -> getString(R.string.home_route_block)
                 else -> getString(R.string.route_proxy)
             }
-            pillBypassText?.text = getString(R.string.home_route_bypass)
-
-            val selectedCapsuleColor = Theme.resolveCardBackground(currentCtx)
-            val selectedStroke = Theme.resolveCardStrokeColor(currentCtx, selected = false)
-            pillRule?.background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = dp2px(11).toFloat()
-                setColor(selectedCapsuleColor)
-                setStroke(dp2px(1), selectedStroke)
+            routeSummaryText?.text = if (isBypass) {
+                "$outboundLabel · ${getString(R.string.home_route_bypass)}"
+            } else {
+                outboundLabel
             }
-            val inkPrimary = currentCtx.getColorAttr(android.R.attr.textColorPrimary)
-            val inkSecondary = currentCtx.getColorAttr(android.R.attr.textColorSecondary)
-            pillRuleText?.setTextColor(inkPrimary)
-            pillRuleIcon?.setColorFilter(ExpressiveSettingsHelper.resolveAccentColor(currentCtx))
-            pillOutboundIcon?.setColorFilter(inkSecondary)
-            pillOutboundText?.setTextColor(inkSecondary)
-            pillBypassIcon?.setColorFilter(if (isBypass) ExpressiveSettingsHelper.resolveAccentColor(currentCtx) else inkSecondary)
-            pillBypassText?.setTextColor(if (isBypass) inkPrimary else inkSecondary)
-            pillBypassText?.alpha = if (isBypass) 1f else 0.55f
-            pillBypassIcon?.alpha = if (isBypass) 1f else 0.55f
+            pillRuleIcon?.setColorFilter(accent)
+            pillRuleText?.setTextColor(currentCtx.getColorAttr(android.R.attr.textColorPrimary))
         }
     }
 
