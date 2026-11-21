@@ -17,6 +17,12 @@
     <string name="home_route_direct">Direct</string>
     <string name="home_route_block">Block</string>
     <string name="home_route_bypass">Bypass</string>
+    <string name="home_network">Network</string>
+    <string name="home_core_runtime">Core Runtime</string>
+    <string name="home_connections">Connections</string>
+    <string name="home_memory">Memory</string>
+    <string name="home_hotspot_active">Active</string>
+    <string name="home_hotspot_standby">Standby</string>
     <string name="menu_configuration">Profiles</string>
     <string name="menu_group">Groups</string>
     <string name="menu_about">About</string>

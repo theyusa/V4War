@@ -994,6 +994,13 @@ class MainActivity : ThemedActivity(),
         DataStore.selectedProxy = id
         DataStore.currentProfile = id
         refreshConfigurationProfileState()
+        lifecycleScope.launch(Dispatchers.Main.immediate) {
+            if (!isFinishing && !isDestroyed) {
+                val fragment = currentMainFragment
+                    ?: supportFragmentManager.findFragmentById(R.id.fragment_holder)
+                (fragment as? HomeFragment)?.onProfileSelected()
+            }
+        }
         runOnDefaultDispatcher {
             ProfileManager.postUpdate(old, true)
             ProfileManager.postUpdate(id, true)
