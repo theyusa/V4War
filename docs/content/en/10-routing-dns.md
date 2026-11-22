@@ -17,6 +17,7 @@ Open **Drawer → Routing** to create, clone, import, or switch routing profiles
 - **Actions** — Route matched traffic to `Proxy`, `Direct`, `Block`, or a specific **Route Proxy Hop / Outbound**.
 - **Toggle Rules Individually** — Enable or disable individual rules without deleting them.
 - **Route Path Lookup** — Enter any app package, domain, or IP address to trace which exact rule and outbound will handle it.
+- **Download Rule-Sets & Routes After VPN** — Enable **Settings → Routing → Download rule-sets & routes after VPN** to fetch custom `.srs` rule-sets and remote routing profiles through the VPN tunnel (`proxy` detour) instead of before connecting (ideal for zero-rating or restricted networks).
 
 ## Per-group routing & Happ imports
 
