@@ -1188,11 +1188,18 @@ private fun attachPreferenceInfoHelper(list: androidx.recyclerview.widget.Recycl
             contentDescription = titleView?.text?.toString() ?: "Info"
             val tint = ctx.getColorAttr(android.R.attr.textColorSecondary)
             imageTintList = ColorStateList.valueOf(ColorUtils.setAlphaComponent(tint, 185))
-            val widgetIndex = if (widgetFrame != null) rootRow.indexOfChild(widgetFrame) else -1
-            if (widgetIndex >= 0) {
-                rootRow.addView(this, widgetIndex)
+            val targetRow = (widgetFrame?.parent as? android.widget.LinearLayout)
+                ?: (rootRow as? android.widget.LinearLayout)
+                ?: rootRow
+            val widgetIndex = if (widgetFrame != null && targetRow === widgetFrame.parent) {
+                targetRow.indexOfChild(widgetFrame)
             } else {
-                rootRow.addView(this)
+                -1
+            }
+            if (widgetIndex >= 0) {
+                targetRow.addView(this, widgetIndex)
+            } else {
+                targetRow.addView(this)
             }
         }
 

@@ -252,6 +252,7 @@
                             android:insetRight="0dp"
                             android:insetBottom="0dp"
                             android:visibility="gone"
+                            app:backgroundTint="@android:color/transparent"
                             app:icon="@drawable/ic_content_copy"
                             app:iconSize="16dp" />
                     </LinearLayout>
@@ -291,9 +292,12 @@
                                 android:orientation="horizontal">
 
                                 <TextView
-                                    android:layout_width="wrap_content"
+                                    android:layout_width="0dp"
                                     android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:ellipsize="end"
                                     android:fontFamily="sans-serif-medium"
+                                    android:maxLines="1"
                                     android:text="@string/dns_leak_resolver_card_title"
                                     android:textColor="?android:attr/textColorSecondary"
                                     android:textSize="11.5sp" />
@@ -304,6 +308,7 @@
                                     android:layout_height="wrap_content"
                                     android:layout_marginStart="6dp"
                                     android:fontFamily="sans-serif-medium"
+                                    android:maxLines="1"
                                     android:paddingHorizontal="6dp"
                                     android:paddingVertical="1dp"
                                     android:textSize="10sp"
@@ -352,6 +357,7 @@
                             android:insetRight="0dp"
                             android:insetBottom="0dp"
                             android:visibility="gone"
+                            app:backgroundTint="@android:color/transparent"
                             app:icon="@drawable/ic_content_copy"
                             app:iconSize="16dp" />
                     </LinearLayout>

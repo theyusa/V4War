@@ -268,13 +268,43 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/hotspot_share_method_label"
                                 android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="13sp" />
+                                android:textSize="12.5sp" />
 
-                            <androidx.appcompat.widget.AppCompatSpinner
-                                android:id="@+id/spinnerShareMethod"
+                            <LinearLayout
+                                android:id="@+id/boxShareMethodSelector"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp" />
+                                android:layout_marginTop="6dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:foreground="?attr/selectableItemBackground"
+                                android:gravity="center_vertical"
+                                android:minHeight="44dp"
+                                android:orientation="horizontal"
+                                android:paddingHorizontal="14dp"
+                                android:paddingVertical="10dp">
+
+                                <TextView
+                                    android:id="@+id/textShareMethodValue"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:ellipsize="end"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:maxLines="1"
+                                    android:text="@string/hotspot_share_method_auto"
+                                    android:textColor="?android:attr/textColorPrimary"
+                                    android:textSize="14sp" />
+
+                                <ImageView
+                                    android:id="@+id/iconShareMethodChevron"
+                                    android:layout_width="18dp"
+                                    android:layout_height="18dp"
+                                    android:layout_marginStart="8dp"
+                                    android:importantForAccessibility="no"
+                                    android:src="@drawable/ic_baseline_expand_more_24"
+                                    app:tint="?android:attr/textColorSecondary" />
+                            </LinearLayout>
                         </LinearLayout>
 
                         <!-- Fail-closed action row -->
@@ -290,13 +320,43 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/hotspot_share_fail_closed_label"
                                 android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="13sp" />
+                                android:textSize="12.5sp" />
 
-                            <androidx.appcompat.widget.AppCompatSpinner
-                                android:id="@+id/spinnerFailClosed"
+                            <LinearLayout
+                                android:id="@+id/boxFailClosedSelector"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp" />
+                                android:layout_marginTop="6dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:foreground="?attr/selectableItemBackground"
+                                android:gravity="center_vertical"
+                                android:minHeight="44dp"
+                                android:orientation="horizontal"
+                                android:paddingHorizontal="14dp"
+                                android:paddingVertical="10dp">
+
+                                <TextView
+                                    android:id="@+id/textFailClosedValue"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:ellipsize="end"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:maxLines="1"
+                                    android:text="@string/hotspot_share_fail_closed_block"
+                                    android:textColor="?android:attr/textColorPrimary"
+                                    android:textSize="14sp" />
+
+                                <ImageView
+                                    android:id="@+id/iconFailClosedChevron"
+                                    android:layout_width="18dp"
+                                    android:layout_height="18dp"
+                                    android:layout_marginStart="8dp"
+                                    android:importantForAccessibility="no"
+                                    android:src="@drawable/ic_baseline_expand_more_24"
+                                    app:tint="?android:attr/textColorSecondary" />
+                            </LinearLayout>
                         </LinearLayout>
 
                         <!-- Hotspot Share live traffic stats layout -->
@@ -707,11 +767,23 @@
                                     android:textSize="12sp" />
                             </LinearLayout>
 
-                            <com.google.android.material.switchmaterial.SwitchMaterial
-                                android:id="@+id/switchLanSharing"
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnLanSharingToggle"
+                                style="@style/Widget.Material3Expressive.Button.TonalButton"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="12dp" />
+                                android:layout_height="38dp"
+                                android:layout_marginStart="12dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:minWidth="0dp"
+                                android:minHeight="0dp"
+                                android:paddingHorizontal="14dp"
+                                android:text="@string/hotspot_share_btn_start"
+                                android:textSize="12.5sp"
+                                app:cornerRadius="16dp"
+                                app:icon="@drawable/ic_power_settings_new_24"
+                                app:iconPadding="6dp"
+                                app:iconSize="16dp" />
                         </LinearLayout>
 
                         <LinearLayout
@@ -1346,11 +1418,23 @@
                                         android:textSize="12sp" />
                                 </LinearLayout>
 
-                                <com.google.android.material.switchmaterial.SwitchMaterial
-                                    android:id="@+id/switchGatewaySwitch"
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btnGatewayToggle"
+                                    style="@style/Widget.Material3Expressive.Button.TonalButton"
                                     android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="12dp" />
+                                    android:layout_height="38dp"
+                                    android:layout_marginStart="12dp"
+                                    android:insetTop="0dp"
+                                    android:insetBottom="0dp"
+                                    android:minWidth="0dp"
+                                    android:minHeight="0dp"
+                                    android:paddingHorizontal="14dp"
+                                    android:text="@string/hotspot_share_btn_start"
+                                    android:textSize="12.5sp"
+                                    app:cornerRadius="16dp"
+                                    app:icon="@drawable/ic_power_settings_new_24"
+                                    app:iconPadding="6dp"
+                                    app:iconSize="16dp" />
                             </LinearLayout>
 
                             <com.google.android.material.button.MaterialButton

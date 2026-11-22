@@ -167,7 +167,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         const val STALE_MS = 3000L
         const val PREFS_HOME_UI = "home_ui_prefs"
         const val PREF_MASK_NETWORK_IP = "mask_network_ip"
-        const val MASKED_IP = "*.*.*.*"
+        const val MASKED_IP = "•••.•••.•••.•••"
 
         val MANUAL_PROFILE_OPTIONS: List<Triple<Int, Int, Class<*>>> = listOf(
             Triple(R.id.action_new_auto_selector, R.string.action_auto_selector, AutoSelectorSettingsActivity::class.java),

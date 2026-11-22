@@ -142,13 +142,11 @@ class StunActivity : ThemedActivity() {
         binding.scrollStun.applyListInsets()
         listOf(
             binding.cardPreset,
-            binding.cardNetworkOptions,
-            binding.cardAction,
             binding.cardResult,
         ).forEach { ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 20f) }
 
-        ExpressiveSettingsHelper.applySquircleIcon(binding.iconPresetBadge, R.drawable.ic_baseline_nat_24)
-        ExpressiveSettingsHelper.applySquircleIcon(binding.iconNetworkOptionBadge, R.drawable.ic_hardware_router)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconPresetBadge, R.drawable.ic_baseline_nat_24, sizeDp = 36, iconSizeDp = 19)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconNetworkOptionBadge, R.drawable.ic_hardware_router, sizeDp = 32, iconSizeDp = 17)
         ExpressiveSettingsHelper.applySquircleIcon(binding.iconResultBadge, R.drawable.ic_baseline_check_circle_24)
 
         ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.boxPresetRadios, cornerRadiusDp = 16f, strokeAlpha = 160)
