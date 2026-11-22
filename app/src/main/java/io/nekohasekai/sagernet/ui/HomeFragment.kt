@@ -8,7 +8,9 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.RemoteException
 import android.os.SystemClock
@@ -68,9 +70,11 @@ import io.nekohasekai.sagernet.hotspotshare.SharePreference
 import io.nekohasekai.sagernet.hotspotshare.ShareState
 import io.nekohasekai.sagernet.hotspotshare.TetherWatchService
 import io.nekohasekai.sagernet.ktx.Logs
+import io.nekohasekai.sagernet.ktx.appUserAgent
 import io.nekohasekai.sagernet.ktx.confirmAction
 import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
+import io.nekohasekai.sagernet.ktx.newHttpClient
 import io.nekohasekai.sagernet.ktx.readableMessage
 import io.nekohasekai.sagernet.ktx.snackbar
 import io.nekohasekai.sagernet.ktx.startFilesForResult
@@ -122,6 +126,15 @@ import io.nekohasekai.sagernet.utils.NetworkInterfaceInfo
 import io.nekohasekai.sagernet.utils.NetworkInterfacesRepository
 import io.nekohasekai.sagernet.utils.NetworkInterfacesSnapshot
 import io.nekohasekai.sagernet.utils.Theme
+import io.nekohasekai.sagernet.utils.stun.DefaultStunSocketFactory
+import io.nekohasekai.sagernet.utils.stun.StunAssessmentKind
+import io.nekohasekai.sagernet.utils.stun.StunAssessmentPolicy
+import io.nekohasekai.sagernet.utils.stun.StunNatTester
+import io.nekohasekai.sagernet.utils.stun.StunPreset
+import io.nekohasekai.sagernet.utils.stun.StunProtocolCodes
+import io.nekohasekai.sagernet.utils.toolbox.ConnectivityChecker
+import io.nekohasekai.sagernet.utils.toolbox.ConnectivityStatus
+import io.nekohasekai.sagernet.utils.toolbox.ServiceProbeResult
 import io.nekohasekai.sagernet.widget.ExitIp
 import io.nekohasekai.sagernet.widget.LiveChartView
 import io.nekohasekai.sagernet.widget.StatsBar
@@ -133,8 +146,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import kotlin.math.hypot
+import okhttp3.Request
+import org.json.JSONObject
+import java.net.InetAddress
 import java.util.zip.ZipInputStream
+import kotlin.math.hypot
 
 /**
  * Ultra-compact Bento Home dashboard: Interactive Status Hero + URL test strip, Active Group /
@@ -251,7 +267,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var hotspotChipLan: LinearLayout? = null
     private var hotspotChipLanValue: TextView? = null
 
-    private var cardSubscription: MaterialCardView? = null
+    private var cardSubscription: View? = null
     private var subIcon: ImageView? = null
     private var subTitleText: TextView? = null
     private var subExpiryText: TextView? = null
@@ -262,6 +278,22 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var subQuotaText: TextView? = null
     private var subRemainingText: TextView? = null
 
+    private var cardDiagStun: MaterialCardView? = null
+    private var diagStunProgress: CircularProgressIndicator? = null
+    private var diagStunOpenBtn: FrameLayout? = null
+    private var diagStunValue: TextView? = null
+    private var diagStunMeta: TextView? = null
+    private var cardDiagDnsLeak: MaterialCardView? = null
+    private var diagDnsProgress: CircularProgressIndicator? = null
+    private var diagDnsOpenBtn: FrameLayout? = null
+    private var diagDnsValue: TextView? = null
+    private var diagDnsMeta: TextView? = null
+    private var cardDiagConnectivity: MaterialCardView? = null
+    private var diagConnProgress: CircularProgressIndicator? = null
+    private var diagConnOpenBtn: FrameLayout? = null
+    private var diagConnValue: TextView? = null
+    private var diagConnMeta: TextView? = null
+
     private val percentAxis = LiveChartView.percentAxis()
     private var bytesAxis: LiveChartView.Axis? = null
     private var portalUri: Uri? = null
@@ -269,6 +301,9 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var lastUrlTestLatencyMs: Int = 0
     private var connectionTestJob: Job? = null
     private var statusProfileLoadJob: Job? = null
+    private var stunDiagJob: Job? = null
+    private var dnsDiagJob: Job? = null
+    private var connDiagJob: Job? = null
     private var hasTestStatus: Boolean = false
     private var lastTestStatusText: CharSequence? = null
     private val exitIpListener: () -> Unit = {
@@ -346,6 +381,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         connectionTestJob = null
         statusProfileLoadJob?.cancel()
         statusProfileLoadJob = null
+        stunDiagJob?.cancel()
+        stunDiagJob = null
+        dnsDiagJob?.cancel()
+        dnsDiagJob = null
+        connDiagJob?.cancel()
+        connDiagJob = null
         if (ExitIp.listener === exitIpListener) ExitIp.listener = null
         hasTestStatus = false
         lastTestStatusText = null
@@ -421,6 +462,21 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         subProgressBar = null
         subQuotaText = null
         subRemainingText = null
+        cardDiagStun = null
+        diagStunProgress = null
+        diagStunOpenBtn = null
+        diagStunValue = null
+        diagStunMeta = null
+        cardDiagDnsLeak = null
+        diagDnsProgress = null
+        diagDnsOpenBtn = null
+        diagDnsValue = null
+        diagDnsMeta = null
+        cardDiagConnectivity = null
+        diagConnProgress = null
+        diagConnOpenBtn = null
+        diagConnValue = null
+        diagConnMeta = null
         bytesAxis = null
         portalUri = null
         super.onDestroyView()
@@ -562,12 +618,29 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         subProgressBar = view.findViewById(R.id.home_sub_progress)
         subQuotaText = view.findViewById(R.id.home_sub_quota_text)
         subRemainingText = view.findViewById(R.id.home_sub_remaining_text)
+
+        cardDiagStun = view.findViewById(R.id.home_card_diag_stun)
+        diagStunProgress = view.findViewById(R.id.home_diag_stun_progress)
+        diagStunOpenBtn = view.findViewById(R.id.home_diag_stun_open_btn)
+        diagStunValue = view.findViewById(R.id.home_diag_stun_value)
+        diagStunMeta = view.findViewById(R.id.home_diag_stun_meta)
+
+        cardDiagDnsLeak = view.findViewById(R.id.home_card_diag_dns_leak)
+        diagDnsProgress = view.findViewById(R.id.home_diag_dns_progress)
+        diagDnsOpenBtn = view.findViewById(R.id.home_diag_dns_open_btn)
+        diagDnsValue = view.findViewById(R.id.home_diag_dns_value)
+        diagDnsMeta = view.findViewById(R.id.home_diag_dns_meta)
+
+        cardDiagConnectivity = view.findViewById(R.id.home_card_diag_connectivity)
+        diagConnProgress = view.findViewById(R.id.home_diag_conn_progress)
+        diagConnOpenBtn = view.findViewById(R.id.home_diag_conn_open_btn)
+        diagConnValue = view.findViewById(R.id.home_diag_conn_value)
+        diagConnMeta = view.findViewById(R.id.home_diag_conn_meta)
     }
 
     private fun styleCards(ctx: Context) {
         listOfNotNull(
             statusBannerCard,
-            cardSubscription,
             cardNetworkSpeed,
             cardTrafficUsage,
             cardNetworkEgress,
@@ -576,7 +649,14 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             cardRouting,
             cardAppProxy,
             cardHotspotShare,
+            cardDiagStun,
+            cardDiagDnsLeak,
+            cardDiagConnectivity,
         ).forEach { ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 16f) }
+
+        cardSubscription?.let {
+            ExpressiveSettingsHelper.styleExpressiveNestedBox(it, cornerRadiusDp = 11f, strokeAlpha = 115)
+        }
 
         val (_, downloadColor, uploadColor) = TrafficRingView.resolveSegmentColors(ctx)
         trafficUpIcon?.setColorFilter(uploadColor)
@@ -595,12 +675,17 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         listOfNotNull(subPortalBtn, subSwitchBtn).forEach { button ->
             styleTonalActionButton(button, nestedBg, primaryInk, accent, strokeColor, isAnyAmoled)
         }
-        statusEditBtn?.background = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(nestedBg)
-            if (isAnyAmoled) {
-                setStroke(dp2px(1), strokeColor)
+        listOfNotNull(statusEditBtn, diagStunOpenBtn, diagDnsOpenBtn, diagConnOpenBtn).forEach { btn ->
+            btn.background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(nestedBg)
+                if (isAnyAmoled) {
+                    setStroke(dp2px(1), strokeColor)
+                }
             }
+        }
+        listOfNotNull(diagStunProgress, diagDnsProgress, diagConnProgress).forEach { progress ->
+            progress.setIndicatorColor(accent)
         }
     }
 
@@ -729,10 +814,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         }
         statusTestBar?.setOnClickListener { v ->
             context?.let { c -> HapticHelper.perform(c, v, HapticHelper.HapticKind.TAP) }
-            if (currentState == BaseService.State.Connected) {
-                runConnectionTest()
-            } else {
-                (activity as? MainActivity)?.displayFragmentWithId(R.id.nav_configuration)
+            when {
+                currentState == BaseService.State.Connected -> runConnectionTest()
+                activeTargetProfileId() > 0L -> (activity as? MainActivity)?.toggleService()
+                else -> (activity as? MainActivity)?.displayFragmentWithId(R.id.nav_configuration)
             }
         }
 
@@ -781,6 +866,27 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 Toast.makeText(ctx, getString(R.string.subinfo_no_app, uri.toString()), Toast.LENGTH_SHORT).show()
             }
         }
+
+        wireDiagTile(cardDiagStun, diagStunOpenBtn, StunActivity::class.java) { runQuickStunTest() }
+        wireDiagTile(cardDiagDnsLeak, diagDnsOpenBtn, DnsLeakActivity::class.java) { runQuickDnsLeakTest() }
+        wireDiagTile(cardDiagConnectivity, diagConnOpenBtn, ConnectivityTestActivity::class.java) { runQuickConnectivityTest() }
+    }
+
+    private fun wireDiagTile(
+        card: View?,
+        openBtn: View?,
+        destination: Class<*>,
+        onRunInline: () -> Unit,
+    ) {
+        card?.setOnClickListener { v ->
+            context?.let { c -> HapticHelper.perform(c, v, HapticHelper.HapticKind.TAP) }
+            onRunInline()
+        }
+        card?.setOnLongClickListener { v ->
+            launchActivity(v, destination)
+            true
+        }
+        openBtn?.setOnClickListener { v -> launchActivity(v, destination) }
     }
 
     private fun launchActivity(view: View, destination: Class<*>) {
@@ -1068,7 +1174,11 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             }
             BaseService.State.Connecting -> getString(R.string.connecting)
             BaseService.State.Stopping -> getString(R.string.stopping)
-            else -> getString(R.string.home_status_tap_to_select)
+            else -> if (activeTargetProfileId() > 0L) {
+                getString(R.string.home_status_ready_to_connect)
+            } else {
+                getString(R.string.home_status_tap_to_select)
+            }
         }
         testText?.text = message
         testText?.setTextColor(if (connected) primaryInk else secondaryInk)
@@ -2177,6 +2287,314 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                     }
                     refreshTrafficTotals()
                 }
+            }
+        }
+    }
+
+    private fun runQuickStunTest() {
+        val ctx = context ?: return
+        stunDiagJob?.cancel()
+        diagStunProgress?.isVisible = true
+        diagStunValue?.text = getString(R.string.connection_test_testing)
+        diagStunValue?.setTextColor(ctx.getColorAttr(android.R.attr.textColorPrimary))
+        diagStunMeta?.text = getString(R.string.home_diag_stun_idle_meta)
+
+        val tester = StunNatTester(DefaultStunSocketFactory())
+        stunDiagJob = viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val results = tester.test(
+                    servers = StunPreset.FAST.servers,
+                    ipv6Mode = if (DataStore.vpnIpv6) 1 else 0,
+                    enableQualityBurst = false,
+                    enableCrossServerFallback = true,
+                )
+                if (view == null) return@launch
+                val currentCtx = context ?: return@launch
+                val assessment = StunAssessmentPolicy.assess(results)
+                val rep = assessment.representative ?: results.firstOrNull { it.bindingSuccess }
+                val errLabel = getString(R.string.home_diag_error)
+                val code = when (rep?.natType) {
+                    StunProtocolCodes.NAT_NONE -> "OPEN"
+                    StunProtocolCodes.NAT_FULL -> "NAT1"
+                    StunProtocolCodes.NAT_RESTRICTED -> "NAT2"
+                    StunProtocolCodes.NAT_PORT_RESTRICTED -> "NAT3"
+                    StunProtocolCodes.NAT_SYMMETRIC -> "NAT4"
+                    StunProtocolCodes.NAT_CONE -> "NAT1-3"
+                    StunProtocolCodes.NAT_BLOCKED -> "BLOCKED"
+                    StunProtocolCodes.NAT_SYMMETRIC_UDP_FIREWALL -> "FW"
+                    else -> when (assessment.kind) {
+                        StunAssessmentKind.INCONSISTENT -> "MIXED"
+                        StunAssessmentKind.BASIC_ONLY -> "UDP"
+                        else -> errLabel
+                    }
+                }
+                val rtt = when {
+                    rep != null && rep.medianRttMs >= 0.0 -> rep.medianRttMs.toInt().coerceAtLeast(1)
+                    rep != null && rep.rttMs > 0L -> rep.rttMs.toInt()
+                    else -> 0
+                }
+                diagStunValue?.text = if (rtt > 0 && code != errLabel) "$code · ${rtt}ms" else code
+                val role = when (rep?.natType) {
+                    StunProtocolCodes.NAT_NONE,
+                    StunProtocolCodes.NAT_FULL,
+                    StunProtocolCodes.NAT_RESTRICTED,
+                    -> ExpressiveSettingsHelper.SemanticRole.SUCCESS
+
+                    StunProtocolCodes.NAT_PORT_RESTRICTED,
+                    StunProtocolCodes.NAT_CONE,
+                    -> ExpressiveSettingsHelper.SemanticRole.WARNING
+
+                    StunProtocolCodes.NAT_SYMMETRIC,
+                    StunProtocolCodes.NAT_BLOCKED,
+                    StunProtocolCodes.NAT_SYMMETRIC_UDP_FIREWALL,
+                    -> ExpressiveSettingsHelper.SemanticRole.ERROR
+
+                    else -> when (assessment.kind) {
+                        StunAssessmentKind.BASIC_ONLY,
+                        StunAssessmentKind.INCONSISTENT,
+                        -> ExpressiveSettingsHelper.SemanticRole.WARNING
+
+                        else -> ExpressiveSettingsHelper.SemanticRole.ERROR
+                    }
+                }
+                diagStunValue?.setTextColor(ExpressiveSettingsHelper.resolveSemanticColor(currentCtx, role))
+                diagStunMeta?.text = rep?.externalAddress?.takeIf { it.isNotEmpty() }
+                    ?: getString(stunAssessmentLabelRes(assessment.kind))
+            } catch (e: CancellationException) {
+                tester.cancel()
+                throw e
+            } catch (_: Throwable) {
+                if (view != null) {
+                    context?.let { currentCtx ->
+                        diagStunValue?.text = getString(R.string.home_diag_error)
+                        diagStunValue?.setTextColor(
+                            ExpressiveSettingsHelper.resolveSemanticColor(
+                                currentCtx,
+                                ExpressiveSettingsHelper.SemanticRole.ERROR,
+                            ),
+                        )
+                    }
+                }
+            } finally {
+                if (view != null) diagStunProgress?.isVisible = false
+            }
+        }
+    }
+
+    private fun stunAssessmentLabelRes(kind: StunAssessmentKind): Int = when (kind) {
+        StunAssessmentKind.FAVORABLE -> R.string.stun_assessment_favorable
+        StunAssessmentKind.MODERATE -> R.string.stun_assessment_moderate
+        StunAssessmentKind.RESTRICTIVE -> R.string.stun_assessment_restrictive
+        StunAssessmentKind.OPEN -> R.string.stun_assessment_open
+        StunAssessmentKind.INCONSISTENT -> R.string.stun_assessment_inconsistent
+        StunAssessmentKind.BASIC_ONLY -> R.string.stun_assessment_basic
+        StunAssessmentKind.FAILED -> R.string.stun_assessment_failed
+        StunAssessmentKind.CANCELLED -> R.string.stun_assessment_cancelled
+    }
+
+    private fun runQuickDnsLeakTest() {
+        val ctx = context ?: return
+        val appCtx = ctx.applicationContext
+        dnsDiagJob?.cancel()
+        diagDnsProgress?.isVisible = true
+        diagDnsValue?.text = getString(R.string.connection_test_testing)
+        diagDnsValue?.setTextColor(ctx.getColorAttr(android.R.attr.textColorPrimary))
+        diagDnsMeta?.text = getString(R.string.home_diag_dns_idle_meta)
+
+        dnsDiagJob = viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val probe = withContext(Dispatchers.IO) {
+                    val cm = appCtx.getSystemService(ConnectivityManager::class.java)
+                    val activeNet = cm?.activeNetwork
+                    val caps = activeNet?.let { cm.getNetworkCapabilities(it) }
+                    val link = activeNet?.let { cm.getLinkProperties(it) }
+                    val isVpnConnected = DataStore.serviceState.connected &&
+                        (caps?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true ||
+                            link?.interfaceName?.startsWith("tun") == true)
+                    val activeIface = link?.interfaceName ?: if (isVpnConnected) "tun0" else "wlan0"
+
+                    val physicalDns = mutableListOf<String>()
+                    cm?.allNetworks?.forEach { net ->
+                        val c = cm.getNetworkCapabilities(net)
+                        if (c != null && !c.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+                            cm.getLinkProperties(net)?.dnsServers?.forEach { dns ->
+                                val host = dns.hostAddress.orEmpty()
+                                if (host.isNotBlank()) physicalDns.add(host)
+                            }
+                        }
+                    }
+
+                    val sampleIp = runCatching {
+                        InetAddress.getAllByName("www.google.com").firstOrNull()?.hostAddress
+                    }.getOrNull()
+                    val fakeIpDetected = sampleIp != null &&
+                        (sampleIp.startsWith("198.18.") || sampleIp.startsWith("198.19."))
+
+                    var resolverIp: String? = null
+                    var resolverGeo: String? = null
+                    runCatching {
+                        val req = Request.Builder()
+                            .url("https://edns.ip-api.com/json")
+                            .header("User-Agent", appUserAgent())
+                            .build()
+                        val client = newHttpClient(viaProxy = false, timeoutSeconds = 8)
+                            .newBuilder()
+                            .followRedirects(true)
+                            .followSslRedirects(true)
+                            .build()
+                        client.newCall(req).execute().use { resp ->
+                            val json = JSONObject(resp.body?.string().orEmpty())
+                            val dnsObj = json.optJSONObject("dns")
+                            if (dnsObj != null) {
+                                resolverIp = dnsObj.optString("ip").takeIf { it.isNotBlank() }
+                                resolverGeo = dnsObj.optString("geo").takeIf { it.isNotBlank() }
+                            }
+                        }
+                    }
+
+                    arrayOf<Any?>(
+                        isVpnConnected,
+                        activeIface,
+                        physicalDns,
+                        fakeIpDetected,
+                        sampleIp,
+                        resolverIp,
+                        resolverGeo,
+                    )
+                }
+
+                if (view == null) return@launch
+                val currentCtx = context ?: return@launch
+                val isVpnConnected = probe[0] as Boolean
+                val activeIface = probe[1] as String
+                @Suppress("UNCHECKED_CAST")
+                val physicalDns = probe[2] as List<String>
+                val fakeIpDetected = probe[3] as Boolean
+                val sampleIp = probe[4] as String?
+                val resolverIp = probe[5] as String?
+                val resolverGeo = probe[6] as String?
+
+                val (labelRes, role, metaText) = when {
+                    fakeIpDetected -> Triple(
+                        R.string.home_diag_dns_fakeip,
+                        ExpressiveSettingsHelper.SemanticRole.SUCCESS,
+                        "198.18.0.0/15",
+                    )
+
+                    !isVpnConnected -> Triple(
+                        R.string.home_diag_dns_direct,
+                        ExpressiveSettingsHelper.SemanticRole.INFO,
+                        resolverGeo ?: resolverIp ?: activeIface,
+                    )
+
+                    resolverIp != null && physicalDns.contains(resolverIp) -> Triple(
+                        R.string.home_diag_dns_leak,
+                        ExpressiveSettingsHelper.SemanticRole.ERROR,
+                        resolverGeo ?: resolverIp,
+                    )
+
+                    isVpnConnected && (resolverIp != null || sampleIp != null) -> Triple(
+                        R.string.home_diag_dns_safe,
+                        ExpressiveSettingsHelper.SemanticRole.SUCCESS,
+                        resolverGeo ?: resolverIp ?: activeIface,
+                    )
+
+                    else -> Triple(
+                        R.string.home_diag_error,
+                        ExpressiveSettingsHelper.SemanticRole.ERROR,
+                        activeIface,
+                    )
+                }
+
+                diagDnsValue?.text = getString(labelRes)
+                diagDnsValue?.setTextColor(ExpressiveSettingsHelper.resolveSemanticColor(currentCtx, role))
+                diagDnsMeta?.text = metaText
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Throwable) {
+                if (view != null) {
+                    context?.let { currentCtx ->
+                        diagDnsValue?.text = getString(R.string.home_diag_error)
+                        diagDnsValue?.setTextColor(
+                            ExpressiveSettingsHelper.resolveSemanticColor(
+                                currentCtx,
+                                ExpressiveSettingsHelper.SemanticRole.ERROR,
+                            ),
+                        )
+                    }
+                }
+            } finally {
+                if (view != null) diagDnsProgress?.isVisible = false
+            }
+        }
+    }
+
+    private fun runQuickConnectivityTest() {
+        val ctx = context ?: return
+        val cm = ctx.applicationContext.getSystemService(ConnectivityManager::class.java)
+        val quickIds = setOf("openai", "youtube", "netflix", "telegram", "google", "github")
+        val targets = ConnectivityChecker.SERVICES.filter { it.id in quickIds }
+        if (targets.isEmpty()) return
+
+        connDiagJob?.cancel()
+        diagConnProgress?.isVisible = true
+        diagConnValue?.text = getString(R.string.connection_test_testing)
+        diagConnValue?.setTextColor(ctx.getColorAttr(android.R.attr.textColorPrimary))
+        diagConnMeta?.text = "0/${targets.size}"
+
+        connDiagJob = viewLifecycleOwner.lifecycleScope.launch {
+            val resultsMap = LinkedHashMap<String, ServiceProbeResult>()
+            try {
+                ConnectivityChecker.runChecks(
+                    targets,
+                    viaProxy = DataStore.serviceState.connected,
+                    cm,
+                ).collect { res ->
+                    resultsMap[res.spec.id] = res
+                    if (view != null) {
+                        val doneCount = resultsMap.values.count {
+                            it.status != ConnectivityStatus.PENDING && it.status != ConnectivityStatus.TESTING
+                        }
+                        diagConnMeta?.text = "$doneCount/${targets.size}"
+                    }
+                }
+                if (view == null) return@launch
+                val currentCtx = context ?: return@launch
+                val okResults = resultsMap.values.filter {
+                    it.status == ConnectivityStatus.AVAILABLE || it.status == ConnectivityStatus.PARTIAL
+                }
+                val okCount = okResults.size
+                val avgRtt = okResults.map { it.rttMs }.filter { it > 0L }
+                    .takeIf { it.isNotEmpty() }?.average()?.toLong() ?: 0L
+
+                diagConnValue?.text = getString(R.string.home_diag_conn_ok, okCount, targets.size)
+                val role = when {
+                    okCount == targets.size -> ExpressiveSettingsHelper.SemanticRole.SUCCESS
+                    okCount > 0 -> ExpressiveSettingsHelper.SemanticRole.WARNING
+                    else -> ExpressiveSettingsHelper.SemanticRole.ERROR
+                }
+                diagConnValue?.setTextColor(ExpressiveSettingsHelper.resolveSemanticColor(currentCtx, role))
+                diagConnMeta?.text = if (avgRtt > 0L) {
+                    "~${avgRtt} ms"
+                } else {
+                    getString(R.string.home_diag_conn_idle_meta)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Throwable) {
+                if (view != null) {
+                    context?.let { currentCtx ->
+                        diagConnValue?.text = getString(R.string.home_diag_error)
+                        diagConnValue?.setTextColor(
+                            ExpressiveSettingsHelper.resolveSemanticColor(
+                                currentCtx,
+                                ExpressiveSettingsHelper.SemanticRole.ERROR,
+                            ),
+                        )
+                    }
+                }
+            } finally {
+                if (view != null) diagConnProgress?.isVisible = false
             }
         }
     }

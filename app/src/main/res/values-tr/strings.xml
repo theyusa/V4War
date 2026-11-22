@@ -3138,4 +3138,19 @@
     <string name="home_hotspot_chip_lan_proxy">LAN Vekili</string>
     <string name="home_hotspot_chip_gateway">Oto Geçit</string>
     <string name="home_menu_edit_active_profile">Aktif profili düzenle</string>
+    <string name="home_diag_stun_title">STUN</string>
+    <string name="home_diag_dns_title">DNS Sızıntı</string>
+    <string name="home_diag_conn_title">Erişim</string>
+    <string name="home_diag_tap_to_test">Test için dokun</string>
+    <string name="home_diag_stun_idle_meta">NAT &amp; UDP</string>
+    <string name="home_diag_dns_idle_meta">Çözümleyici</string>
+    <string name="home_diag_conn_idle_meta">AI · Yayın · Web</string>
+    <string name="home_diag_dns_safe">Güvenli</string>
+    <string name="home_diag_dns_leak">Sızıntı!</string>
+    <string name="home_diag_dns_direct">Direkt</string>
+    <string name="home_diag_dns_fakeip">Fake-IP</string>
+    <string name="home_diag_error">Hata</string>
+    <string name="home_diag_conn_ok">%1$d/%2$d Açık</string>
+    <string name="home_diag_open_full">Detaylı testi aç</string>
+    <string name="home_status_ready_to_connect">Hazır · Bağlanmak için güç tuşuna dokunun</string>
 </resources>

@@ -29,174 +29,12 @@
             android:paddingHorizontal="12dp"
             android:paddingTop="2dp">
 
-            <!-- Row 1: Active Group / Subscription & Quick Profile Navigation -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/home_card_subscription"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="0dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingHorizontal="10dp"
-                    android:paddingVertical="8dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:id="@+id/home_sub_icon"
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_baseline_folder_open_24"
-                            app:tint="?attr/colorPrimary" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:id="@+id/home_sub_title"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:ellipsize="end"
-                                android:fontFamily="sans-serif-medium"
-                                android:includeFontPadding="false"
-                                android:maxLines="1"
-                                android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="13sp"
-                                tools:text="openproxylist" />
-
-                            <TextView
-                                android:id="@+id/home_sub_expiry"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:ellipsize="end"
-                                android:includeFontPadding="false"
-                                android:maxLines="1"
-                                android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="11sp"
-                                tools:text="Subscription · 18 profiles" />
-
-                        </LinearLayout>
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/home_sub_portal_btn"
-                            style="@style/Widget.Material3Expressive.Button.IconButton.Tonal"
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
-                            android:layout_marginStart="6dp"
-                            android:contentDescription="@string/subinfo_portal"
-                            android:insetLeft="0dp"
-                            android:insetTop="0dp"
-                            android:insetRight="0dp"
-                            android:insetBottom="0dp"
-                            android:minWidth="0dp"
-                            android:minHeight="0dp"
-                            android:padding="0dp"
-                            android:visibility="gone"
-                            app:icon="@drawable/baseline_public_24"
-                            app:iconGravity="textStart"
-                            app:iconPadding="0dp"
-                            app:iconSize="16dp"
-                            tools:visibility="visible" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/home_sub_switch_btn"
-                            style="@style/Widget.Material3Expressive.Button.TonalButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="34dp"
-                            android:layout_marginStart="6dp"
-                            android:insetTop="0dp"
-                            android:insetBottom="0dp"
-                            android:minWidth="0dp"
-                            android:minHeight="0dp"
-                            android:paddingHorizontal="10dp"
-                            android:paddingVertical="0dp"
-                            android:text="@string/action_switch"
-                            android:textSize="11.5sp"
-                            app:icon="@drawable/ic_baseline_compare_arrows_24"
-                            app:iconPadding="4dp"
-                            app:iconSize="15dp" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/home_sub_quota_container"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="7dp"
-                        android:orientation="vertical"
-                        android:visibility="gone"
-                        tools:visibility="visible">
-
-                        <com.google.android.material.progressindicator.LinearProgressIndicator
-                            android:id="@+id/home_sub_progress"
-                            style="@style/Widget.Material3Expressive.LinearProgressIndicator.Wavy"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:max="100"
-                            app:trackCornerRadius="2dp"
-                            app:trackThickness="4dp" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="5dp"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:id="@+id/home_sub_quota_text"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:ellipsize="end"
-                                android:fontFeatureSettings="tnum"
-                                android:includeFontPadding="false"
-                                android:maxLines="1"
-                                android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="11sp"
-                                tools:text="1.01 TiB / 976.56 TiB (0%)" />
-
-                            <TextView
-                                android:id="@+id/home_sub_remaining_text"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:fontFeatureSettings="tnum"
-                                android:includeFontPadding="false"
-                                android:maxLines="1"
-                                android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="11sp"
-                                tools:text="Left 975.58 TiB" />
-
-                        </LinearLayout>
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Row 3: Compact Card: Network Speed (2x4) -->
+            <!-- Row 1: Compact Card: Network Speed (2x4) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/home_card_network_speed"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="0dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground">
@@ -310,14 +148,164 @@
                     <io.nekohasekai.sagernet.widget.LiveChartView
                         android:id="@+id/home_speed_chart"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
+                        android:layout_height="50dp"
                         android:layout_marginTop="4dp" />
 
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Row 4: 2-Column Compact Bento Row: Traffic Usage (50%) + Network Egress (50%) -->
+            <!-- Row 2: Compact 2x1 CPU & RAM Sparkline Cards (50% / 50%) -->
+            <LinearLayout
+                android:id="@+id/home_bento_row_cpu_ram"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/home_card_cpu_chart"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="8dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:id="@+id/home_icon_cpu"
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:contentDescription="@null"
+                                android:src="@drawable/baseline_developer_board_24"
+                                app:tint="?android:attr/textColorPrimary" />
+
+                            <TextView
+                                android:id="@+id/home_title_cpu"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="5dp"
+                                android:layout_weight="1"
+                                android:ellipsize="end"
+                                android:fontFamily="sans-serif-medium"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:text="@string/live_graph_cpu"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:id="@+id/home_cpu_value_text"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:fontFamily="sans-serif-medium"
+                                android:fontFeatureSettings="tnum"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="14.5sp"
+                                tools:text="0%" />
+
+                        </LinearLayout>
+
+                        <io.nekohasekai.sagernet.widget.LiveChartView
+                            android:id="@+id/home_cpu_chart"
+                            android:layout_width="match_parent"
+                            android:layout_height="36dp"
+                            android:layout_marginTop="5dp" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/home_card_ram_chart"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="8dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:id="@+id/home_icon_ram"
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_device_data_usage"
+                                app:tint="?android:attr/textColorPrimary" />
+
+                            <TextView
+                                android:id="@+id/home_title_ram"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="5dp"
+                                android:layout_weight="1"
+                                android:ellipsize="end"
+                                android:fontFamily="sans-serif-medium"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:text="@string/live_graph_ram"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:id="@+id/home_ram_value_text"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:fontFamily="sans-serif-medium"
+                                android:fontFeatureSettings="tnum"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="14.5sp"
+                                tools:text="295 MB" />
+
+                        </LinearLayout>
+
+                        <io.nekohasekai.sagernet.widget.LiveChartView
+                            android:id="@+id/home_ram_chart"
+                            android:layout_width="match_parent"
+                            android:layout_height="36dp"
+                            android:layout_marginTop="5dp" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
+            <!-- Row 3: 2-Column Compact Bento Row: Traffic Usage (50%) + Network Egress (50%) -->
             <LinearLayout
                 android:id="@+id/home_bento_row_1"
                 android:layout_width="match_parent"
@@ -574,156 +562,6 @@
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="11sp"
                             tools:text="Shadowsocks · openproxylist" />
-
-                    </LinearLayout>
-
-                </com.google.android.material.card.MaterialCardView>
-
-            </LinearLayout>
-
-            <!-- Row 5: Compact 2x1 CPU & RAM Sparkline Cards (50% / 50%) -->
-            <LinearLayout
-                android:id="@+id/home_bento_row_cpu_ram"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:baselineAligned="false"
-                android:orientation="horizontal">
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/home_card_cpu_chart"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:paddingHorizontal="10dp"
-                        android:paddingVertical="8dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <ImageView
-                                android:id="@+id/home_icon_cpu"
-                                android:layout_width="14dp"
-                                android:layout_height="14dp"
-                                android:contentDescription="@null"
-                                android:src="@drawable/baseline_developer_board_24"
-                                app:tint="?android:attr/textColorPrimary" />
-
-                            <TextView
-                                android:id="@+id/home_title_cpu"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="5dp"
-                                android:layout_weight="1"
-                                android:ellipsize="end"
-                                android:fontFamily="sans-serif-medium"
-                                android:includeFontPadding="false"
-                                android:maxLines="1"
-                                android:text="@string/live_graph_cpu"
-                                android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="12sp" />
-
-                            <TextView
-                                android:id="@+id/home_cpu_value_text"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="6dp"
-                                android:fontFamily="sans-serif-medium"
-                                android:fontFeatureSettings="tnum"
-                                android:includeFontPadding="false"
-                                android:maxLines="1"
-                                android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="14.5sp"
-                                tools:text="0%" />
-
-                        </LinearLayout>
-
-                        <io.nekohasekai.sagernet.widget.LiveChartView
-                            android:id="@+id/home_cpu_chart"
-                            android:layout_width="match_parent"
-                            android:layout_height="40dp"
-                            android:layout_marginTop="5dp" />
-
-                    </LinearLayout>
-
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/home_card_ram_chart"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:layout_weight="1"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:paddingHorizontal="10dp"
-                        android:paddingVertical="8dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <ImageView
-                                android:id="@+id/home_icon_ram"
-                                android:layout_width="14dp"
-                                android:layout_height="14dp"
-                                android:contentDescription="@null"
-                                android:src="@drawable/ic_device_data_usage"
-                                app:tint="?android:attr/textColorPrimary" />
-
-                            <TextView
-                                android:id="@+id/home_title_ram"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="5dp"
-                                android:layout_weight="1"
-                                android:ellipsize="end"
-                                android:fontFamily="sans-serif-medium"
-                                android:includeFontPadding="false"
-                                android:maxLines="1"
-                                android:text="@string/live_graph_ram"
-                                android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="12sp" />
-
-                            <TextView
-                                android:id="@+id/home_ram_value_text"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="6dp"
-                                android:fontFamily="sans-serif-medium"
-                                android:fontFeatureSettings="tnum"
-                                android:includeFontPadding="false"
-                                android:maxLines="1"
-                                android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="14.5sp"
-                                tools:text="295 MB" />
-
-                        </LinearLayout>
-
-                        <io.nekohasekai.sagernet.widget.LiveChartView
-                            android:id="@+id/home_ram_chart"
-                            android:layout_width="match_parent"
-                            android:layout_height="40dp"
-                            android:layout_marginTop="5dp" />
 
                     </LinearLayout>
 
@@ -1120,12 +958,343 @@
 
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Row 6: 3-Column Quick Diagnostics Row (STUN + DNS Leak + Connectivity) -->
+            <LinearLayout
+                android:id="@+id/home_bento_row_diagnostics"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/home_card_diag_stun"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="9dp"
+                        android:paddingVertical="8dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_baseline_nat_24"
+                                app:tint="?attr/colorPrimary" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="5dp"
+                                android:layout_weight="1"
+                                android:ellipsize="end"
+                                android:fontFamily="sans-serif-medium"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:text="@string/home_diag_stun_title"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="11.5sp" />
+
+                            <com.google.android.material.progressindicator.CircularProgressIndicator
+                                android:id="@+id/home_diag_stun_progress"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="4dp"
+                                android:indeterminate="true"
+                                android:visibility="gone"
+                                app:indicatorColor="?attr/colorPrimary"
+                                app:indicatorInset="0dp"
+                                app:indicatorSize="12dp"
+                                app:trackThickness="1.8dp" />
+
+                            <FrameLayout
+                                android:id="@+id/home_diag_stun_open_btn"
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:clickable="true"
+                                android:contentDescription="@string/home_diag_open_full"
+                                android:focusable="true"
+                                android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                                <ImageView
+                                    android:layout_width="13dp"
+                                    android:layout_height="13dp"
+                                    android:layout_gravity="center"
+                                    android:importantForAccessibility="no"
+                                    android:src="@drawable/ic_chevron_right_24"
+                                    app:tint="?android:attr/textColorSecondary" />
+
+                            </FrameLayout>
+
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/home_diag_stun_value"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif-medium"
+                            android:fontFeatureSettings="tnum"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="@string/home_diag_tap_to_test"
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textSize="11.5sp" />
+
+                        <TextView
+                            android:id="@+id/home_diag_stun_meta"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:ellipsize="end"
+                            android:fontFeatureSettings="tnum"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="@string/home_diag_stun_idle_meta"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="10sp" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/home_card_diag_dns_leak"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="9dp"
+                        android:paddingVertical="8dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_action_dns"
+                                app:tint="?attr/colorPrimary" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="5dp"
+                                android:layout_weight="1"
+                                android:ellipsize="end"
+                                android:fontFamily="sans-serif-medium"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:text="@string/home_diag_dns_title"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="11.5sp" />
+
+                            <com.google.android.material.progressindicator.CircularProgressIndicator
+                                android:id="@+id/home_diag_dns_progress"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="4dp"
+                                android:indeterminate="true"
+                                android:visibility="gone"
+                                app:indicatorColor="?attr/colorPrimary"
+                                app:indicatorInset="0dp"
+                                app:indicatorSize="12dp"
+                                app:trackThickness="1.8dp" />
+
+                            <FrameLayout
+                                android:id="@+id/home_diag_dns_open_btn"
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:clickable="true"
+                                android:contentDescription="@string/home_diag_open_full"
+                                android:focusable="true"
+                                android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                                <ImageView
+                                    android:layout_width="13dp"
+                                    android:layout_height="13dp"
+                                    android:layout_gravity="center"
+                                    android:importantForAccessibility="no"
+                                    android:src="@drawable/ic_chevron_right_24"
+                                    app:tint="?android:attr/textColorSecondary" />
+
+                            </FrameLayout>
+
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/home_diag_dns_value"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif-medium"
+                            android:fontFeatureSettings="tnum"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="@string/home_diag_tap_to_test"
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textSize="11.5sp" />
+
+                        <TextView
+                            android:id="@+id/home_diag_dns_meta"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:ellipsize="end"
+                            android:fontFeatureSettings="tnum"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="@string/home_diag_dns_idle_meta"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="10sp" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/home_card_diag_connectivity"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="9dp"
+                        android:paddingVertical="8dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:contentDescription="@null"
+                                android:src="@drawable/baseline_public_24"
+                                app:tint="?attr/colorPrimary" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="5dp"
+                                android:layout_weight="1"
+                                android:ellipsize="end"
+                                android:fontFamily="sans-serif-medium"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:text="@string/home_diag_conn_title"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="11.5sp" />
+
+                            <com.google.android.material.progressindicator.CircularProgressIndicator
+                                android:id="@+id/home_diag_conn_progress"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="4dp"
+                                android:indeterminate="true"
+                                android:visibility="gone"
+                                app:indicatorColor="?attr/colorPrimary"
+                                app:indicatorInset="0dp"
+                                app:indicatorSize="12dp"
+                                app:trackThickness="1.8dp" />
+
+                            <FrameLayout
+                                android:id="@+id/home_diag_conn_open_btn"
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:clickable="true"
+                                android:contentDescription="@string/home_diag_open_full"
+                                android:focusable="true"
+                                android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                                <ImageView
+                                    android:layout_width="13dp"
+                                    android:layout_height="13dp"
+                                    android:layout_gravity="center"
+                                    android:importantForAccessibility="no"
+                                    android:src="@drawable/ic_chevron_right_24"
+                                    app:tint="?android:attr/textColorSecondary" />
+
+                            </FrameLayout>
+
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/home_diag_conn_value"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif-medium"
+                            android:fontFeatureSettings="tnum"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="@string/home_diag_tap_to_test"
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textSize="11.5sp" />
+
+                        <TextView
+                            android:id="@+id/home_diag_conn_meta"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:ellipsize="end"
+                            android:fontFeatureSettings="tnum"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="@string/home_diag_conn_idle_meta"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="10sp" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
             <Space
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1" />
 
-            <!-- Bottom Thumb-Zone Interactive Status Hero + URL Test Strip -->
+            <!-- Row 7: Unified Bottom Thumb-Zone Status Hero + Embedded Group/Sub + URL Test Strip -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/home_card_status_banner"
                 android:layout_width="match_parent"
@@ -1148,8 +1317,8 @@
 
                         <FrameLayout
                             android:id="@+id/home_status_power_btn"
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
+                            android:layout_width="46dp"
+                            android:layout_height="46dp"
                             android:clickable="true"
                             android:contentDescription="@string/connect"
                             android:focusable="true"
@@ -1157,8 +1326,8 @@
 
                             <FrameLayout
                                 android:id="@+id/home_status_icon_box"
-                                android:layout_width="38dp"
-                                android:layout_height="38dp"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
                                 android:layout_gravity="center">
 
                                 <ImageView
@@ -1182,7 +1351,7 @@
                                 android:visibility="invisible"
                                 app:indicatorColor="?attr/colorPrimary"
                                 app:indicatorInset="0dp"
-                                app:indicatorSize="44dp"
+                                app:indicatorSize="42dp"
                                 app:trackColor="@android:color/transparent"
                                 app:trackThickness="2.5dp" />
 
@@ -1216,24 +1385,41 @@
                                     android:includeFontPadding="false"
                                     android:maxLines="1"
                                     android:textColor="?android:attr/textColorPrimary"
-                                    android:textSize="13.5sp"
+                                    android:textSize="13sp"
                                     tools:text="Enabled" />
 
                                 <TextView
                                     android:id="@+id/home_status_type_chip"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginStart="6dp"
+                                    android:layout_marginStart="5dp"
                                     android:ellipsize="end"
                                     android:fontFamily="sans-serif-medium"
+                                    android:includeFontPadding="false"
+                                    android:maxLines="1"
+                                    android:paddingHorizontal="5dp"
+                                    android:paddingVertical="2dp"
+                                    android:textColor="?android:attr/textColorSecondary"
+                                    android:textSize="10sp"
+                                    android:visibility="gone"
+                                    tools:text="Shadowsocks"
+                                    tools:visibility="visible" />
+
+                                <TextView
+                                    android:id="@+id/home_status_mode_tag"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="5dp"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:fontFeatureSettings="tnum"
                                     android:includeFontPadding="false"
                                     android:maxLines="1"
                                     android:paddingHorizontal="6dp"
                                     android:paddingVertical="2dp"
                                     android:textColor="?android:attr/textColorSecondary"
-                                    android:textSize="10.5sp"
+                                    android:textSize="10sp"
                                     android:visibility="gone"
-                                    tools:text="Shadowsocks"
+                                    tools:text="114 ms"
                                     tools:visibility="visible" />
 
                             </LinearLayout>
@@ -1247,32 +1433,15 @@
                                 android:includeFontPadding="false"
                                 android:maxLines="1"
                                 android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="12sp"
+                                android:textSize="11.5sp"
                                 tools:text="[openproxylist.com] 16196041" />
 
                         </LinearLayout>
 
-                        <TextView
-                            android:id="@+id/home_status_mode_tag"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
-                            android:fontFamily="sans-serif-medium"
-                            android:fontFeatureSettings="tnum"
-                            android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:paddingHorizontal="7dp"
-                            android:paddingVertical="3dp"
-                            android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="11sp"
-                            android:visibility="gone"
-                            tools:text="114 ms"
-                            tools:visibility="visible" />
-
                         <FrameLayout
                             android:id="@+id/home_status_edit_btn"
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
                             android:layout_marginStart="6dp"
                             android:clickable="true"
                             android:contentDescription="@string/home_menu_edit_active_profile"
@@ -1280,14 +1449,165 @@
                             android:foreground="?attr/selectableItemBackgroundBorderless">
 
                             <ImageView
-                                android:layout_width="15dp"
-                                android:layout_height="15dp"
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
                                 android:layout_gravity="center"
                                 android:importantForAccessibility="no"
                                 android:src="@drawable/ic_image_edit"
                                 app:tint="?android:attr/textColorSecondary" />
 
                         </FrameLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/home_sub_switch_btn"
+                            style="@style/Widget.Material3Expressive.Button.TonalButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="30dp"
+                            android:layout_marginStart="5dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minWidth="0dp"
+                            android:minHeight="0dp"
+                            android:paddingHorizontal="9dp"
+                            android:paddingVertical="0dp"
+                            android:text="@string/action_switch"
+                            android:textSize="11sp"
+                            app:icon="@drawable/ic_baseline_compare_arrows_24"
+                            app:iconPadding="3dp"
+                            app:iconSize="14dp" />
+
+                    </LinearLayout>
+
+                    <!-- Embedded Group / Subscription Strip -->
+                    <LinearLayout
+                        android:id="@+id/home_card_subscription"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="8dp"
+                        android:layout_marginBottom="5dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="9dp"
+                        android:paddingVertical="5dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:id="@+id/home_sub_icon"
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_baseline_folder_open_24"
+                                app:tint="?attr/colorPrimary" />
+
+                            <TextView
+                                android:id="@+id/home_sub_title"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:ellipsize="end"
+                                android:fontFamily="sans-serif-medium"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:maxWidth="140dp"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="11.5sp"
+                                tools:text="openproxylist" />
+
+                            <TextView
+                                android:id="@+id/home_sub_expiry"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:layout_weight="1"
+                                android:ellipsize="end"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="10.5sp"
+                                tools:text="Subscription · 150 profiles" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/home_sub_portal_btn"
+                                style="@style/Widget.Material3Expressive.Button.IconButton.Tonal"
+                                android:layout_width="26dp"
+                                android:layout_height="26dp"
+                                android:layout_marginStart="6dp"
+                                android:contentDescription="@string/subinfo_portal"
+                                android:insetLeft="0dp"
+                                android:insetTop="0dp"
+                                android:insetRight="0dp"
+                                android:insetBottom="0dp"
+                                android:minWidth="0dp"
+                                android:minHeight="0dp"
+                                android:padding="0dp"
+                                android:visibility="gone"
+                                app:icon="@drawable/baseline_public_24"
+                                app:iconGravity="textStart"
+                                app:iconPadding="0dp"
+                                app:iconSize="14dp"
+                                tools:visibility="visible" />
+
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/home_sub_quota_container"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:orientation="vertical"
+                            android:visibility="gone"
+                            tools:visibility="visible">
+
+                            <com.google.android.material.progressindicator.LinearProgressIndicator
+                                android:id="@+id/home_sub_progress"
+                                style="@style/Widget.Material3Expressive.LinearProgressIndicator.Wavy"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:max="100"
+                                app:trackCornerRadius="2dp"
+                                app:trackThickness="3.5dp" />
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:id="@+id/home_sub_quota_text"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:ellipsize="end"
+                                    android:fontFeatureSettings="tnum"
+                                    android:includeFontPadding="false"
+                                    android:maxLines="1"
+                                    android:textColor="?android:attr/textColorPrimary"
+                                    android:textSize="10sp"
+                                    tools:text="1.01 TiB / 976.56 TiB (0%)" />
+
+                                <TextView
+                                    android:id="@+id/home_sub_remaining_text"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:fontFeatureSettings="tnum"
+                                    android:includeFontPadding="false"
+                                    android:maxLines="1"
+                                    android:textColor="?android:attr/textColorSecondary"
+                                    android:textSize="10sp"
+                                    tools:text="Left 975.58 TiB" />
+
+                            </LinearLayout>
+
+                        </LinearLayout>
 
                     </LinearLayout>
 
@@ -1301,7 +1621,7 @@
                         android:focusable="true"
                         android:foreground="?attr/selectableItemBackground"
                         android:gravity="center_vertical"
-                        android:minHeight="40dp"
+                        android:minHeight="36dp"
                         android:orientation="horizontal"
                         android:paddingHorizontal="10dp">
 
