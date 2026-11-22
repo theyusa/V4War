@@ -3139,12 +3139,12 @@
     <string name="home_hotspot_chip_gateway">Oto Geçit</string>
     <string name="home_menu_edit_active_profile">Aktif profili düzenle</string>
     <string name="home_diag_stun_title">STUN</string>
-    <string name="home_diag_dns_title">DNS Sızıntı</string>
+    <string name="home_diag_dns_title">DNS</string>
     <string name="home_diag_conn_title">Erişim</string>
-    <string name="home_diag_tap_to_test">Test için dokun</string>
-    <string name="home_diag_stun_idle_meta">NAT &amp; UDP</string>
-    <string name="home_diag_dns_idle_meta">Çözümleyici</string>
-    <string name="home_diag_conn_idle_meta">AI · Yayın · Web</string>
+    <string name="home_diag_tap_to_test">Test</string>
+    <string name="home_diag_stun_idle_meta">NAT / UDP</string>
+    <string name="home_diag_dns_idle_meta">Sızıntı</string>
+    <string name="home_diag_conn_idle_meta">6 servis</string>
     <string name="home_diag_dns_safe">Güvenli</string>
     <string name="home_diag_dns_leak">Sızıntı!</string>
     <string name="home_diag_dns_direct">Direkt</string>

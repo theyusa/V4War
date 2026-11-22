@@ -23,22 +23,25 @@
         <com.google.android.material.floatingtoolbar.FloatingToolbarLayout
             android:id="@+id/floating_toolbar"
             style="@style/Widget.Material3.FloatingToolbar"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|center_horizontal"
-            android:layout_margin="16dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="8dp"
             android:clipChildren="false"
             android:clipToPadding="false"
-            android:minHeight="56dp"
-            android:paddingStart="10dp"
+            android:minHeight="52dp"
+            android:paddingStart="12dp"
             android:paddingTop="4dp"
-            android:paddingEnd="10dp"
+            android:paddingEnd="12dp"
             android:paddingBottom="4dp"
             app:layout_behavior="com.google.android.material.behavior.HideViewOnScrollBehavior">
 
             <LinearLayout
                 android:id="@+id/floating_toolbar_content"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:clipChildren="false"
                 android:clipToPadding="false"
@@ -46,10 +49,31 @@
                 android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/toolbar_nav_home"
+                    style="@style/Widget.Material3.FloatingToolbar.IconButton"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
+                    android:contentDescription="@string/menu_home"
+                    android:insetLeft="0dp"
+                    android:insetTop="0dp"
+                    android:insetRight="0dp"
+                    android:insetBottom="0dp"
+                    android:padding="0dp"
+                    app:icon="@drawable/ic_baseline_home_24"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="22dp" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/toolbar_nav_profiles"
                     style="@style/Widget.Material3.FloatingToolbar.IconButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
                     android:contentDescription="@string/menu_configuration"
                     android:insetLeft="0dp"
                     android:insetTop="0dp"
@@ -61,27 +85,30 @@
                     app:iconPadding="0dp"
                     app:iconSize="22dp" />
 
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
                 <FrameLayout
                     android:id="@+id/toolbar_power_container"
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
                     android:clipChildren="false"
                     android:clipToPadding="false">
 
                     <io.nekohasekai.sagernet.widget.ServiceButton
                         android:id="@+id/fab"
                         style="@style/Widget.Material3Expressive.FloatingActionButton"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
                         android:layout_gravity="center"
                         android:elevation="0dp"
                         android:foreground="@drawable/fab_focus_ring"
                         app:backgroundTint="?attr/fabColorBackground"
                         app:borderWidth="0dp"
                         app:elevation="0dp"
-                        app:fabCustomSize="48dp"
+                        app:fabCustomSize="46dp"
                         app:hoveredFocusedTranslationZ="0dp"
                         app:maxImageSize="22dp"
                         app:pressedTranslationZ="0dp"
@@ -98,18 +125,44 @@
                         android:visibility="invisible"
                         app:indicatorColor="?attr/primaryOrTextSecondary"
                         app:indicatorInset="0dp"
-                        app:indicatorSize="50dp"
+                        app:indicatorSize="48dp"
                         app:trackColor="@android:color/transparent"
                         app:trackCornerRadius="@dimen/mtrl_progress_track_thickness"
                         app:trackThickness="2.5dp" />
 
                 </FrameLayout>
 
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/toolbar_nav_route"
+                    style="@style/Widget.Material3.FloatingToolbar.IconButton"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
+                    android:contentDescription="@string/menu_route"
+                    android:insetLeft="0dp"
+                    android:insetTop="0dp"
+                    android:insetRight="0dp"
+                    android:insetBottom="0dp"
+                    android:padding="0dp"
+                    app:icon="@drawable/ic_maps_directions"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="22dp" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/toolbar_nav_tools"
                     style="@style/Widget.Material3.FloatingToolbar.IconButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
                     android:contentDescription="@string/menu_tools"
                     android:insetLeft="0dp"
                     android:insetTop="0dp"

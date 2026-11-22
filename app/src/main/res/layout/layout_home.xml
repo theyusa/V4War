@@ -19,7 +19,7 @@
         android:clipToPadding="false"
         android:fillViewport="true"
         android:paddingTop="2dp"
-        android:paddingBottom="78dp">
+        android:paddingBottom="68dp">
 
         <LinearLayout
             android:id="@+id/home_content_container"
@@ -148,7 +148,7 @@
                     <io.nekohasekai.sagernet.widget.LiveChartView
                         android:id="@+id/home_speed_chart"
                         android:layout_width="match_parent"
-                        android:layout_height="50dp"
+                        android:layout_height="64dp"
                         android:layout_marginTop="4dp" />
 
                 </LinearLayout>
@@ -226,7 +226,7 @@
                         <io.nekohasekai.sagernet.widget.LiveChartView
                             android:id="@+id/home_cpu_chart"
                             android:layout_width="match_parent"
-                            android:layout_height="36dp"
+                            android:layout_height="46dp"
                             android:layout_marginTop="5dp" />
 
                     </LinearLayout>
@@ -296,7 +296,7 @@
                         <io.nekohasekai.sagernet.widget.LiveChartView
                             android:id="@+id/home_ram_chart"
                             android:layout_width="match_parent"
-                            android:layout_height="36dp"
+                            android:layout_height="46dp"
                             android:layout_marginTop="5dp" />
 
                     </LinearLayout>
@@ -981,7 +981,7 @@
                         android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:paddingHorizontal="9dp"
-                        android:paddingVertical="8dp">
+                        android:paddingVertical="10dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -1088,7 +1088,7 @@
                         android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:paddingHorizontal="9dp"
-                        android:paddingVertical="8dp">
+                        android:paddingVertical="10dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -1195,7 +1195,7 @@
                         android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:paddingHorizontal="9dp"
-                        android:paddingVertical="8dp">
+                        android:paddingVertical="10dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -1288,11 +1288,6 @@
                 </com.google.android.material.card.MaterialCardView>
 
             </LinearLayout>
-
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
 
             <!-- Row 7: Unified Bottom Thumb-Zone Status Hero + Embedded Group/Sub + URL Test Strip -->
             <com.google.android.material.card.MaterialCardView

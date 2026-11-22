@@ -356,7 +356,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 val bars = insets.getInsets(
                     WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
                 )
-                v.updatePadding(bottom = bars.bottom + dp2px(78))
+                v.updatePadding(bottom = bars.bottom + dp2px(68))
                 insets
             }
             target.setOnScrollChangeListener(
@@ -2472,7 +2472,13 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 val fakeIpDetected = probe[3] as Boolean
                 val sampleIp = probe[4] as String?
                 val resolverIp = probe[5] as String?
-                val resolverGeo = probe[6] as String?
+                val rawGeo = probe[6] as String?
+                val resolverGeo = rawGeo
+                    ?.substringAfter(" - ", rawGeo)
+                    ?.replace(", Inc.", "")
+                    ?.replace(", LLC", "")
+                    ?.trim()
+                    ?.takeIf { it.isNotEmpty() }
 
                 val (labelRes, role, metaText) = when {
                     fakeIpDetected -> Triple(

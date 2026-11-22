@@ -231,12 +231,24 @@ class MainActivity : ThemedActivity(),
             }
         }
 
+        TooltipCompat.setTooltipText(binding.toolbarNavHome, getString(R.string.menu_home))
         TooltipCompat.setTooltipText(binding.toolbarNavProfiles, getString(R.string.menu_configuration))
+        TooltipCompat.setTooltipText(binding.toolbarNavRoute, getString(R.string.menu_route))
         TooltipCompat.setTooltipText(binding.toolbarNavTools, getString(R.string.menu_tools))
+        binding.toolbarNavHome.setOnClickListener {
+            HapticHelper.perform(this, binding.toolbarNavHome, HapticHelper.HapticKind.SELECTION)
+            val current = supportFragmentManager.findFragmentById(R.id.fragment_holder)
+            if (current !is HomeFragment) displayFragmentWithId(R.id.nav_home)
+        }
         binding.toolbarNavProfiles.setOnClickListener {
             HapticHelper.perform(this, binding.toolbarNavProfiles, HapticHelper.HapticKind.SELECTION)
             val current = supportFragmentManager.findFragmentById(R.id.fragment_holder)
             if (current !is ConfigurationFragment) displayFragmentWithId(R.id.nav_configuration)
+        }
+        binding.toolbarNavRoute.setOnClickListener {
+            HapticHelper.perform(this, binding.toolbarNavRoute, HapticHelper.HapticKind.SELECTION)
+            val current = supportFragmentManager.findFragmentById(R.id.fragment_holder)
+            if (current !is RouteFragment) displayFragmentWithId(R.id.nav_route)
         }
         binding.toolbarNavTools.setOnClickListener {
             HapticHelper.perform(this, binding.toolbarNavTools, HapticHelper.HapticKind.SELECTION)
@@ -244,14 +256,8 @@ class MainActivity : ThemedActivity(),
             if (current !is ToolsFragment) displayFragmentWithId(R.id.nav_tools)
         }
         binding.fab.setOnClickListener {
-            val current = supportFragmentManager.findFragmentById(R.id.fragment_holder)
-            if (current is HomeFragment) {
-                HapticHelper.perform(this, binding.fab, HapticHelper.HapticKind.HEAVY)
-                toggleService()
-            } else {
-                HapticHelper.perform(this, binding.fab, HapticHelper.HapticKind.SELECTION)
-                displayFragmentWithId(R.id.nav_home)
-            }
+            HapticHelper.perform(this, binding.fab, HapticHelper.HapticKind.HEAVY)
+            toggleService()
         }
 
         setContentView(binding.root)
@@ -634,8 +640,6 @@ class MainActivity : ThemedActivity(),
     }
 
     private fun syncFloatingToolbarSelection(fragment: Any?) {
-        val isProfiles = fragment is ConfigurationFragment
-        val isTools = fragment is ToolsFragment
         val selectedBg = MaterialColors.getColor(
             binding.floatingToolbar,
             com.google.android.material.R.attr.colorSecondaryContainer,
@@ -651,20 +655,18 @@ class MainActivity : ThemedActivity(),
             com.google.android.material.R.attr.colorOnSurfaceVariant,
             MaterialColors.getColor(binding.floatingToolbar, android.R.attr.textColorSecondary, Color.GRAY),
         )
-        binding.fab.setHomeActionMode(fragment !is HomeFragment)
-        binding.toolbarNavProfiles.apply {
-            isCheckable = true
-            isChecked = isProfiles
-            isSelected = isProfiles
-            backgroundTintList = ColorStateList.valueOf(if (isProfiles) selectedBg else Color.TRANSPARENT)
-            iconTint = ColorStateList.valueOf(if (isProfiles) selectedIcon else unselectedIcon)
-        }
-        binding.toolbarNavTools.apply {
-            isCheckable = true
-            isChecked = isTools
-            isSelected = isTools
-            backgroundTintList = ColorStateList.valueOf(if (isTools) selectedBg else Color.TRANSPARENT)
-            iconTint = ColorStateList.valueOf(if (isTools) selectedIcon else unselectedIcon)
+        binding.fab.setHomeActionMode(false)
+        listOf(
+            binding.toolbarNavHome to (fragment is HomeFragment),
+            binding.toolbarNavProfiles to (fragment is ConfigurationFragment),
+            binding.toolbarNavRoute to (fragment is RouteFragment),
+            binding.toolbarNavTools to (fragment is ToolsFragment),
+        ).forEach { (button, active) ->
+            button.isCheckable = true
+            button.isChecked = active
+            button.isSelected = active
+            button.backgroundTintList = ColorStateList.valueOf(if (active) selectedBg else Color.TRANSPARENT)
+            button.iconTint = ColorStateList.valueOf(if (active) selectedIcon else unselectedIcon)
         }
     }
 
@@ -674,7 +676,10 @@ class MainActivity : ThemedActivity(),
         @Suppress("UNUSED_PARAMETER") showWhenConnected: Boolean,
         animate: Boolean,
     ) {
-        val showToolbar = fragment is HomeFragment || fragment is ConfigurationFragment || fragment is ToolsFragment
+        val showToolbar = fragment is HomeFragment ||
+            fragment is ConfigurationFragment ||
+            fragment is RouteFragment ||
+            fragment is ToolsFragment
         syncFloatingToolbarSelection(fragment)
         binding.fab.animate().cancel()
         if (showToolbar) {
