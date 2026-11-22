@@ -34,7 +34,22 @@
 </div>
 
 > 🔀 **V4War**, [throneproj/ThroneForAndroid](https://github.com/throneproj/ThroneForAndroid) projesinin aktif olarak geliştirilen, kapsamlı bir çatalıdır (fork).
-> Birleşik Sing-box ve Xray çekirdeğinin üzerine; **gelişmiş Hotspot ve Proxy Paylaşım paketi (Shizuku TUN, Root `iptables` ve Rootsuz LAN Proxy)**, **10'u 1 Arada Ağ Araç Kutusu**, **Theme Studio destekli Material 3 Expressive arayüzü (Pure AMOLED)**, **Shizuku ile sessiz uygulama güncelleme** ve **varsayılan TLS kayıt parçalama (Fragment)** özelliklerini sunar.
+> Birleşik Sing-box ve Xray çekirdeğinin üzerine; **IP gizlemeli kompakt Bento Ana Ekran**, **gelişmiş Hotspot ve Proxy Paylaşım paketi (Shizuku TUN, Root `iptables` ve Rootsuz LAN Proxy)**, **10'u 1 Arada Ağ Araç Kutusu**, **Theme Studio destekli Material 3 Expressive arayüzü (Pure AMOLED)**, **profil bazlı Trafik Kullanımı, VPN sonrası `.srs` indirme, birleşik Uygulama Güncellemeleri** ve **varsayılan TLS kayıt parçalama (Fragment)** özelliklerini sunar.
+
+<p align="center">
+  <table>
+    <tr>
+      <th width="33%" align="center">Ana Ekran</th>
+      <th width="33%" align="center">10'u 1 Arada Araçlar</th>
+      <th width="33%" align="center">Hotspot ve Proxy Paylaşım</th>
+    </tr>
+    <tr>
+      <td width="33%" align="center"><img src=".github/assets/home-screen.png" alt="V4War Ana Ekran" width="230" /></td>
+      <td width="33%" align="center"><img src=".github/assets/tools-network.png" alt="V4War Ağ ve Araçlar" width="230" /></td>
+      <td width="33%" align="center"><img src=".github/assets/hotspot-share.png" alt="V4War Hotspot ve Proxy Paylaşım" width="230" /></td>
+    </tr>
+  </table>
+</p>
 
 ---
 
@@ -75,9 +90,16 @@ Aktif VPN bağlantınızı **Wi-Fi Hotspot**, **USB RNDIS Paylaşımı** veya **
 <details>
 <summary>📸 Önizleme: LAN Paylaşımı ve Hotspot Ağ Geçidi Ekranı</summary>
 
-<p align="center">
-  <img src=".github/assets/lan-sharing.jpg" alt="V4War LAN Paylaşımı ve Hotspot Ağ Geçidi Arayüzü" width="320" />
-</p>
+<table>
+  <tr>
+    <th width="50%" align="center">Hotspot Ağ Geçidi</th>
+    <th width="50%" align="center">Yerel Ağ Proxy (HTTP / SOCKS5)</th>
+  </tr>
+  <tr>
+    <td width="50%" align="center"><img src=".github/assets/hotspot-share.png" alt="V4War LAN Paylaşımı ve Hotspot Ağ Geçidi Arayüzü" width="250" /></td>
+    <td width="50%" align="center"><img src=".github/assets/hotspot-local-proxy.png" alt="V4War Yerel Ağ Proxy (HTTP / SOCKS5)" width="250" /></td>
+  </tr>
+</table>
 
 </details>
 
@@ -107,6 +129,15 @@ Aktif VPN bağlantınızı **Wi-Fi Hotspot**, **USB RNDIS Paylaşımı** veya **
 - **Theme Studio (`Ayarlar → Görünüm`):** Canlı etkileşimli mini önizleme kartı ile 5 yüzey modu — **Pure AMOLED**, **AMOLED**, **Koyu**, **Açık** ve **Sistem**.
 - **3 Tonlu Tohum Renk Uyumu:** Material 3 ton paleti, özel tema tohumları, Android 12+ **Monet** dinamik renklendirme ve uyumlu iletişim kutuları, anahtarlar ve squircle ikon rozetleri.
 - **Modern Liste ve Gezinme:** Yüzen hap (floating pill) başlıklar, expressive sekme göstergeleri, protokol rozetleri, kompakt profil satırları ve kompakt grup kartları.
+
+<details>
+<summary>📸 Önizleme: Theme Studio (Görünüm Ayarları)</summary>
+
+<p align="center">
+  <img src=".github/assets/appearance-theme-studio.png" alt="V4War Theme Studio Görünüm Ayarları" width="280" />
+</p>
+
+</details>
 
 ---
 

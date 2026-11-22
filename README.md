@@ -34,7 +34,22 @@
 </div>
 
 > 🔀 **V4War** is an actively maintained, feature-rich fork of [throneproj/ThroneForAndroid](https://github.com/throneproj/ThroneForAndroid).
-> On top of the unified Sing-box & Xray VPN core, V4War introduces a **complete Hotspot & Proxy Share suite (Shizuku TUN, Root `iptables`, & Rootless LAN Proxy)**, a **10-in-1 Network Toolbox**, a **Material 3 Expressive UI with Theme Studio (Pure AMOLED)**, **Shizuku silent app updates**, and **hardened TLS fragmentation** out of the box.
+> On top of the unified Sing-box & Xray VPN core, V4War introduces a **compact Bento Home dashboard with IP privacy toggle**, a **complete Hotspot & Proxy Share suite (Shizuku TUN, Root `iptables`, & Rootless LAN Proxy)**, a **10-in-1 Network Toolbox**, a **Material 3 Expressive UI with Theme Studio (Pure AMOLED)**, **per-profile Traffic Usage & after-VPN `.srs` rule-set downloads**, **unified App Updates**, and **hardened TLS fragmentation** out of the box.
+
+<p align="center">
+  <table>
+    <tr>
+      <th width="33%" align="center">Home Dashboard</th>
+      <th width="33%" align="center">10-in-1 Tools</th>
+      <th width="33%" align="center">Hotspot &amp; Proxy Share</th>
+    </tr>
+    <tr>
+      <td width="33%" align="center"><img src=".github/assets/home-screen.png" alt="V4War Home Dashboard" width="230" /></td>
+      <td width="33%" align="center"><img src=".github/assets/tools-network.png" alt="V4War Network &amp; Tools" width="230" /></td>
+      <td width="33%" align="center"><img src=".github/assets/hotspot-share.png" alt="V4War Hotspot &amp; Proxy Share" width="230" /></td>
+    </tr>
+  </table>
+</p>
 
 ---
 
@@ -75,9 +90,16 @@ Share your active VPN connection with phones, laptops, consoles, and other devic
 <details>
 <summary>📸 Preview: LAN Sharing & Hotspot Gateway Screen</summary>
 
-<p align="center">
-  <img src=".github/assets/lan-sharing.jpg" alt="V4War LAN Sharing & Hotspot Gateway Interface" width="320" />
-</p>
+<table>
+  <tr>
+    <th width="50%" align="center">Hotspot Gateway</th>
+    <th width="50%" align="center">Local Proxy (HTTP / SOCKS5)</th>
+  </tr>
+  <tr>
+    <td width="50%" align="center"><img src=".github/assets/hotspot-share.png" alt="V4War LAN Sharing & Hotspot Gateway Interface" width="250" /></td>
+    <td width="50%" align="center"><img src=".github/assets/hotspot-local-proxy.png" alt="V4War Local Network Proxy (HTTP / SOCKS5)" width="250" /></td>
+  </tr>
+</table>
 
 </details>
 
@@ -107,6 +129,15 @@ Accessible from **Tools → Network**, V4War includes ten built-in diagnostic en
 - **Theme Studio (`Settings → Appearance`):** Live interactive miniature preview card with 5 surface modes — **Pure AMOLED**, **AMOLED**, **Dark**, **Light**, and **System**.
 - **3-Tone Seed Harmonization:** Material 3 tonal palette system with curated seed colors, Android 12+ **Monet** dynamic theming, and harmonized dialogs, bars, switches, and squircle icon badges.
 - **Expressive Navigation & Lists:** Floating pill headers, expressive tab indicators, protocol badges, compact profile rows, and compact group cards.
+
+<details>
+<summary>📸 Preview: Theme Studio (Appearance Settings)</summary>
+
+<p align="center">
+  <img src=".github/assets/appearance-theme-studio.png" alt="V4War Theme Studio Appearance Settings" width="280" />
+</p>
+
+</details>
 
 ---
 

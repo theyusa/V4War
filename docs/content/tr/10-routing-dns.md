@@ -17,6 +17,7 @@ Kural profilleri oluşturmak, klonlamak, içe aktarmak veya değiştirmek için 
 - **Eylemler** — Eşleşen trafiği `Proxy`, `Direct`, `Block` veya belirli bir **Rota Proxy Atlaması / Çıkışı** üzerine yönlendirin.
 - **Tekil Kural Anahtarı** — Kuralları silmeden tek tek açıp kapatabilirsiniz.
 - **Rota Yolu Sorgulama (Route Path Lookup)** — Herhangi bir uygulama, alan adı veya IP'nin hangi kurala ve çıkışa yönlendirileceğini anında test edin.
+- **Kural Setlerini ve Rotaları VPN'den Sonra İndir** — **Ayarlar → Yönlendirme → Kural setleri ve rotaları VPN'den sonra indir** seçeneğini açarak özel `.srs` kural setlerinin ve uzak rotaların bağlanmadan önce yerine VPN tüneli (`proxy`) üzerinden indirilmesini sağlayabilirsiniz (zero-rating veya kısıtlı ağlar için idealdir).
 
 ## Grup bazlı yönlendirme ve Happ içe aktarma
 

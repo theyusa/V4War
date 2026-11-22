@@ -42,6 +42,16 @@ export interface ScreenshotShowcaseItem {
 
 export const SCREENSHOT_SHOWCASE: ScreenshotShowcaseItem[] = [
   {
+    id: 'home',
+    file: 'screenshots/home-screen.webp',
+    title: { en: 'Compact Bento Home', tr: 'Kompakt Bento Ana Ekran' },
+    caption: {
+      en: 'Live speed, CPU/RAM/Connections charts, IP privacy toggle, quick diagnostics & status dock.',
+      tr: 'Canlı hız, CPU/RAM/Bağlantı grafikleri, IP gizleme, hızlı tanı testleri ve durum kartı.',
+    },
+    docRoute: '/docs/overview',
+  },
+  {
     id: 'appearance',
     file: 'screenshots/appearance-theme-studio.webp',
     title: { en: 'Theme Studio (Pure AMOLED)', tr: 'Theme Studio (Saf AMOLED)' },

@@ -13,7 +13,8 @@ Günlük otomatik upstream senkronizasyonunun üzerine; mobil ağ paylaşımı, 
 
 ## V4War'ın sunduğu başlıca farklar
 
-- **Hotspot ve Proxy Paylaşım Paketi** — Aktif VPN tünelinizi **Wi-Fi Hotspot**, **USB RNDIS** veya **Bluetooth PAN** üzerinden **Auto**, **Shizuku TUN (Rootsuz UID 2000)**, **Root (`iptables`)** ya da **LAN Proxy** (`HTTP` / `SOCKS5`) ile paylaşın; bağlı cihazları ve tanılama loglarını canlı takip edin.
+- **Kompakt Bento Ana Ekran ve IP Gizleme** — Canlı hız, CPU/RAM/Bağlantı grafikleri, aktif profile özel trafik halkası, tek dokunuşlu STUN/DNS/Erişim hızlı testleri ve Ağ kartındaki **göz ikonu** ile çıkış/yerel IP gizleme (`•••.•••.•••.•••`).
+- **Hotspot ve Proxy Paylaşım Paketi** — Aktif VPN tünelinizi **Wi-Fi Hotspot**, **USB RNDIS** veya **Bluetooth PAN** üzerinden **Auto**, **Shizuku TUN (Rootsuz UID 2000)**, **Root (`iptables`)** ya da **LAN Proxy** (`HTTP` / `SOCKS5`) ile paylaşın; interaktif Başlat/Durdur butonları, M3 Expressive alt sayfa seçicileri, bağlı cihaz takibi ve tanılama logları içerir.
 - **Sıfır Ayarlı Masaüstü Eşleşmesi** — Windows veya Linux üzerindeki [theyusa/Throne](https://github.com/theyusa/Throne) ile **Hotspot Ağ Geçidi** otomatik keşfi sayesinde IP veya port yazmadan doğrudan bağlanın.
 - **10'u 1 Arada Ağ Araç Kutusu** — **Araçlar → Ağ ve Araçlar** altında RFC 5389/5780 STUN NAT keşfi, DNS Sızıntı ve Fake-IP testi, çift çıkışlı IP Sorgulama, DNS Lookup, canlı RTT grafikli Yerel Ping, 24+ servis Bağlantı Testi, Canlı Ağ Arayüzleri, Trafik Kullanımı ve Hücresel Radyo Menüsü.
 - **Material 3 Expressive ve Theme Studio** — Canlı mini önizleme kartı, 5 yüzey stili (**Pure AMOLED**, **AMOLED**, **Koyu**, **Açık**, **Sistem**), Monokrom temalar (**Siyah**, **Beyaz**, **Açık Gri**), Android 12+ **Material You** ve 21+ özenle seçilmiş tema tohumu + özel HEX/RGB ayarı.

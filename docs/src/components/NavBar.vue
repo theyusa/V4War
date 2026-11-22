@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { BookOpen, Download, Globe, Menu, Palette, X } from 'lucide-vue-next'
+import { BookOpen, Compass, Download, Globe, Home, Menu, Palette, X } from 'lucide-vue-next'
 import type { Locale } from '../data/content'
 import { SITE_COPY } from '../data/content'
 import type { AppPageName } from '../utils/router'
@@ -143,23 +143,66 @@ function go(routePath: string) {
       </div>
     </nav>
 
-    <div v-if="mobileOpen" class="mobile-drawer m3-card">
-      <a :href="buildHref('/')" class="mobile-link" @click.prevent="go('/')">
-        {{ SITE_COPY.nav.home[locale] }}
-      </a>
-      <a :href="buildHref('/docs/overview')" class="mobile-link" @click.prevent="go('/docs/overview')">
-        {{ SITE_COPY.nav.docs[locale] }}
-      </a>
-      <a :href="buildHref('/theme-studio')" class="mobile-link" @click.prevent="go('/theme-studio')">
-        {{ SITE_COPY.nav.studio[locale] }}
-      </a>
-      <a :href="buildHref('/explore')" class="mobile-link" @click.prevent="go('/explore')">
-        {{ SITE_COPY.nav.explore[locale] }}
-      </a>
-      <a :href="buildHref('/download')" class="m3-btn m3-btn-primary" @click.prevent="go('/download')">
-        <Download :size="15" />
-        <span>{{ SITE_COPY.nav.download[locale] }}</span>
-      </a>
+    <div v-if="mobileOpen" class="mobile-backdrop" @click="mobileOpen = false" />
+
+    <div v-if="mobileOpen" class="mobile-drawer" role="dialog" aria-label="Navigation menu">
+      <div class="mobile-grid">
+        <a
+          :href="buildHref('/')"
+          class="mobile-tile"
+          :class="{ active: currentPage === 'home' }"
+          @click.prevent="go('/')"
+        >
+          <span class="mobile-tile-icon"><Home :size="17" /></span>
+          <span class="mobile-tile-label">{{ SITE_COPY.nav.home[locale] }}</span>
+        </a>
+        <a
+          :href="buildHref('/docs/overview')"
+          class="mobile-tile"
+          :class="{ active: currentPage === 'docs' }"
+          @click.prevent="go('/docs/overview')"
+        >
+          <span class="mobile-tile-icon"><BookOpen :size="17" /></span>
+          <span class="mobile-tile-label">{{ SITE_COPY.nav.docs[locale] }}</span>
+        </a>
+        <a
+          :href="buildHref('/theme-studio')"
+          class="mobile-tile"
+          :class="{ active: currentPage === 'theme-studio' }"
+          @click.prevent="go('/theme-studio')"
+        >
+          <span class="mobile-tile-icon"><Palette :size="17" /></span>
+          <span class="mobile-tile-label">{{ SITE_COPY.nav.studio[locale] }}</span>
+        </a>
+        <a
+          :href="buildHref('/explore')"
+          class="mobile-tile"
+          :class="{ active: currentPage === 'explore' }"
+          @click.prevent="go('/explore')"
+        >
+          <span class="mobile-tile-icon"><Compass :size="17" /></span>
+          <span class="mobile-tile-label">{{ SITE_COPY.nav.explore[locale] }}</span>
+        </a>
+      </div>
+
+      <div class="mobile-footer">
+        <button
+          type="button"
+          class="mobile-surface-btn"
+          @click="emit('cycle-surface')"
+        >
+          <Palette :size="15" />
+          <span>{{ activeSurfaceLabel }}</span>
+        </button>
+        <a
+          :href="buildHref('/download')"
+          class="m3-btn m3-btn-primary mobile-download-btn"
+          @click.prevent="go('/download')"
+        >
+          <Download :size="15" />
+          <span>{{ SITE_COPY.nav.download[locale] }}</span>
+        </a>
+      </div>
     </div>
   </header>
 </template>
@@ -291,28 +334,110 @@ function go(routePath: string) {
   padding: 0 10px;
 }
 
+.mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.56);
+  backdrop-filter: blur(4px);
+  z-index: -1;
+  pointer-events: auto;
+}
+
 .mobile-drawer {
   max-width: 1200px;
   margin: 10px auto 0;
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   pointer-events: auto;
-  background: var(--bg-glass);
-  backdrop-filter: blur(18px);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--bg-card, #160e10) 96%, transparent);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.52);
+  backdrop-filter: blur(22px);
 }
 
-.mobile-link {
-  padding: 10px 12px;
-  border-radius: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
+.mobile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.mobile-link:hover {
+.mobile-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
   background: var(--bg-nested);
+  border: 1px solid var(--border-muted);
   color: var(--text-primary);
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.14s ease;
+}
+
+.mobile-tile:active {
+  transform: scale(0.98);
+}
+
+.mobile-tile.active {
+  background: var(--accent-soft, rgba(229, 57, 53, 0.14));
+  border-color: color-mix(in srgb, var(--accent, #e53935) 55%, transparent);
+  color: var(--accent, #ff6b6b);
+}
+
+.mobile-tile-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-pill);
+  flex-shrink: 0;
+}
+
+.mobile-tile.active .mobile-tile-icon {
+  background: color-mix(in srgb, var(--accent, #e53935) 20%, transparent);
+}
+
+.mobile-tile-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-muted);
+}
+
+.mobile-surface-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--bg-pill);
+  border: 1px solid var(--border-muted);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.mobile-download-btn {
+  flex: 1;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13px;
 }
 
 @media (max-width: 1060px) {
