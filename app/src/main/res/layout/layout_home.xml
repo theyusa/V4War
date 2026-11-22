@@ -573,6 +573,27 @@
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="12.5sp" />
 
+                            <FrameLayout
+                                android:id="@+id/home_network_privacy_btn"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:layout_marginStart="2dp"
+                                android:clickable="true"
+                                android:contentDescription="@string/home_network_hide_ip"
+                                android:focusable="true"
+                                android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                                <ImageView
+                                    android:id="@+id/home_network_privacy_icon"
+                                    android:layout_width="14dp"
+                                    android:layout_height="14dp"
+                                    android:layout_gravity="center"
+                                    android:importantForAccessibility="no"
+                                    android:src="@drawable/ic_baseline_visibility_24"
+                                    app:tint="?android:attr/textColorSecondary" />
+
+                            </FrameLayout>
+
                             <TextView
                                 android:id="@+id/home_network_latency_text"
                                 android:layout_width="wrap_content"
@@ -591,7 +612,7 @@
                             android:id="@+id/home_network_ip_text"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="9dp"
+                            android:layout_marginTop="15dp"
                             android:ellipsize="end"
                             android:fontFamily="sans-serif-medium"
                             android:fontFeatureSettings="tnum"

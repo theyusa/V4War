@@ -3370,4 +3370,6 @@
     <string name="lan_sharing_device_route_bt_root">Bluetooth Tether (Root)</string>
     <string name="lan_sharing_device_route_bt_proxy">Bluetooth Tether (Local Proxy)</string>
     <string name="lan_sharing_device_route_bt_idle">Bluetooth Tether</string>
+    <string name="home_network_hide_ip">Hide IP address</string>
+    <string name="home_network_show_ip">Show IP address</string>
 </resources>

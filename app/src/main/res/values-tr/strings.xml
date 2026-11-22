@@ -3153,4 +3153,6 @@
     <string name="home_diag_conn_ok">%1$d/%2$d Açık</string>
     <string name="home_diag_open_full">Detaylı testi aç</string>
     <string name="home_status_ready_to_connect">Hazır · Bağlanmak için güç tuşuna dokunun</string>
+    <string name="home_network_hide_ip">IP adresini gizle</string>
+    <string name="home_network_show_ip">IP adresini göster</string>
 </resources>

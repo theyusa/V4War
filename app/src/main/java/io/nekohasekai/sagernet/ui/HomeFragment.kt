@@ -165,6 +165,9 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         const val CHART_WINDOW_MS = 60_000L
         const val CHART_TICK_MS = 15_000L
         const val STALE_MS = 3000L
+        const val PREFS_HOME_UI = "home_ui_prefs"
+        const val PREF_MASK_NETWORK_IP = "mask_network_ip"
+        const val MASKED_IP = "*.*.*.*"
 
         val MANUAL_PROFILE_OPTIONS: List<Triple<Int, Int, Class<*>>> = listOf(
             Triple(R.id.action_new_auto_selector, R.string.action_auto_selector, AutoSelectorSettingsActivity::class.java),
@@ -232,6 +235,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var trafficTotalText: TextView? = null
 
     private var cardNetworkEgress: MaterialCardView? = null
+    private var networkPrivacyBtn: View? = null
+    private var networkPrivacyIcon: ImageView? = null
     private var networkLatencyText: TextView? = null
     private var networkIpText: TextView? = null
     private var networkMetaText: TextView? = null
@@ -320,6 +325,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var recordedRx: Long = 0L
     private var recordedTx: Long = 0L
     private var trafficLoadJob: Job? = null
+    private var isNetworkIpMasked: Boolean = false
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -372,6 +378,9 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             )
             ViewCompat.requestApplyInsets(target)
         }
+        isNetworkIpMasked = ctx.getSharedPreferences(PREFS_HOME_UI, Context.MODE_PRIVATE)
+            .getBoolean(PREF_MASK_NETWORK_IP, false)
+        syncNetworkPrivacyIcon()
     }
 
     override fun onResume() {
@@ -429,6 +438,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         trafficDownUnit = null
         trafficTotalText = null
         cardNetworkEgress = null
+        networkPrivacyBtn = null
+        networkPrivacyIcon = null
         networkLatencyText = null
         networkIpText = null
         networkMetaText = null
@@ -583,6 +594,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         trafficTotalText = view.findViewById(R.id.home_traffic_total_text)
 
         cardNetworkEgress = view.findViewById(R.id.home_card_network_egress)
+        networkPrivacyBtn = view.findViewById(R.id.home_network_privacy_btn)
+        networkPrivacyIcon = view.findViewById(R.id.home_network_privacy_icon)
         networkLatencyText = view.findViewById(R.id.home_network_latency_text)
         networkIpText = view.findViewById(R.id.home_network_ip_text)
         networkMetaText = view.findViewById(R.id.home_network_meta_text)
@@ -873,6 +886,16 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             }
         }
         cardNetworkEgress?.setOnClickListener { v -> launchActivity(v, IpLookupActivity::class.java) }
+        networkPrivacyBtn?.setOnClickListener {
+            val ctx = context ?: return@setOnClickListener
+            isNetworkIpMasked = !isNetworkIpMasked
+            ctx.getSharedPreferences(PREFS_HOME_UI, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(PREF_MASK_NETWORK_IP, isNetworkIpMasked)
+                .apply()
+            syncNetworkPrivacyIcon()
+            refreshNetworkEgressCard()
+        }
         cardAppProxy?.setOnClickListener { v -> launchActivity(v, AppManagerActivity::class.java) }
         cardHotspotShare?.setOnClickListener { v -> launchActivity(v, LanSharingActivity::class.java) }
 
@@ -1356,10 +1379,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
             val exitInfo = ExitIp.info?.takeIf { currentState == BaseService.State.Connected }
             val localIp = picked?.second?.address?.substringBefore('%')
+            val displayLocalIp = if (isNetworkIpMasked && localIp != null) MASKED_IP else localIp
 
             if (exitInfo != null) {
                 val flag = TestFormat.flag(exitInfo.countryCode)
-                val exitIpStr = exitInfo.ip.ifBlank { exitInfo.country }
+                val exitIpRaw = exitInfo.ip.ifBlank { exitInfo.country }
+                val exitIpStr = if (isNetworkIpMasked && exitInfo.ip.isNotBlank()) MASKED_IP else exitIpRaw
                 networkIpText?.text = if (flag.isEmpty()) exitIpStr else "$flag\u00A0$exitIpStr"
                 val countryName = if (TestFormat.isCountryCode(exitInfo.countryCode)) {
                     TestFormat.countryName(exitInfo.countryCode)
@@ -1367,10 +1392,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                     exitInfo.country
                 }
                 networkMetaText?.text = when {
-                    picked != null && localIp != null && countryName.isNotEmpty() ->
-                        "$countryName · ${picked.first.name} ($localIp)"
+                    picked != null && displayLocalIp != null && countryName.isNotEmpty() ->
+                        "$countryName · ${picked.first.name} ($displayLocalIp)"
                     countryName.isNotEmpty() -> countryName
-                    picked != null && localIp != null -> "${picked.first.name} ($localIp)"
+                    picked != null && displayLocalIp != null -> "${picked.first.name} ($displayLocalIp)"
                     else -> getString(R.string.home_network)
                 }
                 return@launch
@@ -1386,17 +1411,18 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 } else {
                     ""
                 }
-                networkIpText?.text = "$flagPrefix$storedIpOut"
-                networkMetaText?.text = if (picked != null && localIp != null) {
-                    "${picked.first.name} · $localIp"
+                val shownStoredIp = if (isNetworkIpMasked) MASKED_IP else storedIpOut
+                networkIpText?.text = "$flagPrefix$shownStoredIp"
+                networkMetaText?.text = if (picked != null && displayLocalIp != null) {
+                    "${picked.first.name} · $displayLocalIp"
                 } else {
                     country.ifEmpty { getString(R.string.home_network) }
                 }
                 return@launch
             }
 
-            if (picked != null && localIp != null) {
-                networkIpText?.text = localIp
+            if (picked != null && displayLocalIp != null) {
+                networkIpText?.text = displayLocalIp
                 networkMetaText?.text = picked.second.prefixLength?.let {
                     "${picked.first.name} · /$it"
                 } ?: picked.first.name
@@ -2636,5 +2662,19 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 if (view != null) diagConnProgress?.isVisible = false
             }
         }
+    }
+
+    private fun syncNetworkPrivacyIcon() {
+        val ctx = context ?: return
+        val iconRes = if (isNetworkIpMasked) {
+            R.drawable.ic_baseline_visibility_off_24
+        } else {
+            R.drawable.ic_baseline_visibility_24
+        }
+        networkPrivacyIcon?.setImageResource(iconRes)
+        networkPrivacyIcon?.setColorFilter(ctx.getColorAttr(android.R.attr.textColorSecondary))
+        networkPrivacyBtn?.contentDescription = getString(
+            if (isNetworkIpMasked) R.string.home_network_show_ip else R.string.home_network_hide_ip,
+        )
     }
 }
