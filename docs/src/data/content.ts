@@ -54,10 +54,10 @@ export const SCREENSHOT_SHOWCASE: ScreenshotShowcaseItem[] = [
   {
     id: 'appearance',
     file: 'screenshots/appearance-theme-studio.webp',
-    title: { en: 'Theme Studio (Pure AMOLED)', tr: 'Theme Studio (Saf AMOLED)' },
+    title: { en: 'Theme Studio (M3 Expressive)', tr: 'Theme Studio (M3 Expressive)' },
     caption: {
-      en: 'Live Preview card, Surface Styles, Monochrome Themes & 22+ Material You seed colors.',
-      tr: 'Canlı Önizleme kartı, Yüzey Stilleri, Monokrom Temalar ve 22+ Material You tohum rengi.',
+      en: 'Live Preview card, Surface Styles, Monochrome Themes, Custom Palettes & Material Original.',
+      tr: 'Canlı Önizleme kartı, Yüzey Stilleri, Monokrom Temalar, Özel Paletler ve Material Original.',
     },
     docRoute: '/docs/appearance-theme-studio',
   },
@@ -86,8 +86,8 @@ export const SCREENSHOT_SHOWCASE: ScreenshotShowcaseItem[] = [
     file: 'screenshots/hotspot-local-proxy.webp',
     title: { en: 'LAN Proxy & Auto Connect', tr: 'LAN Proxy ve Otomatik Bağlan' },
     caption: {
-      en: 'HTTP/SOCKS5 inbound, zero-config Desktop Gateway pairing, one-tap share links & live ARP devices.',
-      tr: 'HTTP/SOCKS5 giriş, sıfır ayarlı Masaüstü Ağ Geçidi eşleşmesi, paylaşım linkleri ve canlı cihazlar.',
+      en: 'Interactive LAN Proxy Start/Stop, Port & Auth, zero-config Desktop Auto Connect & Share Info.',
+      tr: 'Etkileşimli LAN Proxy Başlat/Durdur, Port ve Kimlik Doğrulama, Masaüstü Oto Bağlan ve Paylaşım.',
     },
     docRoute: '/docs/local-proxy-desktop',
   },

@@ -107,7 +107,7 @@ function getPillarIcon(id: string) {
           >
             <div class="gallery-shot-wrap">
               <img
-                :src="`${baseUrl}${item.file}`"
+                :src="`${baseUrl}${item.file}?v=2.1.5b`"
                 :alt="item.title[locale]"
                 loading="lazy"
                 width="460"

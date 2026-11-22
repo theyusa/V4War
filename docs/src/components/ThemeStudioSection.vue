@@ -50,7 +50,7 @@ const redChannel = ref(225)
 const greenChannel = ref(29)
 const blueChannel = ref(36)
 
-const appearanceShotUrl = `${import.meta.env.BASE_URL}screenshots/appearance-theme-studio.webp`
+const appearanceShotUrl = `${import.meta.env.BASE_URL}screenshots/appearance-theme-studio.webp?v=2.1.5b`
 
 function syncChannelsFromHex(hex: string) {
   const clean = hex.replace('#', '')

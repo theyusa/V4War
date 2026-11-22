@@ -24,7 +24,7 @@ const emit = defineEmits<{
 
 const phoneTab = ref<'live' | 'screenshot'>('live')
 const logoUrl = `${import.meta.env.BASE_URL}logo.png`
-const heroShotUrl = `${import.meta.env.BASE_URL}screenshots/appearance-theme-studio.webp`
+const heroShotUrl = `${import.meta.env.BASE_URL}screenshots/appearance-theme-studio.webp?v=2.1.5b`
 
 const quickSeeds = computed(() =>
   SEED_PRESETS.filter((s) => ['crimson', 'verdant-mint', 'blue', 'purple', 'cyan', 'amber'].includes(s.id)),
