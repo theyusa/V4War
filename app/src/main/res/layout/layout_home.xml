@@ -19,7 +19,7 @@
         android:clipToPadding="false"
         android:fillViewport="true"
         android:paddingTop="2dp"
-        android:paddingBottom="92dp">
+        android:paddingBottom="78dp">
 
         <LinearLayout
             android:id="@+id/home_content_container"
@@ -1120,6 +1120,11 @@
 
             </com.google.android.material.card.MaterialCardView>
 
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
             <!-- Bottom Thumb-Zone Interactive Status Hero + URL Test Strip -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/home_card_status_banner"
@@ -1263,6 +1268,26 @@
                             android:visibility="gone"
                             tools:text="114 ms"
                             tools:visibility="visible" />
+
+                        <FrameLayout
+                            android:id="@+id/home_status_edit_btn"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_marginStart="6dp"
+                            android:clickable="true"
+                            android:contentDescription="@string/home_menu_edit_active_profile"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                            <ImageView
+                                android:layout_width="15dp"
+                                android:layout_height="15dp"
+                                android:layout_gravity="center"
+                                android:importantForAccessibility="no"
+                                android:src="@drawable/ic_image_edit"
+                                app:tint="?android:attr/textColorSecondary" />
+
+                        </FrameLayout>
 
                     </LinearLayout>
 

@@ -57,6 +57,7 @@
     <string name="home_hotspot_chip_hotspot">Hotspot</string>
     <string name="home_hotspot_chip_lan_proxy">LAN Proxy</string>
     <string name="home_hotspot_chip_gateway">Auto Gateway</string>
+    <string name="home_menu_edit_active_profile">Edit active profile</string>
     <string name="menu_configuration">Profiles</string>
     <string name="menu_group">Groups</string>
     <string name="menu_about">About</string>

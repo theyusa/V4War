@@ -4,6 +4,8 @@
     <item name="inset_margin_base" type="id" />
     <item name="nav_home" type="id" />
     <item name="home_header_status_pill" type="id" />
+    <item name="home_header_add_btn" type="id" />
+    <item name="home_header_more_btn" type="id" />
     <item name="action_previous_server" type="id" />
     <item name="action_next_server" type="id" />
 </resources>

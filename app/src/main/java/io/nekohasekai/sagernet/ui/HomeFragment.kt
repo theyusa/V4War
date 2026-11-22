@@ -6,15 +6,19 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.RemoteException
 import android.os.SystemClock
+import android.provider.OpenableColumns
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.format.Formatter
 import android.text.style.ForegroundColorSpan
+import android.view.Gravity
+import android.view.Menu
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
@@ -23,11 +27,14 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.view.GravityCompat
+import androidx.core.view.MenuCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
@@ -43,23 +50,61 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import io.nekohasekai.sagernet.R
+import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.aidl.LiveStatsBatch
 import io.nekohasekai.sagernet.aidl.SpeedDisplayData
 import io.nekohasekai.sagernet.bg.BaseService
 import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.database.ProfileManager
 import io.nekohasekai.sagernet.database.ProxyEntity
+import io.nekohasekai.sagernet.database.ProxyGroup
 import io.nekohasekai.sagernet.database.RouteManager
 import io.nekohasekai.sagernet.database.SagerDatabase
+import io.nekohasekai.sagernet.database.SettingsMapper
+import io.nekohasekai.sagernet.group.SubscriptionClient
 import io.nekohasekai.sagernet.hotspotshare.HotspotShareStateStore
 import io.nekohasekai.sagernet.hotspotshare.ShareMethod
 import io.nekohasekai.sagernet.hotspotshare.SharePreference
 import io.nekohasekai.sagernet.hotspotshare.ShareState
 import io.nekohasekai.sagernet.hotspotshare.TetherWatchService
 import io.nekohasekai.sagernet.ktx.Logs
+import io.nekohasekai.sagernet.ktx.confirmAction
 import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.ktx.readableMessage
 import io.nekohasekai.sagernet.ktx.snackbar
+import io.nekohasekai.sagernet.ktx.startFilesForResult
+import io.nekohasekai.sagernet.outbound.Outbound
+import io.nekohasekai.sagernet.outbound.`import`.ImportReport
+import io.nekohasekai.sagernet.outbound.`import`.ProfileImport
+import io.nekohasekai.sagernet.ui.profile.AnyTLSSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.AutoSelectorSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.ChainSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.CustomSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.DirectSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.DnsttSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.HttpSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.HysteriaSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.JuicitySettingsActivity
+import io.nekohasekai.sagernet.ui.profile.MasqueSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.MasterDnsSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.MieruSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.NaiveSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.OpenConnectSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.OpenVpnSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.SSHSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.ShadowTLSSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.ShadowsocksSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.SnellSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.SocksSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.TrojanSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.TrustTunnelSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.TuicSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.VMessSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.VlessSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.WireGuardSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.XrayVlessSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.profileSettingsIntent
 import io.nekohasekai.sagernet.ui.profiles.SubscriptionInfoCard
 import io.nekohasekai.sagernet.ui.route.RouteQuickSwitch
 import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
@@ -89,6 +134,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlin.math.hypot
+import java.util.zip.ZipInputStream
 
 /**
  * Ultra-compact Bento Home dashboard: Interactive Status Hero + URL test strip, Active Group /
@@ -102,6 +148,36 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         const val CHART_WINDOW_MS = 60_000L
         const val CHART_TICK_MS = 15_000L
         const val STALE_MS = 3000L
+
+        val MANUAL_PROFILE_OPTIONS: List<Triple<Int, Int, Class<*>>> = listOf(
+            Triple(R.id.action_new_auto_selector, R.string.action_auto_selector, AutoSelectorSettingsActivity::class.java),
+            Triple(R.id.action_new_socks, R.string.action_socks, SocksSettingsActivity::class.java),
+            Triple(R.id.action_new_http, R.string.action_http, HttpSettingsActivity::class.java),
+            Triple(R.id.action_new_ss, R.string.action_shadowsocks, ShadowsocksSettingsActivity::class.java),
+            Triple(R.id.action_new_vmess, R.string.action_vmess, VMessSettingsActivity::class.java),
+            Triple(R.id.action_new_vless, R.string.action_vless, VlessSettingsActivity::class.java),
+            Triple(R.id.action_new_xray_vless, R.string.action_vless_xray, XrayVlessSettingsActivity::class.java),
+            Triple(R.id.action_new_trojan, R.string.action_trojan, TrojanSettingsActivity::class.java),
+            Triple(R.id.action_new_mieru, R.string.action_mieru, MieruSettingsActivity::class.java),
+            Triple(R.id.action_new_naive, R.string.action_naive, NaiveSettingsActivity::class.java),
+            Triple(R.id.action_new_hysteria, R.string.action_hysteria, HysteriaSettingsActivity::class.java),
+            Triple(R.id.action_new_tuic, R.string.action_tuic, TuicSettingsActivity::class.java),
+            Triple(R.id.action_new_juicity, R.string.action_juicity, JuicitySettingsActivity::class.java),
+            Triple(R.id.action_new_shadowtls, R.string.action_shadowtls, ShadowTLSSettingsActivity::class.java),
+            Triple(R.id.action_new_anytls, R.string.action_anytls, AnyTLSSettingsActivity::class.java),
+            Triple(R.id.action_new_trusttunnel, R.string.action_trusttunnel, TrustTunnelSettingsActivity::class.java),
+            Triple(R.id.action_new_snell, R.string.action_snell, SnellSettingsActivity::class.java),
+            Triple(R.id.action_new_ssh, R.string.action_ssh, SSHSettingsActivity::class.java),
+            Triple(R.id.action_new_wg, R.string.action_wireguard, WireGuardSettingsActivity::class.java),
+            Triple(R.id.action_new_masque, R.string.action_masque, MasqueSettingsActivity::class.java),
+            Triple(R.id.action_new_openvpn, R.string.action_openvpn, OpenVpnSettingsActivity::class.java),
+            Triple(R.id.action_new_openconnect, R.string.action_openconnect, OpenConnectSettingsActivity::class.java),
+            Triple(R.id.action_new_dnstt, R.string.action_dnstt, DnsttSettingsActivity::class.java),
+            Triple(R.id.action_new_masterdns, R.string.action_masterdns, MasterDnsSettingsActivity::class.java),
+            Triple(R.id.action_new_direct, R.string.action_direct, DirectSettingsActivity::class.java),
+            Triple(R.id.action_new_config, R.string.custom_config, CustomSettingsActivity::class.java),
+            Triple(R.id.action_new_chain, R.string.proxy_chain, ChainSettingsActivity::class.java),
+        )
     }
 
     private var statusBannerCard: MaterialCardView? = null
@@ -114,6 +190,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var statusTypeChip: TextView? = null
     private var statusSubtitle: TextView? = null
     private var statusModeTag: TextView? = null
+    private var statusEditBtn: FrameLayout? = null
+    private val importFileLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) importFileUri(uri)
+    }
     private var statusTestBar: LinearLayout? = null
     private var statusTestIcon: ImageView? = null
     private var statusTestProgress: CircularProgressIndicator? = null
@@ -212,14 +292,17 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val appbar = view.findViewById<AppBarLayout>(R.id.appbar)
         appbar?.setBackgroundColor(screenBg)
         toolbar?.visibility = View.GONE
-        ExpressiveSettingsHelper.attachFloatingPillHeader(appbar, ctx)?.update(
-            context = ctx,
-            title = getString(R.string.app_name),
-            iconRes = R.drawable.ic_navigation_menu,
-            contentDescription = getString(R.string.navigation_open_drawer),
-        ) {
-            (activity as? MainActivity)?.binding?.drawerLayout?.openDrawer(GravityCompat.START)
+        val pillHeader = ExpressiveSettingsHelper.attachFloatingPillHeader(appbar, ctx)?.apply {
+            update(
+                context = ctx,
+                title = getString(R.string.app_name),
+                iconRes = R.drawable.ic_navigation_menu,
+                contentDescription = getString(R.string.navigation_open_drawer),
+            ) {
+                (activity as? MainActivity)?.binding?.drawerLayout?.openDrawer(GravityCompat.START)
+            }
         }
+        attachHeaderActions(pillHeader?.root, ctx)
 
         bytesAxis = LiveChartView.bytesAxis(ctx)
         bindViews(view)
@@ -238,7 +321,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 val bars = insets.getInsets(
                     WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
                 )
-                v.updatePadding(bottom = bars.bottom + dp2px(92))
+                v.updatePadding(bottom = bars.bottom + dp2px(78))
                 insets
             }
             target.setOnScrollChangeListener(
@@ -279,6 +362,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         statusTypeChip = null
         statusSubtitle = null
         statusModeTag = null
+        statusEditBtn = null
         statusTestBar = null
         statusTestIcon = null
         statusTestProgress = null
@@ -410,6 +494,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         statusTypeChip = view.findViewById(R.id.home_status_type_chip)
         statusSubtitle = view.findViewById(R.id.home_status_subtitle)
         statusModeTag = view.findViewById(R.id.home_status_mode_tag)
+        statusEditBtn = view.findViewById(R.id.home_status_edit_btn)
         statusTestBar = view.findViewById(R.id.home_status_test_bar)
         statusTestIcon = view.findViewById(R.id.home_status_test_icon)
         statusTestProgress = view.findViewById(R.id.home_status_test_progress)
@@ -509,6 +594,13 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
         listOfNotNull(subPortalBtn, subSwitchBtn).forEach { button ->
             styleTonalActionButton(button, nestedBg, primaryInk, accent, strokeColor, isAnyAmoled)
+        }
+        statusEditBtn?.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(nestedBg)
+            if (isAnyAmoled) {
+                setStroke(dp2px(1), strokeColor)
+            }
         }
     }
 
@@ -626,6 +718,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         statusPowerBtn?.setOnClickListener { v ->
             context?.let { c -> HapticHelper.perform(c, v, HapticHelper.HapticKind.HEAVY) }
             (activity as? MainActivity)?.toggleService()
+        }
+        statusEditBtn?.setOnClickListener { v ->
+            context?.let { c -> HapticHelper.perform(c, v, HapticHelper.HapticKind.TAP) }
+            openActiveProfileEditor()
         }
         statusBannerCard?.setOnClickListener { v ->
             context?.let { c -> HapticHelper.perform(c, v, HapticHelper.HapticKind.TAP) }
@@ -852,6 +948,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val targetId = activeTargetProfileId()
         if (targetId <= 0L) {
             typeChip?.isVisible = false
+            statusEditBtn?.isVisible = false
             subtitleTv.text = getString(R.string.home_status_tap_to_select)
             updateLatencyBadge(ctx, null)
             return
@@ -863,10 +960,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             val currentCtx = context ?: return@launch
             if (entity == null) {
                 typeChip?.isVisible = false
+                statusEditBtn?.isVisible = false
                 subtitleTv.text = getString(R.string.home_status_tap_to_select)
                 updateLatencyBadge(currentCtx, null)
                 return@launch
             }
+            statusEditBtn?.isVisible = true
             subtitleTv.text = entity.displayName()
             val typeLabel = entity.displayType().trim()
             if (typeLabel.isNotEmpty()) {
@@ -1070,13 +1169,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             val accent = ExpressiveSettingsHelper.resolveAccentColor(currentCtx)
             val activeInk = if (Theme.isMonochromeBlack(currentCtx)) Color.WHITE else accent
 
-            val rawName = route.name.trim()
-            val menuRouteLabel = getString(R.string.menu_route)
-            val routeTitle = if (rawName.isEmpty() || rawName.equals(menuRouteLabel, ignoreCase = true)) {
-                getString(R.string.group_default_name)
-            } else {
-                rawName
-            }
+            val routeTitle = route.name.trim().ifEmpty { getString(R.string.group_default_name) }
             pillRuleText?.text = routeTitle
             pillRuleText?.setTextColor(currentCtx.getColorAttr(android.R.attr.textColorPrimary))
             routeIcon?.setColorFilter(activeInk)
@@ -1672,6 +1765,417 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                     updateSpeedChart(running)
                     updateCpuRamUi(running)
                     delay(LIVE_POLL_MS)
+                }
+            }
+        }
+    }
+
+    private fun attachHeaderActions(headerRoot: LinearLayout?, ctx: Context) {
+        headerRoot ?: return
+        if (headerRoot.findViewById<View>(R.id.home_header_add_btn) != null) return
+
+        val isNight = Theme.usingNightMode(ctx)
+        val pillSize = dp2px(36)
+        val pillBg = Theme.resolveCardBackground(ctx)
+        val pillStroke = Theme.resolveCardStrokeColor(ctx, selected = false)
+        val strokePx = Theme.resolveCardStrokeWidthPx(ctx, selected = false).toInt().coerceAtLeast(1)
+        val textPrimary = ctx.getColorAttr(android.R.attr.textColorPrimary)
+        val rippleColor = ColorUtils.setAlphaComponent(textPrimary, if (isNight) 38 else 28)
+
+        headerRoot.addView(
+            View(ctx).apply {
+                layoutParams = LinearLayout.LayoutParams(0, 0, 1f)
+            },
+        )
+
+        val addBtn = createHeaderPillButton(
+            ctx = ctx,
+            id = R.id.home_header_add_btn,
+            iconRes = R.drawable.ic_action_note_add,
+            descRes = R.string.add_profile,
+            pillSize = pillSize,
+            pillBg = pillBg,
+            pillStroke = pillStroke,
+            strokePx = strokePx,
+            iconTint = textPrimary,
+            rippleColor = rippleColor,
+            marginStartPx = 0,
+        ).apply {
+            setOnClickListener { v ->
+                context?.let { HapticHelper.perform(it, v, HapticHelper.HapticKind.TAP) }
+                showAddConfigMenu(v)
+            }
+        }
+
+        val moreBtn = createHeaderPillButton(
+            ctx = ctx,
+            id = R.id.home_header_more_btn,
+            iconRes = R.drawable.ic_baseline_more_vert_24,
+            descRes = R.string.profiles_more_options,
+            pillSize = pillSize,
+            pillBg = pillBg,
+            pillStroke = pillStroke,
+            strokePx = strokePx,
+            iconTint = textPrimary,
+            rippleColor = rippleColor,
+            marginStartPx = dp2px(8),
+        ).apply {
+            setOnClickListener { v ->
+                context?.let { HapticHelper.perform(it, v, HapticHelper.HapticKind.TAP) }
+                showHomeMoreMenu(v)
+            }
+        }
+
+        headerRoot.addView(addBtn)
+        headerRoot.addView(moreBtn)
+    }
+
+    private fun createHeaderPillButton(
+        ctx: Context,
+        id: Int,
+        iconRes: Int,
+        descRes: Int,
+        pillSize: Int,
+        pillBg: Int,
+        pillStroke: Int,
+        strokePx: Int,
+        iconTint: Int,
+        rippleColor: Int,
+        marginStartPx: Int,
+    ): FrameLayout {
+        val bgShape = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(pillBg)
+            setStroke(strokePx, pillStroke)
+        }
+        val mask = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(iconTint)
+        }
+        return FrameLayout(ctx).apply {
+            this.id = id
+            layoutParams = LinearLayout.LayoutParams(pillSize, pillSize).apply {
+                marginStart = marginStartPx
+            }
+            isClickable = true
+            isFocusable = true
+            contentDescription = ctx.getString(descRes)
+            background = RippleDrawable(ColorStateList.valueOf(rippleColor), bgShape, mask)
+            addView(
+                ImageView(ctx).apply {
+                    layoutParams = FrameLayout.LayoutParams(dp2px(18), dp2px(18), Gravity.CENTER)
+                    setImageResource(iconRes)
+                    imageTintList = ColorStateList.valueOf(iconTint)
+                    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                },
+            )
+        }
+    }
+
+    private fun enableMenuIcons(menu: Menu) {
+        try {
+            val method = menu.javaClass.getMethod("setOptionalIconsVisible", Boolean::class.javaPrimitiveType)
+            method.isAccessible = true
+            method.invoke(menu, true)
+        } catch (_: Exception) {}
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            if (item.hasSubMenu()) {
+                item.subMenu?.let { enableMenuIcons(it) }
+            }
+        }
+    }
+
+    private fun resolveHomeTargetGroupId(): Long =
+        currentSubGroupId.takeIf { it > 0L } ?: DataStore.currentGroupId()
+
+    private suspend fun resolveActiveGroup(): ProxyGroup? {
+        val targetId = activeTargetProfileId()
+        return if (targetId > 0L) {
+            SagerDatabase.proxyDao.getById(targetId)?.groupId
+                ?.takeIf { it > 0L }
+                ?.let { SagerDatabase.groupDao.getById(it) }
+        } else {
+            null
+        } ?: currentSubGroupId.takeIf { it > 0L }?.let { SagerDatabase.groupDao.getById(it) }
+            ?: SagerDatabase.groupDao.getById(DataStore.currentGroupId())
+            ?: SagerDatabase.groupDao.allGroups().firstOrNull()
+    }
+
+    private fun showAddConfigMenu(anchor: View) {
+        val ctx = context ?: return
+        val popup = PopupMenu(ctx, anchor, Gravity.END)
+        val scanItem = popup.menu.add(
+            Menu.NONE,
+            R.id.action_scan_qr_code,
+            0,
+            R.string.add_profile_methods_scan_qr_code,
+        ).setIcon(R.drawable.ic_baseline_camera_24)
+        val cachedHasCamera = SagerNet.cachedHasCamera()
+        if (cachedHasCamera != null) {
+            scanItem.isVisible = cachedHasCamera && !SagerNet.isTv
+        } else {
+            scanItem.isVisible = !SagerNet.isTv
+            viewLifecycleOwner.lifecycleScope.launch {
+                val available = SagerNet.hasCamera()
+                if (view != null) {
+                    scanItem.isVisible = available && !SagerNet.isTv
+                }
+            }
+        }
+        popup.menu.add(
+            Menu.NONE,
+            R.id.action_import_clipboard,
+            1,
+            R.string.action_import,
+        ).setIcon(R.drawable.ic_content_copy)
+        popup.menu.add(
+            Menu.NONE,
+            R.id.action_import_file,
+            2,
+            R.string.action_import_file,
+        ).setIcon(R.drawable.ic_baseline_folder_open_24)
+
+        val manualSub = popup.menu.addSubMenu(
+            Menu.NONE,
+            Menu.NONE,
+            3,
+            R.string.add_profile_methods_manual_settings,
+        ).setIcon(R.drawable.ic_baseline_tune_24)
+        MANUAL_PROFILE_OPTIONS.forEachIndexed { index, (itemId, titleRes, _) ->
+            manualSub.add(Menu.NONE, itemId, index, titleRes)
+        }
+
+        enableMenuIcons(popup.menu)
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.action_scan_qr_code -> {
+                    startActivity(Intent(ctx, ScannerActivity::class.java))
+                    true
+                }
+
+                R.id.action_import_clipboard -> {
+                    importClipboardText()
+                    true
+                }
+
+                R.id.action_import_file -> {
+                    startFilesForResult(importFileLauncher, "*/*")
+                    true
+                }
+
+                else -> {
+                    val option = MANUAL_PROFILE_OPTIONS.firstOrNull { it.first == item.itemId } ?: return@setOnMenuItemClickListener false
+                    startActivity(Intent(ctx, option.third))
+                    true
+                }
+            }
+        }
+        popup.show()
+    }
+
+    private fun showHomeMoreMenu(anchor: View) {
+        val ctx = context ?: return
+        val popup = PopupMenu(ctx, anchor, Gravity.END)
+        val groupOps = 1
+        val navOps = 2
+
+        popup.menu.add(
+            groupOps,
+            R.id.action_update_subscription,
+            0,
+            R.string.profiles_update_subscription,
+        ).setIcon(R.drawable.ic_baseline_refresh_24)
+        popup.menu.add(
+            groupOps,
+            R.id.action_test_url,
+            1,
+            R.string.profiles_test_url,
+        ).setIcon(R.drawable.ic_test_latency_24)
+        popup.menu.add(
+            groupOps,
+            R.id.action_edit,
+            2,
+            R.string.home_menu_edit_active_profile,
+        ).setIcon(R.drawable.ic_image_edit)
+        popup.menu.add(
+            groupOps,
+            R.id.action_clear_traffic_statistics,
+            3,
+            R.string.clear_traffic_statistics,
+        ).setIcon(R.drawable.ic_device_data_usage)
+
+        popup.menu.add(
+            navOps,
+            R.id.nav_route,
+            4,
+            R.string.menu_route,
+        ).setIcon(R.drawable.ic_maps_directions)
+        popup.menu.add(
+            navOps,
+            R.id.nav_group,
+            5,
+            R.string.menu_group,
+        ).setIcon(R.drawable.ic_baseline_view_list_24)
+
+        MenuCompat.setGroupDividerEnabled(popup.menu, true)
+        enableMenuIcons(popup.menu)
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.action_update_subscription -> {
+                    updateActiveSubscription()
+                    true
+                }
+
+                R.id.action_test_url -> {
+                    if (currentState == BaseService.State.Connected) {
+                        runConnectionTest()
+                    } else {
+                        snackbar(R.string.not_connected).show()
+                    }
+                    true
+                }
+
+                R.id.action_edit -> {
+                    openActiveProfileEditor()
+                    true
+                }
+
+                R.id.action_clear_traffic_statistics -> {
+                    clearActiveGroupTraffic()
+                    true
+                }
+
+                R.id.nav_route, R.id.nav_group -> {
+                    (activity as? MainActivity)?.displayFragmentWithId(item.itemId)
+                    true
+                }
+
+                else -> false
+            }
+        }
+        popup.show()
+    }
+
+    private fun importClipboardText() {
+        val act = activity ?: return
+        val text = SagerNet.getClipboardText()
+        if (text.isBlank()) {
+            snackbar(R.string.clipboard_empty).show()
+        } else {
+            SubscribeFlows.importText(act, text, resolveHomeTargetGroupId())
+        }
+    }
+
+    private fun importFileUri(uri: Uri) {
+        val act = activity ?: return
+        val ctx = context ?: return
+        val groupId = resolveHomeTargetGroupId()
+        val resolver = ctx.contentResolver
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val handledNonZip = withContext(Dispatchers.IO) {
+                    val fileName = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
+                        if (it.moveToFirst()) it.getString(0) else null
+                    }
+                    fileName?.endsWith(".zip", ignoreCase = true) != true
+                }
+                if (handledNonZip) {
+                    SubscribeFlows.importUri(act, uri, groupId)
+                    return@launch
+                }
+
+                val (outbounds, report) = withContext(Dispatchers.IO) {
+                    val list = mutableListOf<Outbound>()
+                    val impReport = ImportReport()
+                    val preference = SettingsMapper.xrayVlessPreference()
+                    val importCtx = SettingsMapper.buildContext()
+                    ZipInputStream(resolver.openInputStream(uri)!!).use { zip ->
+                        while (true) {
+                            val entry = zip.nextEntry ?: break
+                            if (entry.isDirectory) continue
+                            val result = ProfileImport.parse(zip.bufferedReader().readText(), preference, importCtx)
+                            for (message in result.messages) Logs.w(message)
+                            impReport.addAll(result.reports)
+                            list.addAll(result.outbounds)
+                            zip.closeEntry()
+                        }
+                    }
+                    if (list.isNotEmpty()) ProfileManager.addProfileBatch(list, groupId)
+                    impReport.setImported(list.size)
+                    list to impReport
+                }
+                if (view == null) return@launch
+                val currentCtx = context ?: return@launch
+                when {
+                    report.hasProblems() ->
+                        SubscriptionReportDialog.show(currentCtx, getString(R.string.validation_import_title), report.text())
+
+                    outbounds.isEmpty() -> snackbar(R.string.no_proxies_found_in_file).show()
+                    else -> snackbar(resources.getQuantityString(R.plurals.added, outbounds.size, outbounds.size)).show()
+                }
+                refreshAllCards()
+            } catch (e: Exception) {
+                Logs.w(e)
+                if (view != null) snackbar(e.readableMessage).show()
+            }
+        }
+    }
+
+    private fun openActiveProfileEditor() {
+        val targetId = activeTargetProfileId()
+        if (targetId <= 0L) {
+            snackbar(R.string.home_status_tap_to_select).show()
+            return
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val loaded = withContext(Dispatchers.IO) {
+                val entity = SagerDatabase.proxyDao.getById(targetId) ?: return@withContext null
+                val isSub = SagerDatabase.groupDao.getById(entity.groupId)?.isSubscription == true
+                entity to isSub
+            }
+            val ctx = context ?: return@launch
+            if (loaded == null) {
+                snackbar(R.string.home_status_tap_to_select).show()
+                return@launch
+            }
+            startActivity(loaded.first.profileSettingsIntent(ctx, loaded.second))
+        }
+    }
+
+    private fun updateActiveSubscription() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val group = withContext(Dispatchers.IO) { resolveActiveGroup() }
+            if (group != null && group.isSubscription) {
+                SubscriptionClient.refreshGroup(group.id, showDiff = true)
+            } else {
+                snackbar(R.string.grp_no_subscription_url).show()
+            }
+        }
+    }
+
+    private fun clearActiveGroupTraffic() {
+        val ctx = context ?: return
+        viewLifecycleOwner.lifecycleScope.launch {
+            val group = withContext(Dispatchers.IO) { resolveActiveGroup() } ?: return@launch
+            if (view == null) return@launch
+            ctx.confirmAction(
+                getString(R.string.confirm_clear_traffic),
+                group.displayName(),
+                R.string.confirm_clear,
+            ) {
+                val service = (activity as? MainActivity)?.connection?.service
+                viewLifecycleOwner.lifecycleScope.launch {
+                    withContext(Dispatchers.IO) {
+                        val ids = ProfileManager.memberIds(group.id).toLongArray()
+                        try {
+                            service?.resetTraffic(ids)
+                        } catch (e: Exception) {
+                            Logs.w(e)
+                        }
+                        ProfileManager.resetTraffic(ids)
+                    }
+                    refreshTrafficTotals()
                 }
             }
         }
