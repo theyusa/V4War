@@ -393,7 +393,7 @@ class GroupFragment : ToolbarFragment(R.layout.layout_group), Toolbar.OnMenuItem
                 status.append(" · ")
                 val left = SubscriptionInfoCard.expiryText(requireContext(), expire, now)
                 if ((expire - now) / 86400 <= 3) {
-                    val danger = requireContext().getColorAttr(R.attr.colorError)
+                    val danger = requireContext().getColorAttr(androidx.appcompat.R.attr.colorError)
                     status.append(left, ForegroundColorSpan(danger), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 } else {
                     status.append(left)
@@ -412,7 +412,7 @@ class GroupFragment : ToolbarFragment(R.layout.layout_group), Toolbar.OnMenuItem
             val percent = info.percentUsed.toInt()
             binding.groupQuota.setProgressCompat(percent, false)
             binding.groupQuota.setIndicatorColor(
-                if (info.isExpired() || percent >= 90) context.getColorAttr(R.attr.colorError)
+                if (info.isExpired() || percent >= 90) context.getColorAttr(androidx.appcompat.R.attr.colorError)
                 else ContextCompat.getColor(context, R.color.material_green_500)
             )
             binding.groupQuota.contentDescription = getString(

@@ -118,7 +118,7 @@ internal class SubscriptionInfoCard(val view: View) {
     private val announceLabel: TextView = view.findViewById(R.id.sub_card_announce_text)
 
     private val secondary = context.getColorAttr(android.R.attr.textColorSecondary)
-    private val danger = context.getColorAttr(R.attr.colorError)
+    private val danger = context.getColorAttr(androidx.appcompat.R.attr.colorError)
     private val ok = ContextCompat.getColor(context, R.color.material_green_500)
 
     private var groupName = ""

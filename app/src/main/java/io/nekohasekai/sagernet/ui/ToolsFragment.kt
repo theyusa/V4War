@@ -14,6 +14,7 @@ import io.nekohasekai.sagernet.database.backup.BackupEntry
 import io.nekohasekai.sagernet.databinding.LayoutToolsBinding
 import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
+import io.nekohasekai.sagernet.utils.HapticHelper
 import io.nekohasekai.sagernet.utils.Theme
 
 class ToolsFragment : ToolbarFragment(R.layout.layout_tools) {
@@ -100,6 +101,15 @@ class ToolsFragment : ToolbarFragment(R.layout.layout_tools) {
         } else if (initialTab in 0 until TAB_COUNT) {
             binding.toolsPager.setCurrentItem(initialTab, false)
         }
+        binding.toolsTab.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab) {
+                HapticHelper.perform(ctx, binding.toolsTab, HapticHelper.HapticKind.SELECTION)
+            }
+            override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab) = Unit
+            override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab) {
+                HapticHelper.perform(ctx, binding.toolsTab, HapticHelper.HapticKind.SELECTION)
+            }
+        })
     }
 
     override fun onDestroyView() {

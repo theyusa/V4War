@@ -5,6 +5,11 @@
         android:id="@+id/group_core"
         android:checkableBehavior="single">
         <item
+            android:id="@id/nav_home"
+            android:icon="@drawable/ic_baseline_home_24"
+            android:title="@string/menu_home" />
+
+        <item
             android:id="@+id/nav_configuration"
             android:icon="@drawable/ic_action_description"
             android:title="@string/menu_configuration" />

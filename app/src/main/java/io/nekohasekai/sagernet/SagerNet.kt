@@ -19,6 +19,7 @@ import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import io.nekohasekai.sagernet.appwidget.Widgets
+import io.nekohasekai.sagernet.bg.CoreForeground
 import io.nekohasekai.sagernet.bg.CoreRuntime
 import io.nekohasekai.sagernet.bg.SagerConnection
 import io.nekohasekai.sagernet.bg.autoselector.AutoSelectorRuntime
@@ -140,6 +141,10 @@ class SagerNet : Application(),
     @SuppressLint("InlinedApi")
     companion object {
 
+        const val CHANNEL_SERVICE_VPN = "service-vpn-v2"
+        const val CHANNEL_SERVICE_PROXY = "service-proxy-v2"
+        const val CHANNEL_SERVICE_SUBSCRIPTION = "service-subscription-v2"
+
         lateinit var application: SagerNet
 
         @Volatile
@@ -258,31 +263,43 @@ class SagerNet : Application(),
 
         fun updateNotificationChannels() {
             if (Build.VERSION.SDK_INT >= 26) @RequiresApi(26) {
+                for (legacyId in listOf(
+                    "service-vpn",
+                    "service-proxy",
+                    "service-subscription",
+                    "connection-test",
+                    "warnings",
+                )) {
+                    runCatching { notification.deleteNotificationChannel(legacyId) }
+                }
                 notification.createNotificationChannels(
                     listOf(
                         NotificationChannel(
-                            "service-vpn",
+                            CHANNEL_SERVICE_VPN,
                             application.getText(R.string.service_vpn),
                             if (Build.VERSION.SDK_INT >= 28) NotificationManager.IMPORTANCE_MIN
                             else NotificationManager.IMPORTANCE_LOW
-                        ),   // #1355
+                        ).apply { setShowBadge(false) },   // #1355
                         NotificationChannel(
-                            "service-proxy",
+                            CHANNEL_SERVICE_PROXY,
                             application.getText(R.string.service_proxy),
                             NotificationManager.IMPORTANCE_LOW
-                        ), NotificationChannel(
-                            "service-subscription",
+                        ).apply { setShowBadge(false) },
+                        NotificationChannel(
+                            CHANNEL_SERVICE_SUBSCRIPTION,
                             application.getText(R.string.service_subscription),
                             NotificationManager.IMPORTANCE_DEFAULT
-                        ), NotificationChannel(
-                            "connection-test",
+                        ).apply { setShowBadge(false) },
+                        NotificationChannel(
+                            CoreForeground.CHANNEL,
                             application.getText(R.string.connection_test),
                             NotificationManager.IMPORTANCE_DEFAULT
-                        ), NotificationChannel(
+                        ).apply { setShowBadge(false) },
+                        NotificationChannel(
                             PlatformNotifications.CHANNEL_WARNINGS,
                             application.getText(R.string.channel_warnings),
                             NotificationManager.IMPORTANCE_DEFAULT
-                        )
+                        ).apply { setShowBadge(false) },
                     )
                 )
             }

@@ -210,7 +210,7 @@ class DnsLookupActivity : ThemedActivity(), SagerConnection.Callback {
             TextView(this).apply {
                 text = res.label
                 textSize = 15.5f
-                typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                 setTextColor(getColorAttr(android.R.attr.textColorPrimary))
             },
         )
@@ -223,9 +223,9 @@ class DnsLookupActivity : ThemedActivity(), SagerConnection.Callback {
         )
 
         val badgeColor = when (res.rcodeName) {
-            "NOERROR" -> null
-            "NXDOMAIN" -> getColor(R.color.material_amber_900)
-            else -> getColor(R.color.material_red_500)
+            "NOERROR" -> ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.SUCCESS)
+            "NXDOMAIN" -> ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.WARNING)
+            else -> ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.ERROR)
         }
         val statusBadge = TextView(this).apply {
             text = "${res.rcodeName} · ${res.rttMs} ms"

@@ -49,7 +49,7 @@ import kotlinx.coroutines.withTimeout
 
 class StatsBar @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null,
-    defStyleAttr: Int = R.attr.bottomAppBarStyle,
+    defStyleAttr: Int = com.google.android.material.R.attr.bottomAppBarStyle,
 ) : BottomAppBar(context, attrs, defStyleAttr) {
     companion object {
         private const val INITIAL_HIDE_DELAY_MS = 100L
@@ -110,7 +110,7 @@ class StatsBar @JvmOverloads constructor(
         alpha = 0f
         // Replaces the rectangular content ripple and stats_focus, which also filled the FAB cradle (#92).
         (background as? MaterialShapeDrawable)?.let { shape ->
-            val highlight = MaterialColors.getColor(this, R.attr.colorControlHighlight, 0x33FFFFFF)
+            val highlight = MaterialColors.getColor(this, androidx.appcompat.R.attr.colorControlHighlight, 0x33FFFFFF)
             val stroke = MaterialColors.getColor(this, R.attr.whiteOrTextPrimary, 0xFFFFFFFF.toInt())
             foreground = RippleDrawable(
                 ColorStateList.valueOf(highlight),
@@ -182,7 +182,7 @@ class StatsBar @JvmOverloads constructor(
             Theme.isLightGrayTheme(currentContext) -> Color.parseColor("#F5F5F7")
             else -> {
                 val surface = MaterialColors.getColor(this, com.google.android.material.R.attr.colorSurface, Color.BLACK)
-                val primary = MaterialColors.getColor(this, R.attr.colorPrimary, surface)
+                val primary = MaterialColors.getColor(this, androidx.appcompat.R.attr.colorPrimary, surface)
                 if (Theme.usingNightMode(currentContext)) {
                     surface
                 } else {

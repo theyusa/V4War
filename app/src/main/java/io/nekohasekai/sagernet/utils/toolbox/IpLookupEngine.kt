@@ -365,22 +365,45 @@ object IpLookupEngine {
         }
 
     private fun queryDirectOwnExit(connectivity: ConnectivityManager?, vpnConnected: Boolean): IpGeoInfo {
-        val candidates = candidatePhysicalNetworks(connectivity).take(3)
+        val deadlineMs = System.currentTimeMillis() + DIRECT_EXIT_BUDGET_MS
+        val candidates = candidatePhysicalNetworks(connectivity).take(2)
         for (net in candidates) {
-            val info = queryOwnExit(buildClient(viaProxy = false, physicalNetwork = net))
-            if (info.error.isBlank() && info.ip.isNotBlank()) return info
+            if (System.currentTimeMillis() >= deadlineMs) break
+            val info = queryOwnExitFast(buildClient(viaProxy = false, physicalNetwork = net, timeoutSeconds = 3), deadlineMs)
+            if (info != null && info.error.isBlank() && info.ip.isNotBlank()) return info
         }
-        if (!vpnConnected) {
-            val unbound = queryOwnExit(buildClient(viaProxy = false, physicalNetwork = null))
-            if (unbound.error.isBlank() && unbound.ip.isNotBlank()) return unbound
+        if (!vpnConnected && System.currentTimeMillis() < deadlineMs) {
+            val unbound = queryOwnExitFast(buildClient(viaProxy = false, physicalNetwork = null, timeoutSeconds = 3), deadlineMs)
+            if (unbound != null && unbound.error.isBlank() && unbound.ip.isNotBlank()) return unbound
         }
         return IpGeoInfo(
             ip = "",
             version = 4,
             category = IpCategory.RESERVED,
-            error = "Unable to reach IP lookup endpoints",
+            error = "Direct network unavailable or timed out",
         )
     }
+
+    private fun queryOwnExitFast(client: OkHttpClient, deadlineMs: Long): IpGeoInfo? {
+        if (System.currentTimeMillis() < deadlineMs) {
+            executeGet(client, "https://ipwho.is/")?.let { body ->
+                parseIpWhoJson(body)?.let { return it }
+            }
+        }
+        if (System.currentTimeMillis() < deadlineMs) {
+            executeGet(client, "https://1.1.1.1/cdn-cgi/trace")?.let { body ->
+                parseCloudflareTrace(body)?.let { return it }
+            }
+        }
+        if (System.currentTimeMillis() < deadlineMs) {
+            executeGet(client, "https://ipinfo.io/json")?.let { body ->
+                parseIpInfoJson(body)?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private const val DIRECT_EXIT_BUDGET_MS = 3_800L
 
     suspend fun lookupTarget(
         rawQuery: String,
@@ -568,11 +591,15 @@ object IpLookupEngine {
         }.getOrNull()
     }
 
-    private fun buildClient(viaProxy: Boolean, physicalNetwork: Network?): OkHttpClient {
+    private fun buildClient(
+        viaProxy: Boolean,
+        physicalNetwork: Network?,
+        timeoutSeconds: Long = if (viaProxy) 6 else 5,
+    ): OkHttpClient {
         if (viaProxy) {
-            return newHttpClient(viaProxy = true, timeoutSeconds = 10)
+            return newHttpClient(viaProxy = true, timeoutSeconds = timeoutSeconds)
         }
-        val base = newHttpClient(viaProxy = false, timeoutSeconds = 8)
+        val base = newHttpClient(viaProxy = false, timeoutSeconds = timeoutSeconds)
         if (physicalNetwork == null) return base
         return base.newBuilder()
             .socketFactory(physicalNetwork.socketFactory)

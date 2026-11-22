@@ -88,11 +88,11 @@
                         style="@style/Widget.SagerNet.Button"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/diagnostics_start"
-                        app:cornerRadius="24dp" />
+                        android:text="@string/diagnostics_start" />
 
                     <com.google.android.material.progressindicator.LinearProgressIndicator
                         android:id="@+id/diagnostics_progress"
+                        style="@style/Widget.Material3Expressive.LinearProgressIndicator.Wavy"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
@@ -107,8 +107,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/stop"
-                        android:visibility="gone"
-                        app:cornerRadius="24dp" />
+                        android:visibility="gone" />
 
                 </LinearLayout>
 
@@ -121,35 +120,30 @@
                     android:textColor="?android:attr/textColorSecondary"
                     android:textIsSelectable="true" />
 
-                <LinearLayout
+                <com.google.android.material.button.MaterialButtonGroup
+                    style="@style/Widget.Material3Expressive.MaterialButtonGroup"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:orientation="horizontal">
+                    android:spacing="12dp">
 
-                    <Button
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/diagnostics_share"
                         style="@style/Widget.SagerNet.Button.OutlinedButton"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/share"
-                        app:cornerRadius="24dp" />
+                        android:text="@string/share" />
 
-                    <Space
-                        android:layout_width="12dp"
-                        android:layout_height="wrap_content" />
-
-                    <Button
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/diagnostics_save"
                         style="@style/Widget.SagerNet.Button.OutlinedButton"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/diagnostics_save"
-                        app:cornerRadius="24dp" />
+                        android:text="@string/diagnostics_save" />
 
-                </LinearLayout>
+                </com.google.android.material.button.MaterialButtonGroup>
 
             </LinearLayout>
 

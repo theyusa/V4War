@@ -18,7 +18,7 @@ object JsonColors {
     const val ERROR = 0xffc62828.toInt()
     const val WARNING = 0xfff08c00.toInt()
 
-    fun accent(context: Context) = MaterialColors.getColor(context, R.attr.colorAccent, 0xff536dfe.toInt())
+    fun accent(context: Context) = MaterialColors.getColor(context, androidx.appcompat.R.attr.colorAccent, 0xff536dfe.toInt())
 
     fun scheme(context: Context, dark: Boolean): EditorColorScheme {
         val background = MaterialColors.getColor(
@@ -27,7 +27,7 @@ object JsonColors {
         return Scheme(dark).apply {
             paint(
                 background = background,
-                surface = MaterialColors.getColor(context, R.attr.colorSurface, background),
+                surface = MaterialColors.getColor(context, com.google.android.material.R.attr.colorSurface, background),
                 text = MaterialColors.getColor(
                     context, android.R.attr.textColorPrimary, if (dark) 0xffeeeeee.toInt() else 0xff212121.toInt()
                 ),

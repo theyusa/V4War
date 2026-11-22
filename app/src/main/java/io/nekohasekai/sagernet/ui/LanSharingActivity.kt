@@ -110,9 +110,9 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
     private val connection = SagerConnection(SagerConnection.CONNECTION_ID_MAIN_ACTIVITY_BACKGROUND)
     private val clientHistory = ConcurrentHashMap<String, LanClientDevice>()
     private var statusReceiver: BroadcastReceiver? = null
-    private var suppressShareSwitchCallback = false
-    private var suppressGatewaySwitchCallback = false
-    private var suppressHotspotShareSwitchCallback = false
+    private var lanSharingToggleChecked = false
+    private var gatewayToggleChecked = false
+    private var hotspotShareToggleChecked = false
     private var suppressLogsSwitchCallback = false
     private var suppressMainTabCallback = false
     private var suppressSubTabCallback = false
@@ -181,7 +181,6 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
 
     // Confined to Dispatchers.Main; persisted across config changes via onSaveInstanceState.
     private var pendingStartAfterShizukuPermission: Boolean = false
-    private var shareMethodAdapter: ArrayAdapter<String>? = null
     private var lastHeroBadgeState: String? = null
     private var lastHotspotBadgeActive: Boolean? = null
     private var lastWifiBadgeActive: Boolean? = null
@@ -709,14 +708,8 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             setShareSwitchCheckedSilent(loaded.allowLanAccess)
             setGatewaySwitchCheckedSilent(loaded.hotspotGatewayEnabled)
             setHotspotShareSwitchCheckedSilent(loaded.hotspotShareEnabled)
-            binding.spinnerShareMethod.setSelection(
-                shareMethodCodes.indexOf(loaded.hotspotShareMethod).coerceAtLeast(0),
-                false,
-            )
-            binding.spinnerFailClosed.setSelection(
-                failClosedCodes.indexOf(loaded.hotspotShareFailClosed).coerceAtLeast(0),
-                false,
-            )
+            updateShareMethodSelectorText(loaded.hotspotShareMethod)
+            updateFailClosedSelectorText(loaded.hotspotShareFailClosed)
             suppressLogsSwitchCallback = true
             binding.switchShareLogsEnabled.isChecked = loaded.shareLogsEnabled
             suppressLogsSwitchCallback = false
@@ -734,8 +727,16 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         // Share (X): the switch is the real LAN inbound switch; turning it writes inbound_address to the LAN
         // or loopback address and reloads the service (InboundSettingsFragment allowLan listener,
         // NetworkSettingsScreens.kt:74-78). It works 100% independently of Shizuku/Root Hotspot Share.
-        binding.switchLanSharing.setOnCheckedChangeListener { _, isChecked ->
-            if (suppressShareSwitchCallback) return@setOnCheckedChangeListener
+        styleInteractiveToggleButton(binding.btnLanSharingToggle, lanSharingToggleChecked)
+        val lanToggleClick = View.OnClickListener {
+            io.nekohasekai.sagernet.utils.HapticHelper.perform(
+                this,
+                binding.btnLanSharingToggle,
+                io.nekohasekai.sagernet.utils.HapticHelper.HapticKind.SELECTION,
+            )
+            val isChecked = !lanSharingToggleChecked
+            lanSharingToggleChecked = isChecked
+            styleInteractiveToggleButton(binding.btnLanSharingToggle, isChecked)
             DataStore.inboundAddress =
                 if (isChecked) SettingsRegistry.LAN_ADDRESS else SettingsRegistry.LOOPBACK_ADDRESS
             if (isChecked) {
@@ -793,9 +794,8 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             lifecycleScope.launch { pollClientDevicesOnce(force = true) }
         }
 
-        binding.rowSwitchLanSharing.setOnClickListener {
-            binding.switchLanSharing.isChecked = !DataStore.allowLanAccess
-        }
+        binding.btnLanSharingToggle.setOnClickListener(lanToggleClick)
+        binding.rowSwitchLanSharing.setOnClickListener(lanToggleClick)
 
         binding.cardAuth.setOnClickListener {
             showLanProxyAuthDialog()
@@ -805,8 +805,14 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         }
 
         // Auto connect (Y): the Wi-Fi gateway auto-connect feature, its dialog and its status.
-        binding.switchGatewaySwitch.setOnCheckedChangeListener { _, isChecked ->
-            if (suppressGatewaySwitchCallback) return@setOnCheckedChangeListener
+        styleInteractiveToggleButton(binding.btnGatewayToggle, gatewayToggleChecked)
+        val gatewayToggleClick = View.OnClickListener {
+            io.nekohasekai.sagernet.utils.HapticHelper.perform(
+                this,
+                binding.btnGatewayToggle,
+                io.nekohasekai.sagernet.utils.HapticHelper.HapticKind.SELECTION,
+            )
+            val isChecked = !gatewayToggleChecked
             if (isChecked) {
                 showHotspotDialog { saved ->
                     if (saved) {
@@ -824,6 +830,8 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                     refreshNetworkAndState()
                 }
             } else {
+                gatewayToggleChecked = false
+                styleInteractiveToggleButton(binding.btnGatewayToggle, false)
                 DataStore.hotspotGatewayEnabled = false
                 HotspotGatewayManager.onSwitchChanged(false)
                 HotspotShareLogger.info("AutoGateway", "Auto-connect disabled")
@@ -831,9 +839,8 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             }
         }
 
-        binding.rowGatewaySwitch.setOnClickListener {
-            binding.switchGatewaySwitch.isChecked = !DataStore.hotspotGatewayEnabled
-        }
+        binding.btnGatewayToggle.setOnClickListener(gatewayToggleClick)
+        binding.rowGatewaySwitch.setOnClickListener(gatewayToggleClick)
         binding.btnGatewayConfigure.setOnClickListener {
             showHotspotDialog { saved ->
                 if (saved) {
@@ -904,15 +911,13 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
     }
 
     private fun setShareSwitchCheckedSilent(checked: Boolean) {
-        suppressShareSwitchCallback = true
-        binding.switchLanSharing.isChecked = checked
-        suppressShareSwitchCallback = false
+        lanSharingToggleChecked = checked
+        styleInteractiveToggleButton(binding.btnLanSharingToggle, checked)
     }
 
     private fun setGatewaySwitchCheckedSilent(checked: Boolean) {
-        suppressGatewaySwitchCallback = true
-        binding.switchGatewaySwitch.isChecked = checked
-        suppressGatewaySwitchCallback = false
+        gatewayToggleChecked = checked
+        styleInteractiveToggleButton(binding.btnGatewayToggle, checked)
     }
 
     private fun registerStatusUpdates() {
@@ -1038,9 +1043,6 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
                 )
             }
             if (isFinishing || isDestroyed) return@launch
-            if (prevRoot != cachedRootAvailable) {
-                shareMethodAdapter?.notifyDataSetChanged()
-            }
             hotspotActive = net.hotspotActive
             detectedHotspotCandidates = net.candidates
             // Show the first candidate; all candidates are in the list for diagnostics.
@@ -1820,14 +1822,79 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
 
 
     private fun setHotspotShareSwitchCheckedSilent(checked: Boolean) {
-        suppressHotspotShareSwitchCallback = true
-        binding.switchHotspotShare.isChecked = checked
-        suppressHotspotShareSwitchCallback = false
+        hotspotShareToggleChecked = checked
+        styleInteractiveToggleButton(binding.btnHotspotShareToggle, checked)
+    }
+
+    private fun styleInteractiveToggleButton(
+        btn: com.google.android.material.button.MaterialButton,
+        active: Boolean,
+    ) {
+        val isNight = io.nekohasekai.sagernet.utils.Theme.usingNightMode(this)
+        val accent = ExpressiveSettingsHelper.resolveAccentColor(this)
+        val activeColor = ExpressiveSettingsHelper.resolveSemanticColor(
+            this,
+            ExpressiveSettingsHelper.SemanticRole.SUCCESS,
+        )
+        val primaryInk = getColorAttr(android.R.attr.textColorPrimary)
+        val nestedBg = io.nekohasekai.sagernet.utils.Theme.resolveNestedBoxBackground(this)
+        val strokeBase = io.nekohasekai.sagernet.utils.Theme.resolveCardStrokeColor(this, selected = false)
+
+        btn.setText(if (active) R.string.hotspot_share_btn_stop else R.string.hotspot_share_btn_start)
+        val fill = if (active) {
+            androidx.core.graphics.ColorUtils.setAlphaComponent(activeColor, if (isNight) 54 else 36)
+        } else {
+            androidx.core.graphics.ColorUtils.blendARGB(nestedBg, accent, if (isNight) 0.14f else 0.08f)
+        }
+        val ink = if (active) activeColor else primaryInk
+        val stroke = if (active) {
+            androidx.core.graphics.ColorUtils.setAlphaComponent(activeColor, if (isNight) 170 else 130)
+        } else {
+            strokeBase
+        }
+        btn.backgroundTintList = android.content.res.ColorStateList.valueOf(fill)
+        btn.setTextColor(ink)
+        btn.iconTint = android.content.res.ColorStateList.valueOf(ink)
+        btn.strokeColor = android.content.res.ColorStateList.valueOf(stroke)
+        btn.strokeWidth = io.nekohasekai.sagernet.ktx.dp2px(1)
+    }
+
+    private fun shareMethodEntries(): List<String> = listOf(
+        getString(R.string.hotspot_share_method_auto),
+        getString(R.string.hotspot_share_method_shizuku),
+        getString(R.string.hotspot_share_method_root),
+        getString(R.string.hotspot_share_method_lan_proxy),
+    )
+
+    private fun failClosedEntries(): List<String> = listOf(
+        getString(R.string.hotspot_share_fail_closed_block),
+        getString(R.string.hotspot_share_fail_closed_stop),
+    )
+
+    private fun updateShareMethodSelectorText(code: String) {
+        val idx = shareMethodCodes.indexOf(code).coerceAtLeast(0)
+        binding.textShareMethodValue.text = shareMethodEntries().getOrNull(idx)
+            ?: getString(R.string.hotspot_share_method_auto)
+    }
+
+    private fun updateFailClosedSelectorText(code: String) {
+        val idx = failClosedCodes.indexOf(code).coerceAtLeast(0)
+        binding.textFailClosedValue.text = failClosedEntries().getOrNull(idx)
+            ?: getString(R.string.hotspot_share_fail_closed_block)
     }
 
     private fun setupHotspotShareViews() {
-        binding.switchHotspotShare.setOnCheckedChangeListener { _, isChecked ->
-            if (suppressHotspotShareSwitchCallback) return@setOnCheckedChangeListener
+        styleInteractiveToggleButton(binding.btnHotspotShareToggle, hotspotShareToggleChecked)
+
+        val toggleClick = View.OnClickListener {
+            io.nekohasekai.sagernet.utils.HapticHelper.perform(
+                this,
+                binding.btnHotspotShareToggle,
+                io.nekohasekai.sagernet.utils.HapticHelper.HapticKind.SELECTION,
+            )
+            val isChecked = !hotspotShareToggleChecked
+            hotspotShareToggleChecked = isChecked
+            styleInteractiveToggleButton(binding.btnHotspotShareToggle, isChecked)
             if (isChecked) {
                 if (!DataStore.serviceState.connected) {
                     Toast.makeText(this, R.string.hotspot_share_vpn_not_running, Toast.LENGTH_LONG).show()
@@ -1879,91 +1946,60 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             lifecycleScope.launch { pollClientDevicesOnce(force = true) }
         }
 
-        binding.rowSwitchHotspotShare.setOnClickListener {
-            binding.switchHotspotShare.toggle()
-        }
+        binding.btnHotspotShareToggle.setOnClickListener(toggleClick)
+        binding.rowSwitchHotspotShare.setOnClickListener(toggleClick)
 
-        // Method selector spinner (disable Root entry visually & functionally when no root exists)
-        val methodEntries = listOf(
-            getString(R.string.hotspot_share_method_auto),
-            getString(R.string.hotspot_share_method_shizuku),
-            getString(R.string.hotspot_share_method_root),
-            getString(R.string.hotspot_share_method_lan_proxy),
-        )
-        val methodCodes = shareMethodCodes
-        val methodAdapter = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, methodEntries) {
-            override fun areAllItemsEnabled(): Boolean = false
+        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.boxShareMethodSelector, cornerRadiusDp = 14f, strokeAlpha = 160)
+        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.boxFailClosedSelector, cornerRadiusDp = 14f, strokeAlpha = 160)
+        updateShareMethodSelectorText(lastAppliedShareMethod)
+        updateFailClosedSelectorText(lastAppliedFailClosed)
 
-            override fun isEnabled(position: Int): Boolean {
-                return !(position == 2 && !cachedRootAvailable)
-            }
-
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                return super.getView(position, convertView, parent).apply {
-                    alpha = if (position == 2 && !cachedRootAvailable) 0.45f else 1f
-                }
-            }
-
-            override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
-                return super.getDropDownView(position, convertView, parent).apply {
-                    val disabled = position == 2 && !cachedRootAvailable
-                    isEnabled = !disabled
-                    alpha = if (disabled) 0.45f else 1f
-                }
-            }
-        }.apply {
-            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
-        shareMethodAdapter = methodAdapter
-        binding.spinnerShareMethod.adapter = methodAdapter
-
-        binding.spinnerShareMethod.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                if (!initialSettingsLoaded) return
-                val selectedCode = methodCodes.getOrNull(position) ?: "auto"
+        binding.boxShareMethodSelector.setOnClickListener {
+            val entries = shareMethodEntries()
+            val checkedIdx = shareMethodCodes.indexOf(lastAppliedShareMethod).coerceAtLeast(0)
+            val disabled = if (!cachedRootAvailable) setOf(2) else emptySet()
+            ExpressiveSettingsHelper.showExpressiveSingleChoiceSheet(
+                context = this,
+                title = getString(R.string.hotspot_share_method_label),
+                items = entries,
+                checkedIndex = checkedIdx,
+                disabledIndices = disabled,
+            ) { position ->
+                val selectedCode = shareMethodCodes.getOrNull(position) ?: "auto"
                 if (selectedCode == "root" && !cachedRootAvailable) {
-                    val fallbackIndex = methodCodes.indexOf(lastAppliedShareMethod)
-                        .takeIf { it >= 0 && it != 2 } ?: 0
-                    binding.spinnerShareMethod.setSelection(fallbackIndex, false)
-                    Toast.makeText(this@LanSharingActivity, R.string.hotspot_share_err_root, Toast.LENGTH_SHORT).show()
-                    return
+                    Toast.makeText(this, R.string.hotspot_share_err_root, Toast.LENGTH_SHORT).show()
+                    return@showExpressiveSingleChoiceSheet
                 }
                 if (selectedCode != lastAppliedShareMethod) {
                     lastAppliedShareMethod = selectedCode
                     DataStore.hotspotShareMethod = selectedCode
+                    updateShareMethodSelectorText(selectedCode)
                     if (DataStore.hotspotShareEnabled) {
-                        TetherWatchService.restart(this@LanSharingActivity)
+                        TetherWatchService.restart(this)
                     } else if (HotspotShareStateStore.snapshot() !is ShareState.Active) {
                         HotspotShareStateStore.publish(ShareState.Off)
                     }
                     refreshNetworkAndState()
                 }
             }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        // Fail-closed spinner
-        val failClosedEntries = listOf(
-            getString(R.string.hotspot_share_fail_closed_block),
-            getString(R.string.hotspot_share_fail_closed_stop),
-        )
-        val failClosedAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, failClosedEntries).apply {
-            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
-        binding.spinnerFailClosed.adapter = failClosedAdapter
-
-        binding.spinnerFailClosed.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                if (!initialSettingsLoaded) return
+        binding.boxFailClosedSelector.setOnClickListener {
+            val entries = failClosedEntries()
+            val checkedIdx = failClosedCodes.indexOf(lastAppliedFailClosed).coerceAtLeast(0)
+            ExpressiveSettingsHelper.showExpressiveSingleChoiceSheet(
+                context = this,
+                title = getString(R.string.hotspot_share_fail_closed_label),
+                items = entries,
+                checkedIndex = checkedIdx,
+            ) { position ->
                 val selectedCode = failClosedCodes.getOrNull(position) ?: "block"
                 if (selectedCode != lastAppliedFailClosed) {
                     lastAppliedFailClosed = selectedCode
                     DataStore.hotspotShareFailClosed = selectedCode
+                    updateFailClosedSelectorText(selectedCode)
                 }
             }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
         // Active Tethering Channels filter chips (Wi-Fi / USB coming soon / Root-only Bluetooth)
@@ -2753,9 +2789,9 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             val levelStart = sb.length
             sb.append(parsed.level)
             val levelColor = when (parsed.level) {
-                "ERROR" -> redColor
-                "WARN" -> amberColor
-                else -> accentColor
+                "ERROR" -> ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.ERROR)
+                "WARN" -> ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.WARNING)
+                else -> ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.INFO)
             }
             sb.setSpan(ForegroundColorSpan(levelColor), levelStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             sb.setSpan(StyleSpan(Typeface.BOLD), levelStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)

@@ -186,7 +186,7 @@ class DiagnosticsFragment : Fragment(R.layout.layout_diagnostics) {
         val status = binding?.diagnosticsStatus ?: return
         status.text = text
         if (error) {
-            status.setTextColor(requireContext().getColorAttr(R.attr.colorError))
+            status.setTextColor(requireContext().getColorAttr(androidx.appcompat.R.attr.colorError))
         } else {
             statusColors?.let { status.setTextColor(it) }
         }
@@ -202,7 +202,7 @@ class DiagnosticsFragment : Fragment(R.layout.layout_diagnostics) {
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         send.clipData = ClipData.newRawUri(file.name, uri)
         try {
-            startActivity(Intent.createChooser(send, getString(R.string.abc_shareactionprovider_share_with)))
+            startActivity(Intent.createChooser(send, getString(androidx.appcompat.R.string.abc_shareactionprovider_share_with)))
         } catch (_: ActivityNotFoundException) {
             snackbar(R.string.share_target_missing).show()
         }

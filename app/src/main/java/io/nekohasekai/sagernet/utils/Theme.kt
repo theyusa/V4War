@@ -28,6 +28,10 @@ object Theme {
     private var cachedUseSystemTheme: Boolean? = null
     @Volatile
     private var cachedCustomThemeColor: Int? = null
+    @Volatile
+    private var cachedMaterialPaletteStyle: Int? = null
+    @Volatile
+    private var cachedMaterialSeedColor: Int? = null
 
     private fun ensureCacheListener() {
         if (cacheListenerRegistered) return
@@ -44,6 +48,8 @@ object Theme {
                                 Key.AMOLED_THEME -> cachedAmoledTheme = null
                                 Key.USE_SYSTEM_THEME -> cachedUseSystemTheme = null
                                 "custom_theme_color" -> cachedCustomThemeColor = null
+                                "material_palette_style" -> cachedMaterialPaletteStyle = null
+                                "material_seed_color" -> cachedMaterialSeedColor = null
                             }
                         }
                     }
@@ -58,6 +64,8 @@ object Theme {
         cachedAmoledTheme = null
         cachedUseSystemTheme = null
         cachedCustomThemeColor = null
+        cachedMaterialPaletteStyle = null
+        cachedMaterialSeedColor = null
     }
 
     fun appTheme(): Int {
@@ -92,6 +100,18 @@ object Theme {
         return DataStore.customThemeColor.also { cachedCustomThemeColor = it }
     }
 
+    fun materialPaletteStyle(): MaterialPaletteStyle {
+        ensureCacheListener()
+        val id = cachedMaterialPaletteStyle ?: DataStore.materialPaletteStyle.also { cachedMaterialPaletteStyle = it }
+        return MaterialPaletteStyle.fromId(id)
+    }
+
+    fun materialSeedColor(): Int {
+        ensureCacheListener()
+        cachedMaterialSeedColor?.let { return it }
+        return DataStore.materialSeedColor.also { cachedMaterialSeedColor = it }
+    }
+
     const val MONET = 0
     const val RED = 1
     const val PINK_SSR = 2
@@ -117,6 +137,15 @@ object Theme {
     const val VERDANT_MINT = 22
     const val WHITE = 23
     const val LIGHT_GRAY = 24
+    const val MATERIAL_BASELINE = 30
+    const val MATERIAL_BLUE = 31
+    const val MATERIAL_TEAL = 32
+    const val MATERIAL_GREEN = 33
+    const val MATERIAL_ROSE = 34
+    const val MATERIAL_CORAL = 35
+    const val MATERIAL_INDIGO = 36
+    const val MATERIAL_AMBER = 37
+    const val MATERIAL_DYNAMIC = 38
     const val CUSTOM = 99
 
     private fun defaultTheme() = VERDANT_MINT
@@ -135,6 +164,10 @@ object Theme {
         }
     }
 
+    fun isMaterialTheme(themeId: Int): Boolean {
+        return themeId == MONET || themeId in MATERIAL_BASELINE..MATERIAL_DYNAMIC
+    }
+
     fun isColorfulSeed(themeId: Int): Boolean {
         return themeId !in setOf(BLACK, WHITE, LIGHT_GRAY) && isValidTheme(themeId)
     }
@@ -151,7 +184,7 @@ object Theme {
     }
 
     fun isValidTheme(themeId: Int): Boolean {
-        return themeId in MONET..LIGHT_GRAY || themeId == CUSTOM
+        return themeId in MONET..LIGHT_GRAY || themeId in MATERIAL_BASELINE..MATERIAL_DYNAMIC || themeId == CUSTOM
     }
 
     fun getClosestThemeForColor(color: Int): Int {
@@ -200,24 +233,48 @@ object Theme {
     }
 
     fun apply(context: Context) {
+        val active = activeThemeId()
+        if (active == MATERIAL_DYNAMIC && !isMonochromeBlack(context)) {
+            MaterialSchemeEngine.applyDynamicMaterialOverlay(
+                context = context,
+                seedArgb = materialSeedColor(),
+                paletteStyle = materialPaletteStyle(),
+                isDark = usingNightMode(context),
+                isAmoled = isTintedAmoled(context),
+                isPureAmoled = isPureAmoled(context),
+            )
+        }
         context.setTheme(getTheme(context))
+        if (active == MATERIAL_DYNAMIC) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             (appTheme() == MONET || useSystemTheme()) &&
             !isWhiteTheme(context) && !isLightGrayTheme(context) && !isBlackTheme(context) &&
             context is android.app.Activity
         ) {
-            com.google.android.material.color.DynamicColors.applyIfAvailable(context)
+            com.google.android.material.color.DynamicColors.applyToActivityIfAvailable(context)
         }
     }
 
     fun applyDialog(context: Context) {
+        val active = activeThemeId()
+        if (active == MATERIAL_DYNAMIC && !isMonochromeBlack(context)) {
+            MaterialSchemeEngine.applyDynamicMaterialOverlay(
+                context = context,
+                seedArgb = materialSeedColor(),
+                paletteStyle = materialPaletteStyle(),
+                isDark = usingNightMode(context),
+                isAmoled = isTintedAmoled(context),
+                isPureAmoled = isPureAmoled(context),
+            )
+        }
         context.setTheme(getDialogTheme(context))
+        if (active == MATERIAL_DYNAMIC) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             (appTheme() == MONET || useSystemTheme()) &&
             !isWhiteTheme(context) && !isLightGrayTheme(context) && !isBlackTheme(context) &&
             context is android.app.Activity
         ) {
-            com.google.android.material.color.DynamicColors.applyIfAvailable(context)
+            com.google.android.material.color.DynamicColors.applyToActivityIfAvailable(context)
         }
     }
 
@@ -316,6 +373,42 @@ object Theme {
         VERDANT_MINT to AmoledStyleQuad(
             R.style.Theme_SagerNet_Amoled_VerdantMint, R.style.Theme_SagerNet_Dialog_Amoled_VerdantMint,
             R.style.Theme_SagerNet_PureAmoled_VerdantMint, R.style.Theme_SagerNet_Dialog_PureAmoled_VerdantMint,
+        ),
+        MATERIAL_BASELINE to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Baseline, R.style.Theme_SagerNet_Dialog_Amoled_Material_Baseline,
+            R.style.Theme_SagerNet_PureAmoled_Material_Baseline, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Baseline,
+        ),
+        MATERIAL_BLUE to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Blue, R.style.Theme_SagerNet_Dialog_Amoled_Material_Blue,
+            R.style.Theme_SagerNet_PureAmoled_Material_Blue, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Blue,
+        ),
+        MATERIAL_TEAL to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Teal, R.style.Theme_SagerNet_Dialog_Amoled_Material_Teal,
+            R.style.Theme_SagerNet_PureAmoled_Material_Teal, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Teal,
+        ),
+        MATERIAL_GREEN to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Green, R.style.Theme_SagerNet_Dialog_Amoled_Material_Green,
+            R.style.Theme_SagerNet_PureAmoled_Material_Green, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Green,
+        ),
+        MATERIAL_ROSE to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Rose, R.style.Theme_SagerNet_Dialog_Amoled_Material_Rose,
+            R.style.Theme_SagerNet_PureAmoled_Material_Rose, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Rose,
+        ),
+        MATERIAL_CORAL to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Coral, R.style.Theme_SagerNet_Dialog_Amoled_Material_Coral,
+            R.style.Theme_SagerNet_PureAmoled_Material_Coral, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Coral,
+        ),
+        MATERIAL_INDIGO to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Indigo, R.style.Theme_SagerNet_Dialog_Amoled_Material_Indigo,
+            R.style.Theme_SagerNet_PureAmoled_Material_Indigo, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Indigo,
+        ),
+        MATERIAL_AMBER to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Amber, R.style.Theme_SagerNet_Dialog_Amoled_Material_Amber,
+            R.style.Theme_SagerNet_PureAmoled_Material_Amber, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Amber,
+        ),
+        MATERIAL_DYNAMIC to AmoledStyleQuad(
+            R.style.Theme_SagerNet_Amoled_Material_Dynamic, R.style.Theme_SagerNet_Dialog_Amoled_Material_Dynamic,
+            R.style.Theme_SagerNet_PureAmoled_Material_Dynamic, R.style.Theme_SagerNet_Dialog_PureAmoled_Material_Dynamic,
         ),
     )
 
@@ -431,6 +524,15 @@ object Theme {
             VERDANT_MINT -> R.style.Theme_SagerNet_VerdantMint
             WHITE -> R.style.Theme_SagerNet_White
             LIGHT_GRAY -> R.style.Theme_SagerNet_LightGray
+            MATERIAL_BASELINE -> R.style.Theme_SagerNet_Material_Baseline
+            MATERIAL_BLUE -> R.style.Theme_SagerNet_Material_Blue
+            MATERIAL_TEAL -> R.style.Theme_SagerNet_Material_Teal
+            MATERIAL_GREEN -> R.style.Theme_SagerNet_Material_Green
+            MATERIAL_ROSE -> R.style.Theme_SagerNet_Material_Rose
+            MATERIAL_CORAL -> R.style.Theme_SagerNet_Material_Coral
+            MATERIAL_INDIGO -> R.style.Theme_SagerNet_Material_Indigo
+            MATERIAL_AMBER -> R.style.Theme_SagerNet_Material_Amber
+            MATERIAL_DYNAMIC -> R.style.Theme_SagerNet_Material_Dynamic
             else -> R.style.Theme_SagerNet_LightGray
         }
     }
@@ -463,6 +565,15 @@ object Theme {
             VERDANT_MINT -> R.style.Theme_SagerNet_Dialog_VerdantMint
             WHITE -> R.style.Theme_SagerNet_Dialog_White
             LIGHT_GRAY -> R.style.Theme_SagerNet_Dialog_LightGray
+            MATERIAL_BASELINE -> R.style.Theme_SagerNet_Dialog_Material_Baseline
+            MATERIAL_BLUE -> R.style.Theme_SagerNet_Dialog_Material_Blue
+            MATERIAL_TEAL -> R.style.Theme_SagerNet_Dialog_Material_Teal
+            MATERIAL_GREEN -> R.style.Theme_SagerNet_Dialog_Material_Green
+            MATERIAL_ROSE -> R.style.Theme_SagerNet_Dialog_Material_Rose
+            MATERIAL_CORAL -> R.style.Theme_SagerNet_Dialog_Material_Coral
+            MATERIAL_INDIGO -> R.style.Theme_SagerNet_Dialog_Material_Indigo
+            MATERIAL_AMBER -> R.style.Theme_SagerNet_Dialog_Material_Amber
+            MATERIAL_DYNAMIC -> R.style.Theme_SagerNet_Dialog_Material_Dynamic
             else -> R.style.Theme_SagerNet_Dialog_LightGray
         }
     }
@@ -531,16 +642,24 @@ object Theme {
                 return wallpaperColor
             }
         }
-        return context.getColorAttr(R.attr.colorPrimary)
+        return context.getColorAttr(androidx.appcompat.R.attr.colorPrimary)
     }
 
     /**
      * Resolves the card/box fill color across Light, Dark, Normal AMOLED (2-3 seed tones on #000000),
      * Pure AMOLED (#000000 boxes), and Monochrome Black.
+     * Material Original themes use true M3 tonal surfaceContainer roles (neutralVariant HCT tones)
+     * rather than Custom theme seed-tinted surfaces.
      */
     fun resolveCardBackground(context: Context): Int {
         if (isMonochromeBlack(context) || isPureAmoled(context)) {
             return Color.BLACK
+        }
+        if (isMaterialTheme(activeThemeId())) {
+            val scLow = context.getColorAttr(com.google.android.material.R.attr.colorSurfaceContainerLow)
+            if (scLow != 0) return scLow
+            val sc = context.getColorAttr(com.google.android.material.R.attr.colorSurfaceContainer)
+            if (sc != 0) return sc
         }
         if (isTintedAmoled(context)) {
             if (activeThemeId() in setOf(MONET, CUSTOM)) {
@@ -563,6 +682,15 @@ object Theme {
      */
     fun resolveNestedBoxBackground(context: Context): Int {
         if (isMonochromeBlack(context)) return 0xFF141414.toInt()
+        if (isMaterialTheme(activeThemeId())) {
+            val attr = if (isPureAmoled(context) || isTintedAmoled(context)) {
+                com.google.android.material.R.attr.colorSurfaceContainer
+            } else {
+                com.google.android.material.R.attr.colorSurfaceContainerHigh
+            }
+            val tonal = context.getColorAttr(attr)
+            if (tonal != 0) return tonal
+        }
         val seed = getSeedPrimaryColor(context)
         if (isPureAmoled(context)) {
             return ColorUtils.blendARGB(Color.BLACK, seed, 0.08f)
@@ -576,10 +704,25 @@ object Theme {
 
     /**
      * Resolves card/box border color. Pure AMOLED uses a softened hairline alpha so thin borders look crisp.
+     * Material Original themes rely on tonal surface elevation + subtle outlineVariant instead of saturated borders.
      */
     fun resolveCardStrokeColor(context: Context, selected: Boolean = false): Int {
         if (isMonochromeBlack(context)) {
             return if (selected) Color.WHITE else ContextCompat.getColor(context, R.color.card_stroke)
+        }
+        if (isMaterialTheme(activeThemeId())) {
+            if (selected) {
+                val primary = context.getColorAttr(androidx.appcompat.R.attr.colorPrimary)
+                if (primary != 0) return primary
+            }
+            val outlineVar = context.getColorAttr(com.google.android.material.R.attr.colorOutlineVariant)
+            if (outlineVar != 0) {
+                return if (isPureAmoled(context)) {
+                    ColorUtils.setAlphaComponent(outlineVar, 180)
+                } else {
+                    ColorUtils.setAlphaComponent(outlineVar, 110)
+                }
+            }
         }
         val seed = getSeedPrimaryColor(context)
         val accentStroke = if (ColorUtils.calculateLuminance(seed) < 0.08) Color.WHITE else seed
@@ -604,6 +747,15 @@ object Theme {
      */
     fun resolveCardStrokeWidthPx(context: Context, selected: Boolean = false): Float {
         val density = context.resources.displayMetrics.density
+        if (isMaterialTheme(activeThemeId())) {
+            return if (selected) {
+                (1.5f * density).coerceAtLeast(1f)
+            } else if (isPureAmoled(context)) {
+                (0.75f * density).coerceAtLeast(1f)
+            } else {
+                (0.5f * density).coerceAtLeast(1f)
+            }
+        }
         return if (isPureAmoled(context) || isTintedAmoled(context) || isMonochromeBlack(context)) {
             if (selected) (1.15f * density).coerceAtLeast(1f) else (0.5f * density).coerceAtLeast(1f)
         } else {
@@ -615,7 +767,7 @@ object Theme {
         if (appTheme() == CUSTOM) {
             return 0xFF000000.toInt() or customThemeColor()
         }
-        val attr = context.getColorAttr(R.attr.colorPrimary)
+        val attr = context.getColorAttr(androidx.appcompat.R.attr.colorPrimary)
         return if (attr != 0) attr else getPrimaryColor(context)
     }
 

@@ -22,6 +22,7 @@ import androidx.core.content.FileProvider
 import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
 import androidx.core.widget.CompoundButtonCompat
+import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -104,6 +105,12 @@ class BackupFragment : Fragment(R.layout.layout_backup) {
         this.binding = binding
         view.applyListInsets()
         styleExpressiveUi(binding, view)
+        (view as? NestedScrollView)?.setOnScrollChangeListener(
+            NestedScrollView.OnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
+                val dy = scrollY - oldScrollY
+                if (dy != 0) (activity as? MainActivity)?.driveBottomBar(dy)
+            },
+        )
 
         binding.backupCreate.setOnClickListener {
             if (selection() != null) startFilesForResult(saveBackup, fileName())
@@ -219,7 +226,7 @@ class BackupFragment : Fragment(R.layout.layout_backup) {
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             send.clipData = ClipData.newRawUri(file.name, uri)
             try {
-                startActivity(Intent.createChooser(send, getString(R.string.abc_shareactionprovider_share_with)))
+                startActivity(Intent.createChooser(send, getString(androidx.appcompat.R.string.abc_shareactionprovider_share_with)))
             } catch (_: ActivityNotFoundException) {
                 snackbar(R.string.share_target_missing).show()
             }

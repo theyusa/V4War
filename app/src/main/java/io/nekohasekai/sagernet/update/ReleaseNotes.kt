@@ -282,7 +282,7 @@ object ReleaseNotes {
      */
     fun render(markdown: String, view: TextView): CharSequence {
         val density = view.resources.displayMetrics.density
-        val accentColor = view.context.getColorAttr(R.attr.colorPrimary).takeIf { it != 0 }
+        val accentColor = view.context.getColorAttr(androidx.appcompat.R.attr.colorPrimary).takeIf { it != 0 }
             ?: view.currentTextColor
         val mutedColor = ColorUtils.setAlphaComponent(view.currentTextColor, 115)
         val out = SpannableStringBuilder()

@@ -190,11 +190,11 @@ class LiveChartView @JvmOverloads constructor(context: Context, attrs: Attribute
         }
 
         private fun surfaceOf(context: Context): Int =
-            ColorUtils.setAlphaComponent(MaterialColors.getColor(context, R.attr.colorSurface, Color.WHITE), 255)
+            ColorUtils.setAlphaComponent(MaterialColors.getColor(context, com.google.android.material.R.attr.colorSurface, Color.WHITE), 255)
 
         /** The theme's primary when it has a hue (the white and black themes do not), else the desktop blue. */
         fun proxyColor(context: Context): Int {
-            val primary = MaterialColors.getColor(context, R.attr.colorPrimary, SERIES_BLUE)
+            val primary = MaterialColors.getColor(context, androidx.appcompat.R.attr.colorPrimary, SERIES_BLUE)
             val hsl = FloatArray(3)
             ColorUtils.colorToHSL(primary, hsl)
             val chromatic = hsl[1] >= 0.3f && hsl[2] in 0.2f..0.8f
@@ -247,7 +247,7 @@ class LiveChartView @JvmOverloads constructor(context: Context, attrs: Attribute
 
     private val surface = surfaceOf(context)
     private val ink = MaterialColors.getColor(
-        context, R.attr.colorOnSurface, if (ColorUtils.calculateLuminance(surface) > 0.5) Color.BLACK else Color.WHITE
+        context, com.google.android.material.R.attr.colorOnSurface, if (ColorUtils.calculateLuminance(surface) > 0.5) Color.BLACK else Color.WHITE
     )
     private val cInk2 = withAlpha(ink, 205)
     private val cMuted = withAlpha(ink, 150)

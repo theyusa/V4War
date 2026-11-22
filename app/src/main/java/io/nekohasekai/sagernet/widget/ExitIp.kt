@@ -40,9 +40,10 @@ object ExitIp {
     /** One lookup service; [parse] reads a 2xx body, null on the service's failure signal or without a country. */
     private class Provider(val id: String, val url: String, val parse: (String) -> Info?)
 
-    private const val TIMEOUT_SECONDS = 10L
+    private const val TIMEOUT_SECONDS = 4L
+    private const val PER_PROVIDER_TIMEOUT_MS = 4_500L
     private const val MAX_BYTES = 64 * 1024L
-    private const val CHAIN_BUDGET_MS = 20_000L
+    private const val CHAIN_BUDGET_MS = 16_000L
 
     /** The ids are stored in `exit_lookup_provider` and shared with the desktop. */
     private val PROVIDERS = listOf(
@@ -160,7 +161,7 @@ object ExitIp {
             val remaining = deadline - SystemClock.elapsedRealtime()
             if (remaining <= 0 || !active()) break
             try {
-                query(client, provider, remaining)?.let { return it }
+                query(client, provider, minOf(remaining, PER_PROVIDER_TIMEOUT_MS))?.let { return it }
                 Logs.w("exit IP lookup: ${provider.id} named no country")
             } catch (e: Exception) {
                 Logs.w("exit IP lookup: ${provider.id}: ${e.readableMessage}")

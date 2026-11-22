@@ -45,15 +45,15 @@ class ExpressivePreferenceDecoration : RecyclerView.ItemDecoration() {
 
         val pref = adapter.getItem(pos)
         if (pref is PreferenceCategory) {
-            val topOffset = if (pos == 0) dp2px(2) else dp2px(8)
-            outRect.set(0, topOffset, 0, dp2px(2))
+            val topOffset = if (pos == 0) dp2px(4) else dp2px(12)
+            outRect.set(0, topOffset, 0, dp2px(4))
         } else if (pref?.key == "themeStudio") {
-            outRect.set(dp2px(16), dp2px(4), dp2px(16), dp2px(6))
+            outRect.set(dp2px(16), dp2px(4), dp2px(16), dp2px(8))
         } else {
             val marginH = dp2px(16)
             val nextPref = if (pos < adapter.itemCount - 1) adapter.getItem(pos + 1) else null
             val isBottom = (pos == adapter.itemCount - 1 || nextPref is PreferenceCategory || nextPref?.key == "themeStudio")
-            val bottomMargin = if (isBottom) dp2px(4) else dp2px(2)
+            val bottomMargin = if (isBottom) dp2px(8) else dp2px(2)
             outRect.set(marginH, 0, marginH, bottomMargin)
         }
     }
@@ -65,8 +65,8 @@ class ExpressivePreferenceDecoration : RecyclerView.ItemDecoration() {
         cardPaint.color = Theme.resolveCardBackground(ctx)
 
         val isAmoledBorder = Theme.isAnyAmoled(ctx) || Theme.isMonochromeBlack(ctx)
-        val rBig = dp2px(20).toFloat()
-        val rSmall = dp2px(4).toFloat()
+        val rBig = dp2px(22).toFloat()
+        val rSmall = dp2px(6).toFloat()
 
         if (isAmoledBorder) {
             strokePaint.strokeWidth = Theme.resolveCardStrokeWidthPx(ctx, selected = false)

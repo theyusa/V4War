@@ -46,7 +46,7 @@ class TetherWatchService : Service(), SagerConnection.Callback {
         const val ACTION_RESTART = "io.nekohasekai.sagernet.hotspotshare.action.RESTART"
         const val ACTION_STOP = "io.nekohasekai.sagernet.hotspotshare.action.STOP"
 
-        const val CHANNEL_ID = "hotspot_share_service"
+        const val CHANNEL_ID = "hotspot_share_service_v2"
         const val NOTIFICATION_ID = 5050
 
         const val WIFI_AP_STATE_CHANGED = "android.net.wifi.WIFI_AP_STATE_CHANGED"
@@ -656,6 +656,7 @@ class TetherWatchService : Service(), SagerConnection.Callback {
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            runCatching { manager.deleteNotificationChannel("hotspot_share_service") }
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 getString(R.string.hotspot_share_service_name),
@@ -741,6 +742,8 @@ class TetherWatchService : Service(), SagerConnection.Callback {
             .setOngoing(content.ongoing)
             .setOnlyAlertOnce(true)
             .addAction(R.drawable.ic_navigation_close, getString(R.string.hotspot_share_stop), stopPendingIntent)
+            .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
+            .setNumber(0)
             .build()
     }
 

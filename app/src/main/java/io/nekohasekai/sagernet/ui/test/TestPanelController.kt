@@ -115,8 +115,8 @@ class TestPanelController(
     private val title: TextView = root.findViewById(R.id.test_panel_title)
     private val status: TextView = root.findViewById(R.id.test_panel_status)
     private val stopButton: MaterialButton = root.findViewById(R.id.test_panel_stop)
-    private val closeButton: ImageView = root.findViewById(R.id.test_panel_close)
-    private val expandButton: ImageView = root.findViewById(R.id.test_panel_expand)
+    private val closeButton: MaterialButton = root.findViewById(R.id.test_panel_close)
+    private val expandButton: MaterialButton = root.findViewById(R.id.test_panel_expand)
     private val liveLine: TextView = root.findViewById(R.id.test_panel_live)
     private val progress: SegmentedProgressView = root.findViewById(R.id.test_panel_progress)
     private val actions: View = root.findViewById(R.id.test_panel_actions)
@@ -158,7 +158,7 @@ class TestPanelController(
     private val textSecondary = TestFormat.themeColor(context, android.R.attr.textColorSecondary, Color.GRAY)
 
     @ColorInt
-    private val errorColor = TestFormat.themeColor(context, R.attr.colorError, FAILED_COLOR)
+    private val errorColor = TestFormat.themeColor(context, androidx.appcompat.R.attr.colorError, FAILED_COLOR)
 
     @ColorInt
     private val okColor = TestFormat.latencyColor(1)
@@ -300,8 +300,8 @@ class TestPanelController(
         val ripple = ColorStateList.valueOf(ColorUtils.setAlphaComponent(accent, 0x33))
         stopButton.setTextColor(accent)
         stopButton.rippleColor = ripple
-        ImageViewCompat.setImageTintList(closeButton, ColorStateList.valueOf(textSecondary))
-        ImageViewCompat.setImageTintList(expandButton, ColorStateList.valueOf(textSecondary))
+        closeButton.iconTint = ColorStateList.valueOf(textSecondary)
+        expandButton.iconTint = ColorStateList.valueOf(textSecondary)
         connectAction.chipBackgroundColor = ColorStateList.valueOf(accent)
         connectAction.setTextColor(if (ColorUtils.calculateLuminance(accent) > 0.5) Color.BLACK else Color.WHITE)
         for (chip in listOf(sortAction, removeAction, stopOtherAction)) {
@@ -350,7 +350,7 @@ class TestPanelController(
     private fun applyExpanded() {
         body.isVisible = expanded
         if (side) return
-        expandButton.setImageResource(
+        expandButton.setIconResource(
             if (expanded) R.drawable.ic_baseline_expand_more_24 else R.drawable.ic_baseline_expand_less_24
         )
         val label = context.getString(if (expanded) R.string.test_panel_collapse else R.string.test_panel_expand)

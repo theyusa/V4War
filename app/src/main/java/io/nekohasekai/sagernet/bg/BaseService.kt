@@ -706,7 +706,7 @@ class BaseService {
             PlatformNotifications.cancelAlwaysOnNoProfile(this)
 
             val proxy = ProxyInstance(profile, this)
-            proxy.deferRuleSets = DeferredRuleSets.consume()
+            proxy.deferRuleSets = DeferredRuleSets.consume() || DataStore.rulesetDownloadAfterVpn
             data.proxy = proxy
             BootReceiver.enabled = DataStore.rememberEnable
             if (!data.closeReceiverRegistered) {

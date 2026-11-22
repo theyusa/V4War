@@ -85,7 +85,7 @@ class VpnService : BaseVpnService(),
     override val data = BaseService.Data(this)
     override val tag = "SagerNetVpnService"
     override fun createNotification(profileName: String) =
-        ServiceNotification(this, profileName, "service-vpn")
+        ServiceNotification(this, profileName, SagerNet.CHANNEL_SERVICE_VPN)
 
     private fun isAlwaysOnVpn(): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && runCatching { isAlwaysOn }.getOrDefault(false)

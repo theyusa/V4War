@@ -495,7 +495,7 @@ class ValidationForm(private val fragment: PreferenceFragmentCompat) : OnPrefere
         private fun elide(text: String) = if (text.length > 40) text.take(39) + "…" else text
 
         fun colorOf(context: Context, severity: Severity): Int =
-            if (severity == Severity.Error) MaterialColors.getColor(context, R.attr.colorError, 0xFFB3261E.toInt())
+            if (severity == Severity.Error) MaterialColors.getColor(context, androidx.appcompat.R.attr.colorError, 0xFFB3261E.toInt())
             else ContextCompat.getColor(context, R.color.material_orange_700)
 
         /** The save gate's dialog: the errors, then the warnings; also for problems not on a preference screen. */

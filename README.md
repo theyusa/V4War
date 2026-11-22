@@ -34,7 +34,22 @@
 </div>
 
 > 🔀 **V4War** is an actively maintained, feature-rich fork of [throneproj/ThroneForAndroid](https://github.com/throneproj/ThroneForAndroid).
-> On top of the unified Sing-box & Xray VPN core, V4War introduces a **complete Hotspot & Proxy Share suite (Shizuku TUN, Root `iptables`, & Rootless LAN Proxy)**, a **10-in-1 Network Toolbox**, a **Material 3 Expressive UI with Theme Studio (Pure AMOLED)**, **Shizuku silent app updates**, and **hardened TLS fragmentation** out of the box.
+> On top of the unified Sing-box & Xray VPN core, V4War introduces a **compact Bento Home dashboard with IP privacy toggle**, a **complete Hotspot & Proxy Share suite (Shizuku TUN, Root `iptables`, & Rootless LAN Proxy)**, a **10-in-1 Network Toolbox**, a **Material 3 Expressive UI with Theme Studio (Pure AMOLED)**, **per-profile Traffic Usage & after-VPN `.srs` rule-set downloads**, **unified App Updates**, and **hardened TLS fragmentation** out of the box.
+
+<p align="center">
+  <table>
+    <tr>
+      <td align="center"><b>Home Dashboard</b></td>
+      <td align="center"><b>10-in-1 Tools</b></td>
+      <td align="center"><b>Hotspot &amp; Proxy Share</b></td>
+    </tr>
+    <tr>
+      <td align="center"><img src=".github/assets/home-screen.png" alt="V4War Home Dashboard" width="230" /></td>
+      <td align="center"><img src=".github/assets/tools-network.png" alt="V4War Network &amp; Tools" width="230" /></td>
+      <td align="center"><img src=".github/assets/hotspot-share.png" alt="V4War Hotspot &amp; Proxy Share" width="230" /></td>
+    </tr>
+  </table>
+</p>
 
 ---
 
@@ -76,7 +91,7 @@ Share your active VPN connection with phones, laptops, consoles, and other devic
 <summary>📸 Preview: LAN Sharing & Hotspot Gateway Screen</summary>
 
 <p align="center">
-  <img src=".github/assets/lan-sharing.jpg" alt="V4War LAN Sharing & Hotspot Gateway Interface" width="320" />
+  <img src=".github/assets/hotspot-share.png" alt="V4War LAN Sharing & Hotspot Gateway Interface" width="320" />
 </p>
 
 </details>

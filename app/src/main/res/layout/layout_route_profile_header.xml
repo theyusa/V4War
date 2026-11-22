@@ -3,13 +3,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="4dp">
+    android:layout_margin="4dp"
+    app:cardCornerRadius="18dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="14dp">
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/name_layout"
@@ -38,32 +39,63 @@
             android:id="@+id/default_outbound"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            app:chipSpacingHorizontal="6dp"
             app:selectionRequired="true"
+            app:singleLine="true"
             app:singleSelection="true">
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/outbound_proxy"
                 style="@style/Widget.MaterialComponents.Chip.Choice.SagerNet"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:textSize="12sp"
+                app:chipEndPadding="4dp"
+                app:chipMinHeight="32dp"
+                app:chipStartPadding="4dp"
+                app:textEndPadding="8dp"
+                app:textStartPadding="8dp" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/outbound_direct"
                 style="@style/Widget.MaterialComponents.Chip.Choice.SagerNet"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:textSize="12sp"
+                app:chipEndPadding="4dp"
+                app:chipMinHeight="32dp"
+                app:chipStartPadding="4dp"
+                app:textEndPadding="8dp"
+                app:textStartPadding="8dp" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/outbound_block"
                 style="@style/Widget.MaterialComponents.Chip.Choice.SagerNet"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:textSize="12sp"
+                app:chipEndPadding="4dp"
+                app:chipMinHeight="32dp"
+                app:chipStartPadding="4dp"
+                app:textEndPadding="8dp"
+                app:textStartPadding="8dp" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/outbound_warp"
                 style="@style/Widget.MaterialComponents.Chip.Choice.SagerNet"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:textSize="12sp"
+                app:chipEndPadding="4dp"
+                app:chipMinHeight="32dp"
+                app:chipStartPadding="4dp"
+                app:textEndPadding="8dp"
+                app:textStartPadding="8dp" />
 
         </com.google.android.material.chip.ChipGroup>
 

@@ -13,6 +13,7 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
 import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.RippleDrawable
 import android.text.TextUtils
@@ -24,7 +25,9 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
@@ -40,6 +43,7 @@ import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.shape.CornerFamily
 import com.google.android.material.shape.ShapeAppearanceModel
@@ -49,6 +53,7 @@ import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.FixedLinearLayoutManager
 import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
+import io.nekohasekai.sagernet.utils.HapticHelper
 import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.widget.ExpressivePreferenceDecoration
 import java.util.WeakHashMap
@@ -246,8 +251,26 @@ object ExpressiveSettingsHelper {
             return containerColor to iconColor
         }
 
+        if (Theme.isMaterialTheme(Theme.activeThemeId())) {
+            val containerAttr = if (tintIcons) {
+                com.google.android.material.R.attr.colorSecondaryContainer
+            } else {
+                com.google.android.material.R.attr.colorSurfaceContainerHighest
+            }
+            val onContainerAttr = if (tintIcons) {
+                com.google.android.material.R.attr.colorOnSecondaryContainer
+            } else {
+                com.google.android.material.R.attr.colorOnSurfaceVariant
+            }
+            val m3Container = context.getColorAttr(containerAttr)
+            val m3OnContainer = context.getColorAttr(onContainerAttr)
+            if (m3Container != 0 && m3OnContainer != 0) {
+                return m3Container to m3OnContainer
+            }
+        }
+
         val themeAccent = Theme.getSeedPrimaryColor(context).takeIf { it != 0 && it != Color.WHITE }
-            ?: context.getColorAttr(R.attr.colorAccent).takeIf { it != 0 && it != Color.WHITE }
+            ?: context.getColorAttr(androidx.appcompat.R.attr.colorAccent).takeIf { it != 0 && it != Color.WHITE }
             ?: ContextCompat.getColor(context, R.color.material_blue_accent_200)
 
         val containerColor = when {
@@ -333,7 +356,10 @@ object ExpressiveSettingsHelper {
             root.visibility = View.VISIBLE
             titleView.text = title
             navButton.contentDescription = contentDescription
-            navButton.setOnClickListener { onNavClick() }
+            navButton.setOnClickListener {
+                HapticHelper.perform(context, navButton, HapticHelper.HapticKind.TAP)
+                onNavClick()
+            }
             val drawable = ResourcesCompat.getDrawable(context.resources, iconRes, null)?.mutate()
             if (drawable != null) {
                 DrawableCompat.setTint(drawable, textPrimary)
@@ -404,7 +430,7 @@ object ExpressiveSettingsHelper {
         }
         val titleText = TextView(context).apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f)
-            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             letterSpacing = 0f
             includeFontPadding = false
             setTextColor(textPrimary)
@@ -630,6 +656,25 @@ object ExpressiveSettingsHelper {
         }
     }
 
+    enum class SemanticRole {
+        SUCCESS,
+        WARNING,
+        ERROR,
+        INFO,
+        NEUTRAL,
+    }
+
+    fun resolveSemanticColor(context: Context, role: SemanticRole): Int {
+        val isNight = Theme.usingNightMode(context)
+        return when (role) {
+            SemanticRole.SUCCESS -> if (isNight) 0xFF10B981.toInt() else 0xFF059669.toInt()
+            SemanticRole.WARNING -> if (isNight) 0xFFF59E0B.toInt() else 0xFFD97706.toInt()
+            SemanticRole.ERROR -> if (isNight) 0xFFEF4444.toInt() else 0xFFDC2626.toInt()
+            SemanticRole.INFO -> if (isNight) 0xFF38BDF8.toInt() else 0xFF0284C7.toInt()
+            SemanticRole.NEUTRAL -> if (isNight) 0xFF9CA3AF.toInt() else 0xFF6B7280.toInt()
+        }
+    }
+
     fun styleExpressiveBadge(
         textView: TextView,
         accentColor: Int? = null,
@@ -684,10 +729,10 @@ object ExpressiveSettingsHelper {
             else -> contrastOnColor(accent)
         }
         applyUnifiedButtonTypography(button)
-        button.cornerRadius = dp2px(16)
         button.backgroundTintList = ColorStateList.valueOf(accent)
         button.setTextColor(onAccent)
         button.iconTint = ColorStateList.valueOf(onAccent)
+        HapticHelper.attachTapHaptic(button, HapticHelper.HapticKind.TAP)
     }
 
     fun styleOutlinedButton(button: MaterialButton) {
@@ -707,12 +752,12 @@ object ExpressiveSettingsHelper {
             else -> accent
         }
         applyUnifiedButtonTypography(button)
-        button.cornerRadius = dp2px(16)
         button.strokeColor = ColorStateList.valueOf(strokeColor)
         button.strokeWidth = dp2px(1)
         button.setTextColor(textColor)
         button.iconTint = ColorStateList.valueOf(textColor)
         button.rippleColor = ColorStateList.valueOf(ColorUtils.setAlphaComponent(accent, 38))
+        HapticHelper.attachTapHaptic(button, HapticHelper.HapticKind.TAP)
     }
 
     fun styleExpressiveChip(chip: Chip, cornerRadiusDp: Float = 12f) {
@@ -778,6 +823,214 @@ object ExpressiveSettingsHelper {
         chip.textEndPadding = dp2px(4).toFloat()
         chip.iconStartPadding = dp2px(2).toFloat()
         chip.iconEndPadding = dp2px(2).toFloat()
+        HapticHelper.attachTapHaptic(chip, HapticHelper.HapticKind.SELECTION)
+    }
+
+    fun showExpressiveInfoDialog(
+        context: Context,
+        title: CharSequence,
+        message: CharSequence,
+        iconDrawable: Drawable? = null,
+    ) {
+        val isNight = Theme.usingNightMode(context)
+        val isAmoled = Theme.isBlackTheme(context)
+        val isBorderTheme = Theme.isAnyAmoled(context) || Theme.isMonochromeBlack(context)
+        val textPrimary = context.getColorAttr(android.R.attr.textColorPrimary)
+        val textSecondary = context.getColorAttr(android.R.attr.textColorSecondary)
+        val cardBg = Theme.resolveCardBackground(context)
+        val nestedBg = Theme.resolveNestedBoxBackground(context)
+        val strokeCol = Theme.resolveCardStrokeColor(context, selected = false)
+        val strokeWidthPx = dp2px(1)
+
+        val (containerColor, iconColor) = resolveBadgeColors(context, isNight, isAmoled)
+        val rawIcon = iconDrawable?.let { unwrapOriginalIcon(it) }
+            ?: ResourcesCompat.getDrawable(context.resources, R.drawable.ic_baseline_help_outline_24, null)
+        val badgeIcon = rawIcon?.let {
+            createMaskedIcon(
+                context = context,
+                originalDrawable = it,
+                containerColor = containerColor,
+                iconColor = iconColor,
+                sizeDp = 44,
+                iconSizeDp = 22,
+                shape = ExpressiveShape.SQUIRCLE,
+            )
+        }
+
+        val cardRoot = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp2px(22), dp2px(20), dp2px(22), dp2px(18))
+        }
+
+        val headerRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            )
+        }
+        if (badgeIcon != null) {
+            headerRow.addView(ImageView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(dp2px(44), dp2px(44)).apply {
+                    marginEnd = dp2px(14)
+                }
+                setImageDrawable(badgeIcon)
+            })
+        }
+        headerRow.addView(TextView(context).apply {
+            text = title
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            letterSpacing = 0f
+            setTextColor(textPrimary)
+            maxLines = 2
+            ellipsize = TextUtils.TruncateAt.END
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        })
+        cardRoot.addView(headerRow)
+
+        val messageBox = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp2px(14)
+            }
+            setPadding(dp2px(16), dp2px(14), dp2px(16), dp2px(14))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp2px(18).toFloat()
+                setColor(nestedBg)
+                setStroke(
+                    strokeWidthPx,
+                    if (isBorderTheme) strokeCol else ColorUtils.setAlphaComponent(strokeCol, 140),
+                )
+            }
+        }
+
+        val maxBodyHeight = (context.resources.displayMetrics.heightPixels * 0.42f).toInt().coerceAtLeast(dp2px(140))
+        val scrollView = object : ScrollView(context) {
+            override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+                val cappedHeightSpec = MeasureSpec.makeMeasureSpec(maxBodyHeight, MeasureSpec.AT_MOST)
+                super.onMeasure(widthMeasureSpec, cappedHeightSpec)
+            }
+        }.apply {
+            isVerticalScrollBarEnabled = true
+            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
+        }
+        scrollView.addView(TextView(context).apply {
+            text = message
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setLineSpacing(dp2px(2).toFloat(), 1.25f)
+            setTextColor(textPrimary)
+        })
+        messageBox.addView(scrollView)
+        cardRoot.addView(messageBox)
+
+        var dialog: AlertDialog? = null
+        val actionRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp2px(18)
+            }
+        }
+        val okButton = MaterialButton(context).apply {
+            text = context.getString(android.R.string.ok)
+            cornerRadius = dp2px(99)
+            minHeight = dp2px(42)
+            minimumHeight = dp2px(42)
+            minWidth = dp2px(96)
+            insetTop = 0
+            insetBottom = 0
+            stylePrimaryButton(this)
+            setOnClickListener {
+                HapticHelper.perform(context, this, HapticHelper.HapticKind.TAP)
+                dialog?.dismiss()
+            }
+        }
+        actionRow.addView(okButton)
+        cardRoot.addView(actionRow)
+
+        dialog = MaterialAlertDialogBuilder(context)
+            .setView(cardRoot)
+            .create()
+
+        dialog.setOnShowListener {
+            val inset = context.resources.getDimensionPixelSize(R.dimen.dialog_background_inset)
+            val surfaceBg = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp2px(28).toFloat()
+                setColor(ColorUtils.setAlphaComponent(cardBg, 0xFF))
+                setStroke(
+                    strokeWidthPx,
+                    if (isBorderTheme) strokeCol else ColorUtils.setAlphaComponent(textSecondary, 60),
+                )
+            }
+            dialog.window?.setBackgroundDrawable(InsetDrawable(surfaceBg, inset))
+        }
+        dialog.show()
+    }
+
+    fun styleExpressiveAlertDialog(dialog: AlertDialog) {
+        val ctx = dialog.context
+        val isBorderTheme = Theme.isAnyAmoled(ctx) || Theme.isMonochromeBlack(ctx)
+        val cardBg = Theme.resolveCardBackground(ctx)
+        val strokeCol = Theme.resolveCardStrokeColor(ctx, selected = false)
+        val textPrimary = ctx.getColorAttr(android.R.attr.textColorPrimary)
+        val textSecondary = ctx.getColorAttr(android.R.attr.textColorSecondary)
+        val accent = resolveAccentColor(ctx)
+        val strokePx = dp2px(1)
+
+        val inset = ctx.resources.getDimensionPixelSize(R.dimen.dialog_background_inset)
+        val surfaceBg = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp2px(28).toFloat()
+            setColor(ColorUtils.setAlphaComponent(cardBg, 0xFF))
+            setStroke(
+                strokePx,
+                if (isBorderTheme) strokeCol else ColorUtils.setAlphaComponent(textSecondary, 55),
+            )
+        }
+        dialog.window?.setBackgroundDrawable(InsetDrawable(surfaceBg, inset))
+
+        dialog.findViewById<TextView>(androidx.appcompat.R.id.alertTitle)?.apply {
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            setTextColor(textPrimary)
+        }
+        dialog.findViewById<TextView>(android.R.id.message)?.apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setLineSpacing(dp2px(2).toFloat(), 1.2f)
+            setTextColor(textSecondary)
+        }
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.let { btn ->
+            if (btn is MaterialButton) {
+                btn.cornerRadius = dp2px(99)
+                btn.insetTop = 0
+                btn.insetBottom = 0
+                btn.minHeight = dp2px(40)
+                btn.setPadding(dp2px(18), btn.paddingTop, dp2px(18), btn.paddingBottom)
+                stylePrimaryButton(btn)
+            } else {
+                btn.isAllCaps = false
+                btn.typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                btn.setTextColor(accent)
+                HapticHelper.attachTapHaptic(btn, HapticHelper.HapticKind.TAP)
+            }
+        }
+        listOf(AlertDialog.BUTTON_NEGATIVE, AlertDialog.BUTTON_NEUTRAL).forEach { which ->
+            dialog.getButton(which)?.let { btn ->
+                btn.isAllCaps = false
+                btn.typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                btn.setTextColor(textSecondary)
+                HapticHelper.attachTapHaptic(btn, HapticHelper.HapticKind.TAP)
+            }
+        }
     }
 
     fun styleExpressiveChips(root: View) {
@@ -788,6 +1041,130 @@ object ExpressiveSettingsHelper {
                 styleExpressiveChips(root.getChildAt(i))
             }
         }
+    }
+
+    fun showExpressiveSingleChoiceSheet(
+        context: Context,
+        title: CharSequence,
+        items: List<CharSequence>,
+        checkedIndex: Int,
+        disabledIndices: Set<Int> = emptySet(),
+        onSelected: (index: Int) -> Unit,
+    ) {
+        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(context)
+        val isNight = Theme.usingNightMode(context)
+        val accent = resolveAccentColor(context)
+        val sheetBg = Theme.resolveCardBackground(context)
+        val nestedBg = Theme.resolveNestedBoxBackground(context)
+        val primaryInk = context.getColorAttr(android.R.attr.textColorPrimary)
+        val secondaryInk = context.getColorAttr(android.R.attr.textColorSecondary)
+        val strokeBase = Theme.resolveCardStrokeColor(context, selected = false)
+
+        val dp = { v: Int -> (v * context.resources.displayMetrics.density).toInt() }
+        val root = android.widget.LinearLayout(context).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(dp(18), dp(10), dp(18), dp(22))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                val r = dp(28).toFloat()
+                cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f)
+                setColor(sheetBg)
+            }
+        }
+
+        // Drag handle pill
+        root.addView(
+            View(context).apply {
+                layoutParams = android.widget.LinearLayout.LayoutParams(dp(38), dp(4)).apply {
+                    gravity = android.view.Gravity.CENTER_HORIZONTAL
+                    bottomMargin = dp(14)
+                }
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(2).toFloat()
+                    setColor(ColorUtils.setAlphaComponent(secondaryInk, 90))
+                }
+            },
+        )
+
+        // Title
+        root.addView(
+            TextView(context).apply {
+                text = title
+                textSize = 17f
+                typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+                setTextColor(primaryInk)
+                setPadding(dp(4), 0, dp(4), dp(12))
+            },
+        )
+
+        items.forEachIndexed { index, label ->
+            val selected = index == checkedIndex
+            val disabled = index in disabledIndices
+            val row = android.widget.LinearLayout(context).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    if (index > 0) topMargin = dp(8)
+                }
+                minimumHeight = dp(48)
+                setPadding(dp(14), dp(12), dp(14), dp(12))
+                alpha = if (disabled) 0.48f else 1f
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(16).toFloat()
+                    setColor(
+                        if (selected) ColorUtils.setAlphaComponent(accent, if (isNight) 44 else 28) else nestedBg,
+                    )
+                    setStroke(
+                        dp(1),
+                        if (selected) ColorUtils.setAlphaComponent(accent, if (isNight) 170 else 130) else strokeBase,
+                    )
+                }
+                setOnClickListener {
+                    HapticHelper.perform(context, this, HapticHelper.HapticKind.SELECTION)
+                    onSelected(index)
+                    if (!disabled) dialog.dismiss()
+                }
+            }
+
+            row.addView(
+                TextView(context).apply {
+                    text = label
+                    textSize = 14.5f
+                    typeface = android.graphics.Typeface.create(
+                        if (selected) "sans-serif-medium" else "sans-serif",
+                        android.graphics.Typeface.NORMAL,
+                    )
+                    setTextColor(if (selected) accent else primaryInk)
+                    layoutParams = android.widget.LinearLayout.LayoutParams(
+                        0,
+                        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                        1f,
+                    )
+                },
+            )
+
+            if (selected) {
+                row.addView(
+                    ImageView(context).apply {
+                        layoutParams = android.widget.LinearLayout.LayoutParams(dp(18), dp(18)).apply {
+                            marginStart = dp(10)
+                        }
+                        setImageResource(R.drawable.ic_baseline_check_circle_24)
+                        setColorFilter(accent)
+                    },
+                )
+            }
+
+            root.addView(row)
+        }
+
+        dialog.setContentView(root)
+        dialog.show()
     }
 }
 
@@ -861,4 +1238,113 @@ fun PreferenceFragmentCompat.applyExpressiveSettingsStyle() {
 
     val (containerColor, iconColor) = ExpressiveSettingsHelper.resolveBadgeColors(ctx, isNight, isAmoled)
     preferenceScreen?.applyMaskedIconBadges(ctx, containerColor, iconColor)
+
+    attachPreferenceInfoHelper(list)
+}
+
+private const val TAG_INFO_LISTENER_ATTACHED = 0x56415701
+private const val TAG_INFO_BUTTON = "v4war_pref_info_btn"
+
+private fun attachPreferenceInfoHelper(list: androidx.recyclerview.widget.RecyclerView) {
+    if (list.getTag(TAG_INFO_LISTENER_ATTACHED) == true) return
+    list.setTag(TAG_INFO_LISTENER_ATTACHED, true)
+
+    fun updateRowInfoButton(view: View) {
+        val adapter = list.adapter as? androidx.preference.PreferenceGroupAdapter ?: return
+        val pos = list.getChildAdapterPosition(view)
+        val pref = if (pos != androidx.recyclerview.widget.RecyclerView.NO_POSITION && pos in 0 until adapter.itemCount) {
+            adapter.getItem(pos)
+        } else null
+
+        val rootRow = view as? android.view.ViewGroup
+        val existingBtn = rootRow?.findViewWithTag<View>(TAG_INFO_BUTTON)
+        val widgetFrame = view.findViewById<android.view.ViewGroup>(android.R.id.widget_frame)
+        val summaryView = view.findViewById<TextView>(android.R.id.summary)
+        val titleView = view.findViewById<TextView>(android.R.id.title)
+
+        // Ensure long titles wrap cleanly without crowding the switch
+        titleView?.apply {
+            textSize = 15f
+            maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+
+        if (pref is androidx.preference.PreferenceCategory || pref?.key == "themeStudio" ||
+            rootRow == null || summaryView == null
+        ) {
+            existingBtn?.visibility = View.GONE
+            return
+        }
+
+        val fullSummary = (pref?.summary ?: summaryView.text)?.toString()?.trim().orEmpty()
+        if (fullSummary.isEmpty()) {
+            existingBtn?.visibility = View.GONE
+            summaryView.visibility = View.GONE
+            return
+        }
+
+        val isLong = fullSummary.length > 44 || fullSummary.contains('\n')
+        if (!isLong) {
+            existingBtn?.visibility = View.GONE
+            summaryView.visibility = View.VISIBLE
+            summaryView.maxLines = 2
+            return
+        }
+
+        // Hide long inline description so the card stays clean & minimal; expose via '?' button
+        summaryView.visibility = View.GONE
+
+        val ctx = view.context
+        val infoBtn = (existingBtn as? android.widget.ImageButton) ?: android.widget.ImageButton(ctx).apply {
+            tag = TAG_INFO_BUTTON
+            val sizePx = dp2px(32)
+            layoutParams = android.widget.LinearLayout.LayoutParams(sizePx, sizePx).apply {
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                marginStart = dp2px(4)
+                marginEnd = dp2px(4)
+            }
+            val outValue = android.util.TypedValue()
+            ctx.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, outValue, true)
+            setBackgroundResource(outValue.resourceId)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(dp2px(6), dp2px(6), dp2px(6), dp2px(6))
+            setImageResource(R.drawable.ic_baseline_help_outline_24)
+            contentDescription = titleView?.text?.toString() ?: "Info"
+            val tint = ctx.getColorAttr(android.R.attr.textColorSecondary)
+            imageTintList = ColorStateList.valueOf(ColorUtils.setAlphaComponent(tint, 185))
+            val targetRow = (widgetFrame?.parent as? android.widget.LinearLayout)
+                ?: (rootRow as? android.widget.LinearLayout)
+                ?: rootRow
+            val widgetIndex = if (widgetFrame != null && targetRow === widgetFrame.parent) {
+                targetRow.indexOfChild(widgetFrame)
+            } else {
+                -1
+            }
+            if (widgetIndex >= 0) {
+                targetRow.addView(this, widgetIndex)
+            } else {
+                targetRow.addView(this)
+            }
+        }
+
+        infoBtn.visibility = View.VISIBLE
+        infoBtn.setOnClickListener {
+            HapticHelper.perform(ctx, infoBtn, HapticHelper.HapticKind.TAP)
+            val titleText = pref?.title ?: titleView?.text ?: ""
+            ExpressiveSettingsHelper.showExpressiveInfoDialog(
+                context = ctx,
+                title = titleText,
+                message = fullSummary,
+                iconDrawable = pref?.icon,
+            )
+        }
+    }
+
+    list.addOnChildAttachStateChangeListener(object : androidx.recyclerview.widget.RecyclerView.OnChildAttachStateChangeListener {
+        override fun onChildViewAttachedToWindow(view: View) {
+            view.post { updateRowInfoButton(view) }
+        }
+
+        override fun onChildViewDetachedFromWindow(view: View) = Unit
+    })
 }

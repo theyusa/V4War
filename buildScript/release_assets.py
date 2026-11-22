@@ -101,18 +101,23 @@ def main():
     apksigner, aapt2 = build_tool("apksigner"), build_tool("aapt2")
 
     by_abi = {}
+    universal_elements = []
     for element in metadata["elements"]:
         abi = next((f["value"] for f in element.get("filters", []) if f["filterType"] == "ABI"), None)
         if abi:
             by_abi[abi] = element
+        else:
+            universal_elements.append(element)
     if sorted(by_abi) != sorted(ABIS):
         fail(f"expected APKs for {ABIS}, output-metadata.json lists {sorted(by_abi)}")
+    if len(universal_elements) != 1:
+        fail(f"expected exactly 1 universal APK in output-metadata.json, found {len(universal_elements)}")
 
     dist.mkdir(parents=True, exist_ok=True)
     manifest = None
     assets = {}
-    for abi in ABIS:
-        element = by_abi[abi]
+    targets = [(abi, by_abi[abi], [abi]) for abi in ABIS] + [("universal", universal_elements[0], ABIS)]
+    for key, element, expected_abis in targets:
         apk = apk_dir / element["outputFile"]
         if apk.name.endswith("-unsigned.apk"):
             fail(f"{apk.name} is unsigned")
@@ -125,8 +130,8 @@ def main():
             fail(f"{apk.name}: version {info['versionName']} ({info['versionCode']}) differs from output-metadata.json")
         if info["packageName"] != metadata["applicationId"]:
             fail(f"{apk.name}: package {info['packageName']} differs from {metadata['applicationId']}")
-        if info["abis"] != [abi]:
-            fail(f"{apk.name}: native code {info['abis']}, expected [{abi}]")
+        if sorted(info["abis"]) != sorted(expected_abis):
+            fail(f"{apk.name}: native code {info['abis']}, expected {sorted(expected_abis)}")
         if ("-pre." in info["versionName"]) != (channel == "preview"):
             fail(f"{apk.name}: versionName {info['versionName']} does not match the {channel} channel")
 
@@ -143,7 +148,7 @@ def main():
             fail(f"{apk.name} differs from the other APKs: {common} != {manifest}")
 
         shutil.copy2(apk, dist / apk.name)
-        assets[abi] = {"name": apk.name, "size": apk.stat().st_size, "sha256": sha256(apk)}
+        assets[key] = {"name": apk.name, "size": apk.stat().st_size, "sha256": sha256(apk)}
 
     (dist / "SHA256SUMS").write_text("".join(f"{a['sha256']}  {a['name']}\n" for a in assets.values()), newline="\n")
     # v4war-update.json is the in-app updater manifest; only the stable channel publishes the Releases the

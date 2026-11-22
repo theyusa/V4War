@@ -110,6 +110,8 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var nightTheme by configurationStore.stringToInt(Key.NIGHT_THEME)
     var amoledTheme by configurationStore.boolean(Key.AMOLED_THEME)
     var tintPreferenceIcons by configurationStore.boolean(Key.TINT_PREFERENCE_ICONS) { true }
+    var hapticEnabled by configurationStore.boolean("haptic_enabled") { true }
+    var hapticStrength by configurationStore.stringToInt("haptic_strength") { 2 }
     var appearancePreviewExpanded by configurationStore.boolean(Key.APPEARANCE_PREVIEW_EXPANDED) { true }
     var appearanceModeExpanded by configurationStore.boolean(Key.APPEARANCE_MODE_EXPANDED) { false }
     var appearancePaletteExpanded by configurationStore.boolean(Key.APPEARANCE_PALETTE_EXPANDED) { false }
@@ -118,6 +120,8 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var updateLastCheckTime by configurationStore.long(Key.UPDATE_LAST_CHECK_TIME)
     var customThemeColor by configurationStore.int("custom_theme_color") { 0x00E676 }
     var lastSeedTheme by configurationStore.int("last_seed_theme") { 22 }
+    var materialPaletteStyle by configurationStore.int("material_palette_style") { 0 }
+    var materialSeedColor by configurationStore.int("material_seed_color") { 0xFF30A370.toInt() }
     var appLanguage by configurationStore.string(Key.APP_LANGUAGE) { "" }
     var serviceMode by configurationStore.string(Key.SERVICE_MODE) { Key.MODE_VPN }
 
@@ -280,6 +284,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var outboundDomainStrategy by SettingsRegistry.OUTBOUND_DOMAIN_STRATEGY
     var domainStrategy by SettingsRegistry.DOMAIN_STRATEGY
     var rulesetMirror by SettingsRegistry.RULESET_MIRROR
+    var rulesetDownloadAfterVpn by SettingsRegistry.RULESET_DOWNLOAD_AFTER_VPN
     var adblockEnable by SettingsRegistry.ADBLOCK_ENABLE
     var routeAutoUpdate by SettingsRegistry.ROUTE_AUTO_UPDATE
     var routeAutoUpdateLast by SettingsRegistry.ROUTE_AUTO_UPDATE_LAST

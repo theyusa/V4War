@@ -77,29 +77,47 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/test_panel_stop"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    style="@style/Widget.SagerNet.Button.TextButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
                     android:minWidth="0dp"
                     android:text="@string/test_panel_stop" />
 
-                <androidx.appcompat.widget.AppCompatImageButton
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/test_panel_close"
+                    style="@style/Widget.Material3Expressive.Button.IconButton.Standard"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/test_panel_dismiss"
+                    android:insetLeft="0dp"
+                    android:insetTop="0dp"
+                    android:insetRight="0dp"
+                    android:insetBottom="0dp"
+                    android:minWidth="48dp"
+                    android:minHeight="48dp"
+                    android:padding="0dp"
                     android:visibility="gone"
-                    app:srcCompat="@drawable/ic_navigation_close" />
+                    app:icon="@drawable/ic_navigation_close"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp" />
 
-                <androidx.appcompat.widget.AppCompatImageButton
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/test_panel_expand"
+                    style="@style/Widget.Material3Expressive.Button.IconButton.Standard"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/test_panel_expand"
-                    app:srcCompat="@drawable/ic_baseline_expand_less_24" />
+                    android:insetLeft="0dp"
+                    android:insetTop="0dp"
+                    android:insetRight="0dp"
+                    android:insetBottom="0dp"
+                    android:minWidth="48dp"
+                    android:minHeight="48dp"
+                    android:padding="0dp"
+                    app:icon="@drawable/ic_baseline_expand_less_24"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp" />
 
             </LinearLayout>
 

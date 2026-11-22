@@ -230,6 +230,7 @@ object SettingsRegistry {
     @JvmField val DOMAIN_STRATEGY = oneOf("domain_strategy", "", DOMAIN_STRATEGIES)
     /** 0 GitHub, 1 jsDelivr (Cloudflare), 2 Gcore, 3 Quantil, 4 Fastly, 5 CDN (Const.hpp:51-62). */
     @JvmField val RULESET_MIRROR = int("ruleset_mirror", 1) { it in 0..5 }
+    @JvmField val RULESET_DOWNLOAD_AFTER_VPN = bool("ruleset_download_after_vpn", false)
     @JvmField val ADBLOCK_ENABLE = bool("adblock_enable", false)
     /** Sign-encoded minutes: negative is off, effective only from [MIN_AUTO_UPDATE_MINUTES]. */
     @JvmField val ROUTE_AUTO_UPDATE = int("route_auto_update", -1440)

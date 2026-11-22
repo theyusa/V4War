@@ -380,7 +380,7 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
                         updatePagerMargin()
                     }
                 }
-                floatingViews = (activity as? MainActivity)?.binding?.let { listOf(it.fab, it.stats) }.orEmpty()
+                floatingViews = (activity as? MainActivity)?.binding?.let { listOf(it.floatingToolbar) }.orEmpty()
                 setProfileState(selectedProxy, if (serviceStarted) currentProfile else 0L)
             }
         }
@@ -427,6 +427,7 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
             setNavigationIcon(R.drawable.ic_navigation_close, R.string.navigation_close)
             toolbar.setNavigationOnClickListener { requireActivity().finish() }
         } else {
+            toolbar.setTitle(R.string.menu_configuration)
             toolbar.inflateMenu(R.menu.profile_selection_menu)
             TvControls.addServerSwitch(toolbar.menu, R.id.group_profiles_toolbar)
             if (SagerNet.cachedIsTvOrNull() == null) {
@@ -769,7 +770,7 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
                 toolbar.title = resources.getQuantityString(R.plurals.profiles_selected, selection.count, selection.count)
             } else {
                 setNavigationIcon(R.drawable.ic_navigation_menu, R.string.navigation_open_drawer)
-                toolbar.setTitle(R.string.app_name)
+                toolbar.setTitle(R.string.menu_configuration)
             }
         }
         if (::pager.isInitialized) pager.isUserInputEnabled = !active

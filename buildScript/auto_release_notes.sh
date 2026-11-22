@@ -54,6 +54,7 @@ echo "Choose the APK for your device's CPU. **Most phones (2015+) are \`arm64-v8
 echo
 echo "| Architecture | Download |"
 echo "|---|---|"
+echo "| Universal — all devices | [![universal](https://img.shields.io/badge/APK-universal-3DDC84?style=flat-square&logo=android&logoColor=white)](${BASE_URL}/V4War-${VERSION_NAME}-universal.apk) |"
 echo "| ARM64 — modern phones | [![arm64-v8a](https://img.shields.io/badge/APK-arm64--v8a-3DDC84?style=flat-square&logo=android&logoColor=white)](${BASE_URL}/V4War-${VERSION_NAME}-arm64-v8a.apk) |"
 echo "| ARMv7 — 32-bit devices | [![armeabi-v7a](https://img.shields.io/badge/APK-armeabi--v7a-3DDC84?style=flat-square&logo=android&logoColor=white)](${BASE_URL}/V4War-${VERSION_NAME}-armeabi-v7a.apk) |"
 echo "| x86_64 — emulators | [![x86_64](https://img.shields.io/badge/APK-x86__64-3DDC84?style=flat-square&logo=android&logoColor=white)](${BASE_URL}/V4War-${VERSION_NAME}-x86_64.apk) |"

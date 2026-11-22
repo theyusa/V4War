@@ -13,7 +13,8 @@ It combines upstream compatibility and daily upstream synchronization with major
 
 ## What V4War adds on top of upstream
 
-- **Hotspot & Proxy Share Suite** — Share your active VPN tunnel over **Wi-Fi Hotspot**, **USB RNDIS**, or **Bluetooth PAN** using **Auto**, **Shizuku TUN (Rootless UID 2000)**, **Root (`iptables`)**, or **LAN Proxy** (`HTTP` / `SOCKS5`), complete with live client tracking and diagnostic logs.
+- **Compact Bento Home & IP Privacy Toggle** — Live speed, CPU/RAM/Connections sparklines, per-profile traffic ring, inline STUN/DNS/Connectivity quick tests, and a one-tap **eye toggle** on the Network card to mask exit & local IPs (`•••.•••.•••.•••`).
+- **Hotspot & Proxy Share Suite** — Share your active VPN tunnel over **Wi-Fi Hotspot**, **USB RNDIS**, or **Bluetooth PAN** using **Auto**, **Shizuku TUN (Rootless UID 2000)**, **Root (`iptables`)**, or **LAN Proxy** (`HTTP` / `SOCKS5`) with interactive Start/Stop controls, M3 Expressive bottom-sheet pickers, live client tracking, and diagnostic logs.
 - **Zero-Config Desktop Pairing** — Pair directly with [theyusa/Throne](https://github.com/theyusa/Throne) on Windows or Linux via **Hotspot Gateway** auto-discovery without typing an IP address or port.
 - **10-in-1 Network Toolbox** — Built-in diagnostic engines under **Tools → Network & Tools**, including RFC 5389/5780 STUN NAT discovery, DNS Leak & Fake-IP check, dual-exit IP Lookup, DNS Lookup, Local Ping with live RTT charts, 24+ service Connectivity Test, Live Network Interfaces, Traffic Usage analytics, and Cellular Radio Info.
 - **Material 3 Expressive & Theme Studio** — Live miniature preview, 5 surface styles (**Pure AMOLED**, **AMOLED**, **Dark**, **Light**, **System**), Monochrome themes (**Black**, **White**, **Light Gray**), Android 12+ **Material You**, and 21+ curated seed colors plus custom HEX/RGB tuning.

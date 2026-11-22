@@ -210,11 +210,11 @@
                                 style="@style/Widget.SagerNet.Button"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="@string/route_tester_test"
-                                app:cornerRadius="16dp" />
+                                android:text="@string/route_tester_test" />
 
                             <com.google.android.material.progressindicator.LinearProgressIndicator
                                 android:id="@+id/progress"
+                                style="@style/Widget.Material3Expressive.LinearProgressIndicator.Wavy"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="12dp"

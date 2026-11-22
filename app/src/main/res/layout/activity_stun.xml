@@ -27,7 +27,7 @@
             android:paddingTop="8dp"
             android:paddingBottom="28dp">
 
-            <!-- Preset suite card -->
+            <!-- Unified Minimalist Config & Action Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardPreset"
                 android:layout_width="match_parent"
@@ -42,7 +42,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="14dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -52,9 +52,9 @@
 
                         <ImageView
                             android:id="@+id/iconPresetBadge"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:layout_marginEnd="12dp"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:layout_marginEnd="10dp"
                             android:importantForAccessibility="no" />
 
                         <LinearLayout
@@ -69,64 +69,107 @@
                                 android:fontFamily="sans-serif-medium"
                                 android:text="@string/stun_server_preset"
                                 android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="15.5sp" />
+                                android:textSize="14.5sp" />
 
                             <TextView
                                 android:id="@+id/textHeroSubtitle"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
+                                android:layout_marginTop="1dp"
+                                android:ellipsize="end"
+                                android:maxLines="1"
                                 android:text="@string/stun_test_summary"
                                 android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="13sp" />
+                                android:textSize="11.5sp" />
                         </LinearLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnAction"
+                            style="@style/Widget.SagerNet.Button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="38dp"
+                            android:layout_marginStart="8dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minWidth="0dp"
+                            android:minHeight="0dp"
+                            android:paddingHorizontal="14dp"
+                            android:text="@string/stun_action_start"
+                            android:textAllCaps="false"
+                            android:textSize="12.5sp"
+                            app:cornerRadius="16dp"
+                            app:icon="@drawable/ic_hardware_router"
+                            app:iconPadding="5dp"
+                            app:iconSize="16dp" />
                     </LinearLayout>
+
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/progressBarStun"
+                        style="@style/Widget.Material3Expressive.LinearProgressIndicator.Wavy"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:indeterminate="true"
+                        android:visibility="gone"
+                        app:trackCornerRadius="4dp" />
+
+                    <TextView
+                        android:id="@+id/textProgress"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="12sp"
+                        android:visibility="gone"
+                        tools:text="Testing 4 servers…" />
 
                     <LinearLayout
                         android:id="@+id/boxPresetRadios"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
+                        android:layout_marginTop="12dp"
                         android:orientation="vertical"
-                        android:paddingHorizontal="10dp"
+                        android:paddingHorizontal="8dp"
                         android:paddingVertical="4dp">
 
                         <RadioGroup
                             android:id="@+id/radioGroupPreset"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content">
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
 
                             <RadioButton
                                 android:id="@+id/radioPresetBalanced"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:minHeight="42dp"
+                                android:minHeight="34dp"
                                 android:text="@string/stun_preset_balanced"
-                                android:textSize="14.5sp" />
+                                android:textSize="13sp" />
 
                             <RadioButton
                                 android:id="@+id/radioPresetFull"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:minHeight="42dp"
+                                android:minHeight="34dp"
                                 android:text="@string/stun_preset_full"
-                                android:textSize="14.5sp" />
+                                android:textSize="13sp" />
 
                             <RadioButton
                                 android:id="@+id/radioPresetFast"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:minHeight="42dp"
+                                android:minHeight="34dp"
                                 android:text="@string/stun_preset_fast"
-                                android:textSize="14.5sp" />
+                                android:textSize="13sp" />
 
                             <RadioButton
                                 android:id="@+id/radioPresetCustom"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:minHeight="42dp"
+                                android:minHeight="34dp"
                                 android:text="@string/stun_preset_custom"
-                                android:textSize="14.5sp" />
+                                android:textSize="13sp" />
                         </RadioGroup>
                     </LinearLayout>
 
@@ -134,10 +177,10 @@
                         android:id="@+id/textPresetDescription"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:lineSpacingMultiplier="1.15"
+                        android:layout_marginTop="8dp"
+                        android:lineSpacingMultiplier="1.12"
                         android:textColor="?android:attr/textColorSecondary"
-                        android:textSize="13.5sp"
+                        android:textSize="12sp"
                         tools:text="Runs two full behaviour servers and two widely available fallback servers." />
 
                     <!-- Custom servers container -->
@@ -145,7 +188,7 @@
                         android:id="@+id/layoutCustomServers"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="10dp"
                         android:orientation="vertical"
                         android:visibility="gone">
 
@@ -163,7 +206,7 @@
                                 android:inputType="textMultiLine"
                                 android:minLines="3"
                                 android:scrollbars="vertical"
-                                android:textSize="14sp" />
+                                android:textSize="13.5sp" />
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <TextView
@@ -172,7 +215,7 @@
                             android:layout_marginTop="4dp"
                             android:text="@string/stun_custom_servers_helper"
                             android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
 
                         <TextView
                             android:id="@+id/textCustomServersError"
@@ -180,68 +223,17 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:textColor="@color/material_red_500"
-                            android:textSize="12.5sp"
+                            android:textSize="12sp"
                             android:visibility="gone"
                             tools:text="Invalid server: test. Use host:port." />
                     </LinearLayout>
 
-                    <TextView
+                    <View
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:lineSpacingMultiplier="1.15"
-                        android:text="@string/stun_privacy_notice"
-                        android:textColor="?android:attr/textColorSecondary"
-                        android:textSize="12.5sp" />
-
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Network options card -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardNetworkOptions"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeColor="?attr/colorOutline"
-                app:strokeWidth="?attr/cardStrokeWidth">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <!-- VPN warning banner -->
-                    <LinearLayout
-                        android:id="@+id/layoutVpnWarning"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:orientation="vertical"
-                        android:padding="12dp"
-                        android:visibility="gone">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif-medium"
-                            android:text="@string/stun_vpn_warning_title"
-                            android:textColor="@color/material_amber_700"
-                            android:textSize="14sp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:lineSpacingMultiplier="1.15"
-                            android:text="@string/stun_vpn_warning_summary"
-                            android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="13sp" />
-                    </LinearLayout>
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="10dp"
+                        android:alpha="0.12"
+                        android:background="?android:attr/textColorSecondary" />
 
                     <!-- Physical network switch row -->
                     <LinearLayout
@@ -252,9 +244,9 @@
 
                         <ImageView
                             android:id="@+id/iconNetworkOptionBadge"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:layout_marginEnd="12dp"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_marginEnd="10dp"
                             android:importantForAccessibility="no" />
 
                         <LinearLayout
@@ -269,23 +261,22 @@
                                 android:fontFamily="sans-serif-medium"
                                 android:text="@string/stun_test_physical_network"
                                 android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="15.5sp" />
+                                android:textSize="13.5sp" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:lineSpacingMultiplier="1.15"
+                                android:layout_marginTop="1dp"
                                 android:text="@string/stun_test_physical_network_summary"
                                 android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="13.5sp" />
+                                android:textSize="11.5sp" />
                         </LinearLayout>
 
                         <androidx.appcompat.widget.SwitchCompat
                             android:id="@+id/switchPhysicalNetwork"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="10dp"
                             android:minWidth="36dp"
                             android:minHeight="22dp"
                             android:thumb="@drawable/switch_expressive_thumb"
@@ -294,62 +285,42 @@
                             app:track="@drawable/switch_expressive_track" />
                     </LinearLayout>
 
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Action card -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardAction"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeColor="?attr/colorOutline"
-                app:strokeWidth="?attr/cardStrokeWidth">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnAction"
-                        style="@style/Widget.SagerNet.Button"
+                    <!-- VPN warning banner -->
+                    <LinearLayout
+                        android:id="@+id/layoutVpnWarning"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp"
-                        android:minHeight="48dp"
-                        android:paddingVertical="10dp"
-                        android:text="@string/stun_action_start"
-                        android:textAllCaps="false"
-                        android:textSize="13.5sp"
-                        app:cornerRadius="16dp"
-                        app:icon="@drawable/ic_hardware_router"
-                        app:iconGravity="textStart" />
+                        android:layout_marginTop="10dp"
+                        android:orientation="vertical"
+                        android:padding="10dp"
+                        android:visibility="gone">
 
-                    <com.google.android.material.progressindicator.LinearProgressIndicator
-                        android:id="@+id/progressBarStun"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:indeterminate="true"
-                        android:visibility="gone"
-                        app:trackCornerRadius="4dp" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="@string/stun_vpn_warning_title"
+                            android:textColor="@color/material_amber_700"
+                            android:textSize="12.5sp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:lineSpacingMultiplier="1.12"
+                            android:text="@string/stun_vpn_warning_summary"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="11.5sp" />
+                    </LinearLayout>
 
                     <TextView
-                        android:id="@+id/textProgress"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:gravity="center"
+                        android:layout_marginTop="8dp"
+                        android:lineSpacingMultiplier="1.12"
+                        android:text="@string/stun_privacy_notice"
                         android:textColor="?android:attr/textColorSecondary"
-                        android:textSize="13sp"
-                        android:visibility="gone"
-                        tools:text="Testing 4 servers…" />
+                        android:textSize="11sp" />
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -574,7 +545,6 @@
                         android:text="@string/stun_show_details"
                         android:textAllCaps="false"
                         android:textSize="13sp"
-                        app:cornerRadius="16dp"
                         app:icon="@drawable/ic_baseline_expand_more_24"
                         app:iconGravity="textEnd" />
 
@@ -647,7 +617,6 @@
                         android:text="@string/stun_copy_result"
                         android:textAllCaps="false"
                         android:textSize="13sp"
-                        app:cornerRadius="14dp"
                         app:icon="@drawable/ic_content_copy" />
 
                 </LinearLayout>

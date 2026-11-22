@@ -55,8 +55,13 @@ object RemoteRouteUpdater {
         if (!p.is_remote) return "not a remote routing profile"
         val url = p.remote_url.trim()
         if (url.isEmpty()) return "remote URL is empty"
+        val viaProxy = if (DataStore.rulesetDownloadAfterVpn) {
+            DataStore.serviceState.connected
+        } else {
+            io.nekohasekai.sagernet.ktx.appRequestsViaProxy()
+        }
         val body = try {
-            fetchText(RuleSets.mirrorLink(url, DataStore.rulesetMirror)).body
+            fetchText(RuleSets.mirrorLink(url, DataStore.rulesetMirror), viaProxy = viaProxy).body
         } catch (e: Exception) {
             return e.readableMessage
         }

@@ -103,8 +103,9 @@ class IpLookupActivity : ThemedActivity(), SagerConnection.Callback {
         ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.boxProxyExit, cornerRadiusDp = 14f, strokeAlpha = 160)
         ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.boxDirectExit, cornerRadiusDp = 14f, strokeAlpha = 160)
         ExpressiveSettingsHelper.applySquircleIcon(binding.iconExitBadge, R.drawable.ic_test_ip_24)
-        ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeProxyExit)
-        ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeDirectExit)
+        val infoColor = ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.INFO)
+        ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeProxyExit, accentColor = infoColor)
+        ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeDirectExit, accentColor = infoColor)
         ExpressiveSettingsHelper.stylePrimaryButton(binding.btnLookup)
         ExpressiveSettingsHelper.styleOutlinedButton(binding.btnRefreshExits)
         ExpressiveSettingsHelper.styleExpressiveChips(binding.root)
@@ -273,7 +274,7 @@ class IpLookupActivity : ThemedActivity(), SagerConnection.Callback {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             text = info.ip
             textSize = 16f
-            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             fontFeatureSettings = "tnum"
             setTextColor(getColorAttr(android.R.attr.textColorPrimary))
         }
@@ -284,7 +285,10 @@ class IpLookupActivity : ThemedActivity(), SagerConnection.Callback {
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             setPadding(dp2px(8), dp2px(3), dp2px(8), dp2px(3))
         }
-        val badgeAccent = if (isError) getColor(R.color.material_red_500) else null
+        val badgeAccent = ExpressiveSettingsHelper.resolveSemanticColor(
+            this,
+            if (isError) ExpressiveSettingsHelper.SemanticRole.ERROR else ExpressiveSettingsHelper.SemanticRole.INFO,
+        )
         ExpressiveSettingsHelper.styleExpressiveBadge(badgeTv, accentColor = badgeAccent)
 
         header.addView(ipTv)

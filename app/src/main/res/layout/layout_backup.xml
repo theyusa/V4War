@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:clipToPadding="false"
     android:paddingTop="6dp"
-    android:paddingBottom="64dp">
+    android:paddingBottom="120dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -152,16 +152,16 @@
                     android:text="@string/backup_create"
                     android:textAllCaps="false"
                     android:textSize="13.5sp"
-                    app:cornerRadius="16dp"
                     app:icon="@drawable/ic_baseline_download_24"
                     app:iconGravity="textStart" />
 
-                <LinearLayout
+                <com.google.android.material.button.MaterialButtonGroup
+                    style="@style/Widget.Material3Expressive.MaterialButtonGroup"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:spacing="10dp">
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/backup_share"
@@ -179,14 +179,9 @@
                         android:text="@string/share"
                         android:textAllCaps="false"
                         android:textSize="13sp"
-                        app:cornerRadius="16dp"
                         app:icon="@drawable/ic_social_share"
                         app:iconGravity="textStart"
                         app:iconPadding="6dp" />
-
-                    <Space
-                        android:layout_width="10dp"
-                        android:layout_height="wrap_content" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/backup_restore"
@@ -204,12 +199,11 @@
                         android:text="@string/backup_restore"
                         android:textAllCaps="false"
                         android:textSize="13sp"
-                        app:cornerRadius="16dp"
                         app:icon="@drawable/ic_baseline_upload_24"
                         app:iconGravity="textStart"
                         app:iconPadding="6dp" />
 
-                </LinearLayout>
+                </com.google.android.material.button.MaterialButtonGroup>
 
             </LinearLayout>
 
@@ -272,7 +266,6 @@
                     android:text="@string/backup_to_webdav"
                     android:textAllCaps="false"
                     android:textSize="13.5sp"
-                    app:cornerRadius="16dp"
                     app:icon="@drawable/ic_baseline_upload_24"
                     app:iconGravity="textStart" />
 
@@ -291,7 +284,6 @@
                     android:text="@string/restore_from_webdav"
                     android:textAllCaps="false"
                     android:textSize="13.5sp"
-                    app:cornerRadius="16dp"
                     app:icon="@drawable/ic_baseline_download_24"
                     app:iconGravity="textStart"
                     app:iconPadding="8dp" />
@@ -311,7 +303,6 @@
                     android:text="@string/webdav_settings"
                     android:textAllCaps="false"
                     android:textSize="13.5sp"
-                    app:cornerRadius="16dp"
                     app:icon="@drawable/ic_action_settings"
                     app:iconGravity="textStart"
                     app:iconPadding="8dp" />
@@ -321,4 +312,4 @@
         </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
-</ScrollView>
+</androidx.core.widget.NestedScrollView>

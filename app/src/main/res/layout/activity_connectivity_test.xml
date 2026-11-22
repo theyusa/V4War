@@ -13,8 +13,12 @@
 
     <com.google.android.material.progressindicator.LinearProgressIndicator
         android:id="@+id/progress_indicator"
+        style="@style/Widget.Material3Expressive.LinearProgressIndicator.Wavy"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
         android:indeterminate="true"
         android:visibility="gone"
         app:trackCornerRadius="4dp" />
@@ -92,62 +96,59 @@
                         </LinearLayout>
                     </LinearLayout>
 
-                    <com.google.android.material.chip.ChipGroup
-                        android:id="@+id/chip_group_category"
+                    <HorizontalScrollView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        app:chipSpacingHorizontal="8dp"
-                        app:chipSpacingVertical="6dp"
-                        app:selectionRequired="true"
-                        app:singleLine="false"
-                        app:singleSelection="true">
+                        android:layout_marginTop="10dp"
+                        android:overScrollMode="never"
+                        android:scrollbars="none">
 
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_cat_all"
-                            style="@style/Widget.MaterialComponents.Chip.Filter"
+                        <com.google.android.material.chip.ChipGroup
+                            android:id="@+id/chip_group_category"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:checked="true"
-                            android:text="@string/connectivity_cat_all" />
+                            app:chipSpacingHorizontal="6dp"
+                            app:selectionRequired="true"
+                            app:singleLine="true"
+                            app:singleSelection="true">
 
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_cat_ai"
-                            style="@style/Widget.MaterialComponents.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/connectivity_cat_ai" />
+                            <com.google.android.material.chip.Chip
+                                android:id="@+id/chip_cat_all"
+                                style="@style/Widget.MaterialComponents.Chip.Filter"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:checked="true"
+                                android:text="@string/connectivity_cat_all" />
 
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_cat_streaming"
-                            style="@style/Widget.MaterialComponents.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/connectivity_cat_streaming" />
+                            <com.google.android.material.chip.Chip
+                                android:id="@+id/chip_cat_ai"
+                                style="@style/Widget.MaterialComponents.Chip.Filter"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/connectivity_cat_ai" />
 
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_cat_social"
-                            style="@style/Widget.MaterialComponents.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/connectivity_cat_social" />
+                            <com.google.android.material.chip.Chip
+                                android:id="@+id/chip_cat_streaming"
+                                style="@style/Widget.MaterialComponents.Chip.Filter"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/connectivity_cat_streaming" />
 
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_cat_developer"
-                            style="@style/Widget.MaterialComponents.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/connectivity_cat_developer" />
-                    </com.google.android.material.chip.ChipGroup>
+                            <com.google.android.material.chip.Chip
+                                android:id="@+id/chip_cat_social"
+                                style="@style/Widget.MaterialComponents.Chip.Filter"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/connectivity_cat_social" />
 
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_via_proxy"
-                        style="@style/Widget.MaterialComponents.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:checked="true"
-                        android:text="@string/toolbox_via_proxy" />
+                            <com.google.android.material.chip.Chip
+                                android:id="@+id/chip_cat_developer"
+                                style="@style/Widget.MaterialComponents.Chip.Filter"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/connectivity_cat_developer" />
+                        </com.google.android.material.chip.ChipGroup>
+                    </HorizontalScrollView>
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -156,36 +157,48 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_via_proxy"
+                            style="@style/Widget.MaterialComponents.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:checked="true"
+                            android:text="@string/toolbox_via_proxy" />
+
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_run"
                             style="@style/Widget.SagerNet.Button"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="40dp"
                             android:layout_weight="1"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
                             android:minWidth="0dp"
-                            android:minHeight="46dp"
+                            android:minHeight="0dp"
                             android:text="@string/connectivity_run"
+                            android:textSize="13sp"
+                            app:cornerRadius="16dp"
                             app:icon="@drawable/baseline_public_24"
-                            app:iconGravity="textStart" />
-
-                        <Space
-                            android:layout_width="8dp"
-                            android:layout_height="wrap_content" />
+                            app:iconGravity="textStart"
+                            app:iconSize="16dp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_copy_report"
                             style="@style/Widget.SagerNet.Button.OutlinedButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="42dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
-                            android:minWidth="52dp"
-                            android:minHeight="46dp"
+                            android:minWidth="0dp"
+                            android:minHeight="0dp"
+                            android:padding="0dp"
+                            app:cornerRadius="16dp"
                             app:icon="@drawable/ic_content_copy"
                             app:iconGravity="textStart"
                             app:iconPadding="0dp"
+                            app:iconSize="16dp"
                             tools:ignore="SpeakableTextPresentCheck" />
                     </LinearLayout>
                 </LinearLayout>

@@ -76,19 +76,12 @@ class CellularNetworkActivity : ThemedActivity() {
         binding.scrollCellular.applyListInsets()
         listOf(
             binding.cardDescription,
-            binding.cardPinNetworkType,
             binding.cardMethods,
         ).forEach { ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 20f) }
 
-        ExpressiveSettingsHelper.applySquircleIcon(binding.iconCellularBadge, R.drawable.ic_device_data_usage)
-        ExpressiveSettingsHelper.applySquircleIcon(binding.iconPinNetworkBadge, R.drawable.ic_baseline_push_pin_24)
-        ExpressiveSettingsHelper.applySquircleIcon(binding.iconMethodsBadge, R.drawable.ic_action_settings)
-        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.boxCellularDesc, cornerRadiusDp = 14f, strokeAlpha = 160)
-
-        ExpressiveSettingsHelper.stylePrimaryButton(binding.btnRadioInfoModern)
-        ExpressiveSettingsHelper.styleOutlinedButton(binding.btnRadioInfoLegacy)
-        ExpressiveSettingsHelper.styleOutlinedButton(binding.btnTestingMenu)
-        ExpressiveSettingsHelper.styleOutlinedButton(binding.btnStandardSettings)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconCellularBadge, R.drawable.ic_device_data_usage, sizeDp = 36, iconSizeDp = 19)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconMethodsBadge, R.drawable.ic_action_settings, sizeDp = 32, iconSizeDp = 17)
+        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.boxCellularDesc, cornerRadiusDp = 14f, strokeAlpha = 140)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

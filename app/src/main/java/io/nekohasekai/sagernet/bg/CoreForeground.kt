@@ -21,7 +21,7 @@ import io.nekohasekai.sagernet.ktx.app
  */
 object CoreForeground {
 
-    const val CHANNEL = "connection-test"
+    const val CHANNEL = "connection-test-v2"
     const val NOTIFICATION_ID = 0x7E57
     const val REASON_SUBSCRIPTIONS = "subscriptions"
 
@@ -153,6 +153,8 @@ object CoreForeground {
             .setShowWhen(false)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setContentIntent(SagerNet.configureIntent(app))
+            .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
+            .setNumber(0)
             .build()
     }
 }
