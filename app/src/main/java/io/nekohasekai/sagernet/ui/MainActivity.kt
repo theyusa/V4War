@@ -669,6 +669,10 @@ class MainActivity : ThemedActivity(),
             com.google.android.material.R.attr.colorOnSurfaceVariant,
             MaterialColors.getColor(binding.floatingToolbar, android.R.attr.textColorSecondary, Color.GRAY),
         )
+        val inactiveBg = Theme.resolveNestedBoxBackground(this)
+        val inactiveStroke = Theme.resolveCardStrokeColor(this, selected = false)
+        val activeStroke = ColorUtils.setAlphaComponent(selectedIcon, 95)
+        val strokePx = resources.displayMetrics.density.toInt().coerceAtLeast(1)
         binding.fab.setHomeActionMode(false)
         listOf(
             binding.toolbarNavHome to (fragment is HomeFragment),
@@ -679,7 +683,9 @@ class MainActivity : ThemedActivity(),
             button.isCheckable = true
             button.isChecked = active
             button.isSelected = active
-            button.backgroundTintList = ColorStateList.valueOf(if (active) selectedBg else Color.TRANSPARENT)
+            button.backgroundTintList = ColorStateList.valueOf(if (active) selectedBg else inactiveBg)
+            button.strokeWidth = strokePx
+            button.strokeColor = ColorStateList.valueOf(if (active) activeStroke else inactiveStroke)
             button.iconTint = ColorStateList.valueOf(if (active) selectedIcon else unselectedIcon)
         }
     }

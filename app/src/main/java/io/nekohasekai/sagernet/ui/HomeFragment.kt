@@ -222,7 +222,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var speedRateText: TextView? = null
     private var speedDotVpn: View? = null
     private var speedDotUp: View? = null
-    private var speedDotDirect: View? = null
     private var speedChart: LiveChartView? = null
 
     private var cardTrafficUsage: MaterialCardView? = null
@@ -239,7 +238,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var networkLatencyText: TextView? = null
     private var networkIpText: TextView? = null
     private var networkMetaText: TextView? = null
-    private var networkExtraText: TextView? = null
 
     private var cardCpuChart: MaterialCardView? = null
     private var cpuValueText: TextView? = null
@@ -258,9 +256,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var routeModeBadge: TextView? = null
     private var pillRuleText: TextView? = null
     private var routeSummaryText: TextView? = null
-
-    private var headerStatusDot: View? = null
-    private var headerStatusText: TextView? = null
 
     private var cardAppProxy: MaterialCardView? = null
     private var appProxyBadge: TextView? = null
@@ -426,7 +421,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         speedRateText = null
         speedDotVpn = null
         speedDotUp = null
-        speedDotDirect = null
         speedChart = null
         cardTrafficUsage = null
         trafficRing = null
@@ -441,7 +435,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         networkLatencyText = null
         networkIpText = null
         networkMetaText = null
-        networkExtraText = null
         cardCpuChart = null
         cpuValueText = null
         cpuChart = null
@@ -456,8 +449,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         routeModeBadge = null
         pillRuleText = null
         routeSummaryText = null
-        headerStatusDot = null
-        headerStatusText = null
         cardAppProxy = null
         appProxyBadge = null
         appProxyModeText = null
@@ -583,7 +574,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         speedRateText = view.findViewById(R.id.home_speed_rate_text)
         speedDotVpn = view.findViewById(R.id.home_speed_dot_vpn)
         speedDotUp = view.findViewById(R.id.home_speed_dot_up)
-        speedDotDirect = view.findViewById(R.id.home_speed_dot_direct)
         speedChart = view.findViewById(R.id.home_speed_chart)
 
         cardTrafficUsage = view.findViewById(R.id.home_card_traffic_usage)
@@ -600,7 +590,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         networkLatencyText = view.findViewById(R.id.home_network_latency_text)
         networkIpText = view.findViewById(R.id.home_network_ip_text)
         networkMetaText = view.findViewById(R.id.home_network_meta_text)
-        networkExtraText = view.findViewById(R.id.home_network_extra_text)
 
         cardCpuChart = view.findViewById(R.id.home_card_cpu_chart)
         cpuValueText = view.findViewById(R.id.home_cpu_value_text)
@@ -784,8 +773,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     }
 
     private fun setupCharts(ctx: Context) {
-        val (_, downloadColor, uploadColor) = TrafficRingView.resolveSegmentColors(ctx)
-        val directColor = resolveDistinctDirectColor(ctx, downloadColor)
+        val (_, downloadColor, _) = TrafficRingView.resolveSegmentColors(ctx)
+        val uploadColor = resolveDistinctDirectColor(ctx, downloadColor)
         speedDotVpn?.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(downloadColor)
@@ -793,10 +782,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         speedDotUp?.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(uploadColor)
-        }
-        speedDotDirect?.background = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(directColor)
         }
 
         speedChart?.let { chart ->
@@ -815,13 +800,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                     wash = false,
                     fields = intArrayOf(LiveStatsBatch.PROXY_UP),
                 ),
-                LiveChartView.Row(
-                    key = "direct",
-                    label = getString(R.string.live_graph_direct),
-                    color = directColor,
-                    wash = false,
-                    fields = intArrayOf(LiveStatsBatch.DIRECT_DOWN),
-                ),
             )
             val columns = listOf(
                 LiveChartView.Column(key = "v", arrow = "", dashed = false, wash = true),
@@ -835,7 +813,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val memoryAxis = bytesAxis ?: LiveChartView.bytesAxis(ctx).also { bytesAxis = it }
         setupMetricChart(cpuChart, LiveChartView.coreColor(ctx), LiveStatsBatch.CPU, percentAxis)
         setupMetricChart(ramChart, downloadColor, LiveStatsBatch.MEMORY, memoryAxis)
-        setupMetricChart(connChart, directColor, LiveStatsBatch.CONNECTIONS, LiveChartView.countAxis())
+        setupMetricChart(connChart, uploadColor, LiveStatsBatch.CONNECTIONS, LiveChartView.countAxis())
     }
 
     private fun setupMetricChart(
@@ -1098,13 +1076,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             shape = GradientDrawable.OVAL
             setColor(statusColor)
         }
-        headerStatusDot?.background = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(statusColor)
-        }
-        if (!active) {
-            headerStatusText?.text = stateLabel
-        }
 
         titleTv.text = stateLabel
         titleTv.setTextColor(statusColor)
@@ -1364,7 +1335,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             } else {
                 getString(R.string.home_route_default_only)
             }
-            routeSummaryText?.text = if (warpEnabled) "$ruleSummary · WARP" else ruleSummary
+            val warpLabel = getString(
+                if (warpEnabled) R.string.home_hotspot_active else R.string.hotspot_share_status_off,
+            )
+            routeSummaryText?.text = "$ruleSummary · WARP: $warpLabel"
         }
     }
 
@@ -1428,7 +1402,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                     picked != null && localIp != null -> "${picked.first.name} ($localIp)"
                     else -> getString(R.string.home_network)
                 }
-                networkExtraText?.text = buildNetworkExtraLine(ctx, entity, picked)
                 return@launch
             }
 
@@ -1448,7 +1421,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 } else {
                     country.ifEmpty { getString(R.string.home_network) }
                 }
-                networkExtraText?.text = buildNetworkExtraLine(ctx, entity, picked)
                 return@launch
             }
 
@@ -1457,34 +1429,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 networkMetaText?.text = picked.second.prefixLength?.let {
                     "${picked.first.name} · /$it"
                 } ?: picked.first.name
-                networkExtraText?.text = buildNetworkExtraLine(ctx, entity, picked)
             } else {
                 networkIpText?.text = getString(R.string.not_connected)
                 networkMetaText?.text = getString(R.string.home_local_ip_none)
-                networkExtraText?.text = entity?.displayType()?.trim()?.takeIf { it.isNotEmpty() }
-                    ?: getString(R.string.home_status_disabled)
             }
-        }
-    }
-
-    private fun buildNetworkExtraLine(
-        ctx: Context,
-        entity: ProxyEntity?,
-        picked: Pair<NetworkInterfaceInfo, InterfaceIp>?,
-    ): String {
-        val type = entity?.displayType()?.trim().orEmpty()
-        val latency = if (currentState == BaseService.State.Connected && lastUrlTestLatencyMs > 0) {
-            lastUrlTestLatencyMs
-        } else {
-            entity?.latency ?: 0
-        }
-        if (type.isNotEmpty() && latency > 0) return "$type · $latency ms"
-        if (type.isNotEmpty()) return type
-        val prefix = picked?.second?.prefixLength
-        return if (picked != null && prefix != null) {
-            "${picked.first.name} · IPv4 /$prefix"
-        } else {
-            ctx.getString(R.string.home_network)
         }
     }
 
@@ -1913,9 +1861,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             ramTv?.text = zeroBytes
             connTv?.text = "0"
             speedConnBadge?.text = getString(R.string.home_connections_count, 0)
-            if (running) {
-                headerStatusText?.text = getString(R.string.home_connections_count, 0)
-            }
             return
         }
 
@@ -1928,11 +1873,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val connRaw = series.value(LiveStatsBatch.CONNECTIONS, last)
         val conns = if (connRaw.isNaN()) 0 else connRaw.toInt().coerceAtLeast(0)
         connTv?.text = conns.toString()
-        val connStr = getString(R.string.home_connections_count, conns)
-        speedConnBadge?.text = connStr
-        if (running) {
-            headerStatusText?.text = connStr
-        }
+        speedConnBadge?.text = getString(R.string.home_connections_count, conns)
     }
 
     private fun updateTrafficTotalsUi() {
@@ -2010,56 +1951,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val strokePx = Theme.resolveCardStrokeWidthPx(ctx, selected = false).toInt().coerceAtLeast(1)
         val textPrimary = ctx.getColorAttr(android.R.attr.textColorPrimary)
         val rippleColor = ColorUtils.setAlphaComponent(textPrimary, if (isNight) 38 else 28)
-
-        val statusShape = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = pillSize / 2f
-            setColor(pillBg)
-            setStroke(strokePx, pillStroke)
-        }
-        val statusMask = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = pillSize / 2f
-            setColor(textPrimary)
-        }
-        val statusDotView = View(ctx).apply {
-            layoutParams = LinearLayout.LayoutParams(dp2px(7), dp2px(7)).apply {
-                marginEnd = dp2px(6)
-            }
-        }
-        val statusTextView = TextView(ctx).apply {
-            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f)
-            typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
-            fontFeatureSettings = "tnum"
-            includeFontPadding = false
-            maxLines = 1
-            setTextColor(textPrimary)
-        }
-        headerStatusDot = statusDotView
-        headerStatusText = statusTextView
-        val statusPill = LinearLayout(ctx).apply {
-            id = R.id.home_header_status_pill
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            minimumHeight = pillSize
-            setPadding(dp2px(11), 0, dp2px(11), 0)
-            layoutParams = LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
-                pillSize,
-            ).apply {
-                marginStart = dp2px(8)
-            }
-            isClickable = true
-            isFocusable = true
-            background = RippleDrawable(ColorStateList.valueOf(rippleColor), statusShape, statusMask)
-            addView(statusDotView)
-            addView(statusTextView)
-            setOnClickListener { v ->
-                context?.let { HapticHelper.perform(it, v, HapticHelper.HapticKind.TAP) }
-                (activity as? MainActivity)?.displayFragmentWithId(R.id.nav_live_graphs)
-            }
-        }
-        headerRoot.addView(statusPill)
 
         headerRoot.addView(
             View(ctx).apply {
