@@ -185,6 +185,8 @@ class ServiceNotification(
         .setSmallIcon(R.drawable.ic_throne_tile)
         .setCategory(NotificationCompat.CATEGORY_SERVICE)
         .setPriority(if (visible) NotificationCompat.PRIORITY_LOW else NotificationCompat.PRIORITY_MIN)
+        .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
+        .setNumber(0)
 
     private val buildLock = Mutex()
 

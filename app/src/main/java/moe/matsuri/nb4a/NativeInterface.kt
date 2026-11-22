@@ -396,13 +396,17 @@ class NativeInterface internal constructor(
         val channel = notification.typeName.ifBlank { "core" }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             SagerNet.notification.createNotificationChannel(
-                NotificationChannel(channel, channel, NotificationManager.IMPORTANCE_DEFAULT)
+                NotificationChannel(channel, channel, NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    setShowBadge(false)
+                }
             )
         }
         val builder = NotificationCompat.Builder(app, channel)
             .setSmallIcon(R.drawable.ic_throne_tile)
             .setContentTitle(notification.title)
             .setContentText(listOf(notification.subtitle, notification.body).filter { it.isNotBlank() }.joinToString("\n"))
+            .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
+            .setNumber(0)
             .setAutoCancel(true)
         if (notification.openURL.isNotBlank()) {
             builder.setContentIntent(

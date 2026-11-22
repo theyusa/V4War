@@ -59,5 +59,7 @@ object CoreDiagnostics {
         .setShowWhen(false)
         .setCategory(NotificationCompat.CATEGORY_PROGRESS)
         .setContentIntent(SagerNet.configureIntent(app))
+        .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
+        .setNumber(0)
         .build()
 }

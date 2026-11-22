@@ -102,7 +102,7 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
             requireContext().launchCustomTab("https://github.com/theyusa/V4War")
         }
         binding.aboutWebsiteRow.setOnClickListener {
-            requireContext().launchCustomTab("https://github.com/theyusa/V4War#readme")
+            requireContext().launchCustomTab("https://v4war.theyusa.tr")
         }
         binding.aboutSupportRow.setOnClickListener {
             requireContext().launchCustomTab("https://github.com/theyusa/V4War")

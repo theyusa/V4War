@@ -728,7 +728,7 @@ class MainActivity : ThemedActivity(),
             R.id.nav_logcat -> displayFragment(LogcatFragment())
             R.id.nav_live_graphs -> displayFragment(LiveGraphsFragment())
             R.id.nav_faq -> {
-                launchCustomTab("https://throneproj.github.io")
+                launchCustomTab("https://v4war.theyusa.tr")
                 return false
             }
 

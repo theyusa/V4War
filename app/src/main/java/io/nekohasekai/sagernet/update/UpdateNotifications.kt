@@ -26,7 +26,7 @@ object UpdateNotifications {
             context.getSystemService(NotificationManager::class.java).createNotificationChannel(
                 NotificationChannel(
                     CHANNEL, context.getString(R.string.update_notification_channel), NotificationManager.IMPORTANCE_DEFAULT
-                )
+                ).apply { setShowBadge(true) }
             )
         }
     }
@@ -58,6 +58,8 @@ object UpdateNotifications {
             .setSmallIcon(R.drawable.ic_throne_tile)
             .setContentTitle(context.getString(R.string.update_notification_available, offer.versionName))
             .setContentText(context.getString(R.string.update_notification_available_text))
+            .setBadgeIconType(NotificationCompat.BADGE_ICON_SMALL)
+            .setNumber(1)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         if (offer.versionCode > 0) {
@@ -84,6 +86,8 @@ object UpdateNotifications {
                 )
                 .setProgress(100, percent, total <= 0)
                 .setOngoing(true)
+                .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
+                .setNumber(0)
                 .addAction(0, context.getString(android.R.string.cancel), receiverIntent(context, UpdateReceiver.ACTION_CANCEL))
         )
     }
@@ -100,6 +104,8 @@ object UpdateNotifications {
                 .setContentTitle(context.getString(R.string.update_notification_ready))
                 .setContentText(context.getString(R.string.update_notification_tap_install))
                 .setContentIntent(tap)
+                .setBadgeIconType(NotificationCompat.BADGE_ICON_SMALL)
+                .setNumber(1)
                 .setAutoCancel(true)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         )

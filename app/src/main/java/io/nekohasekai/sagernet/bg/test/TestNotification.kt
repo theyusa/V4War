@@ -97,6 +97,8 @@ internal class TestNotification(private val session: TestSession) {
             .setContentIntent(SagerNet.configureIntent(app))
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
+            .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
+            .setNumber(0)
             .build()
         runCatching { NotificationManagerCompat.from(app).notify(WARNING_TAG, WARNING_ID, notification) }
             .onFailure { Logs.w(it) }
@@ -137,6 +139,8 @@ internal class TestNotification(private val session: TestSession) {
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setContentIntent(SagerNet.configureIntent(app))
             .addAction(R.drawable.ic_notification_stop, app.getText(R.string.stop), stop)
+            .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
+            .setNumber(0)
             .build()
     }
 

@@ -13,7 +13,7 @@ import io.nekohasekai.sagernet.ui.MainActivity
 /** The warnings the service posts next to its own notification (channel [CHANNEL_WARNINGS]). */
 object PlatformNotifications {
 
-    const val CHANNEL_WARNINGS = "warnings"
+    const val CHANNEL_WARNINGS = "warnings-v2"
 
     /** MainActivity runs the Wi-Fi permission flow when started with this extra. */
     const val EXTRA_WIFI_PERMISSION = "wifiPermissionFlow"
@@ -75,6 +75,8 @@ object PlatformNotifications {
             )
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
+            .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
+            .setNumber(0)
             .build()
         try {
             NotificationManagerCompat.from(context).notify(TAG, id, notification)

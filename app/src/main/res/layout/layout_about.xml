@@ -375,14 +375,28 @@
                             android:layout_marginEnd="14dp"
                             android:importantForAccessibility="no" />
 
-                        <TextView
+                        <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:fontFamily="sans-serif-medium"
-                            android:text="@string/project_website"
-                            android:textColor="?android:attr/textColorPrimary"
-                            android:textSize="15sp" />
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-medium"
+                                android:text="@string/document"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="15sp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="v4war.theyusa.tr"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="13sp" />
+                        </LinearLayout>
                     </LinearLayout>
 
                     <LinearLayout
