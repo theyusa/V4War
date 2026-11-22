@@ -19,7 +19,7 @@
         android:clipToPadding="false"
         android:fillViewport="true"
         android:paddingTop="2dp"
-        android:paddingBottom="96dp">
+        android:paddingBottom="92dp">
 
         <LinearLayout
             android:id="@+id/home_content_container"
@@ -29,221 +29,12 @@
             android:paddingHorizontal="12dp"
             android:paddingTop="2dp">
 
-            <!-- Row 1: Compact Interactive Status Hero + Stats Info Strip -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/home_card_status_banner"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="10dp"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="6dp">
-
-                        <FrameLayout
-                            android:id="@+id/home_status_power_btn"
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:clickable="true"
-                            android:contentDescription="@string/connect"
-                            android:focusable="true"
-                            android:foreground="?attr/selectableItemBackgroundBorderless">
-
-                            <FrameLayout
-                                android:id="@+id/home_status_icon_box"
-                                android:layout_width="38dp"
-                                android:layout_height="38dp"
-                                android:layout_gravity="center">
-
-                                <ImageView
-                                    android:id="@+id/home_status_icon"
-                                    android:layout_width="18dp"
-                                    android:layout_height="18dp"
-                                    android:layout_gravity="center"
-                                    android:contentDescription="@null"
-                                    android:src="@drawable/ic_power_settings_new_24"
-                                    app:tint="?android:attr/textColorPrimary" />
-
-                            </FrameLayout>
-
-                            <com.google.android.material.progressindicator.CircularProgressIndicator
-                                android:id="@+id/home_status_progress"
-                                style="@style/Widget.Material3Expressive.CircularProgressIndicator.Wavy"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_gravity="center"
-                                android:indeterminate="true"
-                                android:visibility="invisible"
-                                app:indicatorColor="?attr/colorPrimary"
-                                app:indicatorInset="0dp"
-                                app:indicatorSize="44dp"
-                                app:trackColor="@android:color/transparent"
-                                app:trackThickness="2.5dp" />
-
-                        </FrameLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal">
-
-                                <View
-                                    android:id="@+id/home_status_dot"
-                                    android:layout_width="7dp"
-                                    android:layout_height="7dp"
-                                    android:layout_marginEnd="6dp" />
-
-                                <TextView
-                                    android:id="@+id/home_status_title"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:ellipsize="end"
-                                    android:fontFamily="sans-serif-medium"
-                                    android:includeFontPadding="false"
-                                    android:maxLines="1"
-                                    android:textColor="?android:attr/textColorPrimary"
-                                    android:textSize="13.5sp"
-                                    tools:text="Enabled" />
-
-                                <TextView
-                                    android:id="@+id/home_status_type_chip"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="6dp"
-                                    android:ellipsize="end"
-                                    android:fontFamily="sans-serif-medium"
-                                    android:includeFontPadding="false"
-                                    android:maxLines="1"
-                                    android:paddingHorizontal="6dp"
-                                    android:paddingVertical="2dp"
-                                    android:textColor="?android:attr/textColorSecondary"
-                                    android:textSize="10.5sp"
-                                    android:visibility="gone"
-                                    tools:text="Shadowsocks"
-                                    tools:visibility="visible" />
-
-                            </LinearLayout>
-
-                            <TextView
-                                android:id="@+id/home_status_subtitle"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:ellipsize="end"
-                                android:includeFontPadding="false"
-                                android:maxLines="1"
-                                android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="12sp"
-                                tools:text="[openproxylist.com] 16196041" />
-
-                        </LinearLayout>
-
-                        <TextView
-                            android:id="@+id/home_status_mode_tag"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
-                            android:fontFamily="sans-serif-medium"
-                            android:fontFeatureSettings="tnum"
-                            android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:paddingHorizontal="7dp"
-                            android:paddingVertical="3dp"
-                            android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="10.5sp"
-                            tools:text="2 conn" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/home_status_test_bar"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="8dp"
-                        android:layout_marginBottom="8dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground"
-                        android:gravity="center_vertical"
-                        android:minHeight="40dp"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="10dp">
-
-                        <ImageView
-                            android:id="@+id/home_status_test_icon"
-                            android:layout_width="15dp"
-                            android:layout_height="15dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_test_latency_24"
-                            app:tint="?attr/colorPrimary" />
-
-                        <com.google.android.material.progressindicator.CircularProgressIndicator
-                            android:id="@+id/home_status_test_progress"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:indeterminate="true"
-                            android:visibility="gone"
-                            app:indicatorColor="?attr/colorPrimary"
-                            app:indicatorInset="0dp"
-                            app:indicatorSize="15dp"
-                            app:trackThickness="2dp" />
-
-                        <TextView
-                            android:id="@+id/home_status_test_text"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:layout_weight="1"
-                            android:ellipsize="end"
-                            android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:textColor="?android:attr/textColorPrimary"
-                            android:textSize="12sp"
-                            tools:text="Connected, tap to check connection" />
-
-                        <TextView
-                            android:id="@+id/home_status_exit_country"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:fontFamily="sans-serif-medium"
-                            android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="11.5sp"
-                            android:visibility="gone"
-                            tools:text="🇮🇹 Italy"
-                            tools:visibility="visible" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Row 2: Active Group / Subscription & Quick Profile Switcher -->
+            <!-- Row 1: Active Group / Subscription & Quick Profile Navigation -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/home_card_subscription"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="0dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground">
@@ -940,7 +731,7 @@
 
             </LinearLayout>
 
-            <!-- Row 6: Compact 2x1 Routing + 2x1 Apps VPN Mode Cards (50% / 50%) -->
+            <!-- Row 5: Compact 2x1 Routing + 2x1 App Proxy Cards (50% / 50%) -->
             <LinearLayout
                 android:id="@+id/home_bento_row_compact"
                 android:layout_width="match_parent"
@@ -962,7 +753,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
-                        android:padding="10dp">
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="8dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -992,19 +784,13 @@
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="12.5sp" />
 
-                            <TextView
-                                android:id="@+id/home_route_outbound_badge"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="4dp"
-                                android:fontFamily="sans-serif-medium"
-                                android:includeFontPadding="false"
-                                android:maxLines="1"
-                                android:paddingHorizontal="6dp"
-                                android:paddingVertical="2dp"
-                                android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="10.5sp"
-                                tools:text="Proxy" />
+                            <ImageView
+                                android:id="@+id/home_route_chevron"
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_chevron_right_24"
+                                app:tint="?android:attr/textColorSecondary" />
 
                         </LinearLayout>
 
@@ -1012,7 +798,7 @@
                             android:id="@+id/home_mode_pill_rule_text"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="4dp"
                             android:ellipsize="end"
                             android:fontFamily="sans-serif-medium"
                             android:includeFontPadding="false"
@@ -1025,7 +811,7 @@
                             android:id="@+id/home_route_summary_text"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="3dp"
+                            android:layout_marginTop="2dp"
                             android:ellipsize="end"
                             android:includeFontPadding="false"
                             android:maxLines="1"
@@ -1051,7 +837,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
-                        android:padding="10dp">
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="8dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -1101,7 +888,7 @@
                             android:id="@+id/home_app_proxy_mode_text"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="4dp"
                             android:ellipsize="end"
                             android:fontFamily="sans-serif-medium"
                             android:includeFontPadding="false"
@@ -1114,7 +901,7 @@
                             android:id="@+id/home_app_proxy_meta_text"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="3dp"
+                            android:layout_marginTop="2dp"
                             android:ellipsize="end"
                             android:includeFontPadding="false"
                             android:maxLines="1"
@@ -1326,6 +1113,218 @@
                                 tools:text="Off" />
 
                         </LinearLayout>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Bottom Thumb-Zone Interactive Status Hero + URL Test Strip -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/home_card_status_banner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="10dp"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="6dp">
+
+                        <FrameLayout
+                            android:id="@+id/home_status_power_btn"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:clickable="true"
+                            android:contentDescription="@string/connect"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                            <FrameLayout
+                                android:id="@+id/home_status_icon_box"
+                                android:layout_width="38dp"
+                                android:layout_height="38dp"
+                                android:layout_gravity="center">
+
+                                <ImageView
+                                    android:id="@+id/home_status_icon"
+                                    android:layout_width="18dp"
+                                    android:layout_height="18dp"
+                                    android:layout_gravity="center"
+                                    android:contentDescription="@null"
+                                    android:src="@drawable/ic_power_settings_new_24"
+                                    app:tint="?android:attr/textColorPrimary" />
+
+                            </FrameLayout>
+
+                            <com.google.android.material.progressindicator.CircularProgressIndicator
+                                android:id="@+id/home_status_progress"
+                                style="@style/Widget.Material3Expressive.CircularProgressIndicator.Wavy"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:indeterminate="true"
+                                android:visibility="invisible"
+                                app:indicatorColor="?attr/colorPrimary"
+                                app:indicatorInset="0dp"
+                                app:indicatorSize="44dp"
+                                app:trackColor="@android:color/transparent"
+                                app:trackThickness="2.5dp" />
+
+                        </FrameLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <View
+                                    android:id="@+id/home_status_dot"
+                                    android:layout_width="7dp"
+                                    android:layout_height="7dp"
+                                    android:layout_marginEnd="6dp" />
+
+                                <TextView
+                                    android:id="@+id/home_status_title"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:ellipsize="end"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:includeFontPadding="false"
+                                    android:maxLines="1"
+                                    android:textColor="?android:attr/textColorPrimary"
+                                    android:textSize="13.5sp"
+                                    tools:text="Enabled" />
+
+                                <TextView
+                                    android:id="@+id/home_status_type_chip"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="6dp"
+                                    android:ellipsize="end"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:includeFontPadding="false"
+                                    android:maxLines="1"
+                                    android:paddingHorizontal="6dp"
+                                    android:paddingVertical="2dp"
+                                    android:textColor="?android:attr/textColorSecondary"
+                                    android:textSize="10.5sp"
+                                    android:visibility="gone"
+                                    tools:text="Shadowsocks"
+                                    tools:visibility="visible" />
+
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/home_status_subtitle"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:ellipsize="end"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="12sp"
+                                tools:text="[openproxylist.com] 16196041" />
+
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/home_status_mode_tag"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:fontFamily="sans-serif-medium"
+                            android:fontFeatureSettings="tnum"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:paddingHorizontal="7dp"
+                            android:paddingVertical="3dp"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="11sp"
+                            android:visibility="gone"
+                            tools:text="114 ms"
+                            tools:visibility="visible" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/home_status_test_bar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="8dp"
+                        android:layout_marginBottom="8dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground"
+                        android:gravity="center_vertical"
+                        android:minHeight="40dp"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="10dp">
+
+                        <ImageView
+                            android:id="@+id/home_status_test_icon"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_test_latency_24"
+                            app:tint="?attr/colorPrimary" />
+
+                        <com.google.android.material.progressindicator.CircularProgressIndicator
+                            android:id="@+id/home_status_test_progress"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:indeterminate="true"
+                            android:visibility="gone"
+                            app:indicatorColor="?attr/colorPrimary"
+                            app:indicatorInset="0dp"
+                            app:indicatorSize="15dp"
+                            app:trackThickness="2dp" />
+
+                        <TextView
+                            android:id="@+id/home_status_test_text"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textSize="12sp"
+                            tools:text="Connected, tap to check connection" />
+
+                        <TextView
+                            android:id="@+id/home_status_exit_country"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="11.5sp"
+                            android:visibility="gone"
+                            tools:text="🇮🇹 Italy"
+                            tools:visibility="visible" />
 
                     </LinearLayout>
 

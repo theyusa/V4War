@@ -1,5 +1,6 @@
 package io.nekohasekai.sagernet.ui.route
 
+import android.content.Intent
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -38,6 +39,13 @@ object RouteQuickSwitch {
                         fragment.snackbar(switchedMessage(fragment, names[which], kept)).show()
                         onSwitched?.invoke(picked)
                     }
+                }
+                .setPositiveButton(R.string.edit) { _, _ ->
+                    val routeId = profiles.firstOrNull { it.id == currentId }?.id ?: currentId
+                    context.startActivity(
+                        Intent(context, RouteProfileActivity::class.java)
+                            .putExtra(RouteProfileActivity.EXTRA_PROFILE_ID, routeId),
+                    )
                 }
                 .setNeutralButton(if (warp) R.string.warp_disable else R.string.warp_enable) { _, _ ->
                     setWarpEnabled(fragment, !warp)

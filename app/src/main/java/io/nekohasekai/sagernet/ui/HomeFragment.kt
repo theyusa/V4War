@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.RemoteException
@@ -22,6 +23,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
@@ -40,7 +42,6 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.android.material.progressindicator.LinearProgressIndicator
-import io.nekohasekai.sagernet.Key
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.aidl.LiveStatsBatch
 import io.nekohasekai.sagernet.aidl.SpeedDisplayData
@@ -59,7 +60,6 @@ import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.ktx.readableMessage
 import io.nekohasekai.sagernet.ktx.snackbar
-import io.nekohasekai.sagernet.route.OutboundIds
 import io.nekohasekai.sagernet.ui.profiles.SubscriptionInfoCard
 import io.nekohasekai.sagernet.ui.route.RouteQuickSwitch
 import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
@@ -69,7 +69,13 @@ import io.nekohasekai.sagernet.ui.widget.TrafficRingView
 import io.nekohasekai.sagernet.utils.HapticHelper
 import io.nekohasekai.sagernet.utils.HotspotGatewayState
 import io.nekohasekai.sagernet.utils.HotspotGatewayStatus
+import io.nekohasekai.sagernet.utils.HotspotKind
+import io.nekohasekai.sagernet.utils.InterfaceIp
+import io.nekohasekai.sagernet.utils.InterfaceKind
 import io.nekohasekai.sagernet.utils.LanSharingLogics
+import io.nekohasekai.sagernet.utils.NetworkInterfaceInfo
+import io.nekohasekai.sagernet.utils.NetworkInterfacesRepository
+import io.nekohasekai.sagernet.utils.NetworkInterfacesSnapshot
 import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.widget.ExitIp
 import io.nekohasekai.sagernet.widget.LiveChartView
@@ -83,7 +89,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlin.math.hypot
-import kotlin.math.roundToInt
 
 /**
  * Ultra-compact Bento Home dashboard: Interactive Status Hero + URL test strip, Active Group /
@@ -146,7 +151,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
     private var cardRouting: MaterialCardView? = null
     private var routeIcon: ImageView? = null
-    private var routeOutboundBadge: TextView? = null
     private var pillRuleText: TextView? = null
     private var routeSummaryText: TextView? = null
 
@@ -181,12 +185,16 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private val percentAxis = LiveChartView.percentAxis()
     private var bytesAxis: LiveChartView.Axis? = null
     private var portalUri: Uri? = null
-    private var latestConnections: Int = 0
+    private var currentSubGroupId: Long = 0L
+    private var lastUrlTestLatencyMs: Int = 0
     private var connectionTestJob: Job? = null
     private var statusProfileLoadJob: Job? = null
     private var hasTestStatus: Boolean = false
     private var lastTestStatusText: CharSequence? = null
-    private val exitIpListener: () -> Unit = { updateExitCountryUi() }
+    private val exitIpListener: () -> Unit = {
+        updateExitCountryUi()
+        refreshNetworkEgressCard()
+    }
 
     private var currentState: BaseService.State = DataStore.serviceState
     private var latestSpeed: SpeedDisplayData = SpeedDisplayData()
@@ -206,7 +214,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         toolbar?.visibility = View.GONE
         ExpressiveSettingsHelper.attachFloatingPillHeader(appbar, ctx)?.update(
             context = ctx,
-            title = getString(R.string.menu_home),
+            title = getString(R.string.app_name),
             iconRes = R.drawable.ic_navigation_menu,
             contentDescription = getString(R.string.navigation_open_drawer),
         ) {
@@ -230,7 +238,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 val bars = insets.getInsets(
                     WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
                 )
-                v.updatePadding(bottom = bars.bottom + dp2px(100))
+                v.updatePadding(bottom = bars.bottom + dp2px(92))
                 insets
             }
             target.setOnScrollChangeListener(
@@ -258,6 +266,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         if (ExitIp.listener === exitIpListener) ExitIp.listener = null
         hasTestStatus = false
         lastTestStatusText = null
+        lastUrlTestLatencyMs = 0
+        currentSubGroupId = 0L
 
         statusBannerCard = null
         statusPowerBtn = null
@@ -300,7 +310,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         ramChart = null
         cardRouting = null
         routeIcon = null
-        routeOutboundBadge = null
         pillRuleText = null
         routeSummaryText = null
         cardAppProxy = null
@@ -343,11 +352,11 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             connectionTestJob = null
             hasTestStatus = false
             lastTestStatusText = null
+            lastUrlTestLatencyMs = 0
             ExitIp.clear()
         }
         if (view == null) return
         val running = DataStore.serviceState == BaseService.State.Connected
-        if (!state.connected) latestConnections = 0
         if (state == BaseService.State.Connected && !wasConnected && !hasTestStatus) {
             lastTestStatusText = getString(R.string.vpn_connected)
         }
@@ -381,6 +390,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     }
 
     fun onProfileSelected() {
+        lastUrlTestLatencyMs = 0
         if (view == null) return
         updateStatusBanner()
         updateTestBarUi()
@@ -437,7 +447,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
         cardRouting = view.findViewById(R.id.home_card_running_mode)
         routeIcon = view.findViewById(R.id.home_icon_running_mode)
-        routeOutboundBadge = view.findViewById(R.id.home_route_outbound_badge)
         pillRuleText = view.findViewById(R.id.home_mode_pill_rule_text)
         routeSummaryText = view.findViewById(R.id.home_route_summary_text)
 
@@ -654,11 +663,18 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         cardAppProxy?.setOnClickListener { v -> launchActivity(v, AppManagerActivity::class.java) }
         cardHotspotShare?.setOnClickListener { v -> launchActivity(v, LanSharingActivity::class.java) }
 
-        val openProfileSwitcher = View.OnClickListener { v ->
-            launchActivity(v, SwitchActivity::class.java)
+        val openProfiles = View.OnClickListener { v ->
+            context?.let { c -> HapticHelper.perform(c, v, HapticHelper.HapticKind.TAP) }
+            val mainActivity = activity as? MainActivity ?: return@OnClickListener
+            mainActivity.displayFragmentWithId(R.id.nav_configuration)
+            val groupId = currentSubGroupId
+            if (groupId > 0L) {
+                mainActivity.showGroup(groupId)
+                v.post { mainActivity.showGroup(groupId) }
+            }
         }
-        cardSubscription?.setOnClickListener(openProfileSwitcher)
-        subSwitchBtn?.setOnClickListener(openProfileSwitcher)
+        cardSubscription?.setOnClickListener(openProfiles)
+        subSwitchBtn?.setOnClickListener(openProfiles)
         subPortalBtn?.setOnClickListener { v ->
             val ctx = context ?: return@setOnClickListener
             val uri = portalUri ?: return@setOnClickListener
@@ -746,7 +762,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val titleTv = statusTitle ?: return
         val typeChip = statusTypeChip
         val subtitleTv = statusSubtitle ?: return
-        val modeTv = statusModeTag ?: return
 
         val isNight = Theme.usingNightMode(ctx)
         val isAnyAmoled = Theme.isAnyAmoled(ctx) || Theme.isMonochromeBlack(ctx)
@@ -766,6 +781,15 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val active = currentState == BaseService.State.Connected
         val transitional = currentState == BaseService.State.Connecting ||
             currentState == BaseService.State.Stopping
+
+        val statusColor = ContextCompat.getColor(
+            ctx,
+            when {
+                active -> R.color.material_green_500
+                transitional -> R.color.material_amber_500
+                else -> R.color.material_red_500
+            },
+        )
 
         val bannerFill = when {
             active && isAnyAmoled -> ColorUtils.blendARGB(cardBg, accent, 0.10f)
@@ -818,25 +842,18 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
         dot?.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
-            setColor(if (active || transitional) iconInk else ColorUtils.setAlphaComponent(secondaryInk, 140))
+            setColor(statusColor)
         }
 
         titleTv.text = stateLabel
-        titleTv.setTextColor(if (active || transitional) iconInk else primaryInk)
-
-        modeTv.setTextColor(secondaryInk)
-        modeTv.background = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp2px(8).toFloat()
-            setColor(Theme.resolveNestedBoxBackground(ctx))
-        }
-        updateStatusModeTag()
+        titleTv.setTextColor(statusColor)
 
         statusProfileLoadJob?.cancel()
         val targetId = activeTargetProfileId()
         if (targetId <= 0L) {
             typeChip?.isVisible = false
             subtitleTv.text = getString(R.string.home_status_tap_to_select)
+            updateLatencyBadge(ctx, null)
             return
         }
         statusProfileLoadJob = viewLifecycleOwner.lifecycleScope.launch {
@@ -847,6 +864,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             if (entity == null) {
                 typeChip?.isVisible = false
                 subtitleTv.text = getString(R.string.home_status_tap_to_select)
+                updateLatencyBadge(currentCtx, null)
                 return@launch
             }
             subtitleTv.text = entity.displayName()
@@ -870,6 +888,40 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             } else {
                 typeChip?.isVisible = false
             }
+            updateLatencyBadge(currentCtx, entity)
+        }
+    }
+
+    private fun updateLatencyBadge(ctx: Context, entity: ProxyEntity?) {
+        val modeTv = statusModeTag ?: return
+        val secondaryInk = ctx.getColorAttr(android.R.attr.textColorSecondary)
+        val displayLatency = if (currentState == BaseService.State.Connected && lastUrlTestLatencyMs > 0) {
+            lastUrlTestLatencyMs
+        } else {
+            entity?.latency ?: 0
+        }
+        if (displayLatency == 0) {
+            modeTv.isVisible = false
+            return
+        }
+        val colorRes = when {
+            displayLatency < 0 -> R.color.material_red_500
+            displayLatency < 300 -> R.color.material_green_500
+            displayLatency < 800 -> R.color.material_amber_500
+            else -> R.color.material_red_500
+        }
+        val badgeInk = ContextCompat.getColor(ctx, colorRes)
+        modeTv.isVisible = true
+        modeTv.text = if (displayLatency > 0) {
+            "$displayLatency ms"
+        } else {
+            getString(R.string.unavailable)
+        }
+        modeTv.setTextColor(badgeInk.takeIf { it != 0 } ?: secondaryInk)
+        modeTv.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp2px(8).toFloat()
+            setColor(Theme.resolveNestedBoxBackground(ctx))
         }
     }
 
@@ -958,6 +1010,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                     mainActivity.urlTest()
                 }
                 hasTestStatus = true
+                if (elapsed > 0) {
+                    lastUrlTestLatencyMs = elapsed
+                    updateStatusBanner()
+                }
                 lastTestStatusText = if (elapsed == ProxyEntity.LATENCY_CONNECT_ONLY) {
                     getString(R.string.test_connect_ok)
                 } else {
@@ -996,18 +1052,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         updateTestBarUi()
     }
 
-    private fun updateStatusModeTag() {
-        val modeTv = statusModeTag ?: return
-        val nextText = if (currentState == BaseService.State.Connected && latestConnections > 0) {
-            getString(R.string.home_connections_count, latestConnections)
-        } else if (DataStore.serviceMode == Key.MODE_VPN) {
-            getString(R.string.service_mode_vpn)
-        } else {
-            getString(R.string.route_proxy)
-        }
-        if (modeTv.text != nextText) modeTv.text = nextText
-    }
-
     private fun refreshRunningModeCard() {
         context ?: return
         val targetId = activeTargetProfileId()
@@ -1023,39 +1067,19 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 resolvedRoute to DataStore.enableWarp
             }
             val currentCtx = context ?: return@launch
-            val isAnyAmoled = Theme.isAnyAmoled(currentCtx) || Theme.isMonochromeBlack(currentCtx)
             val accent = ExpressiveSettingsHelper.resolveAccentColor(currentCtx)
             val activeInk = if (Theme.isMonochromeBlack(currentCtx)) Color.WHITE else accent
-            val secondaryInk = currentCtx.getColorAttr(android.R.attr.textColorSecondary)
 
-            val routeTitle = route.name.trim().ifEmpty { getString(R.string.home_route_rule) }
+            val rawName = route.name.trim()
+            val menuRouteLabel = getString(R.string.menu_route)
+            val routeTitle = if (rawName.isEmpty() || rawName.equals(menuRouteLabel, ignoreCase = true)) {
+                getString(R.string.group_default_name)
+            } else {
+                rawName
+            }
             pillRuleText?.text = routeTitle
             pillRuleText?.setTextColor(currentCtx.getColorAttr(android.R.attr.textColorPrimary))
             routeIcon?.setColorFilter(activeInk)
-
-            val outboundLabel = when (route.default_outbound_id) {
-                OutboundIds.DIRECT -> getString(R.string.home_route_direct)
-                OutboundIds.BLOCK -> getString(R.string.home_route_block)
-                else -> getString(R.string.route_proxy)
-            }
-            val isProxyDefault = route.default_outbound_id != OutboundIds.DIRECT &&
-                route.default_outbound_id != OutboundIds.BLOCK
-            routeOutboundBadge?.text = outboundLabel
-            routeOutboundBadge?.setTextColor(if (isProxyDefault) activeInk else secondaryInk)
-            routeOutboundBadge?.background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = dp2px(6).toFloat()
-                setColor(
-                    if (isProxyDefault) {
-                        ColorUtils.setAlphaComponent(activeInk, if (Theme.usingNightMode(currentCtx)) 42 else 28)
-                    } else {
-                        Theme.resolveNestedBoxBackground(currentCtx)
-                    },
-                )
-                if (isProxyDefault) {
-                    setStroke(dp2px(1), ColorUtils.setAlphaComponent(activeInk, if (isAnyAmoled) 140 else 88))
-                }
-            }
 
             val activeRuleCount = route.rules.count { !it.disabled && !it.isEmpty() }
             val ruleSummary = if (activeRuleCount > 0) {
@@ -1068,64 +1092,134 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     }
 
     private fun refreshNetworkEgressCard() {
+        val appCtx = context?.applicationContext ?: return
         val targetId = activeTargetProfileId()
         viewLifecycleOwner.lifecycleScope.launch {
             val loaded = withContext(Dispatchers.IO) {
                 val entity = if (targetId > 0L) {
                     SagerDatabase.proxyDao.getById(targetId)
                 } else {
-                    SagerDatabase.proxyDao.getAll().firstOrNull()
+                    null
                 }
-                val group = entity?.groupId?.takeIf { it > 0L }?.let { SagerDatabase.groupDao.getById(it) }
-                entity to group
+                val cm = appCtx.getSystemService(ConnectivityManager::class.java)
+                val snapshot = cm?.let { runCatching { NetworkInterfacesRepository(it).collect() }.getOrNull() }
+                entity to snapshot
             }
             val ctx = context ?: return@launch
             val entity = loaded.first
-            val group = loaded.second
+            val snapshot = loaded.second
+            val picked = snapshot?.let(::selectPrimaryLocalIp)
             val secondary = ctx.getColorAttr(android.R.attr.textColorSecondary)
 
-            if (entity == null) {
+            if (picked != null) {
+                val iface = picked.first
+                val kindLabel = when (iface.kind) {
+                    InterfaceKind.WIFI -> getString(R.string.home_iface_wifi)
+                    InterfaceKind.ETHERNET -> getString(R.string.home_iface_ethernet)
+                    InterfaceKind.CELLULAR -> getString(R.string.home_iface_cellular)
+                    InterfaceKind.VPN -> getString(R.string.home_iface_vpn)
+                    InterfaceKind.OTHER -> getString(R.string.home_iface_other)
+                }
+                networkLatencyText?.isVisible = true
+                networkLatencyText?.text = kindLabel
+                networkLatencyText?.setTextColor(secondary)
+                networkLatencyText?.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp2px(6).toFloat()
+                    setColor(Theme.resolveNestedBoxBackground(ctx))
+                }
+            } else {
                 networkLatencyText?.isVisible = false
-                networkIpText?.text = getString(R.string.not_connected)
-                networkMetaText?.text = getString(R.string.profile_empty)
+            }
+
+            val exitInfo = ExitIp.info?.takeIf { currentState == BaseService.State.Connected }
+            val localIp = picked?.second?.address?.substringBefore('%')
+
+            if (exitInfo != null) {
+                val flag = TestFormat.flag(exitInfo.countryCode)
+                val exitIpStr = exitInfo.ip.ifBlank { exitInfo.country }
+                networkIpText?.text = if (flag.isEmpty()) exitIpStr else "$flag\u00A0$exitIpStr"
+                val countryName = if (TestFormat.isCountryCode(exitInfo.countryCode)) {
+                    TestFormat.countryName(exitInfo.countryCode)
+                } else {
+                    exitInfo.country
+                }
+                networkMetaText?.text = when {
+                    picked != null && localIp != null && countryName.isNotEmpty() ->
+                        "$countryName · ${picked.first.name} ($localIp)"
+                    countryName.isNotEmpty() -> countryName
+                    picked != null && localIp != null -> "${picked.first.name} ($localIp)"
+                    else -> getString(R.string.home_network)
+                }
                 return@launch
             }
 
-            val country = entity.testCountry?.trim().orEmpty()
-            val flagPrefix = if (country.length == 2 && country.all { it in 'A'..'Z' || it in 'a'..'z' }) {
-                "${ProxyEntity.countryFlag(country)} "
-            } else if (country.isNotEmpty()) {
-                "$country "
-            } else {
-                ""
+            val storedIpOut = entity?.ipOut?.trim()?.takeIf {
+                currentState == BaseService.State.Connected && it.isNotEmpty()
             }
-            val endpoint = entity.ipOut?.trim()?.takeIf { it.isNotEmpty() }
-                ?: entity.displayAddress().trim().takeIf { it.isNotEmpty() }
-                ?: entity.displayName()
-            networkIpText?.text = "$flagPrefix$endpoint"
-
-            val latency = entity.latency
-            if (latency > 0) {
-                networkLatencyText?.isVisible = true
-                networkLatencyText?.text = "$latency ms"
-                networkLatencyText?.setTextColor(entity.latencyColor().takeIf { it != 0 } ?: secondary)
-            } else if (latency < 0) {
-                networkLatencyText?.isVisible = true
-                networkLatencyText?.text = getString(R.string.unavailable)
-                networkLatencyText?.setTextColor(entity.latencyColor().takeIf { it != 0 } ?: secondary)
-            } else {
-                networkLatencyText?.isVisible = false
+            if (storedIpOut != null) {
+                val country = entity.testCountry?.trim().orEmpty()
+                val flagPrefix = if (country.length == 2 && country.all { it in 'A'..'Z' || it in 'a'..'z' }) {
+                    "${ProxyEntity.countryFlag(country)}\u00A0"
+                } else {
+                    ""
+                }
+                networkIpText?.text = "$flagPrefix$storedIpOut"
+                networkMetaText?.text = if (picked != null && localIp != null) {
+                    "${picked.first.name} · $localIp"
+                } else {
+                    country.ifEmpty { getString(R.string.home_network) }
+                }
+                return@launch
             }
 
-            val dlSpeed = entity.dlSpeed?.trim()?.takeIf { it.isNotEmpty() && it != ProxyEntity.SPEED_NA }
-            val detail = dlSpeed?.let { "↓$it" }
-                ?: group?.displayName()?.takeIf { it.isNotBlank() }
-            networkMetaText?.text = if (detail != null) {
-                "${entity.displayType()} · $detail"
+            if (picked != null && localIp != null) {
+                networkIpText?.text = localIp
+                networkMetaText?.text = picked.second.prefixLength?.let {
+                    "${picked.first.name} · /$it"
+                } ?: picked.first.name
             } else {
-                entity.displayType()
+                networkIpText?.text = getString(R.string.not_connected)
+                networkMetaText?.text = getString(R.string.home_local_ip_none)
             }
         }
+    }
+
+    private fun selectPrimaryLocalIp(snapshot: NetworkInterfacesSnapshot): Pair<NetworkInterfaceInfo, InterfaceIp>? {
+        val activeName = snapshot.activeNetwork?.interfaceName
+        fun usableIp(iface: NetworkInterfaceInfo, wantIpv4: Boolean): InterfaceIp? =
+            iface.addresses.firstOrNull { ip ->
+                val raw = ip.address.substringBefore('%')
+                val isV4 = !ip.ipv6
+                isV4 == wantIpv4 &&
+                    !raw.startsWith("127.") &&
+                    !raw.startsWith("169.254.") &&
+                    !raw.startsWith("fe80:", ignoreCase = true) &&
+                    raw != "::1"
+            }
+
+        fun rank(iface: NetworkInterfaceInfo): Int = when {
+            !iface.isVpn && iface.name == activeName -> 0
+            !iface.isVpn && iface.kind == InterfaceKind.WIFI -> 1
+            !iface.isVpn && iface.kind == InterfaceKind.ETHERNET -> 2
+            !iface.isVpn && iface.hotspot == HotspotKind.CONFIRMED -> 3
+            !iface.isVpn && iface.kind == InterfaceKind.CELLULAR -> 4
+            !iface.isVpn && iface.isDefaultRoute -> 5
+            !iface.isVpn -> 6
+            else -> 7
+        }
+
+        val candidates = snapshot.interfaces
+            .filter { it.up != false && !it.loopback }
+            .sortedWith(compareBy<NetworkInterfaceInfo> { rank(it) }.thenBy { it.name })
+
+        for (iface in candidates) {
+            usableIp(iface, wantIpv4 = true)?.let { return iface to it }
+        }
+        for (iface in candidates) {
+            usableIp(iface, wantIpv4 = false)?.let { return iface to it }
+        }
+        return null
     }
 
     private fun refreshAppProxyCard() {
@@ -1358,6 +1452,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             val card = cardSubscription ?: return@launch
             val subGroup = loaded.first
             val memberCount = loaded.second
+            currentSubGroupId = subGroup?.id ?: 0L
             if (subGroup == null) {
                 portalUri = null
                 subPortalBtn?.isVisible = false
@@ -1508,10 +1603,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         if (last < 0) {
             cpuTv?.text = zeroPct
             ramTv?.text = zeroBytes
-            if (latestConnections != 0) {
-                latestConnections = 0
-                updateStatusModeTag()
-            }
             return
         }
 
@@ -1520,13 +1611,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
         val mem = series.value(LiveStatsBatch.MEMORY, last)
         ramTv?.text = if (mem.isNaN()) zeroBytes else (bytesAxis?.format(mem.toDouble()) ?: zeroBytes)
-
-        val conns = series.value(LiveStatsBatch.CONNECTIONS, last)
-        val count = if (conns.isNaN()) 0 else conns.roundToInt().coerceAtLeast(0)
-        if (latestConnections != count) {
-            latestConnections = count
-            updateStatusModeTag()
-        }
     }
 
     private fun updateTrafficTotalsUi() {

@@ -39,7 +39,7 @@
     <string name="theme">Tema</string>
     <string name="menu_about">Hakkında</string>
     <string name="menu_group">Grup</string>
-    <string name="menu_configuration">Yapılandırma</string>
+    <string name="menu_configuration">Profiller</string>
     <string name="username">Kullanıcı adı</string>
     <string name="server_port">Uzak Bağlantı Noktası</string>
     <string name="server_address">Sunucu</string>
