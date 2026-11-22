@@ -137,7 +137,7 @@ class NetworkFragment : Fragment(R.layout.layout_network) {
         )
 
         for (spec in specs) {
-            ExpressiveSettingsHelper.styleExpressiveCard(spec.card, cornerRadiusDp = 20f)
+            ExpressiveSettingsHelper.styleExpressiveCard(spec.card, cornerRadiusDp = 16f)
             ResourcesCompat.getDrawable(ctx.resources, spec.iconRes, null)?.let { raw ->
                 spec.iconView.setImageDrawable(
                     ExpressiveSettingsHelper.createMaskedIcon(
@@ -145,8 +145,8 @@ class NetworkFragment : Fragment(R.layout.layout_network) {
                         raw,
                         badgeContainer,
                         badgeIconColor,
-                        sizeDp = 42,
-                        iconSizeDp = 22,
+                        sizeDp = 36,
+                        iconSizeDp = 19,
                         shape = ExpressiveShape.SQUIRCLE,
                     ),
                 )
