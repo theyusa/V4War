@@ -84,23 +84,17 @@ class DnsLeakActivity : ThemedActivity() {
         binding.scrollDnsLeak.applyListInsets()
         listOf(
             binding.cardVerdict,
-            binding.cardFakeIp,
-            binding.cardEgress,
-            binding.cardResolver,
-            binding.cardSystemDns,
+            binding.cardDetails,
         ).forEach { ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 20f) }
 
-        ExpressiveSettingsHelper.applySquircleIcon(binding.imageVerdictIcon, R.drawable.ic_baseline_security_24, sizeDp = 42, iconSizeDp = 22)
-        ExpressiveSettingsHelper.applySquircleIcon(binding.iconFakeIpBadge, R.drawable.ic_baseline_layers_24)
-        ExpressiveSettingsHelper.applySquircleIcon(binding.iconEgressBadge, R.drawable.baseline_public_24)
-        ExpressiveSettingsHelper.applySquircleIcon(binding.iconResolverBadge, R.drawable.ic_action_dns)
-        ExpressiveSettingsHelper.applySquircleIcon(binding.iconSystemDnsBadge, R.drawable.ic_action_settings)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.imageVerdictIcon, R.drawable.ic_baseline_security_24, sizeDp = 38, iconSizeDp = 20)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconFakeIpBadge, R.drawable.ic_baseline_layers_24, sizeDp = 32, iconSizeDp = 17)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconEgressBadge, R.drawable.baseline_public_24, sizeDp = 32, iconSizeDp = 17)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconResolverBadge, R.drawable.ic_action_dns, sizeDp = 32, iconSizeDp = 17)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconSystemDnsBadge, R.drawable.ic_action_settings, sizeDp = 32, iconSizeDp = 17)
 
-        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.layoutRecommendation, cornerRadiusDp = 14f, strokeAlpha = 160)
-        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.layoutFakeIpSamples, cornerRadiusDp = 14f, strokeAlpha = 160)
-        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.boxEgressIp, cornerRadiusDp = 14f, strokeAlpha = 160)
-        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.boxResolverIp, cornerRadiusDp = 14f, strokeAlpha = 160)
-        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.boxSystemDns, cornerRadiusDp = 14f, strokeAlpha = 160)
+        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.layoutRecommendation, cornerRadiusDp = 12f, strokeAlpha = 140)
+        ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.layoutFakeIpSamples, cornerRadiusDp = 12f, strokeAlpha = 140)
 
         val accent = ExpressiveSettingsHelper.resolveAccentColor(this)
         binding.progressIndicator.setIndicatorColor(accent)
@@ -113,7 +107,7 @@ class DnsLeakActivity : ThemedActivity() {
         ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeFakeIp)
         ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeWarp)
         ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeResolverStatus)
-        ExpressiveSettingsHelper.stylePrimaryButton(binding.btnRerunTest)
+        ExpressiveSettingsHelper.styleOutlinedButton(binding.btnRerunTest)
     }
 
     private fun copyToClipboard(label: String, text: String) {
@@ -129,7 +123,7 @@ class DnsLeakActivity : ThemedActivity() {
         binding.btnRerunTest.setText(R.string.connection_test_testing)
 
         // Reset UI to testing state without empty badges or hollow boxes
-        ExpressiveSettingsHelper.applySquircleIcon(binding.imageVerdictIcon, R.drawable.ic_baseline_security_24, sizeDp = 42, iconSizeDp = 22)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.imageVerdictIcon, R.drawable.ic_baseline_security_24, sizeDp = 38, iconSizeDp = 20)
         ExpressiveSettingsHelper.styleExpressiveBadge(binding.badgeVerdict)
         binding.textVerdictTitle.setText(R.string.dns_leak_verdict_card_title)
         binding.badgeVerdict.visibility = View.VISIBLE
@@ -300,7 +294,7 @@ class DnsLeakActivity : ThemedActivity() {
     ) {
         binding.progressIndicator.visibility = View.GONE
         binding.btnRerunTest.isEnabled = true
-        binding.btnRerunTest.setText(R.string.start_dns_leak_test)
+        binding.btnRerunTest.setText(R.string.ip_lookup_refresh)
 
         val colorError = ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.ERROR)
         val colorSuccess = ExpressiveSettingsHelper.resolveSemanticColor(this, ExpressiveSettingsHelper.SemanticRole.SUCCESS)

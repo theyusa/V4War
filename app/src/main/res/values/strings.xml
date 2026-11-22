@@ -3372,4 +3372,6 @@
     <string name="lan_sharing_device_route_bt_idle">Bluetooth Tether</string>
     <string name="home_network_hide_ip">Hide IP address</string>
     <string name="home_network_show_ip">Show IP address</string>
+    <string name="hotspot_share_btn_start">Start</string>
+    <string name="hotspot_share_btn_stop">Stop</string>
 </resources>

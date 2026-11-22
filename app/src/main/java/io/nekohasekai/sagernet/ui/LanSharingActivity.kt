@@ -112,7 +112,7 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
     private var statusReceiver: BroadcastReceiver? = null
     private var suppressShareSwitchCallback = false
     private var suppressGatewaySwitchCallback = false
-    private var suppressHotspotShareSwitchCallback = false
+    private var hotspotShareToggleChecked = false
     private var suppressLogsSwitchCallback = false
     private var suppressMainTabCallback = false
     private var suppressSubTabCallback = false
@@ -1820,14 +1820,53 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
 
 
     private fun setHotspotShareSwitchCheckedSilent(checked: Boolean) {
-        suppressHotspotShareSwitchCallback = true
-        binding.switchHotspotShare.isChecked = checked
-        suppressHotspotShareSwitchCallback = false
+        hotspotShareToggleChecked = checked
+        updateHotspotShareToggleButton(checked)
+    }
+
+    private fun updateHotspotShareToggleButton(active: Boolean) {
+        val btn = binding.btnHotspotShareToggle
+        val isNight = io.nekohasekai.sagernet.utils.Theme.usingNightMode(this)
+        val accent = ExpressiveSettingsHelper.resolveAccentColor(this)
+        val activeColor = ExpressiveSettingsHelper.resolveSemanticColor(
+            this,
+            ExpressiveSettingsHelper.SemanticRole.SUCCESS,
+        )
+        val primaryInk = getColorAttr(android.R.attr.textColorPrimary)
+        val nestedBg = io.nekohasekai.sagernet.utils.Theme.resolveNestedBoxBackground(this)
+        val strokeBase = io.nekohasekai.sagernet.utils.Theme.resolveCardStrokeColor(this, selected = false)
+
+        btn.setText(if (active) R.string.hotspot_share_btn_stop else R.string.hotspot_share_btn_start)
+        val fill = if (active) {
+            androidx.core.graphics.ColorUtils.setAlphaComponent(activeColor, if (isNight) 54 else 36)
+        } else {
+            androidx.core.graphics.ColorUtils.blendARGB(nestedBg, accent, if (isNight) 0.14f else 0.08f)
+        }
+        val ink = if (active) activeColor else primaryInk
+        val stroke = if (active) {
+            androidx.core.graphics.ColorUtils.setAlphaComponent(activeColor, if (isNight) 170 else 130)
+        } else {
+            strokeBase
+        }
+        btn.backgroundTintList = android.content.res.ColorStateList.valueOf(fill)
+        btn.setTextColor(ink)
+        btn.iconTint = android.content.res.ColorStateList.valueOf(ink)
+        btn.strokeColor = android.content.res.ColorStateList.valueOf(stroke)
+        btn.strokeWidth = io.nekohasekai.sagernet.ktx.dp2px(1)
     }
 
     private fun setupHotspotShareViews() {
-        binding.switchHotspotShare.setOnCheckedChangeListener { _, isChecked ->
-            if (suppressHotspotShareSwitchCallback) return@setOnCheckedChangeListener
+        updateHotspotShareToggleButton(hotspotShareToggleChecked)
+
+        val toggleClick = View.OnClickListener {
+            io.nekohasekai.sagernet.utils.HapticHelper.perform(
+                this,
+                binding.btnHotspotShareToggle,
+                io.nekohasekai.sagernet.utils.HapticHelper.HapticKind.SELECTION,
+            )
+            val isChecked = !hotspotShareToggleChecked
+            hotspotShareToggleChecked = isChecked
+            updateHotspotShareToggleButton(isChecked)
             if (isChecked) {
                 if (!DataStore.serviceState.connected) {
                     Toast.makeText(this, R.string.hotspot_share_vpn_not_running, Toast.LENGTH_LONG).show()
@@ -1879,9 +1918,8 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
             lifecycleScope.launch { pollClientDevicesOnce(force = true) }
         }
 
-        binding.rowSwitchHotspotShare.setOnClickListener {
-            binding.switchHotspotShare.toggle()
-        }
+        binding.btnHotspotShareToggle.setOnClickListener(toggleClick)
+        binding.rowSwitchHotspotShare.setOnClickListener(toggleClick)
 
         // Method selector spinner (disable Root entry visually & functionally when no root exists)
         val methodEntries = listOf(

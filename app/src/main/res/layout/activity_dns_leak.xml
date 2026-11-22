@@ -16,6 +16,9 @@
         style="@style/Widget.Material3Expressive.LinearProgressIndicator.Wavy"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
         android:indeterminate="true"
         android:visibility="gone"
         app:trackCornerRadius="4dp" />
@@ -34,9 +37,9 @@
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
             android:paddingTop="8dp"
-            android:paddingBottom="28dp">
+            android:paddingBottom="24dp">
 
-            <!-- Diagnostic Verdict Card -->
+            <!-- Minimalist Verdict Hero Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardVerdict"
                 android:layout_width="match_parent"
@@ -51,7 +54,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="14dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -61,8 +64,8 @@
 
                         <ImageView
                             android:id="@+id/imageVerdictIcon"
-                            android:layout_width="42dp"
-                            android:layout_height="42dp"
+                            android:layout_width="38dp"
+                            android:layout_height="38dp"
                             android:layout_marginEnd="12dp"
                             android:importantForAccessibility="no" />
 
@@ -78,7 +81,7 @@
                                 android:layout_height="wrap_content"
                                 android:fontFamily="sans-serif-medium"
                                 android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="15.5sp"
+                                android:textSize="14.5sp"
                                 tools:text="DNS Queries Protected" />
 
                             <TextView
@@ -86,157 +89,75 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="4dp"
-                                android:paddingHorizontal="10dp"
-                                android:paddingVertical="3dp"
                                 android:fontFamily="sans-serif-medium"
-                                android:textSize="11.5sp"
+                                android:paddingHorizontal="8dp"
+                                android:paddingVertical="2dp"
+                                android:textSize="11sp"
                                 tools:text="SECURE (No Leak)" />
                         </LinearLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnRerunTest"
+                            style="@style/Widget.Material3Expressive.Button.TonalButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="8dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minWidth="0dp"
+                            android:minHeight="0dp"
+                            android:paddingHorizontal="12dp"
+                            android:text="@string/start_dns_leak_test"
+                            android:textSize="12sp"
+                            app:icon="@drawable/ic_baseline_refresh_24"
+                            app:iconPadding="4dp"
+                            app:iconSize="16dp" />
                     </LinearLayout>
 
                     <TextView
                         android:id="@+id/textVerdictDesc"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="10dp"
                         android:lineSpacingMultiplier="1.15"
                         android:textColor="?android:attr/textColorSecondary"
-                        android:textSize="13.5sp"
-                        tools:text="All DNS queries are safely routed through your VPN tunnel. Zero ISP leak detected." />
+                        android:textSize="12.5sp"
+                        tools:text="All DNS queries are safely routed through your VPN tunnel." />
 
-                    <!-- Recommendation Box -->
                     <LinearLayout
                         android:id="@+id/layoutRecommendation"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:gravity="top"
+                        android:layout_marginTop="10dp"
+                        android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:padding="12dp">
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="8dp"
+                        android:visibility="gone">
 
                         <ImageView
                             android:id="@+id/iconRecommendation"
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
-                            android:layout_marginTop="1dp"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_marginEnd="8dp"
                             android:importantForAccessibility="no"
-                            android:src="@drawable/ic_baseline_info_24"
-                            app:tint="?attr/primaryOrTextPrimary" />
+                            android:src="@drawable/ic_baseline_info_24" />
 
                         <TextView
                             android:id="@+id/textRecommendation"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:lineSpacingMultiplier="1.15"
-                            android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="12.5sp"
-                            tools:text="Your current connection setup is completely secure against DNS leaks." />
-                    </LinearLayout>
-                    <!-- Action Button -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnRerunTest"
-                        style="@style/Widget.SagerNet.Button"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp"
-                        android:minHeight="48dp"
-                        android:paddingVertical="10dp"
-                        android:text="@string/start_dns_leak_test"
-                        android:textAllCaps="false"
-                        android:textSize="13.5sp"
-                        app:icon="@drawable/ic_baseline_refresh_24"
-                        app:iconGravity="textStart" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Stage 1: Fake-IP Card -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardFakeIp"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeColor="?attr/colorOutline"
-                app:strokeWidth="?attr/cardStrokeWidth">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:id="@+id/iconFakeIpBadge"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:layout_marginEnd="12dp"
-                            android:importantForAccessibility="no" />
-
-                        <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:fontFamily="sans-serif-medium"
-                                android:text="@string/dns_leak_fakeip_card_title"
-                                android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="15.5sp" />
-
-                            <TextView
-                                android:id="@+id/badgeFakeIp"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:paddingHorizontal="10dp"
-                                android:paddingVertical="3dp"
-                                android:textSize="12sp"
-                                android:textStyle="bold"
-                                android:visibility="gone"
-                                tools:text="Active"
-                                tools:visibility="visible" />
-                        </LinearLayout>
+                            android:lineSpacingMultiplier="1.1"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="11.5sp" />
                     </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/textFakeIpSummary"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:lineSpacingMultiplier="1.15"
-                        android:textColor="?android:attr/textColorSecondary"
-                        android:textSize="13.5sp"
-                        tools:text="Fake-IP mode is active. Domains are intercepted and synthesized locally." />
-
-                    <LinearLayout
-                        android:id="@+id/layoutFakeIpSamples"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:orientation="vertical"
-                        android:paddingHorizontal="12dp"
-                        android:paddingVertical="8dp"
-                        android:visibility="gone" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Stage 2: Client Public Egress Card -->
+            <!-- Unified Minimalist Breakdown Card -->
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardEgress"
+                android:id="@+id/cardDetails"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
@@ -250,8 +171,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="14dp">
 
+                    <!-- Row 1: Client Public Egress -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -260,105 +182,89 @@
 
                         <ImageView
                             android:id="@+id/iconEgressBadge"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:layout_marginEnd="12dp"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_marginEnd="10dp"
                             android:importantForAccessibility="no" />
 
-                        <TextView
+                        <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:fontFamily="sans-serif-medium"
-                            android:text="@string/dns_leak_egress_card_title"
-                            android:textColor="?android:attr/textColorPrimary"
-                            android:textSize="15.5sp" />
+                            android:orientation="vertical">
 
-                        <TextView
-                            android:id="@+id/badgeWarp"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:paddingHorizontal="10dp"
-                            android:paddingVertical="3dp"
-                            android:textSize="12.5sp"
-                            android:textStyle="bold"
-                            android:visibility="gone"
-                            tools:text="WARP"
-                            tools:visibility="visible" />
-                    </LinearLayout>
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
 
-                    <LinearLayout
-                        android:id="@+id/boxEgressIp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="12dp"
-                        android:paddingVertical="8dp">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:text="@string/dns_leak_egress_card_title"
+                                    android:textColor="?android:attr/textColorSecondary"
+                                    android:textSize="11.5sp" />
 
-                        <TextView
-                            android:id="@+id/textEgressIp"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:fontFamily="sans-serif-medium"
-                            android:fontFeatureSettings="tnum"
-                            android:textColor="?android:attr/textColorPrimary"
-                            android:textIsSelectable="true"
-                            android:textSize="15.5sp"
-                            tools:text="185.157.217.124" />
+                                <TextView
+                                    android:id="@+id/badgeWarp"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="6dp"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:paddingHorizontal="6dp"
+                                    android:paddingVertical="1dp"
+                                    android:textSize="10sp"
+                                    android:visibility="gone"
+                                    tools:text="WARP" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/textEgressIp"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFamily="sans-serif-medium"
+                                android:fontFeatureSettings="tnum"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="14sp"
+                                tools:text="185.248.141.233" />
+
+                            <TextView
+                                android:id="@+id/textEgressLocation"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="1dp"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="11.5sp"
+                                tools:text="Frankfurt, Germany" />
+                        </LinearLayout>
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnCopyEgressIp"
-                            style="@style/Widget.Material3Expressive.Button.IconButton.Standard"
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
+                            style="@style/Widget.Material3Expressive.Button.IconButton"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
                             android:contentDescription="@string/network_interfaces_copy_hint"
                             android:insetLeft="0dp"
                             android:insetTop="0dp"
                             android:insetRight="0dp"
                             android:insetBottom="0dp"
-                            android:minWidth="0dp"
-                            android:minHeight="0dp"
-                            android:padding="0dp"
+                            android:visibility="gone"
                             app:icon="@drawable/ic_content_copy"
-                            app:iconGravity="textStart"
-                            app:iconPadding="0dp"
-                            app:iconSize="20dp"
-                            app:iconTint="?attr/primaryOrTextPrimary" />
+                            app:iconSize="16dp" />
                     </LinearLayout>
 
-                    <TextView
-                        android:id="@+id/textEgressLocation"
+                    <View
+                        android:id="@+id/dividerLeak1"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:lineSpacingMultiplier="1.15"
-                        android:textColor="?android:attr/textColorSecondary"
-                        android:textSize="13.5sp"
-                        tools:text="Location: Turkey (TR)" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="10dp"
+                        android:alpha="0.12"
+                        android:background="?android:attr/textColorSecondary" />
 
-            <!-- Stage 3: DNS Resolver Egress Card -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardResolver"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeColor="?attr/colorOutline"
-                app:strokeWidth="?attr/cardStrokeWidth">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
+                    <!-- Row 2: DNS Resolver (Leak Check) -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -367,9 +273,185 @@
 
                         <ImageView
                             android:id="@+id/iconResolverBadge"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:layout_marginEnd="12dp"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_marginEnd="10dp"
+                            android:importantForAccessibility="no" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:text="@string/dns_leak_resolver_card_title"
+                                    android:textColor="?android:attr/textColorSecondary"
+                                    android:textSize="11.5sp" />
+
+                                <TextView
+                                    android:id="@+id/badgeResolverStatus"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="6dp"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:paddingHorizontal="6dp"
+                                    android:paddingVertical="1dp"
+                                    android:textSize="10sp"
+                                    android:visibility="gone"
+                                    tools:text="EDNS" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/textResolverIp"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFamily="sans-serif-medium"
+                                android:fontFeatureSettings="tnum"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="14sp"
+                                tools:text="172.71.164.10" />
+
+                            <TextView
+                                android:id="@+id/textResolverGeo"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="1dp"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="11.5sp"
+                                tools:text="Cloudflare" />
+
+                            <TextView
+                                android:id="@+id/textResolverNote"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="11sp"
+                                android:visibility="gone" />
+                        </LinearLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnCopyResolverIp"
+                            style="@style/Widget.Material3Expressive.Button.IconButton"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:contentDescription="@string/network_interfaces_copy_hint"
+                            android:insetLeft="0dp"
+                            android:insetTop="0dp"
+                            android:insetRight="0dp"
+                            android:insetBottom="0dp"
+                            android:visibility="gone"
+                            app:icon="@drawable/ic_content_copy"
+                            app:iconSize="16dp" />
+                    </LinearLayout>
+
+                    <View
+                        android:id="@+id/dividerLeak2"
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="10dp"
+                        android:alpha="0.12"
+                        android:background="?android:attr/textColorSecondary" />
+
+                    <!-- Row 3: Fake-IP & Interception -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="top"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:id="@+id/iconFakeIpBadge"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_marginEnd="10dp"
+                            android:importantForAccessibility="no" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:text="@string/dns_leak_fakeip_card_title"
+                                    android:textColor="?android:attr/textColorSecondary"
+                                    android:textSize="11.5sp" />
+
+                                <TextView
+                                    android:id="@+id/badgeFakeIp"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="6dp"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:paddingHorizontal="6dp"
+                                    android:paddingVertical="1dp"
+                                    android:textSize="10sp"
+                                    android:visibility="gone"
+                                    tools:text="Inactive" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/textFakeIpSummary"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="12.5sp"
+                                tools:text="Standard tunneled DNS is resolving domain addresses." />
+
+                            <LinearLayout
+                                android:id="@+id/layoutFakeIpSamples"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="6dp"
+                                android:orientation="vertical"
+                                android:paddingHorizontal="10dp"
+                                android:paddingVertical="6dp"
+                                android:visibility="gone" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <View
+                        android:id="@+id/dividerLeak3"
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="10dp"
+                        android:alpha="0.12"
+                        android:background="?android:attr/textColorSecondary" />
+
+                    <!-- Row 4: System & Private DNS -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:id="@+id/iconSystemDnsBadge"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_marginEnd="10dp"
                             android:importantForAccessibility="no" />
 
                         <LinearLayout
@@ -382,163 +464,33 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:fontFamily="sans-serif-medium"
-                                android:text="@string/dns_leak_resolver_card_title"
-                                android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="15.5sp" />
+                                android:text="@string/dns_leak_system_dns_card_title"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="11.5sp" />
 
                             <TextView
-                                android:id="@+id/badgeResolverStatus"
-                                android:layout_width="wrap_content"
+                                android:id="@+id/textSystemDnsSummary"
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:paddingHorizontal="10dp"
-                                android:paddingVertical="3dp"
-                                android:textSize="12sp"
-                                android:textStyle="bold"
+                                android:layout_marginTop="2dp"
+                                android:fontFeatureSettings="tnum"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="12.5sp"
+                                tools:text="Active DNS: 10.0.2.3 (wlan0)" />
+
+                            <TextView
+                                android:id="@+id/textPrivateDns"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="1dp"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="11.5sp"
                                 android:visibility="gone"
-                                tools:text="EDNS Probe"
-                                tools:visibility="visible" />
+                                tools:text="Private DNS: Off" />
                         </LinearLayout>
                     </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/boxResolverIp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="12dp"
-                        android:paddingVertical="8dp">
-
-                        <TextView
-                            android:id="@+id/textResolverIp"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:fontFamily="sans-serif-medium"
-                            android:fontFeatureSettings="tnum"
-                            android:textColor="?android:attr/textColorPrimary"
-                            android:textIsSelectable="true"
-                            android:textSize="15.5sp"
-                            tools:text="104.22.145.72" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnCopyResolverIp"
-                            style="@style/Widget.Material3Expressive.Button.IconButton.Standard"
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
-                            android:contentDescription="@string/network_interfaces_copy_hint"
-                            android:insetLeft="0dp"
-                            android:insetTop="0dp"
-                            android:insetRight="0dp"
-                            android:insetBottom="0dp"
-                            android:minWidth="0dp"
-                            android:minHeight="0dp"
-                            android:padding="0dp"
-                            app:icon="@drawable/ic_content_copy"
-                            app:iconGravity="textStart"
-                            app:iconPadding="0dp"
-                            app:iconSize="20dp"
-                            app:iconTint="?attr/primaryOrTextPrimary" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/textResolverGeo"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:lineSpacingMultiplier="1.15"
-                        android:textColor="?android:attr/textColorSecondary"
-                        android:textSize="13.5sp"
-                        tools:text="ISP / Geo: Turkey - Cloudflare, Inc." />
-
-                    <TextView
-                        android:id="@+id/textResolverNote"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:lineSpacingMultiplier="1.15"
-                        android:textColor="?android:attr/textColorSecondary"
-                        android:textSize="12.5sp"
-                        tools:text="Authoritative recursive resolver observed when querying nonce domain." />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- Stage 4: System & Private DNS Card -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardSystemDns"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                app:cardBackgroundColor="?attr/cardElevatedSurfaceColor"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeColor="?attr/colorOutline"
-                app:strokeWidth="?attr/cardStrokeWidth">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:id="@+id/iconSystemDnsBadge"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:layout_marginEnd="12dp"
-                            android:importantForAccessibility="no" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:fontFamily="sans-serif-medium"
-                            android:text="@string/dns_leak_system_dns_card_title"
-                            android:textColor="?android:attr/textColorPrimary"
-                            android:textSize="15.5sp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/boxSystemDns"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <TextView
-                            android:id="@+id/textSystemDnsSummary"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif-medium"
-                            android:fontFeatureSettings="tnum"
-                            android:lineSpacingMultiplier="1.15"
-                            android:textColor="?android:attr/textColorPrimary"
-                            android:textSize="13.5sp"
-                            tools:text="Active DNS: 172.19.0.2 (tun0)" />
-
-                        <TextView
-                            android:id="@+id/textPrivateDns"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:lineSpacingMultiplier="1.15"
-                            android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="13.5sp"
-                            tools:text="Private DNS (DoT): Not active" />
-                    </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
-
 </LinearLayout>

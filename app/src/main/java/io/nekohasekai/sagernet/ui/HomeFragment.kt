@@ -326,6 +326,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var recordedTx: Long = 0L
     private var trafficLoadJob: Job? = null
     private var isNetworkIpMasked: Boolean = false
+    private var lastExitIpRetryElapsedMs: Long = 0L
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -1378,6 +1379,13 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             }
 
             val exitInfo = ExitIp.info?.takeIf { currentState == BaseService.State.Connected }
+            if (currentState == BaseService.State.Connected && exitInfo == null && !ExitIp.refreshing) {
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastExitIpRetryElapsedMs >= 10_000L) {
+                    lastExitIpRetryElapsedMs = now
+                    ExitIp.ensure()
+                }
+            }
             val localIp = picked?.second?.address?.substringBefore('%')
             val displayLocalIp = if (isNetworkIpMasked && localIp != null) MASKED_IP else localIp
 
@@ -1448,11 +1456,11 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
         fun rank(iface: NetworkInterfaceInfo): Int = when {
             !iface.isVpn && iface.name == activeName -> 0
-            !iface.isVpn && iface.kind == InterfaceKind.WIFI -> 1
-            !iface.isVpn && iface.kind == InterfaceKind.ETHERNET -> 2
-            !iface.isVpn && iface.hotspot == HotspotKind.CONFIRMED -> 3
-            !iface.isVpn && iface.kind == InterfaceKind.CELLULAR -> 4
-            !iface.isVpn && iface.isDefaultRoute -> 5
+            !iface.isVpn && iface.isDefaultRoute -> 1
+            !iface.isVpn && iface.kind == InterfaceKind.WIFI -> 2
+            !iface.isVpn && iface.kind == InterfaceKind.ETHERNET -> 3
+            !iface.isVpn && iface.hotspot == HotspotKind.CONFIRMED -> 4
+            !iface.isVpn && iface.kind == InterfaceKind.CELLULAR -> 5
             !iface.isVpn -> 6
             else -> 7
         }

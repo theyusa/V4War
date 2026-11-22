@@ -208,11 +208,23 @@
                                     android:textSize="12sp" />
                             </LinearLayout>
 
-                            <com.google.android.material.switchmaterial.SwitchMaterial
-                                android:id="@+id/switchHotspotShare"
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnHotspotShareToggle"
+                                style="@style/Widget.Material3Expressive.Button.TonalButton"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="12dp" />
+                                android:layout_height="38dp"
+                                android:layout_marginStart="12dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:minWidth="0dp"
+                                android:minHeight="0dp"
+                                android:paddingHorizontal="14dp"
+                                android:text="@string/hotspot_share_btn_start"
+                                android:textSize="12.5sp"
+                                app:cornerRadius="16dp"
+                                app:icon="@drawable/ic_power_settings_new_24"
+                                app:iconPadding="6dp"
+                                app:iconSize="16dp" />
                         </LinearLayout>
 
                         <!-- Status row -->
