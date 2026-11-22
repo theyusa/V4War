@@ -319,6 +319,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var latestSpeed: SpeedDisplayData = SpeedDisplayData()
     private var recordedRx: Long = 0L
     private var recordedTx: Long = 0L
+    private var trafficLoadJob: Job? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -385,6 +386,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         connectionTestJob = null
         statusProfileLoadJob?.cancel()
         statusProfileLoadJob = null
+        trafficLoadJob?.cancel()
+        trafficLoadJob = null
         stunDiagJob?.cancel()
         stunDiagJob = null
         dnsDiagJob?.cancel()
@@ -516,6 +519,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         updateCpuRamUi(running)
         refreshHotspotShareCard()
         refreshSubscriptionCard()
+        refreshTrafficTotals()
         if (!state.connected) {
             latestSpeed = SpeedDisplayData()
             updateSpeedReadout()
@@ -543,6 +547,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         refreshNetworkEgressCard()
         refreshRunningModeCard()
         refreshSubscriptionCard()
+        refreshTrafficTotals()
     }
 
     private fun bindViews(view: View) {
@@ -1770,16 +1775,16 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     }
 
     private fun refreshTrafficTotals() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val (rxSum, txSum) = withContext(Dispatchers.IO) {
-                val all = SagerDatabase.proxyDao.getAll()
-                var dl = 0L
-                var ul = 0L
-                for (p in all) {
-                    dl += p.rx.coerceAtLeast(0L)
-                    ul += p.tx.coerceAtLeast(0L)
+        val targetId = activeTargetProfileId()
+        trafficLoadJob?.cancel()
+        trafficLoadJob = viewLifecycleOwner.lifecycleScope.launch {
+            val (rxSum, txSum) = if (targetId <= 0L) {
+                0L to 0L
+            } else {
+                withContext(Dispatchers.IO) {
+                    val entity = SagerDatabase.proxyDao.getById(targetId)
+                    (entity?.rx?.coerceAtLeast(0L) ?: 0L) to (entity?.tx?.coerceAtLeast(0L) ?: 0L)
                 }
-                dl to ul
             }
             if (view == null) return@launch
             recordedRx = rxSum
@@ -1842,8 +1847,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
     private fun updateTrafficTotalsUi() {
         val ctx = context ?: return
-        val sessionDl = if (DataStore.serviceState.connected) latestSpeed.rxTotal.coerceAtLeast(0L) else 0L
-        val sessionUl = if (DataStore.serviceState.connected) latestSpeed.txTotal.coerceAtLeast(0L) else 0L
+        val targetId = activeTargetProfileId()
+        val isActiveRunningProfile = DataStore.serviceState.connected &&
+            targetId > 0L &&
+            targetId == DataStore.currentProfile
+        val sessionDl = if (isActiveRunningProfile) latestSpeed.rxTotal.coerceAtLeast(0L) else 0L
+        val sessionUl = if (isActiveRunningProfile) latestSpeed.txTotal.coerceAtLeast(0L) else 0L
         val totalDl = maxOf(recordedRx, sessionDl)
         val totalUl = maxOf(recordedTx, sessionUl)
 
