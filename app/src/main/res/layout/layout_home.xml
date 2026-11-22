@@ -72,20 +72,39 @@
                             android:textColor="?android:attr/textColorPrimary"
                             android:textSize="13sp" />
 
+                        <View
+                            android:id="@+id/home_speed_dot_vpn"
+                            android:layout_width="7dp"
+                            android:layout_height="7dp"
+                            android:layout_marginStart="10dp" />
+
                         <TextView
-                            android:id="@+id/home_speed_conn_badge"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
+                            android:layout_marginStart="4dp"
                             android:fontFamily="sans-serif-medium"
-                            android:fontFeatureSettings="tnum"
                             android:includeFontPadding="false"
                             android:maxLines="1"
-                            android:paddingHorizontal="6dp"
-                            android:paddingVertical="2dp"
+                            android:text="@string/live_graph_down"
                             android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="10sp"
-                            tools:text="0 conn" />
+                            android:textSize="10.5sp" />
+
+                        <View
+                            android:id="@+id/home_speed_dot_up"
+                            android:layout_width="7dp"
+                            android:layout_height="7dp"
+                            android:layout_marginStart="8dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="@string/live_graph_up"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="10.5sp" />
 
                         <View
                             android:layout_width="0dp"
@@ -106,54 +125,11 @@
 
                     </LinearLayout>
 
-                    <LinearLayout
-                        android:id="@+id/home_speed_legend_row"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <View
-                            android:id="@+id/home_speed_dot_vpn"
-                            android:layout_width="7dp"
-                            android:layout_height="7dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:fontFamily="sans-serif-medium"
-                            android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:text="@string/live_graph_down"
-                            android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="10.5sp" />
-
-                        <View
-                            android:id="@+id/home_speed_dot_up"
-                            android:layout_width="7dp"
-                            android:layout_height="7dp"
-                            android:layout_marginStart="10dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:fontFamily="sans-serif-medium"
-                            android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:text="@string/live_graph_up"
-                            android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="10.5sp" />
-
-                    </LinearLayout>
-
                     <io.nekohasekai.sagernet.widget.LiveChartView
                         android:id="@+id/home_speed_chart"
                         android:layout_width="match_parent"
-                        android:layout_height="70dp"
-                        android:layout_marginTop="4dp" />
+                        android:layout_height="88dp"
+                        android:layout_marginTop="6dp" />
 
                 </LinearLayout>
 
@@ -1392,8 +1368,8 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingHorizontal="10dp"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="6dp">
+                        android:paddingTop="10dp"
+                        android:paddingBottom="8dp">
 
                         <FrameLayout
                             android:id="@+id/home_status_power_btn"
@@ -1444,40 +1420,34 @@
                             android:layout_weight="1"
                             android:orientation="vertical">
 
+                            <TextView
+                                android:id="@+id/home_status_subtitle"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:fontFamily="sans-serif-medium"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="13.5sp"
+                                tools:text="[openproxylist.com] 16196041" />
+
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal">
-
-                                <View
-                                    android:id="@+id/home_status_dot"
-                                    android:layout_width="7dp"
-                                    android:layout_height="7dp"
-                                    android:layout_marginEnd="6dp" />
-
-                                <TextView
-                                    android:id="@+id/home_status_title"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:ellipsize="end"
-                                    android:fontFamily="sans-serif-medium"
-                                    android:includeFontPadding="false"
-                                    android:maxLines="1"
-                                    android:textColor="?android:attr/textColorPrimary"
-                                    android:textSize="13sp"
-                                    tools:text="Enabled" />
 
                                 <TextView
                                     android:id="@+id/home_status_type_chip"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginStart="5dp"
                                     android:ellipsize="end"
                                     android:fontFamily="sans-serif-medium"
                                     android:includeFontPadding="false"
                                     android:maxLines="1"
-                                    android:paddingHorizontal="5dp"
+                                    android:paddingHorizontal="6dp"
                                     android:paddingVertical="2dp"
                                     android:textColor="?android:attr/textColorSecondary"
                                     android:textSize="10sp"
@@ -1489,7 +1459,7 @@
                                     android:id="@+id/home_status_mode_tag"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginStart="5dp"
+                                    android:layout_marginStart="6dp"
                                     android:fontFamily="sans-serif-medium"
                                     android:fontFeatureSettings="tnum"
                                     android:includeFontPadding="false"
@@ -1503,18 +1473,6 @@
                                     tools:visibility="visible" />
 
                             </LinearLayout>
-
-                            <TextView
-                                android:id="@+id/home_status_subtitle"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:ellipsize="end"
-                                android:includeFontPadding="false"
-                                android:maxLines="1"
-                                android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="11.5sp"
-                                tools:text="[openproxylist.com] 16196041" />
 
                         </LinearLayout>
 
@@ -1570,7 +1528,7 @@
                         android:foreground="?attr/selectableItemBackground"
                         android:orientation="vertical"
                         android:paddingHorizontal="9dp"
-                        android:paddingVertical="5dp">
+                        android:paddingVertical="7dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"

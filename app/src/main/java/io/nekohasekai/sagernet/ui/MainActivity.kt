@@ -669,8 +669,8 @@ class MainActivity : ThemedActivity(),
             com.google.android.material.R.attr.colorOnSurfaceVariant,
             MaterialColors.getColor(binding.floatingToolbar, android.R.attr.textColorSecondary, Color.GRAY),
         )
-        val inactiveBg = Theme.resolveNestedBoxBackground(this)
-        val inactiveStroke = Theme.resolveCardStrokeColor(this, selected = false)
+        val inactiveBg = Color.TRANSPARENT
+        val inactiveStroke = Color.TRANSPARENT
         val activeStroke = ColorUtils.setAlphaComponent(selectedIcon, 95)
         val strokePx = resources.displayMetrics.density.toInt().coerceAtLeast(1)
         binding.fab.setHomeActionMode(false)
@@ -684,7 +684,7 @@ class MainActivity : ThemedActivity(),
             button.isChecked = active
             button.isSelected = active
             button.backgroundTintList = ColorStateList.valueOf(if (active) selectedBg else inactiveBg)
-            button.strokeWidth = strokePx
+            button.strokeWidth = if (active) strokePx else 0
             button.strokeColor = ColorStateList.valueOf(if (active) activeStroke else inactiveStroke)
             button.iconTint = ColorStateList.valueOf(if (active) selectedIcon else unselectedIcon)
         }

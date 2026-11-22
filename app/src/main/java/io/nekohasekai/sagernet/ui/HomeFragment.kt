@@ -202,8 +202,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var statusIconBox: FrameLayout? = null
     private var statusIcon: ImageView? = null
     private var statusProgress: CircularProgressIndicator? = null
-    private var statusDot: View? = null
-    private var statusTitle: TextView? = null
     private var statusTypeChip: TextView? = null
     private var statusSubtitle: TextView? = null
     private var statusModeTag: TextView? = null
@@ -218,7 +216,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var statusExitCountry: TextView? = null
 
     private var cardNetworkSpeed: MaterialCardView? = null
-    private var speedConnBadge: TextView? = null
     private var speedRateText: TextView? = null
     private var speedDotVpn: View? = null
     private var speedDotUp: View? = null
@@ -363,7 +360,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 val bars = insets.getInsets(
                     WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
                 )
-                v.updatePadding(bottom = bars.bottom + dp2px(60))
+                v.updatePadding(bottom = bars.bottom + dp2px(68))
                 insets
             }
             target.setOnScrollChangeListener(
@@ -405,8 +402,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         statusIconBox = null
         statusIcon = null
         statusProgress = null
-        statusDot = null
-        statusTitle = null
         statusTypeChip = null
         statusSubtitle = null
         statusModeTag = null
@@ -417,7 +412,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         statusTestText = null
         statusExitCountry = null
         cardNetworkSpeed = null
-        speedConnBadge = null
         speedRateText = null
         speedDotVpn = null
         speedDotUp = null
@@ -557,8 +551,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         statusIconBox = view.findViewById(R.id.home_status_icon_box)
         statusIcon = view.findViewById(R.id.home_status_icon)
         statusProgress = view.findViewById(R.id.home_status_progress)
-        statusDot = view.findViewById(R.id.home_status_dot)
-        statusTitle = view.findViewById(R.id.home_status_title)
         statusTypeChip = view.findViewById(R.id.home_status_type_chip)
         statusSubtitle = view.findViewById(R.id.home_status_subtitle)
         statusModeTag = view.findViewById(R.id.home_status_mode_tag)
@@ -570,7 +562,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         statusExitCountry = view.findViewById(R.id.home_status_exit_country)
 
         cardNetworkSpeed = view.findViewById(R.id.home_card_network_speed)
-        speedConnBadge = view.findViewById(R.id.home_speed_conn_badge)
         speedRateText = view.findViewById(R.id.home_speed_rate_text)
         speedDotVpn = view.findViewById(R.id.home_speed_dot_vpn)
         speedDotUp = view.findViewById(R.id.home_speed_dot_up)
@@ -705,12 +696,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             view?.findViewById<ImageView>(R.id.home_icon_diag_dns),
             view?.findViewById<ImageView>(R.id.home_icon_diag_conn),
         ).forEach { it.setColorFilter(iconAccent) }
-
-        speedConnBadge?.background = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp2px(7).toFloat()
-            setColor(nestedBg)
-        }
 
         listOfNotNull(subPortalBtn, subSwitchBtn).forEach { button ->
             styleTonalActionButton(button, nestedBg, primaryInk, accent, strokeColor, isAnyAmoled)
@@ -1002,26 +987,14 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val iconBox = statusIconBox ?: return
         val icon = statusIcon ?: return
         val progress = statusProgress
-        val dot = statusDot
-        val titleTv = statusTitle ?: return
         val typeChip = statusTypeChip
         val subtitleTv = statusSubtitle ?: return
 
         val isNight = Theme.usingNightMode(ctx)
-        val isAnyAmoled = Theme.isAnyAmoled(ctx) || Theme.isMonochromeBlack(ctx)
-        val accent = ExpressiveSettingsHelper.resolveAccentColor(ctx)
         val cardBg = Theme.resolveCardBackground(ctx)
         val strokeBase = Theme.resolveCardStrokeColor(ctx, selected = false)
         val strokeWidth = Theme.resolveCardStrokeWidthPx(ctx, selected = false).toInt().coerceAtLeast(1)
-        val primaryInk = ctx.getColorAttr(android.R.attr.textColorPrimary)
-        val secondaryInk = ctx.getColorAttr(android.R.attr.textColorSecondary)
 
-        val stateLabel = when (currentState) {
-            BaseService.State.Connected -> getString(R.string.home_status_enabled)
-            BaseService.State.Connecting -> getString(R.string.connecting)
-            BaseService.State.Stopping -> getString(R.string.stopping)
-            else -> getString(R.string.home_status_disabled)
-        }
         val active = currentState == BaseService.State.Connected
         val transitional = currentState == BaseService.State.Connecting ||
             currentState == BaseService.State.Stopping
@@ -1035,17 +1008,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             },
         )
 
-        val bannerFill = when {
-            active && isAnyAmoled -> ColorUtils.blendARGB(cardBg, accent, 0.10f)
-            active -> ColorUtils.blendARGB(cardBg, accent, if (isNight) 0.14f else 0.08f)
-            else -> cardBg
-        }
-        val bannerStroke = when {
-            active -> ColorUtils.setAlphaComponent(accent, if (isAnyAmoled) 150 else 104)
-            else -> strokeBase
-        }
-        card.setCardBackgroundColor(bannerFill)
-        card.strokeColor = bannerStroke
+        card.setCardBackgroundColor(cardBg)
+        card.strokeColor = strokeBase
         card.strokeWidth = strokeWidth
 
         val badgeFill = ColorUtils.setAlphaComponent(statusColor, if (isNight) 54 else 38)
@@ -1072,14 +1036,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             setIndicatorColor(statusColor)
         }
 
-        dot?.background = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(statusColor)
-        }
-
-        titleTv.text = stateLabel
-        titleTv.setTextColor(statusColor)
-
         statusProfileLoadJob?.cancel()
         val targetId = activeTargetProfileId()
         if (targetId <= 0L) {
@@ -1105,20 +1061,30 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             subtitleTv.text = entity.displayName()
             val typeLabel = entity.displayType().trim()
             if (typeLabel.isNotEmpty()) {
-                val chipInk = if (active || transitional) iconInk else secondaryInk
-                val chipStrokeAlpha = when {
-                    active || transitional -> 96
-                    Theme.isAnyAmoled(currentCtx) || Theme.isMonochromeBlack(currentCtx) -> 72
-                    else -> 44
+                val chipAccent = if (Theme.isMonochromeBlack(currentCtx)) {
+                    Color.WHITE
+                } else {
+                    ExpressiveSettingsHelper.resolveAccentColor(currentCtx)
                 }
                 typeChip?.isVisible = true
                 typeChip?.text = typeLabel
-                typeChip?.setTextColor(chipInk)
+                typeChip?.setTextColor(chipAccent)
                 typeChip?.background = GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
                     cornerRadius = dp2px(6).toFloat()
-                    setColor(Theme.resolveNestedBoxBackground(currentCtx))
-                    setStroke(dp2px(1), ColorUtils.setAlphaComponent(chipInk, chipStrokeAlpha))
+                    setColor(
+                        ColorUtils.setAlphaComponent(
+                            chipAccent,
+                            if (Theme.usingNightMode(currentCtx)) 36 else 22,
+                        ),
+                    )
+                    setStroke(
+                        dp2px(1),
+                        ColorUtils.setAlphaComponent(
+                            chipAccent,
+                            if (Theme.isAnyAmoled(currentCtx) || Theme.isMonochromeBlack(currentCtx)) 110 else 65,
+                        ),
+                    )
                 }
             } else {
                 typeChip?.isVisible = false
@@ -1860,7 +1826,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             cpuTv?.text = zeroPct
             ramTv?.text = zeroBytes
             connTv?.text = "0"
-            speedConnBadge?.text = getString(R.string.home_connections_count, 0)
             return
         }
 
@@ -1873,7 +1838,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val connRaw = series.value(LiveStatsBatch.CONNECTIONS, last)
         val conns = if (connRaw.isNaN()) 0 else connRaw.toInt().coerceAtLeast(0)
         connTv?.text = conns.toString()
-        speedConnBadge?.text = getString(R.string.home_connections_count, conns)
     }
 
     private fun updateTrafficTotalsUi() {
