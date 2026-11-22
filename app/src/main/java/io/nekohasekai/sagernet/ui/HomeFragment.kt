@@ -38,6 +38,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.color.MaterialColors
+import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import io.nekohasekai.sagernet.Key
 import io.nekohasekai.sagernet.R
@@ -55,11 +57,15 @@ import io.nekohasekai.sagernet.hotspotshare.ShareState
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
+import io.nekohasekai.sagernet.ktx.readableMessage
+import io.nekohasekai.sagernet.ktx.snackbar
 import io.nekohasekai.sagernet.route.OutboundIds
 import io.nekohasekai.sagernet.ui.profiles.SubscriptionInfoCard
 import io.nekohasekai.sagernet.ui.route.RouteQuickSwitch
 import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
 import io.nekohasekai.sagernet.ui.settings.ExpressiveShape
+import io.nekohasekai.sagernet.ui.test.TestFormat
+import io.nekohasekai.sagernet.ui.widget.SquareMaterialCardView
 import io.nekohasekai.sagernet.ui.widget.TrafficRingView
 import io.nekohasekai.sagernet.utils.HapticHelper
 import io.nekohasekai.sagernet.utils.HotspotKind
@@ -69,18 +75,24 @@ import io.nekohasekai.sagernet.utils.NetworkInterfaceInfo
 import io.nekohasekai.sagernet.utils.NetworkInterfacesRepository
 import io.nekohasekai.sagernet.utils.NetworkInterfacesSnapshot
 import io.nekohasekai.sagernet.utils.Theme
+import io.nekohasekai.sagernet.widget.ExitIp
 import io.nekohasekai.sagernet.widget.LiveChartView
+import io.nekohasekai.sagernet.widget.StatsBar
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlin.math.hypot
 import kotlin.math.roundToInt
 
 /**
- * Compact Bento Home dashboard: Status banner, Network Speed (2x4), Traffic Usage + Network (2x2),
- * CPU + RAM sparklines (2x2), compact Route + Local IP, upgraded Hotspot & Proxy Share,
- * Subscription + Online Portal, and Toolbox shortcuts.
+ * Compact Bento Home dashboard: Interactive Status Hero + URL test strip, Network Speed (2x4),
+ * Traffic Usage + Network (2x2), 1:1 square CPU & RAM sparklines, compact Route + Local IP,
+ * upgraded Hotspot & Proxy Share, and Subscription + Online Portal.
  */
 class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
@@ -92,14 +104,25 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     }
 
     private var statusBannerCard: MaterialCardView? = null
+    private var statusPowerBtn: FrameLayout? = null
     private var statusIconBox: FrameLayout? = null
     private var statusIcon: ImageView? = null
+    private var statusProgress: CircularProgressIndicator? = null
+    private var statusDot: View? = null
     private var statusTitle: TextView? = null
+    private var statusTypeChip: TextView? = null
     private var statusSubtitle: TextView? = null
     private var statusModeTag: TextView? = null
+    private var statusTestBar: LinearLayout? = null
+    private var statusTestIcon: ImageView? = null
+    private var statusTestProgress: CircularProgressIndicator? = null
+    private var statusTestText: TextView? = null
+    private var statusExitCountry: TextView? = null
 
     private var cardNetworkSpeed: MaterialCardView? = null
     private var speedRateText: TextView? = null
+    private var speedDotVpn: View? = null
+    private var speedDotDirect: View? = null
     private var speedChart: LiveChartView? = null
 
     private var cardTrafficUsage: MaterialCardView? = null
@@ -110,17 +133,18 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var trafficUpUnit: TextView? = null
     private var trafficDownValue: TextView? = null
     private var trafficDownUnit: TextView? = null
+    private var trafficTotalText: TextView? = null
 
     private var cardNetworkEgress: MaterialCardView? = null
     private var networkLatencyText: TextView? = null
     private var networkIpText: TextView? = null
     private var networkMetaText: TextView? = null
 
-    private var cardCpuChart: MaterialCardView? = null
+    private var cardCpuChart: SquareMaterialCardView? = null
     private var cpuValueText: TextView? = null
     private var cpuChart: LiveChartView? = null
 
-    private var cardRamChart: MaterialCardView? = null
+    private var cardRamChart: SquareMaterialCardView? = null
     private var ramValueText: TextView? = null
     private var ramChart: LiveChartView? = null
 
@@ -154,15 +178,15 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var subQuotaText: TextView? = null
     private var subRemainingText: TextView? = null
 
-    private var cardToolbox: MaterialCardView? = null
-    private var toolDnsLeak: MaterialButton? = null
-    private var toolLocalPing: MaterialButton? = null
-    private var toolConnectivity: MaterialButton? = null
-
     private val percentAxis = LiveChartView.percentAxis()
     private var bytesAxis: LiveChartView.Axis? = null
     private var portalUri: Uri? = null
     private var latestConnections: Int = 0
+    private var connectionTestJob: Job? = null
+    private var statusProfileLoadJob: Job? = null
+    private var hasTestStatus: Boolean = false
+    private var lastTestStatusText: CharSequence? = null
+    private val exitIpListener: () -> Unit = { updateExitCountryUi() }
 
     private var currentState: BaseService.State = DataStore.serviceState
     private var latestSpeed: SpeedDisplayData = SpeedDisplayData()
@@ -194,6 +218,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         styleCards(ctx)
         setupCharts(ctx)
         wireClicks()
+        ExitIp.listener = exitIpListener
 
         refreshAllCards()
         startLivePollLoop()
@@ -221,18 +246,38 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     override fun onResume() {
         super.onResume()
         currentState = DataStore.serviceState
+        ExitIp.listener = exitIpListener
         refreshAllCards()
     }
 
     override fun onDestroyView() {
+        connectionTestJob?.cancel()
+        connectionTestJob = null
+        statusProfileLoadJob?.cancel()
+        statusProfileLoadJob = null
+        if (ExitIp.listener === exitIpListener) ExitIp.listener = null
+        hasTestStatus = false
+        lastTestStatusText = null
+
         statusBannerCard = null
+        statusPowerBtn = null
         statusIconBox = null
         statusIcon = null
+        statusProgress = null
+        statusDot = null
         statusTitle = null
+        statusTypeChip = null
         statusSubtitle = null
         statusModeTag = null
+        statusTestBar = null
+        statusTestIcon = null
+        statusTestProgress = null
+        statusTestText = null
+        statusExitCountry = null
         cardNetworkSpeed = null
         speedRateText = null
+        speedDotVpn = null
+        speedDotDirect = null
         speedChart = null
         cardTrafficUsage = null
         trafficRing = null
@@ -242,6 +287,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         trafficUpUnit = null
         trafficDownValue = null
         trafficDownUnit = null
+        trafficTotalText = null
         cardNetworkEgress = null
         networkLatencyText = null
         networkIpText = null
@@ -278,21 +324,32 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         subProgressBar = null
         subQuotaText = null
         subRemainingText = null
-        cardToolbox = null
-        toolDnsLeak = null
-        toolLocalPing = null
-        toolConnectivity = null
         bytesAxis = null
         portalUri = null
         super.onDestroyView()
     }
 
     fun onServiceStateChanged(state: BaseService.State) {
+        val wasConnected = currentState == BaseService.State.Connected
         currentState = state
+        if (state == BaseService.State.Connected) {
+            ExitIp.ensure()
+        } else {
+            connectionTestJob?.cancel()
+            connectionTestJob = null
+            hasTestStatus = false
+            lastTestStatusText = null
+            ExitIp.clear()
+        }
         if (view == null) return
         val running = DataStore.serviceState == BaseService.State.Connected
         if (!state.connected) latestConnections = 0
+        if (state == BaseService.State.Connected && !wasConnected && !hasTestStatus) {
+            lastTestStatusText = getString(R.string.vpn_connected)
+        }
         updateStatusBanner()
+        updateTestBarUi()
+        updateExitCountryUi()
         refreshNetworkEgressCard()
         refreshLocalIpCard()
         updateSpeedChart(running)
@@ -327,14 +384,25 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
     private fun bindViews(view: View) {
         statusBannerCard = view.findViewById(R.id.home_card_status_banner)
+        statusPowerBtn = view.findViewById(R.id.home_status_power_btn)
         statusIconBox = view.findViewById(R.id.home_status_icon_box)
         statusIcon = view.findViewById(R.id.home_status_icon)
+        statusProgress = view.findViewById(R.id.home_status_progress)
+        statusDot = view.findViewById(R.id.home_status_dot)
         statusTitle = view.findViewById(R.id.home_status_title)
+        statusTypeChip = view.findViewById(R.id.home_status_type_chip)
         statusSubtitle = view.findViewById(R.id.home_status_subtitle)
         statusModeTag = view.findViewById(R.id.home_status_mode_tag)
+        statusTestBar = view.findViewById(R.id.home_status_test_bar)
+        statusTestIcon = view.findViewById(R.id.home_status_test_icon)
+        statusTestProgress = view.findViewById(R.id.home_status_test_progress)
+        statusTestText = view.findViewById(R.id.home_status_test_text)
+        statusExitCountry = view.findViewById(R.id.home_status_exit_country)
 
         cardNetworkSpeed = view.findViewById(R.id.home_card_network_speed)
         speedRateText = view.findViewById(R.id.home_speed_rate_text)
+        speedDotVpn = view.findViewById(R.id.home_speed_dot_vpn)
+        speedDotDirect = view.findViewById(R.id.home_speed_dot_direct)
         speedChart = view.findViewById(R.id.home_speed_chart)
 
         cardTrafficUsage = view.findViewById(R.id.home_card_traffic_usage)
@@ -345,6 +413,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         trafficUpUnit = view.findViewById(R.id.home_traffic_up_unit)
         trafficDownValue = view.findViewById(R.id.home_traffic_down_value)
         trafficDownUnit = view.findViewById(R.id.home_traffic_down_unit)
+        trafficTotalText = view.findViewById(R.id.home_traffic_total_text)
 
         cardNetworkEgress = view.findViewById(R.id.home_card_network_egress)
         networkLatencyText = view.findViewById(R.id.home_network_latency_text)
@@ -388,11 +457,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         subProgressBar = view.findViewById(R.id.home_sub_progress)
         subQuotaText = view.findViewById(R.id.home_sub_quota_text)
         subRemainingText = view.findViewById(R.id.home_sub_remaining_text)
-
-        cardToolbox = view.findViewById(R.id.home_card_toolbox)
-        toolDnsLeak = view.findViewById(R.id.home_tool_dns_leak)
-        toolLocalPing = view.findViewById(R.id.home_tool_local_ping)
-        toolConnectivity = view.findViewById(R.id.home_tool_connectivity)
     }
 
     private fun styleCards(ctx: Context) {
@@ -407,7 +471,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             cardLocalIp,
             cardHotspotShare,
             cardSubscription,
-            cardToolbox,
         ).forEach { ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 18f) }
 
         val (_, downloadColor, uploadColor) = TrafficRingView.resolveSegmentColors(ctx)
@@ -424,7 +487,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val strokeColor = Theme.resolveCardStrokeColor(ctx, selected = false)
         val isAnyAmoled = Theme.isAnyAmoled(ctx) || Theme.isMonochromeBlack(ctx)
 
-        listOfNotNull(subPortalBtn, toolDnsLeak, toolLocalPing, toolConnectivity).forEach { button ->
+        subPortalBtn?.let { button ->
             styleTonalActionButton(button, nestedBg, primaryInk, accent, strokeColor, isAnyAmoled)
         }
     }
@@ -448,15 +511,57 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         }
     }
 
+    private fun resolveDistinctDirectColor(ctx: Context, proxyColor: Int): Int {
+        if (Theme.isMonochromeBlack(ctx)) return LiveChartView.directColor(ctx)
+        val surface = ColorUtils.setAlphaComponent(
+            MaterialColors.getColor(ctx, com.google.android.material.R.attr.colorSurface, Color.WHITE),
+            255,
+        )
+        val isNight = Theme.usingNightMode(ctx)
+        val hsl = FloatArray(3)
+        ColorUtils.colorToHSL(proxyColor, hsl)
+        hsl[0] = (hsl[0] + 205f) % 360f
+        hsl[1] = hsl[1].coerceIn(0.55f, 0.78f)
+        hsl[2] = if (isNight) 0.66f else 0.44f
+        val darker = ColorUtils.calculateLuminance(surface) > 0.5
+        var c = ColorUtils.HSLToColor(hsl)
+        repeat(24) {
+            if (ColorUtils.calculateContrast(c, surface) >= 3.2) return c
+            val next = (hsl[2] + if (darker) -10f / 255f else 10f / 255f).coerceIn(0f, 1f)
+            if (next == hsl[2]) return c
+            hsl[2] = next
+            c = ColorUtils.HSLToColor(hsl)
+        }
+        return c
+    }
+
     private fun setupCharts(ctx: Context) {
+        val proxyColor = LiveChartView.proxyColor(ctx)
+        val directColor = resolveDistinctDirectColor(ctx, proxyColor)
+        speedDotVpn?.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(proxyColor)
+        }
+        speedDotDirect?.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(directColor)
+        }
+
         speedChart?.let { chart ->
             val rows = listOf(
                 LiveChartView.Row(
                     key = "proxy",
                     label = getString(R.string.live_graph_proxy),
-                    color = LiveChartView.proxyColor(ctx),
+                    color = proxyColor,
                     wash = true,
                     fields = intArrayOf(LiveStatsBatch.PROXY_DOWN, LiveStatsBatch.PROXY_UP),
+                ),
+                LiveChartView.Row(
+                    key = "direct",
+                    label = getString(R.string.live_graph_direct),
+                    color = directColor,
+                    wash = false,
+                    fields = intArrayOf(LiveStatsBatch.DIRECT_DOWN, LiveStatsBatch.DIRECT_UP),
                 ),
             )
             val columns = listOf(
@@ -471,7 +576,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
         val memoryAxis = bytesAxis ?: LiveChartView.bytesAxis(ctx).also { bytesAxis = it }
         setupMetricChart(cpuChart, LiveChartView.coreColor(ctx), LiveStatsBatch.CPU, percentAxis)
-        setupMetricChart(ramChart, LiveChartView.proxyColor(ctx), LiveStatsBatch.MEMORY, memoryAxis)
+        setupMetricChart(ramChart, proxyColor, LiveStatsBatch.MEMORY, memoryAxis)
     }
 
     private fun setupMetricChart(
@@ -498,6 +603,23 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     }
 
     private fun wireClicks() {
+        statusPowerBtn?.setOnClickListener { v ->
+            context?.let { c -> HapticHelper.perform(c, v, HapticHelper.HapticKind.HEAVY) }
+            (activity as? MainActivity)?.toggleService()
+        }
+        statusBannerCard?.setOnClickListener { v ->
+            context?.let { c -> HapticHelper.perform(c, v, HapticHelper.HapticKind.TAP) }
+            (activity as? MainActivity)?.displayFragmentWithId(R.id.nav_configuration)
+        }
+        statusTestBar?.setOnClickListener { v ->
+            context?.let { c -> HapticHelper.perform(c, v, HapticHelper.HapticKind.TAP) }
+            if (currentState == BaseService.State.Connected) {
+                runConnectionTest()
+            } else {
+                (activity as? MainActivity)?.displayFragmentWithId(R.id.nav_configuration)
+            }
+        }
+
         val openLiveGraphs = View.OnClickListener { v ->
             context?.let { c -> HapticHelper.perform(c, v, HapticHelper.HapticKind.TAP) }
             (activity as? MainActivity)?.displayFragmentWithId(R.id.nav_live_graphs)
@@ -535,10 +657,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 Toast.makeText(ctx, getString(R.string.subinfo_no_app, uri.toString()), Toast.LENGTH_SHORT).show()
             }
         }
-
-        toolDnsLeak?.setOnClickListener { v -> launchActivity(v, DnsLeakActivity::class.java) }
-        toolLocalPing?.setOnClickListener { v -> launchActivity(v, LocalPingActivity::class.java) }
-        toolConnectivity?.setOnClickListener { v -> launchActivity(v, ConnectivityTestActivity::class.java) }
     }
 
     private fun launchActivity(view: View, destination: Class<*>) {
@@ -585,7 +703,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
     private fun refreshAllCards() {
         val running = DataStore.serviceState == BaseService.State.Connected
+        if (running) ExitIp.ensure() else ExitIp.clear()
         updateStatusBanner()
+        updateTestBarUi()
+        updateExitCountryUi()
         refreshRunningModeCard()
         refreshNetworkEgressCard()
         refreshLocalIpCard()
@@ -611,7 +732,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val card = statusBannerCard ?: return
         val iconBox = statusIconBox ?: return
         val icon = statusIcon ?: return
+        val progress = statusProgress
+        val dot = statusDot
         val titleTv = statusTitle ?: return
+        val typeChip = statusTypeChip
         val subtitleTv = statusSubtitle ?: return
         val modeTv = statusModeTag ?: return
 
@@ -631,6 +755,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             else -> getString(R.string.home_status_disabled)
         }
         val active = currentState == BaseService.State.Connected
+        val transitional = currentState == BaseService.State.Connecting ||
+            currentState == BaseService.State.Stopping
 
         val bannerFill = when {
             active && isAnyAmoled -> ColorUtils.blendARGB(cardBg, accent, 0.10f)
@@ -646,7 +772,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         card.strokeWidth = strokeWidth
 
         val badgeFill = when {
-            active -> if (Theme.isMonochromeBlack(ctx)) {
+            active || transitional -> if (Theme.isMonochromeBlack(ctx)) {
                 ColorUtils.setAlphaComponent(Color.WHITE, 36)
             } else {
                 ColorUtils.setAlphaComponent(accent, if (isNight) 44 else 28)
@@ -654,15 +780,21 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             else -> Theme.resolveNestedBoxBackground(ctx)
         }
         val iconInk = when {
-            active -> if (Theme.isMonochromeBlack(ctx)) Color.WHITE else accent
+            active || transitional -> if (Theme.isMonochromeBlack(ctx)) Color.WHITE else accent
             else -> primaryInk
         }
 
+        statusPowerBtn?.contentDescription = getString(
+            if (currentState.canStop) R.string.disconnect else R.string.connect,
+        )
         iconBox.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(badgeFill)
-            if (active || isAnyAmoled) {
-                setStroke(dp2px(1), ColorUtils.setAlphaComponent(iconInk, if (active) 120 else 48))
+            if (active || transitional || isAnyAmoled) {
+                setStroke(
+                    dp2px(1),
+                    ColorUtils.setAlphaComponent(iconInk, if (active || transitional) 120 else 48),
+                )
             }
         }
         val d = ResourcesCompat.getDrawable(resources, R.drawable.ic_power_settings_new_24, null)?.mutate()
@@ -670,9 +802,18 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             DrawableCompat.setTint(d, iconInk)
             icon.setImageDrawable(d)
         }
+        progress?.apply {
+            visibility = if (transitional) View.VISIBLE else View.INVISIBLE
+            setIndicatorColor(iconInk)
+        }
+
+        dot?.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(if (active || transitional) iconInk else ColorUtils.setAlphaComponent(secondaryInk, 140))
+        }
 
         titleTv.text = stateLabel
-        titleTv.setTextColor(if (active) iconInk else primaryInk)
+        titleTv.setTextColor(if (active || transitional) iconInk else primaryInk)
 
         modeTv.setTextColor(secondaryInk)
         modeTv.background = GradientDrawable().apply {
@@ -682,18 +823,168 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         }
         updateStatusModeTag()
 
+        statusProfileLoadJob?.cancel()
         val targetId = activeTargetProfileId()
         if (targetId <= 0L) {
-            subtitleTv.text = getString(R.string.not_connected)
+            typeChip?.isVisible = false
+            subtitleTv.text = getString(R.string.home_status_tap_to_select)
             return
         }
-        viewLifecycleOwner.lifecycleScope.launch {
-            val name = withContext(Dispatchers.IO) {
-                SagerDatabase.proxyDao.getById(targetId)?.displayName()
+        statusProfileLoadJob = viewLifecycleOwner.lifecycleScope.launch {
+            val entity = withContext(Dispatchers.IO) {
+                SagerDatabase.proxyDao.getById(targetId)
             }
-            if (view == null) return@launch
-            subtitleTv.text = name?.takeIf { it.isNotBlank() } ?: getString(R.string.not_connected)
+            val currentCtx = context ?: return@launch
+            if (entity == null) {
+                typeChip?.isVisible = false
+                subtitleTv.text = getString(R.string.home_status_tap_to_select)
+                return@launch
+            }
+            subtitleTv.text = entity.displayName()
+            val typeLabel = entity.displayType().trim()
+            if (typeLabel.isNotEmpty()) {
+                val chipInk = if (active || transitional) iconInk else secondaryInk
+                val chipStrokeAlpha = when {
+                    active || transitional -> 96
+                    Theme.isAnyAmoled(currentCtx) || Theme.isMonochromeBlack(currentCtx) -> 72
+                    else -> 44
+                }
+                typeChip?.isVisible = true
+                typeChip?.text = typeLabel
+                typeChip?.setTextColor(chipInk)
+                typeChip?.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp2px(6).toFloat()
+                    setColor(Theme.resolveNestedBoxBackground(currentCtx))
+                    setStroke(dp2px(1), ColorUtils.setAlphaComponent(chipInk, chipStrokeAlpha))
+                }
+            } else {
+                typeChip?.isVisible = false
+            }
         }
+    }
+
+    private fun updateTestBarUi() {
+        val ctx = context ?: return
+        val bar = statusTestBar ?: return
+        val testIcon = statusTestIcon
+        val testProgress = statusTestProgress
+        val testText = statusTestText
+
+        val isAnyAmoled = Theme.isAnyAmoled(ctx) || Theme.isMonochromeBlack(ctx)
+        val accent = ExpressiveSettingsHelper.resolveAccentColor(ctx)
+        val activeInk = if (Theme.isMonochromeBlack(ctx)) Color.WHITE else accent
+        val primaryInk = ctx.getColorAttr(android.R.attr.textColorPrimary)
+        val secondaryInk = ctx.getColorAttr(android.R.attr.textColorSecondary)
+        val nestedBg = Theme.resolveNestedBoxBackground(ctx)
+        val connected = currentState == BaseService.State.Connected
+
+        bar.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp2px(12).toFloat()
+            setColor(nestedBg)
+            if (isAnyAmoled) {
+                setStroke(
+                    dp2px(1),
+                    ColorUtils.setAlphaComponent(
+                        if (connected) activeInk else Theme.resolveCardStrokeColor(ctx, selected = false),
+                        if (connected) 90 else 160,
+                    ),
+                )
+            }
+        }
+
+        val testing = connectionTestJob?.isActive == true
+        testIcon?.isVisible = !testing
+        testProgress?.isVisible = testing
+        testIcon?.setColorFilter(if (connected) activeInk else secondaryInk)
+        testProgress?.setIndicatorColor(activeInk)
+
+        val message: CharSequence = when (currentState) {
+            BaseService.State.Connected -> when {
+                testing -> getString(R.string.connection_test_testing)
+                hasTestStatus && !lastTestStatusText.isNullOrBlank() -> lastTestStatusText!!
+                else -> getString(R.string.vpn_connected)
+            }
+            BaseService.State.Connecting -> getString(R.string.connecting)
+            BaseService.State.Stopping -> getString(R.string.stopping)
+            else -> getString(R.string.home_status_tap_to_select)
+        }
+        testText?.text = message
+        testText?.setTextColor(if (connected) primaryInk else secondaryInk)
+    }
+
+    private fun updateExitCountryUi() {
+        val exitTv = statusExitCountry ?: return
+        val connected = currentState == BaseService.State.Connected
+        val info = ExitIp.info?.takeIf { connected }
+        val refreshing = connected && ExitIp.refreshing
+        exitTv.alpha = if (refreshing) 0.5f else 1f
+        if (info == null) {
+            exitTv.text = "…"
+            exitTv.contentDescription = null
+            exitTv.isVisible = refreshing
+        } else {
+            val country = if (TestFormat.isCountryCode(info.countryCode)) {
+                TestFormat.countryName(info.countryCode)
+            } else {
+                info.country
+            }
+            val flag = TestFormat.flag(info.countryCode)
+            exitTv.text = if (flag.isEmpty()) country else "$flag\u00A0$country"
+            exitTv.contentDescription = country
+            exitTv.isVisible = true
+        }
+    }
+
+    private fun runConnectionTest() {
+        if (connectionTestJob?.isActive == true || currentState != BaseService.State.Connected) return
+        val mainActivity = activity as? MainActivity ?: return
+        hasTestStatus = true
+        lastTestStatusText = getString(R.string.connection_test_testing)
+        val clientTimeoutMs = StatsBar.computeClientUrlTestTimeoutMs(DataStore.urlTestTimeoutMs)
+        connectionTestJob = viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main.immediate) {
+            try {
+                val elapsed = withTimeout(clientTimeoutMs) {
+                    mainActivity.urlTest()
+                }
+                hasTestStatus = true
+                lastTestStatusText = if (elapsed == ProxyEntity.LATENCY_CONNECT_ONLY) {
+                    getString(R.string.test_connect_ok)
+                } else {
+                    getString(
+                        if (DataStore.testUrl.startsWith("https://")) {
+                            R.string.connection_test_available
+                        } else {
+                            R.string.connection_test_available_http
+                        },
+                        elapsed,
+                    )
+                }
+                ExitIp.refresh()
+            } catch (_: TimeoutCancellationException) {
+                hasTestStatus = true
+                val timeoutText = getString(R.string.connection_test_timeout_error)
+                val status = getString(R.string.connection_test_error, timeoutText)
+                lastTestStatusText = status
+                if (isAdded) snackbar(status).show()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logs.w(e)
+                hasTestStatus = true
+                val reason = e.readableMessage.ifBlank {
+                    getString(R.string.connection_test_timeout_error)
+                }
+                val status = getString(R.string.connection_test_error, reason)
+                lastTestStatusText = status
+                if (isAdded) snackbar(status).show()
+            } finally {
+                connectionTestJob = null
+                if (view != null) updateTestBarUi()
+            }
+        }
+        updateTestBarUi()
     }
 
     private fun updateStatusModeTag() {
@@ -1096,9 +1387,9 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val ctx = context ?: return
         val upRate = latestSpeed.txRateProxy.coerceAtLeast(0L) + latestSpeed.txRateDirect.coerceAtLeast(0L)
         val downRate = latestSpeed.rxRateProxy.coerceAtLeast(0L) + latestSpeed.rxRateDirect.coerceAtLeast(0L)
-        val upStr = Formatter.formatFileSize(ctx, upRate)
-        val downStr = Formatter.formatFileSize(ctx, downRate)
-        speedRateText?.text = "↑ $upStr/s   ↓ $downStr/s"
+        val upStr = ctx.getString(R.string.speed, Formatter.formatFileSize(ctx, upRate))
+        val downStr = ctx.getString(R.string.speed, Formatter.formatFileSize(ctx, downRate))
+        speedRateText?.text = "↑ $upStr   ↓ $downStr"
     }
 
     private fun updateCpuRamUi(running: Boolean) {
@@ -1113,6 +1404,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
         val cpuTv = cpuValueText
         val ramTv = ramValueText
+        val zeroPct = percentAxis.format(0.0)
+        val zeroBytes = context?.let { Formatter.formatFileSize(it, 0L) } ?: (bytesAxis?.format(0.0) ?: "0 B")
         val series = LiveHistory.series
         val last = if (running && series.size > 0 && SystemClock.elapsedRealtime() - series.latestTime <= STALE_MS) {
             series.size - 1
@@ -1120,8 +1413,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             -1
         }
         if (last < 0) {
-            cpuTv?.text = "0%"
-            ramTv?.text = "0 B"
+            cpuTv?.text = zeroPct
+            ramTv?.text = zeroBytes
             if (latestConnections != 0) {
                 latestConnections = 0
                 updateStatusModeTag()
@@ -1130,10 +1423,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         }
 
         val cpu = series.value(LiveStatsBatch.CPU, last)
-        cpuTv?.text = if (cpu.isNaN()) "0%" else percentAxis.format(cpu.toDouble())
+        cpuTv?.text = if (cpu.isNaN()) zeroPct else percentAxis.format(cpu.toDouble())
 
         val mem = series.value(LiveStatsBatch.MEMORY, last)
-        ramTv?.text = if (mem.isNaN()) "0 B" else (bytesAxis?.format(mem.toDouble()) ?: "0 B")
+        ramTv?.text = if (mem.isNaN()) zeroBytes else (bytesAxis?.format(mem.toDouble()) ?: zeroBytes)
 
         val conns = series.value(LiveStatsBatch.CONNECTIONS, last)
         val count = if (conns.isNaN()) 0 else conns.roundToInt().coerceAtLeast(0)
@@ -1158,6 +1451,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         trafficUpUnit?.text = ulUnit
         trafficDownValue?.text = dlVal
         trafficDownUnit?.text = dlUnit
+        trafficTotalText?.text = getString(
+            R.string.home_traffic_total,
+            Formatter.formatShortFileSize(ctx, totalDl + totalUl),
+        )
     }
 
     private fun splitFormattedSize(context: Context, bytes: Long): Pair<String, String> {

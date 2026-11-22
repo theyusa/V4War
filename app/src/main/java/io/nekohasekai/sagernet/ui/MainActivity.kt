@@ -897,7 +897,7 @@ class MainActivity : ThemedActivity(),
     private val firstStart = FirstStartPrompts(this)
     private val wifiFlow = WifiPermissionFlow(this)
 
-    private fun toggleService() {
+    internal fun toggleService() {
         when {
             DataStore.serviceState.canStop -> SagerNet.stopService()
             DataStore.serviceState == BaseService.State.Stopping -> {

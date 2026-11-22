@@ -12,6 +12,8 @@
     <string name="home_network_speed">Network Speed</string>
     <string name="home_status_enabled">Enabled</string>
     <string name="home_status_disabled">Disabled</string>
+    <string name="home_status_tap_to_select">Tap to select profile</string>
+    <string name="home_traffic_total">Total %1$s</string>
     <string name="home_mode_system_proxy">System Proxy</string>
     <string name="home_route_rule">Rule</string>
     <string name="home_route_direct">Direct</string>
@@ -40,10 +42,6 @@
     <string name="home_hotspot_ready_subtitle">Tap to configure hotspot &amp; LAN proxy</string>
     <string name="home_hotspot_sharing_via">Sharing via %1$s</string>
     <string name="home_sub_remaining">Left %1$s</string>
-    <string name="home_toolbox">Toolbox</string>
-    <string name="home_toolbox_dns_leak">DNS Leak</string>
-    <string name="home_toolbox_ping">Ping</string>
-    <string name="home_toolbox_connectivity">Connect</string>
     <string name="menu_configuration">Profiles</string>
     <string name="menu_group">Groups</string>
     <string name="menu_about">About</string>
