@@ -3,13 +3,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="4dp">
+    android:layout_margin="4dp"
+    app:cardCornerRadius="18dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="14dp">
 
         <TextView
             android:layout_width="wrap_content"
@@ -30,30 +31,34 @@
                 android:id="@+id/mode_global"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/route_dns_global" />
+                android:minHeight="36dp"
+                android:text="@string/route_dns_global"
+                android:textSize="13.5sp" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingStart="32dp"
                 android:text="@string/route_dns_global_sum"
-                android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="?android:attr/textColorSecondary" />
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="11.5sp" />
 
             <com.google.android.material.radiobutton.MaterialRadioButton
                 android:id="@+id/mode_custom"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="@string/route_dns_custom" />
+                android:minHeight="36dp"
+                android:text="@string/route_dns_custom"
+                android:textSize="13.5sp" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingStart="32dp"
                 android:text="@string/route_dns_custom_sum"
-                android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="?android:attr/textColorSecondary" />
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="11.5sp" />
 
         </RadioGroup>
 
@@ -61,19 +66,20 @@
             android:id="@+id/object_note"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="8dp"
             android:text="@string/route_dns_object_note"
-            android:textAppearance="?android:attr/textAppearanceSmall"
             android:textColor="@color/material_orange_700"
+            android:textSize="11.5sp"
             android:visibility="gone" />
 
         <TextView
             android:id="@+id/global_servers"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:textAppearance="?android:attr/textAppearanceSmall"
-            android:textColor="?android:attr/textColorPrimary"
+            android:layout_marginTop="8dp"
+            android:alpha="0.85"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="11.5sp"
             android:visibility="gone" />
 
         <LinearLayout
