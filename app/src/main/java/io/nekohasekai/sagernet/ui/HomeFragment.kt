@@ -81,6 +81,7 @@ import io.nekohasekai.sagernet.ktx.startFilesForResult
 import io.nekohasekai.sagernet.outbound.Outbound
 import io.nekohasekai.sagernet.outbound.`import`.ImportReport
 import io.nekohasekai.sagernet.outbound.`import`.ProfileImport
+import io.nekohasekai.sagernet.route.OutboundIds
 import io.nekohasekai.sagernet.ui.profile.AnyTLSSettingsActivity
 import io.nekohasekai.sagernet.ui.profile.AutoSelectorSettingsActivity
 import io.nekohasekai.sagernet.ui.profile.ChainSettingsActivity
@@ -217,8 +218,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var statusExitCountry: TextView? = null
 
     private var cardNetworkSpeed: MaterialCardView? = null
+    private var speedConnBadge: TextView? = null
     private var speedRateText: TextView? = null
     private var speedDotVpn: View? = null
+    private var speedDotUp: View? = null
     private var speedDotDirect: View? = null
     private var speedChart: LiveChartView? = null
 
@@ -236,6 +239,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var networkLatencyText: TextView? = null
     private var networkIpText: TextView? = null
     private var networkMetaText: TextView? = null
+    private var networkExtraText: TextView? = null
 
     private var cardCpuChart: MaterialCardView? = null
     private var cpuValueText: TextView? = null
@@ -245,10 +249,18 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var ramValueText: TextView? = null
     private var ramChart: LiveChartView? = null
 
+    private var cardConnChart: MaterialCardView? = null
+    private var connValueText: TextView? = null
+    private var connChart: LiveChartView? = null
+
     private var cardRouting: MaterialCardView? = null
     private var routeIcon: ImageView? = null
+    private var routeModeBadge: TextView? = null
     private var pillRuleText: TextView? = null
     private var routeSummaryText: TextView? = null
+
+    private var headerStatusDot: View? = null
+    private var headerStatusText: TextView? = null
 
     private var cardAppProxy: MaterialCardView? = null
     private var appProxyBadge: TextView? = null
@@ -356,7 +368,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 val bars = insets.getInsets(
                     WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
                 )
-                v.updatePadding(bottom = bars.bottom + dp2px(68))
+                v.updatePadding(bottom = bars.bottom + dp2px(60))
                 insets
             }
             target.setOnScrollChangeListener(
@@ -410,8 +422,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         statusTestText = null
         statusExitCountry = null
         cardNetworkSpeed = null
+        speedConnBadge = null
         speedRateText = null
         speedDotVpn = null
+        speedDotUp = null
         speedDotDirect = null
         speedChart = null
         cardTrafficUsage = null
@@ -427,16 +441,23 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         networkLatencyText = null
         networkIpText = null
         networkMetaText = null
+        networkExtraText = null
         cardCpuChart = null
         cpuValueText = null
         cpuChart = null
         cardRamChart = null
         ramValueText = null
         ramChart = null
+        cardConnChart = null
+        connValueText = null
+        connChart = null
         cardRouting = null
         routeIcon = null
+        routeModeBadge = null
         pillRuleText = null
         routeSummaryText = null
+        headerStatusDot = null
+        headerStatusText = null
         cardAppProxy = null
         appProxyBadge = null
         appProxyModeText = null
@@ -558,8 +579,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         statusExitCountry = view.findViewById(R.id.home_status_exit_country)
 
         cardNetworkSpeed = view.findViewById(R.id.home_card_network_speed)
+        speedConnBadge = view.findViewById(R.id.home_speed_conn_badge)
         speedRateText = view.findViewById(R.id.home_speed_rate_text)
         speedDotVpn = view.findViewById(R.id.home_speed_dot_vpn)
+        speedDotUp = view.findViewById(R.id.home_speed_dot_up)
         speedDotDirect = view.findViewById(R.id.home_speed_dot_direct)
         speedChart = view.findViewById(R.id.home_speed_chart)
 
@@ -577,6 +600,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         networkLatencyText = view.findViewById(R.id.home_network_latency_text)
         networkIpText = view.findViewById(R.id.home_network_ip_text)
         networkMetaText = view.findViewById(R.id.home_network_meta_text)
+        networkExtraText = view.findViewById(R.id.home_network_extra_text)
 
         cardCpuChart = view.findViewById(R.id.home_card_cpu_chart)
         cpuValueText = view.findViewById(R.id.home_cpu_value_text)
@@ -586,8 +610,13 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         ramValueText = view.findViewById(R.id.home_ram_value_text)
         ramChart = view.findViewById(R.id.home_ram_chart)
 
+        cardConnChart = view.findViewById(R.id.home_card_conn_chart)
+        connValueText = view.findViewById(R.id.home_conn_value_text)
+        connChart = view.findViewById(R.id.home_conn_chart)
+
         cardRouting = view.findViewById(R.id.home_card_running_mode)
         routeIcon = view.findViewById(R.id.home_icon_running_mode)
+        routeModeBadge = view.findViewById(R.id.home_route_mode_badge)
         pillRuleText = view.findViewById(R.id.home_mode_pill_rule_text)
         routeSummaryText = view.findViewById(R.id.home_route_summary_text)
 
@@ -646,6 +675,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             cardNetworkEgress,
             cardCpuChart,
             cardRamChart,
+            cardConnChart,
             cardRouting,
             cardAppProxy,
             cardHotspotShare,
@@ -669,8 +699,29 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val nestedBg = Theme.resolveNestedBoxBackground(ctx)
         val primaryInk = ctx.getColorAttr(android.R.attr.textColorPrimary)
         val accent = ExpressiveSettingsHelper.resolveAccentColor(ctx)
+        val iconAccent = if (Theme.isMonochromeBlack(ctx)) Color.WHITE else accent
         val strokeColor = Theme.resolveCardStrokeColor(ctx, selected = false)
         val isAnyAmoled = Theme.isAnyAmoled(ctx) || Theme.isMonochromeBlack(ctx)
+
+        listOfNotNull(
+            view?.findViewById<ImageView>(R.id.home_icon_network_speed),
+            view?.findViewById<ImageView>(R.id.home_icon_traffic_usage),
+            view?.findViewById<ImageView>(R.id.home_icon_network_egress),
+            view?.findViewById<ImageView>(R.id.home_icon_cpu),
+            view?.findViewById<ImageView>(R.id.home_icon_ram),
+            view?.findViewById<ImageView>(R.id.home_icon_conn),
+            routeIcon,
+            view?.findViewById<ImageView>(R.id.home_icon_app_proxy),
+            view?.findViewById<ImageView>(R.id.home_icon_diag_stun),
+            view?.findViewById<ImageView>(R.id.home_icon_diag_dns),
+            view?.findViewById<ImageView>(R.id.home_icon_diag_conn),
+        ).forEach { it.setColorFilter(iconAccent) }
+
+        speedConnBadge?.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp2px(7).toFloat()
+            setColor(nestedBg)
+        }
 
         listOfNotNull(subPortalBtn, subSwitchBtn).forEach { button ->
             styleTonalActionButton(button, nestedBg, primaryInk, accent, strokeColor, isAnyAmoled)
@@ -733,11 +784,15 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     }
 
     private fun setupCharts(ctx: Context) {
-        val proxyColor = LiveChartView.proxyColor(ctx)
-        val directColor = resolveDistinctDirectColor(ctx, proxyColor)
+        val (_, downloadColor, uploadColor) = TrafficRingView.resolveSegmentColors(ctx)
+        val directColor = resolveDistinctDirectColor(ctx, downloadColor)
         speedDotVpn?.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
-            setColor(proxyColor)
+            setColor(downloadColor)
+        }
+        speedDotUp?.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(uploadColor)
         }
         speedDotDirect?.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
@@ -747,23 +802,29 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         speedChart?.let { chart ->
             val rows = listOf(
                 LiveChartView.Row(
-                    key = "proxy",
-                    label = getString(R.string.live_graph_proxy),
-                    color = proxyColor,
+                    key = "down",
+                    label = getString(R.string.live_graph_down),
+                    color = downloadColor,
                     wash = true,
-                    fields = intArrayOf(LiveStatsBatch.PROXY_DOWN, LiveStatsBatch.PROXY_UP),
+                    fields = intArrayOf(LiveStatsBatch.PROXY_DOWN),
+                ),
+                LiveChartView.Row(
+                    key = "up",
+                    label = getString(R.string.live_graph_up),
+                    color = uploadColor,
+                    wash = false,
+                    fields = intArrayOf(LiveStatsBatch.PROXY_UP),
                 ),
                 LiveChartView.Row(
                     key = "direct",
                     label = getString(R.string.live_graph_direct),
                     color = directColor,
                     wash = false,
-                    fields = intArrayOf(LiveStatsBatch.DIRECT_DOWN, LiveStatsBatch.DIRECT_UP),
+                    fields = intArrayOf(LiveStatsBatch.DIRECT_DOWN),
                 ),
             )
             val columns = listOf(
-                LiveChartView.Column(key = "d", arrow = "↓", dashed = false, wash = true),
-                LiveChartView.Column(key = "u", arrow = "↑", dashed = true, wash = false),
+                LiveChartView.Column(key = "v", arrow = "", dashed = false, wash = true),
             )
             chart.setup(rows, columns, LiveChartView.rateAxis(ctx), compact = true, events = false)
             chart.windowMs = CHART_WINDOW_MS
@@ -773,7 +834,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
         val memoryAxis = bytesAxis ?: LiveChartView.bytesAxis(ctx).also { bytesAxis = it }
         setupMetricChart(cpuChart, LiveChartView.coreColor(ctx), LiveStatsBatch.CPU, percentAxis)
-        setupMetricChart(ramChart, proxyColor, LiveStatsBatch.MEMORY, memoryAxis)
+        setupMetricChart(ramChart, downloadColor, LiveStatsBatch.MEMORY, memoryAxis)
+        setupMetricChart(connChart, directColor, LiveStatsBatch.CONNECTIONS, LiveChartView.countAxis())
     }
 
     private fun setupMetricChart(
@@ -828,10 +890,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         cardNetworkSpeed?.setOnClickListener(openLiveGraphs)
         cardCpuChart?.setOnClickListener(openLiveGraphs)
         cardRamChart?.setOnClickListener(openLiveGraphs)
+        cardConnChart?.setOnClickListener(openLiveGraphs)
 
         attachCardChartTapForwarder(speedChart, cardNetworkSpeed)
         attachCardChartTapForwarder(cpuChart, cardCpuChart)
         attachCardChartTapForwarder(ramChart, cardRamChart)
+        attachCardChartTapForwarder(connChart, cardConnChart)
 
         cardTrafficUsage?.setOnClickListener { v -> launchActivity(v, TrafficUsageActivity::class.java) }
         cardRouting?.setOnClickListener { v ->
@@ -1006,18 +1070,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         card.strokeColor = bannerStroke
         card.strokeWidth = strokeWidth
 
-        val badgeFill = when {
-            active || transitional -> if (Theme.isMonochromeBlack(ctx)) {
-                ColorUtils.setAlphaComponent(Color.WHITE, 36)
-            } else {
-                ColorUtils.setAlphaComponent(accent, if (isNight) 44 else 28)
-            }
-            else -> Theme.resolveNestedBoxBackground(ctx)
-        }
-        val iconInk = when {
-            active || transitional -> if (Theme.isMonochromeBlack(ctx)) Color.WHITE else accent
-            else -> primaryInk
-        }
+        val badgeFill = ColorUtils.setAlphaComponent(statusColor, if (isNight) 54 else 38)
+        val iconInk = statusColor
 
         statusPowerBtn?.contentDescription = getString(
             if (currentState.canStop) R.string.disconnect else R.string.connect,
@@ -1025,12 +1079,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         iconBox.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(badgeFill)
-            if (active || transitional || isAnyAmoled) {
-                setStroke(
-                    dp2px(1),
-                    ColorUtils.setAlphaComponent(iconInk, if (active || transitional) 120 else 48),
-                )
-            }
+            setStroke(
+                dp2px(1),
+                ColorUtils.setAlphaComponent(statusColor, if (active || transitional) 190 else 145),
+            )
         }
         val d = ResourcesCompat.getDrawable(resources, R.drawable.ic_power_settings_new_24, null)?.mutate()
         if (d != null) {
@@ -1039,12 +1091,19 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         }
         progress?.apply {
             visibility = if (transitional) View.VISIBLE else View.INVISIBLE
-            setIndicatorColor(iconInk)
+            setIndicatorColor(statusColor)
         }
 
         dot?.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(statusColor)
+        }
+        headerStatusDot?.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(statusColor)
+        }
+        if (!active) {
+            headerStatusText?.text = stateLabel
         }
 
         titleTv.text = stateLabel
@@ -1284,6 +1343,21 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             pillRuleText?.setTextColor(currentCtx.getColorAttr(android.R.attr.textColorPrimary))
             routeIcon?.setColorFilter(activeInk)
 
+            val outboundLabel = when (route.default_outbound_id) {
+                OutboundIds.DIRECT -> getString(R.string.home_route_direct)
+                OutboundIds.BLOCK -> getString(R.string.home_route_block)
+                else -> getString(R.string.route_proxy)
+            }
+            routeModeBadge?.apply {
+                text = outboundLabel
+                setTextColor(currentCtx.getColorAttr(android.R.attr.textColorSecondary))
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp2px(7).toFloat()
+                    setColor(Theme.resolveNestedBoxBackground(currentCtx))
+                }
+            }
+
             val activeRuleCount = route.rules.count { !it.disabled && !it.isEmpty() }
             val ruleSummary = if (activeRuleCount > 0) {
                 getString(R.string.home_route_rules_active, activeRuleCount)
@@ -1354,6 +1428,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                     picked != null && localIp != null -> "${picked.first.name} ($localIp)"
                     else -> getString(R.string.home_network)
                 }
+                networkExtraText?.text = buildNetworkExtraLine(ctx, entity, picked)
                 return@launch
             }
 
@@ -1373,6 +1448,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 } else {
                     country.ifEmpty { getString(R.string.home_network) }
                 }
+                networkExtraText?.text = buildNetworkExtraLine(ctx, entity, picked)
                 return@launch
             }
 
@@ -1381,10 +1457,34 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 networkMetaText?.text = picked.second.prefixLength?.let {
                     "${picked.first.name} · /$it"
                 } ?: picked.first.name
+                networkExtraText?.text = buildNetworkExtraLine(ctx, entity, picked)
             } else {
                 networkIpText?.text = getString(R.string.not_connected)
                 networkMetaText?.text = getString(R.string.home_local_ip_none)
+                networkExtraText?.text = entity?.displayType()?.trim()?.takeIf { it.isNotEmpty() }
+                    ?: getString(R.string.home_status_disabled)
             }
+        }
+    }
+
+    private fun buildNetworkExtraLine(
+        ctx: Context,
+        entity: ProxyEntity?,
+        picked: Pair<NetworkInterfaceInfo, InterfaceIp>?,
+    ): String {
+        val type = entity?.displayType()?.trim().orEmpty()
+        val latency = if (currentState == BaseService.State.Connected && lastUrlTestLatencyMs > 0) {
+            lastUrlTestLatencyMs
+        } else {
+            entity?.latency ?: 0
+        }
+        if (type.isNotEmpty() && latency > 0) return "$type · $latency ms"
+        if (type.isNotEmpty()) return type
+        val prefix = picked?.second?.prefixLength
+        return if (picked != null && prefix != null) {
+            "${picked.first.name} · IPv4 /$prefix"
+        } else {
+            ctx.getString(R.string.home_network)
         }
     }
 
@@ -1792,9 +1892,14 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             it.running = running
             it.invalidate()
         }
+        connChart?.let {
+            it.running = running
+            it.invalidate()
+        }
 
         val cpuTv = cpuValueText
         val ramTv = ramValueText
+        val connTv = connValueText
         val zeroPct = percentAxis.format(0.0)
         val zeroBytes = context?.let { Formatter.formatFileSize(it, 0L) } ?: (bytesAxis?.format(0.0) ?: "0 B")
         val series = LiveHistory.series
@@ -1806,6 +1911,11 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         if (last < 0) {
             cpuTv?.text = zeroPct
             ramTv?.text = zeroBytes
+            connTv?.text = "0"
+            speedConnBadge?.text = getString(R.string.home_connections_count, 0)
+            if (running) {
+                headerStatusText?.text = getString(R.string.home_connections_count, 0)
+            }
             return
         }
 
@@ -1814,6 +1924,15 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
         val mem = series.value(LiveStatsBatch.MEMORY, last)
         ramTv?.text = if (mem.isNaN()) zeroBytes else (bytesAxis?.format(mem.toDouble()) ?: zeroBytes)
+
+        val connRaw = series.value(LiveStatsBatch.CONNECTIONS, last)
+        val conns = if (connRaw.isNaN()) 0 else connRaw.toInt().coerceAtLeast(0)
+        connTv?.text = conns.toString()
+        val connStr = getString(R.string.home_connections_count, conns)
+        speedConnBadge?.text = connStr
+        if (running) {
+            headerStatusText?.text = connStr
+        }
     }
 
     private fun updateTrafficTotalsUi() {
@@ -1891,6 +2010,56 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val strokePx = Theme.resolveCardStrokeWidthPx(ctx, selected = false).toInt().coerceAtLeast(1)
         val textPrimary = ctx.getColorAttr(android.R.attr.textColorPrimary)
         val rippleColor = ColorUtils.setAlphaComponent(textPrimary, if (isNight) 38 else 28)
+
+        val statusShape = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = pillSize / 2f
+            setColor(pillBg)
+            setStroke(strokePx, pillStroke)
+        }
+        val statusMask = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = pillSize / 2f
+            setColor(textPrimary)
+        }
+        val statusDotView = View(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams(dp2px(7), dp2px(7)).apply {
+                marginEnd = dp2px(6)
+            }
+        }
+        val statusTextView = TextView(ctx).apply {
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f)
+            typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+            fontFeatureSettings = "tnum"
+            includeFontPadding = false
+            maxLines = 1
+            setTextColor(textPrimary)
+        }
+        headerStatusDot = statusDotView
+        headerStatusText = statusTextView
+        val statusPill = LinearLayout(ctx).apply {
+            id = R.id.home_header_status_pill
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            minimumHeight = pillSize
+            setPadding(dp2px(11), 0, dp2px(11), 0)
+            layoutParams = LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                pillSize,
+            ).apply {
+                marginStart = dp2px(8)
+            }
+            isClickable = true
+            isFocusable = true
+            background = RippleDrawable(ColorStateList.valueOf(rippleColor), statusShape, statusMask)
+            addView(statusDotView)
+            addView(statusTextView)
+            setOnClickListener { v ->
+                context?.let { HapticHelper.perform(it, v, HapticHelper.HapticKind.TAP) }
+                (activity as? MainActivity)?.displayFragmentWithId(R.id.nav_live_graphs)
+            }
+        }
+        headerRoot.addView(statusPill)
 
         headerRoot.addView(
             View(ctx).apply {

@@ -168,6 +168,7 @@ class MainActivity : ThemedActivity(),
         }
         binding.fab.imageTintList = ColorStateList.valueOf(fabIconColor)
         styleFloatingToolbarContainer(isAmoled = isAmoled, isBlackTheme = isBlackTheme)
+        syncFloatingToolbarFabColor(DataStore.serviceState)
         if (themeResId !in intArrayOf(
                 R.style.Theme_SagerNet_Black,
                 // The White theme and its night fallback read ?itemShapeFillColor too, so the selection stays visible
@@ -627,8 +628,21 @@ class MainActivity : ThemedActivity(),
         (binding.floatingToolbar.background?.mutate() as? MaterialShapeDrawable)?.let { shape ->
             shape.fillColor = ColorStateList.valueOf(fillColor)
             shape.setStroke(strokeWidth, strokeColor)
+            shape.setCornerSize(resources.displayMetrics.density * 26f)
             binding.floatingToolbar.background = shape
         }
+    }
+
+    private fun syncFloatingToolbarFabColor(state: BaseService.State) {
+        val colorRes = when (state) {
+            BaseService.State.Connected -> R.color.material_green_500
+            BaseService.State.Connecting, BaseService.State.Stopping -> R.color.material_amber_500
+            else -> R.color.material_red_500
+        }
+        val fabColor = ContextCompat.getColor(this, colorRes)
+        binding.fab.backgroundTintList = ColorStateList.valueOf(fabColor)
+        binding.fab.imageTintList = ColorStateList.valueOf(Color.WHITE)
+        binding.fabProgress.setIndicatorColor(fabColor)
     }
 
     private fun syncDrawerCheckedItem(fragment: Any? = currentMainFragment) {
@@ -763,6 +777,7 @@ class MainActivity : ThemedActivity(),
         }
 
         binding.fab.changeState(state, previousState, animate)
+        syncFloatingToolbarFabColor(state)
         syncMainControls(
             showWhenConnected = state == BaseService.State.Connected,
             animate = animateControls,
