@@ -3157,4 +3157,6 @@
     <string name="home_network_show_ip">IP adresini göster</string>
     <string name="hotspot_share_btn_start">Başlat</string>
     <string name="hotspot_share_btn_stop">Durdur</string>
+    <string name="ruleset_download_after_vpn">Kural setleri ve rotaları VPN\'den sonra indir</string>
+    <string name="ruleset_download_after_vpn_sum">Özel .srs kural setlerini ve uzak rotaları bağlanmadan önce yerine VPN tüneli üzerinden indirir</string>
 </resources>

@@ -70,8 +70,13 @@ object RouteRepo {
     fun refresh(): String? {
         val mirror = DataStore.rulesetMirror
         val errors = ArrayList<String>()
+        val viaProxy = if (DataStore.rulesetDownloadAfterVpn) {
+            DataStore.serviceState.connected
+        } else {
+            io.nekohasekai.sagernet.ktx.appRequestsViaProxy()
+        }
         try {
-            val text = fetchText(RuleSets.mirrorLink(SRS_LIST_URL, mirror)).body
+            val text = fetchText(RuleSets.mirrorLink(SRS_LIST_URL, mirror), viaProxy = viaProxy).body
             if (RuleSetCatalog.parseSrsList(text).size == 0) {
                 errors.add("$SRS_LIST: no rule-sets in the download")
             } else {

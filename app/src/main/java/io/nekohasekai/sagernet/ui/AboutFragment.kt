@@ -22,8 +22,8 @@ import io.nekohasekai.sagernet.ktx.launchCustomTab
 import io.nekohasekai.sagernet.ktx.onMainDispatcher
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
 import io.nekohasekai.sagernet.ktx.snackbar
+import io.nekohasekai.sagernet.ui.settings.AppUpdateSettingsFragment
 import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
-import io.nekohasekai.sagernet.update.UpdateActivity
 import io.nekohasekai.sagernet.update.UpdateChecker
 import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.widget.applyListInsets
@@ -63,13 +63,13 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
         binding.aboutVersionBadge.text = SagerNet.appVersionNameForDisplay
         binding.textAboutProjectHeader.setTextColor(ExpressiveSettingsHelper.resolveAccentColor(ctx))
 
-        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutVersion, R.drawable.ic_baseline_update_24)
-        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutUpdate, R.drawable.ic_baseline_download_24)
-        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutCore, R.drawable.ic_baseline_layers_24)
-        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutGithub, R.drawable.ic_baseline_code_24)
-        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutWebsite, R.drawable.baseline_public_24)
-        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutSupport, R.drawable.ic_baseline_favorite_24)
-        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutLicense, R.drawable.ic_baseline_menu_book_24)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutVersion, R.drawable.ic_baseline_update_24, sizeDp = 36, iconSizeDp = 19)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutUpdate, R.drawable.ic_baseline_download_24, sizeDp = 36, iconSizeDp = 19)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutCore, R.drawable.ic_baseline_layers_24, sizeDp = 36, iconSizeDp = 19)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutGithub, R.drawable.ic_baseline_code_24, sizeDp = 36, iconSizeDp = 19)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutWebsite, R.drawable.baseline_public_24, sizeDp = 36, iconSizeDp = 19)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutSupport, R.drawable.ic_baseline_favorite_24, sizeDp = 36, iconSizeDp = 19)
+        ExpressiveSettingsHelper.applySquircleIcon(binding.iconAboutLicense, R.drawable.ic_baseline_menu_book_24, sizeDp = 36, iconSizeDp = 19)
         ExpressiveSettingsHelper.styleExpressiveNestedBox(binding.boxLicense, cornerRadiusDp = 14f)
 
         binding.textAboutVersionValue.text = SagerNet.appVersionNameForDisplay
@@ -84,7 +84,10 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                 else R.string.update_channel_stable,
             )
             binding.aboutUpdateRow.setOnClickListener {
-                UpdateActivity.start(requireContext())
+                (activity as? MainActivity)?.openSettingsScreen(
+                    AppUpdateSettingsFragment::class.java.name,
+                    getString(R.string.settings_app_update),
+                )
             }
         } else {
             binding.aboutUpdateRow.visibility = View.GONE

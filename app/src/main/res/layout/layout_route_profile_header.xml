@@ -35,48 +35,61 @@
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:textColor="?android:attr/textColorSecondary" />
 
-        <HorizontalScrollView
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/default_outbound"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:overScrollMode="never"
-            android:scrollbars="none">
+            app:chipSpacingHorizontal="4dp"
+            app:selectionRequired="true"
+            app:singleLine="true"
+            app:singleSelection="true">
 
-            <com.google.android.material.chip.ChipGroup
-                android:id="@+id/default_outbound"
+            <com.google.android.material.chip.Chip
+                android:id="@+id/outbound_proxy"
+                style="@style/Widget.MaterialComponents.Chip.Choice.SagerNet"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                app:chipSpacingHorizontal="6dp"
-                app:selectionRequired="true"
-                app:singleLine="true"
-                app:singleSelection="true">
+                android:minWidth="0dp"
+                android:textSize="11.5sp"
+                app:chipEndPadding="6dp"
+                app:chipMinHeight="32dp"
+                app:chipStartPadding="6dp" />
 
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/outbound_proxy"
-                    style="@style/Widget.MaterialComponents.Chip.Choice.SagerNet"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+            <com.google.android.material.chip.Chip
+                android:id="@+id/outbound_direct"
+                style="@style/Widget.MaterialComponents.Chip.Choice.SagerNet"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:textSize="11.5sp"
+                app:chipEndPadding="6dp"
+                app:chipMinHeight="32dp"
+                app:chipStartPadding="6dp" />
 
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/outbound_direct"
-                    style="@style/Widget.MaterialComponents.Chip.Choice.SagerNet"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+            <com.google.android.material.chip.Chip
+                android:id="@+id/outbound_block"
+                style="@style/Widget.MaterialComponents.Chip.Choice.SagerNet"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:textSize="11.5sp"
+                app:chipEndPadding="6dp"
+                app:chipMinHeight="32dp"
+                app:chipStartPadding="6dp" />
 
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/outbound_block"
-                    style="@style/Widget.MaterialComponents.Chip.Choice.SagerNet"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+            <com.google.android.material.chip.Chip
+                android:id="@+id/outbound_warp"
+                style="@style/Widget.MaterialComponents.Chip.Choice.SagerNet"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:textSize="11.5sp"
+                app:chipEndPadding="6dp"
+                app:chipMinHeight="32dp"
+                app:chipStartPadding="6dp" />
 
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/outbound_warp"
-                    style="@style/Widget.MaterialComponents.Chip.Choice.SagerNet"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-
-            </com.google.android.material.chip.ChipGroup>
-        </HorizontalScrollView>
+        </com.google.android.material.chip.ChipGroup>
 
         <LinearLayout
             android:id="@+id/remote_group"

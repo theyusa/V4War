@@ -37,6 +37,11 @@
             app:title="@string/ruleset_mirror"
             app:useSimpleSummaryProvider="true" />
         <SwitchPreference
+            app:icon="@drawable/ic_baseline_download_24"
+            app:key="ruleset_download_after_vpn"
+            app:summary="@string/ruleset_download_after_vpn_sum"
+            app:title="@string/ruleset_download_after_vpn" />
+        <SwitchPreference
             app:icon="@drawable/ic_baseline_block_24"
             app:key="adblock_enable"
             app:summary="@string/adblock_enable_sum"

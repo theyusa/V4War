@@ -1957,47 +1957,49 @@ class LanSharingActivity : ThemedActivity(), SagerConnection.Callback {
         binding.boxShareMethodSelector.setOnClickListener {
             val entries = shareMethodEntries()
             val checkedIdx = shareMethodCodes.indexOf(lastAppliedShareMethod).coerceAtLeast(0)
-            com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.hotspot_share_method_label)
-                .setSingleChoiceItems(entries.toTypedArray(), checkedIdx) { dialog, position ->
-                    val selectedCode = shareMethodCodes.getOrNull(position) ?: "auto"
-                    if (selectedCode == "root" && !cachedRootAvailable) {
-                        Toast.makeText(this, R.string.hotspot_share_err_root, Toast.LENGTH_SHORT).show()
-                        return@setSingleChoiceItems
-                    }
-                    if (selectedCode != lastAppliedShareMethod) {
-                        lastAppliedShareMethod = selectedCode
-                        DataStore.hotspotShareMethod = selectedCode
-                        updateShareMethodSelectorText(selectedCode)
-                        if (DataStore.hotspotShareEnabled) {
-                            TetherWatchService.restart(this)
-                        } else if (HotspotShareStateStore.snapshot() !is ShareState.Active) {
-                            HotspotShareStateStore.publish(ShareState.Off)
-                        }
-                        refreshNetworkAndState()
-                    }
-                    dialog.dismiss()
+            val disabled = if (!cachedRootAvailable) setOf(2) else emptySet()
+            ExpressiveSettingsHelper.showExpressiveSingleChoiceSheet(
+                context = this,
+                title = getString(R.string.hotspot_share_method_label),
+                items = entries,
+                checkedIndex = checkedIdx,
+                disabledIndices = disabled,
+            ) { position ->
+                val selectedCode = shareMethodCodes.getOrNull(position) ?: "auto"
+                if (selectedCode == "root" && !cachedRootAvailable) {
+                    Toast.makeText(this, R.string.hotspot_share_err_root, Toast.LENGTH_SHORT).show()
+                    return@showExpressiveSingleChoiceSheet
                 }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
+                if (selectedCode != lastAppliedShareMethod) {
+                    lastAppliedShareMethod = selectedCode
+                    DataStore.hotspotShareMethod = selectedCode
+                    updateShareMethodSelectorText(selectedCode)
+                    if (DataStore.hotspotShareEnabled) {
+                        TetherWatchService.restart(this)
+                    } else if (HotspotShareStateStore.snapshot() !is ShareState.Active) {
+                        HotspotShareStateStore.publish(ShareState.Off)
+                    }
+                    refreshNetworkAndState()
+                }
+            }
         }
 
         binding.boxFailClosedSelector.setOnClickListener {
             val entries = failClosedEntries()
             val checkedIdx = failClosedCodes.indexOf(lastAppliedFailClosed).coerceAtLeast(0)
-            com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.hotspot_share_fail_closed_label)
-                .setSingleChoiceItems(entries.toTypedArray(), checkedIdx) { dialog, position ->
-                    val selectedCode = failClosedCodes.getOrNull(position) ?: "block"
-                    if (selectedCode != lastAppliedFailClosed) {
-                        lastAppliedFailClosed = selectedCode
-                        DataStore.hotspotShareFailClosed = selectedCode
-                        updateFailClosedSelectorText(selectedCode)
-                    }
-                    dialog.dismiss()
+            ExpressiveSettingsHelper.showExpressiveSingleChoiceSheet(
+                context = this,
+                title = getString(R.string.hotspot_share_fail_closed_label),
+                items = entries,
+                checkedIndex = checkedIdx,
+            ) { position ->
+                val selectedCode = failClosedCodes.getOrNull(position) ?: "block"
+                if (selectedCode != lastAppliedFailClosed) {
+                    lastAppliedFailClosed = selectedCode
+                    DataStore.hotspotShareFailClosed = selectedCode
+                    updateFailClosedSelectorText(selectedCode)
                 }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
+            }
         }
 
         // Active Tethering Channels filter chips (Wi-Fi / USB coming soon / Root-only Bluetooth)

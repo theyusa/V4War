@@ -284,6 +284,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var outboundDomainStrategy by SettingsRegistry.OUTBOUND_DOMAIN_STRATEGY
     var domainStrategy by SettingsRegistry.DOMAIN_STRATEGY
     var rulesetMirror by SettingsRegistry.RULESET_MIRROR
+    var rulesetDownloadAfterVpn by SettingsRegistry.RULESET_DOWNLOAD_AFTER_VPN
     var adblockEnable by SettingsRegistry.ADBLOCK_ENABLE
     var routeAutoUpdate by SettingsRegistry.ROUTE_AUTO_UPDATE
     var routeAutoUpdateLast by SettingsRegistry.ROUTE_AUTO_UPDATE_LAST

@@ -250,7 +250,8 @@ class RoutingSettingsFragment : SettingsScreenFragment(R.xml.settings_routing) {
 
         reloadOn(
             SettingsRegistry.OUTBOUND_DOMAIN_STRATEGY.key, SettingsRegistry.DOMAIN_STRATEGY.key,
-            SettingsRegistry.RULESET_MIRROR.key, SettingsRegistry.ADBLOCK_ENABLE.key,
+            SettingsRegistry.RULESET_MIRROR.key, SettingsRegistry.RULESET_DOWNLOAD_AFTER_VPN.key,
+            SettingsRegistry.ADBLOCK_ENABLE.key,
         )
         for ((key, note) in listOf(
             SettingsRegistry.OUTBOUND_DOMAIN_STRATEGY.key to R.string.outbound_domain_strategy_sum,

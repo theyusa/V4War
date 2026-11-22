@@ -223,6 +223,14 @@
                                 android:textSize="13sp"
                                 tools:text="Stable" />
                         </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_marginStart="8dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_chevron_right_24"
+                            app:tint="?android:attr/textColorSecondary" />
                     </LinearLayout>
 
                     <!-- Core ref row -->

@@ -81,8 +81,6 @@ class GeneralSettingsFragment : SettingsScreenFragment(R.xml.settings_general) {
             OemBackground.open(requireContext())
             true
         }
-
-        pref<Preference>(KEY_UPDATES).isVisible = BuildConfig.IN_APP_UPDATER
     }
 
     override fun onResume() {
@@ -117,7 +115,6 @@ class GeneralSettingsFragment : SettingsScreenFragment(R.xml.settings_general) {
         const val KEY_ALWAYS_ON_VPN = "alwaysOnVpn"
         const val KEY_BATTERY_OPTIMIZATION = "batteryOptimization"
         const val KEY_BACKGROUND_RESTRICTIONS = "backgroundRestrictions"
-        const val KEY_UPDATES = "cag_updates"
     }
 }
 

@@ -3374,4 +3374,6 @@
     <string name="home_network_show_ip">Show IP address</string>
     <string name="hotspot_share_btn_start">Start</string>
     <string name="hotspot_share_btn_stop">Stop</string>
+    <string name="ruleset_download_after_vpn">Download rule-sets &amp; routes after VPN</string>
+    <string name="ruleset_download_after_vpn_sum">Fetch custom .srs rule-sets and remote routes through the VPN tunnel instead of before connecting</string>
 </resources>

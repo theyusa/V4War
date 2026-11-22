@@ -1042,6 +1042,130 @@ object ExpressiveSettingsHelper {
             }
         }
     }
+
+    fun showExpressiveSingleChoiceSheet(
+        context: Context,
+        title: CharSequence,
+        items: List<CharSequence>,
+        checkedIndex: Int,
+        disabledIndices: Set<Int> = emptySet(),
+        onSelected: (index: Int) -> Unit,
+    ) {
+        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(context)
+        val isNight = Theme.usingNightMode(context)
+        val accent = resolveAccentColor(context)
+        val sheetBg = Theme.resolveCardBackground(context)
+        val nestedBg = Theme.resolveNestedBoxBackground(context)
+        val primaryInk = context.getColorAttr(android.R.attr.textColorPrimary)
+        val secondaryInk = context.getColorAttr(android.R.attr.textColorSecondary)
+        val strokeBase = Theme.resolveCardStrokeColor(context, selected = false)
+
+        val dp = { v: Int -> (v * context.resources.displayMetrics.density).toInt() }
+        val root = android.widget.LinearLayout(context).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(dp(18), dp(10), dp(18), dp(22))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                val r = dp(28).toFloat()
+                cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f)
+                setColor(sheetBg)
+            }
+        }
+
+        // Drag handle pill
+        root.addView(
+            View(context).apply {
+                layoutParams = android.widget.LinearLayout.LayoutParams(dp(38), dp(4)).apply {
+                    gravity = android.view.Gravity.CENTER_HORIZONTAL
+                    bottomMargin = dp(14)
+                }
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(2).toFloat()
+                    setColor(ColorUtils.setAlphaComponent(secondaryInk, 90))
+                }
+            },
+        )
+
+        // Title
+        root.addView(
+            TextView(context).apply {
+                text = title
+                textSize = 17f
+                typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+                setTextColor(primaryInk)
+                setPadding(dp(4), 0, dp(4), dp(12))
+            },
+        )
+
+        items.forEachIndexed { index, label ->
+            val selected = index == checkedIndex
+            val disabled = index in disabledIndices
+            val row = android.widget.LinearLayout(context).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    if (index > 0) topMargin = dp(8)
+                }
+                minimumHeight = dp(48)
+                setPadding(dp(14), dp(12), dp(14), dp(12))
+                alpha = if (disabled) 0.48f else 1f
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(16).toFloat()
+                    setColor(
+                        if (selected) ColorUtils.setAlphaComponent(accent, if (isNight) 44 else 28) else nestedBg,
+                    )
+                    setStroke(
+                        dp(1),
+                        if (selected) ColorUtils.setAlphaComponent(accent, if (isNight) 170 else 130) else strokeBase,
+                    )
+                }
+                setOnClickListener {
+                    HapticHelper.perform(context, this, HapticHelper.HapticKind.SELECTION)
+                    onSelected(index)
+                    if (!disabled) dialog.dismiss()
+                }
+            }
+
+            row.addView(
+                TextView(context).apply {
+                    text = label
+                    textSize = 14.5f
+                    typeface = android.graphics.Typeface.create(
+                        if (selected) "sans-serif-medium" else "sans-serif",
+                        android.graphics.Typeface.NORMAL,
+                    )
+                    setTextColor(if (selected) accent else primaryInk)
+                    layoutParams = android.widget.LinearLayout.LayoutParams(
+                        0,
+                        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                        1f,
+                    )
+                },
+            )
+
+            if (selected) {
+                row.addView(
+                    ImageView(context).apply {
+                        layoutParams = android.widget.LinearLayout.LayoutParams(dp(18), dp(18)).apply {
+                            marginStart = dp(10)
+                        }
+                        setImageResource(R.drawable.ic_baseline_check_circle_24)
+                        setColorFilter(accent)
+                    },
+                )
+            }
+
+            root.addView(row)
+        }
+
+        dialog.setContentView(root)
+        dialog.show()
+    }
 }
 
 fun Preference.applyMaskedIconBadges(

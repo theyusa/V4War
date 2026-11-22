@@ -64,15 +64,4 @@
             app:summary="@string/skip_delete_confirmation_sum"
             app:title="@string/skip_delete_confirmation" />
     </PreferenceCategory>
-
-    <PreferenceCategory
-        app:key="cag_updates"
-        app:title="@string/cag_updates">
-        <Preference
-            app:fragment="io.nekohasekai.sagernet.ui.settings.AppUpdateSettingsFragment"
-            app:icon="@drawable/ic_baseline_update_24"
-            app:key="openAppUpdateSettings"
-            app:summary="@string/settings_app_update_sum"
-            app:title="@string/settings_app_update" />
-    </PreferenceCategory>
 </PreferenceScreen>
