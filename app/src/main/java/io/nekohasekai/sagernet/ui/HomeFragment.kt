@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
-import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.RemoteException
@@ -54,6 +53,7 @@ import io.nekohasekai.sagernet.hotspotshare.HotspotShareStateStore
 import io.nekohasekai.sagernet.hotspotshare.ShareMethod
 import io.nekohasekai.sagernet.hotspotshare.SharePreference
 import io.nekohasekai.sagernet.hotspotshare.ShareState
+import io.nekohasekai.sagernet.hotspotshare.TetherWatchService
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
@@ -65,15 +65,11 @@ import io.nekohasekai.sagernet.ui.route.RouteQuickSwitch
 import io.nekohasekai.sagernet.ui.settings.ExpressiveSettingsHelper
 import io.nekohasekai.sagernet.ui.settings.ExpressiveShape
 import io.nekohasekai.sagernet.ui.test.TestFormat
-import io.nekohasekai.sagernet.ui.widget.SquareMaterialCardView
 import io.nekohasekai.sagernet.ui.widget.TrafficRingView
 import io.nekohasekai.sagernet.utils.HapticHelper
-import io.nekohasekai.sagernet.utils.HotspotKind
-import io.nekohasekai.sagernet.utils.InterfaceIp
-import io.nekohasekai.sagernet.utils.InterfaceKind
-import io.nekohasekai.sagernet.utils.NetworkInterfaceInfo
-import io.nekohasekai.sagernet.utils.NetworkInterfacesRepository
-import io.nekohasekai.sagernet.utils.NetworkInterfacesSnapshot
+import io.nekohasekai.sagernet.utils.HotspotGatewayState
+import io.nekohasekai.sagernet.utils.HotspotGatewayStatus
+import io.nekohasekai.sagernet.utils.LanSharingLogics
 import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.widget.ExitIp
 import io.nekohasekai.sagernet.widget.LiveChartView
@@ -90,9 +86,9 @@ import kotlin.math.hypot
 import kotlin.math.roundToInt
 
 /**
- * Compact Bento Home dashboard: Interactive Status Hero + URL test strip, Network Speed (2x4),
- * Traffic Usage + Network (2x2), 1:1 square CPU & RAM sparklines, compact Route + Local IP,
- * upgraded Hotspot & Proxy Share, and Subscription + Online Portal.
+ * Ultra-compact Bento Home dashboard: Interactive Status Hero + URL test strip, Active Group /
+ * Subscription + Quick Switcher, Network Speed (2x4), Traffic Usage + Network (2x2),
+ * compact 2x1 CPU & RAM sparklines, compact Routing + Apps VPN Mode, and Hotspot & Proxy Share.
  */
 class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
@@ -140,23 +136,24 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var networkIpText: TextView? = null
     private var networkMetaText: TextView? = null
 
-    private var cardCpuChart: SquareMaterialCardView? = null
+    private var cardCpuChart: MaterialCardView? = null
     private var cpuValueText: TextView? = null
     private var cpuChart: LiveChartView? = null
 
-    private var cardRamChart: SquareMaterialCardView? = null
+    private var cardRamChart: MaterialCardView? = null
     private var ramValueText: TextView? = null
     private var ramChart: LiveChartView? = null
 
     private var cardRouting: MaterialCardView? = null
     private var routeIcon: ImageView? = null
+    private var routeOutboundBadge: TextView? = null
     private var pillRuleText: TextView? = null
     private var routeSummaryText: TextView? = null
 
-    private var cardLocalIp: MaterialCardView? = null
-    private var localIpIfaceText: TextView? = null
-    private var localIpValueText: TextView? = null
-    private var localIpMetaText: TextView? = null
+    private var cardAppProxy: MaterialCardView? = null
+    private var appProxyBadge: TextView? = null
+    private var appProxyModeText: TextView? = null
+    private var appProxyMetaText: TextView? = null
 
     private var cardHotspotShare: MaterialCardView? = null
     private var hotspotIcon: ImageView? = null
@@ -171,9 +168,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var hotspotChipLanValue: TextView? = null
 
     private var cardSubscription: MaterialCardView? = null
+    private var subIcon: ImageView? = null
     private var subTitleText: TextView? = null
     private var subExpiryText: TextView? = null
     private var subPortalBtn: MaterialButton? = null
+    private var subSwitchBtn: MaterialButton? = null
+    private var subQuotaContainer: LinearLayout? = null
     private var subProgressBar: LinearProgressIndicator? = null
     private var subQuotaText: TextView? = null
     private var subRemainingText: TextView? = null
@@ -300,12 +300,13 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         ramChart = null
         cardRouting = null
         routeIcon = null
+        routeOutboundBadge = null
         pillRuleText = null
         routeSummaryText = null
-        cardLocalIp = null
-        localIpIfaceText = null
-        localIpValueText = null
-        localIpMetaText = null
+        cardAppProxy = null
+        appProxyBadge = null
+        appProxyModeText = null
+        appProxyMetaText = null
         cardHotspotShare = null
         hotspotIcon = null
         hotspotSubtitle = null
@@ -318,9 +319,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         hotspotChipLan = null
         hotspotChipLanValue = null
         cardSubscription = null
+        subIcon = null
         subTitleText = null
         subExpiryText = null
         subPortalBtn = null
+        subSwitchBtn = null
+        subQuotaContainer = null
         subProgressBar = null
         subQuotaText = null
         subRemainingText = null
@@ -350,8 +354,9 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         updateStatusBanner()
         updateTestBarUi()
         updateExitCountryUi()
+        refreshRunningModeCard()
         refreshNetworkEgressCard()
-        refreshLocalIpCard()
+        refreshAppProxyCard()
         updateSpeedChart(running)
         updateCpuRamUi(running)
         refreshHotspotShareCard()
@@ -378,7 +383,9 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     fun onProfileSelected() {
         if (view == null) return
         updateStatusBanner()
+        updateTestBarUi()
         refreshNetworkEgressCard()
+        refreshRunningModeCard()
         refreshSubscriptionCard()
     }
 
@@ -430,13 +437,14 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
         cardRouting = view.findViewById(R.id.home_card_running_mode)
         routeIcon = view.findViewById(R.id.home_icon_running_mode)
+        routeOutboundBadge = view.findViewById(R.id.home_route_outbound_badge)
         pillRuleText = view.findViewById(R.id.home_mode_pill_rule_text)
         routeSummaryText = view.findViewById(R.id.home_route_summary_text)
 
-        cardLocalIp = view.findViewById(R.id.home_card_local_ip)
-        localIpIfaceText = view.findViewById(R.id.home_local_ip_iface)
-        localIpValueText = view.findViewById(R.id.home_local_ip_value)
-        localIpMetaText = view.findViewById(R.id.home_local_ip_meta)
+        cardAppProxy = view.findViewById(R.id.home_card_app_proxy)
+        appProxyBadge = view.findViewById(R.id.home_app_proxy_badge)
+        appProxyModeText = view.findViewById(R.id.home_app_proxy_mode_text)
+        appProxyMetaText = view.findViewById(R.id.home_app_proxy_meta_text)
 
         cardHotspotShare = view.findViewById(R.id.home_card_hotspot_share)
         hotspotIcon = view.findViewById(R.id.home_hotspot_icon)
@@ -451,9 +459,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         hotspotChipLanValue = view.findViewById(R.id.home_hotspot_chip_lan_value)
 
         cardSubscription = view.findViewById(R.id.home_card_subscription)
+        subIcon = view.findViewById(R.id.home_sub_icon)
         subTitleText = view.findViewById(R.id.home_sub_title)
         subExpiryText = view.findViewById(R.id.home_sub_expiry)
         subPortalBtn = view.findViewById(R.id.home_sub_portal_btn)
+        subSwitchBtn = view.findViewById(R.id.home_sub_switch_btn)
+        subQuotaContainer = view.findViewById(R.id.home_sub_quota_container)
         subProgressBar = view.findViewById(R.id.home_sub_progress)
         subQuotaText = view.findViewById(R.id.home_sub_quota_text)
         subRemainingText = view.findViewById(R.id.home_sub_remaining_text)
@@ -462,16 +473,16 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private fun styleCards(ctx: Context) {
         listOfNotNull(
             statusBannerCard,
+            cardSubscription,
             cardNetworkSpeed,
             cardTrafficUsage,
             cardNetworkEgress,
             cardCpuChart,
             cardRamChart,
             cardRouting,
-            cardLocalIp,
+            cardAppProxy,
             cardHotspotShare,
-            cardSubscription,
-        ).forEach { ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 18f) }
+        ).forEach { ExpressiveSettingsHelper.styleExpressiveCard(it, cornerRadiusDp = 16f) }
 
         val (_, downloadColor, uploadColor) = TrafficRingView.resolveSegmentColors(ctx)
         trafficUpIcon?.setColorFilter(uploadColor)
@@ -487,7 +498,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         val strokeColor = Theme.resolveCardStrokeColor(ctx, selected = false)
         val isAnyAmoled = Theme.isAnyAmoled(ctx) || Theme.isMonochromeBlack(ctx)
 
-        subPortalBtn?.let { button ->
+        listOfNotNull(subPortalBtn, subSwitchBtn).forEach { button ->
             styleTonalActionButton(button, nestedBg, primaryInk, accent, strokeColor, isAnyAmoled)
         }
     }
@@ -640,13 +651,14 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             }
         }
         cardNetworkEgress?.setOnClickListener { v -> launchActivity(v, IpLookupActivity::class.java) }
-        cardLocalIp?.setOnClickListener { v -> launchActivity(v, NetworkInterfacesActivity::class.java) }
+        cardAppProxy?.setOnClickListener { v -> launchActivity(v, AppManagerActivity::class.java) }
         cardHotspotShare?.setOnClickListener { v -> launchActivity(v, LanSharingActivity::class.java) }
 
-        cardSubscription?.setOnClickListener { v ->
-            context?.let { c -> HapticHelper.perform(c, v, HapticHelper.HapticKind.TAP) }
-            (activity as? MainActivity)?.displayFragmentWithId(R.id.nav_configuration)
+        val openProfileSwitcher = View.OnClickListener { v ->
+            launchActivity(v, SwitchActivity::class.java)
         }
+        cardSubscription?.setOnClickListener(openProfileSwitcher)
+        subSwitchBtn?.setOnClickListener(openProfileSwitcher)
         subPortalBtn?.setOnClickListener { v ->
             val ctx = context ?: return@setOnClickListener
             val uri = portalUri ?: return@setOnClickListener
@@ -707,22 +719,19 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         updateStatusBanner()
         updateTestBarUi()
         updateExitCountryUi()
+        refreshSubscriptionCard()
         refreshRunningModeCard()
+        refreshAppProxyCard()
         refreshNetworkEgressCard()
-        refreshLocalIpCard()
         updateSpeedReadout()
         updateSpeedChart(running)
         updateCpuRamUi(running)
         refreshTrafficTotals()
         refreshHotspotShareCard()
-        refreshSubscriptionCard()
     }
 
-    private fun activeTargetProfileId(): Long = if (currentState.started) {
-        DataStore.currentProfile.takeIf { it > 0L } ?: DataStore.selectedProxy
-    } else {
-        DataStore.selectedProxy
-    }
+    private fun activeTargetProfileId(): Long =
+        DataStore.selectedProxy.takeIf { it > 0L } ?: DataStore.currentProfile
 
     private fun resolveErrorColor(ctx: Context, fallback: Int): Int =
         ctx.getColorAttr(androidx.appcompat.R.attr.colorError).takeIf { it != 0 } ?: fallback
@@ -989,45 +998,72 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
     private fun updateStatusModeTag() {
         val modeTv = statusModeTag ?: return
-        val baseMode = if (DataStore.serviceMode == Key.MODE_VPN) {
+        val nextText = if (currentState == BaseService.State.Connected && latestConnections > 0) {
+            getString(R.string.home_connections_count, latestConnections)
+        } else if (DataStore.serviceMode == Key.MODE_VPN) {
             getString(R.string.service_mode_vpn)
         } else {
             getString(R.string.route_proxy)
-        }
-        val nextText = if (currentState == BaseService.State.Connected && latestConnections > 0) {
-            "$baseMode · $latestConnections"
-        } else {
-            baseMode
         }
         if (modeTv.text != nextText) modeTv.text = nextText
     }
 
     private fun refreshRunningModeCard() {
-        val ctx = context ?: return
-        val isBypass = DataStore.bypass
-        val accent = ExpressiveSettingsHelper.resolveAccentColor(ctx)
-
+        context ?: return
+        val targetId = activeTargetProfileId()
         viewLifecycleOwner.lifecycleScope.launch {
-            val route = withContext(Dispatchers.IO) {
-                RouteManager.get(RouteManager.activeRouteId())?.takeIf { !it.is_raw }
-                    ?: RouteManager.current()
+            val (route, warpEnabled) = withContext(Dispatchers.IO) {
+                val runningRouteId = RouteManager.runningRouteId()
+                val resolvedRoute = if (runningRouteId > 0L) {
+                    RouteManager.get(runningRouteId)?.takeIf { !it.is_raw }
+                } else {
+                    val gid = if (targetId > 0L) SagerDatabase.proxyDao.getById(targetId)?.groupId ?: 0L else 0L
+                    if (gid > 0L) RouteManager.routeFor(gid) else null
+                } ?: RouteManager.current()
+                resolvedRoute to DataStore.enableWarp
             }
             val currentCtx = context ?: return@launch
+            val isAnyAmoled = Theme.isAnyAmoled(currentCtx) || Theme.isMonochromeBlack(currentCtx)
+            val accent = ExpressiveSettingsHelper.resolveAccentColor(currentCtx)
+            val activeInk = if (Theme.isMonochromeBlack(currentCtx)) Color.WHITE else accent
+            val secondaryInk = currentCtx.getColorAttr(android.R.attr.textColorSecondary)
+
             val routeTitle = route.name.trim().ifEmpty { getString(R.string.home_route_rule) }
             pillRuleText?.text = routeTitle
+            pillRuleText?.setTextColor(currentCtx.getColorAttr(android.R.attr.textColorPrimary))
+            routeIcon?.setColorFilter(activeInk)
 
             val outboundLabel = when (route.default_outbound_id) {
                 OutboundIds.DIRECT -> getString(R.string.home_route_direct)
                 OutboundIds.BLOCK -> getString(R.string.home_route_block)
                 else -> getString(R.string.route_proxy)
             }
-            routeSummaryText?.text = if (isBypass) {
-                "$outboundLabel · ${getString(R.string.home_route_bypass)}"
-            } else {
-                outboundLabel
+            val isProxyDefault = route.default_outbound_id != OutboundIds.DIRECT &&
+                route.default_outbound_id != OutboundIds.BLOCK
+            routeOutboundBadge?.text = outboundLabel
+            routeOutboundBadge?.setTextColor(if (isProxyDefault) activeInk else secondaryInk)
+            routeOutboundBadge?.background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp2px(6).toFloat()
+                setColor(
+                    if (isProxyDefault) {
+                        ColorUtils.setAlphaComponent(activeInk, if (Theme.usingNightMode(currentCtx)) 42 else 28)
+                    } else {
+                        Theme.resolveNestedBoxBackground(currentCtx)
+                    },
+                )
+                if (isProxyDefault) {
+                    setStroke(dp2px(1), ColorUtils.setAlphaComponent(activeInk, if (isAnyAmoled) 140 else 88))
+                }
             }
-            routeIcon?.setColorFilter(accent)
-            pillRuleText?.setTextColor(currentCtx.getColorAttr(android.R.attr.textColorPrimary))
+
+            val activeRuleCount = route.rules.count { !it.disabled && !it.isEmpty() }
+            val ruleSummary = if (activeRuleCount > 0) {
+                getString(R.string.home_route_rules_active, activeRuleCount)
+            } else {
+                getString(R.string.home_route_default_only)
+            }
+            routeSummaryText?.text = if (warpEnabled) "$ruleSummary · WARP" else ruleSummary
         }
     }
 
@@ -1092,92 +1128,97 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         }
     }
 
-    private fun refreshLocalIpCard() {
-        val appCtx = context?.applicationContext ?: return
+    private fun refreshAppProxyCard() {
+        context ?: return
+        val badgeTv = appProxyBadge
+        val modeTv = appProxyModeText
+        val metaTv = appProxyMetaText
         viewLifecycleOwner.lifecycleScope.launch {
-            val snapshot = withContext(Dispatchers.IO) {
-                val cm = appCtx.getSystemService(ConnectivityManager::class.java)
-                    ?: return@withContext null
-                runCatching { NetworkInterfacesRepository(cm).collect() }.getOrNull()
+            val (enabled, bypass, count) = withContext(Dispatchers.IO) {
+                val on = DataStore.proxyApps
+                val bp = DataStore.bypass
+                val pkgs = if (on) {
+                    DataStore.individual.lineSequence().count { it.isNotBlank() }
+                } else {
+                    0
+                }
+                Triple(on, bp, pkgs)
             }
-            if (view == null) return@launch
-            val picked = snapshot?.let(::selectPrimaryLocalIp)
-            if (picked == null) {
-                localIpIfaceText?.isVisible = false
-                localIpValueText?.text = getString(R.string.home_local_ip_none)
-                localIpMetaText?.isVisible = false
-                return@launch
-            }
-            val (iface, ip) = picked
-            localIpIfaceText?.isVisible = true
-            localIpIfaceText?.text = iface.name
-            localIpValueText?.text = ip.address.substringBefore('%')
+            val currentCtx = context ?: return@launch
+            val isAnyAmoled = Theme.isAnyAmoled(currentCtx) || Theme.isMonochromeBlack(currentCtx)
+            val accent = ExpressiveSettingsHelper.resolveAccentColor(currentCtx)
+            val primaryInk = currentCtx.getColorAttr(android.R.attr.textColorPrimary)
+            val secondaryInk = currentCtx.getColorAttr(android.R.attr.textColorSecondary)
+            val activeInk = if (Theme.isMonochromeBlack(currentCtx)) Color.WHITE else accent
 
-            val kindLabel = when (iface.kind) {
-                InterfaceKind.WIFI -> getString(R.string.home_iface_wifi)
-                InterfaceKind.ETHERNET -> getString(R.string.home_iface_ethernet)
-                InterfaceKind.CELLULAR -> getString(R.string.home_iface_cellular)
-                InterfaceKind.VPN -> getString(R.string.home_iface_vpn)
-                InterfaceKind.OTHER -> getString(R.string.home_iface_other)
+            badgeTv?.text = getString(
+                if (enabled) R.string.home_hotspot_active else R.string.hotspot_share_status_off,
+            )
+            badgeTv?.setTextColor(if (enabled) activeInk else secondaryInk)
+            badgeTv?.background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp2px(6).toFloat()
+                setColor(
+                    if (enabled) {
+                        ColorUtils.setAlphaComponent(activeInk, if (Theme.usingNightMode(currentCtx)) 42 else 28)
+                    } else {
+                        Theme.resolveNestedBoxBackground(currentCtx)
+                    },
+                )
+                if (enabled) {
+                    setStroke(dp2px(1), ColorUtils.setAlphaComponent(activeInk, if (isAnyAmoled) 140 else 88))
+                }
             }
-            localIpMetaText?.isVisible = true
-            localIpMetaText?.text = ip.prefixLength?.let { "$kindLabel · /$it" } ?: kindLabel
+
+            modeTv?.text = when {
+                !enabled -> getString(R.string.home_app_proxy_all)
+                bypass -> getString(R.string.home_app_proxy_bypass)
+                else -> getString(R.string.home_app_proxy_only)
+            }
+            modeTv?.setTextColor(primaryInk)
+
+            metaTv?.text = if (enabled) {
+                getString(R.string.home_app_proxy_count, count)
+            } else {
+                getString(R.string.home_app_proxy_all_sub)
+            }
         }
     }
 
-    private fun selectPrimaryLocalIp(snapshot: NetworkInterfacesSnapshot): Pair<NetworkInterfaceInfo, InterfaceIp>? {
-        val activeName = snapshot.activeNetwork?.interfaceName
-        fun usableIp(iface: NetworkInterfaceInfo, wantIpv4: Boolean): InterfaceIp? =
-            iface.addresses.firstOrNull { ip ->
-                val raw = ip.address.substringBefore('%')
-                val isV4 = !ip.ipv6
-                isV4 == wantIpv4 &&
-                    !raw.startsWith("127.") &&
-                    !raw.startsWith("169.254.") &&
-                    !raw.startsWith("fe80:", ignoreCase = true) &&
-                    raw != "::1"
-            }
-
-        fun rank(iface: NetworkInterfaceInfo): Int = when {
-            !iface.isVpn && iface.name == activeName -> 0
-            !iface.isVpn && iface.kind == InterfaceKind.WIFI -> 1
-            !iface.isVpn && iface.kind == InterfaceKind.ETHERNET -> 2
-            !iface.isVpn && iface.hotspot == HotspotKind.CONFIRMED -> 3
-            !iface.isVpn && iface.kind == InterfaceKind.CELLULAR -> 4
-            !iface.isVpn && iface.isDefaultRoute -> 5
-            !iface.isVpn -> 6
-            else -> 7
-        }
-
-        val candidates = snapshot.interfaces
-            .filter { it.up != false && !it.loopback }
-            .sortedWith(compareBy<NetworkInterfaceInfo> { rank(it) }.thenBy { it.name })
-
-        for (iface in candidates) {
-            usableIp(iface, wantIpv4 = true)?.let { return iface to it }
-        }
-        for (iface in candidates) {
-            usableIp(iface, wantIpv4 = false)?.let { return iface to it }
-        }
-        return null
-    }
+    private data class HotspotCardSnapshot(
+        val shareState: ShareState,
+        val hotspotEnabled: Boolean,
+        val preference: SharePreference,
+        val lanOpen: Boolean,
+        val port: Int,
+        val hasAuth: Boolean,
+        val inboundUser: String,
+        val gatewayEnabled: Boolean,
+        val gatewayStatus: HotspotGatewayStatus,
+        val gatewayPort: Int,
+    )
 
     private fun refreshHotspotShareCard() {
         context ?: return
         viewLifecycleOwner.lifecycleScope.launch {
             val loaded = withContext(Dispatchers.IO) {
-                Triple(
-                    HotspotShareStateStore.snapshot(),
-                    SharePreference.fromCode(DataStore.hotspotShareMethod),
-                    DataStore.inboundSocksPort to DataStore.allowLanAccess,
+                HotspotShareStateStore.reconcileIfServiceDead(TetherWatchService.isRunningOrStarting())
+                val gw = HotspotGatewayState.snapshot()
+                HotspotCardSnapshot(
+                    shareState = HotspotShareStateStore.snapshot(),
+                    hotspotEnabled = DataStore.hotspotShareEnabled,
+                    preference = SharePreference.fromCode(DataStore.hotspotShareMethod),
+                    lanOpen = DataStore.allowLanAccess,
+                    port = DataStore.inboundSocksPort,
+                    hasAuth = DataStore.inboundAuth,
+                    inboundUser = DataStore.inboundUser,
+                    gatewayEnabled = DataStore.hotspotGatewayEnabled,
+                    gatewayStatus = gw.status,
+                    gatewayPort = gw.port,
                 )
             }
             val currentCtx = context ?: return@launch
-            val state = loaded.first
-            val preference = loaded.second
-            val port = loaded.third.first
-            val lanOpen = loaded.third.second
-
+            val state = loaded.shareState
             val iconView = hotspotIcon ?: return@launch
             val subtitleTv = hotspotSubtitle ?: return@launch
             val badgeTv = hotspotBadge ?: return@launch
@@ -1190,55 +1231,80 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             val secondaryInk = currentCtx.getColorAttr(android.R.attr.textColorSecondary)
             val errorColor = resolveErrorColor(currentCtx, accent)
 
-            val isActive = state is ShareState.Active
-            val isStarting = state is ShareState.Starting
-            val isFailure = state is ShareState.Error || state is ShareState.Stopped
-
             fun methodLabel(method: ShareMethod): String = when (method) {
                 ShareMethod.SHIZUKU -> getString(R.string.hotspot_share_tile_method_shizuku)
                 ShareMethod.ROOT -> getString(R.string.hotspot_share_tile_method_root)
                 ShareMethod.LAN_PROXY -> getString(R.string.hotspot_share_tile_method_proxy)
             }
 
-            val configuredMode = when (preference) {
+            val configuredMode = when (loaded.preference) {
                 SharePreference.AUTO -> getString(R.string.home_hotspot_method_auto)
                 SharePreference.SHIZUKU -> getString(R.string.hotspot_share_tile_method_shizuku)
                 SharePreference.ROOT -> getString(R.string.hotspot_share_tile_method_root)
                 SharePreference.LAN_PROXY -> getString(R.string.hotspot_share_tile_method_proxy)
             }
 
-            subtitleTv.text = when (state) {
-                is ShareState.Active -> getString(R.string.home_hotspot_sharing_via, methodLabel(state.method))
-                is ShareState.Starting -> getString(R.string.connecting)
-                else -> getString(R.string.home_hotspot_ready_subtitle)
-            }
-            badgeTv.text = when (state) {
-                is ShareState.Active -> getString(R.string.home_hotspot_active)
-                is ShareState.Starting -> getString(R.string.connecting)
-                is ShareState.Error -> getString(R.string.home_hotspot_error)
-                is ShareState.Stopped -> getString(R.string.home_hotspot_stopped)
-                ShareState.Off -> getString(R.string.home_hotspot_standby)
+            val activeMethod = (state as? ShareState.Active)?.method
+            val heroMode = LanSharingLogics.resolveHeroBannerMode(loaded.lanOpen, activeMethod)
+            val anySharingActive = heroMode != LanSharingLogics.HeroBannerMode.INACTIVE
+            val isStarting = state is ShareState.Starting
+            val isFailure = state is ShareState.Error || state is ShareState.Stopped
+
+            val authShort = if (loaded.hasAuth) {
+                getString(R.string.lan_sharing_auth_enabled, loaded.inboundUser.ifBlank { "***" })
+            } else {
+                getString(R.string.lan_sharing_auth_none)
             }
 
-            hotspotChipModeValue?.text = if (state is ShareState.Active) methodLabel(state.method) else configuredMode
-            hotspotChipPortValue?.text = ":$port"
-            hotspotChipLanValue?.text = if (lanOpen) {
-                getString(R.string.home_hotspot_lan_open)
+            subtitleTv.text = when {
+                state is ShareState.Active && !loaded.lanOpen ->
+                    getString(R.string.home_hotspot_sharing_via, methodLabel(state.method))
+                isStarting -> getString(R.string.hotspot_share_status_starting)
+                else -> getString(R.string.lan_sharing_status_sub, loaded.port, authShort)
+            }
+
+            badgeTv.text = when {
+                heroMode == LanSharingLogics.HeroBannerMode.BOTH_ACTIVE && activeMethod != null ->
+                    getString(R.string.lan_hero_both_active_badge, activeMethod.code.uppercase())
+                state is ShareState.Active ->
+                    getString(R.string.hotspot_share_status_active, methodLabel(state.method))
+                isStarting -> getString(R.string.hotspot_share_status_starting)
+                state is ShareState.Error -> getString(R.string.home_hotspot_error)
+                state is ShareState.Stopped -> getString(R.string.home_hotspot_stopped)
+                loaded.lanOpen -> getString(R.string.lan_sharing_status_running)
+                loaded.hotspotEnabled || loaded.gatewayEnabled -> getString(R.string.home_hotspot_standby)
+                else -> getString(R.string.hotspot_share_status_off)
+            }
+
+            val offLabel = getString(R.string.hotspot_share_status_off)
+            hotspotChipModeValue?.text = when {
+                state is ShareState.Active -> methodLabel(state.method)
+                loaded.hotspotEnabled -> configuredMode
+                else -> offLabel
+            }
+            hotspotChipPortValue?.text = if (loaded.lanOpen) ":${loaded.port}" else offLabel
+            hotspotChipLanValue?.text = if (loaded.gatewayEnabled) {
+                if (loaded.gatewayStatus == HotspotGatewayStatus.FOUND && loaded.gatewayPort > 0) {
+                    ":${loaded.gatewayPort}"
+                } else {
+                    getString(R.string.home_hotspot_active)
+                }
             } else {
-                getString(R.string.home_hotspot_lan_local)
+                offLabel
             }
 
             val highlightColor = when {
                 isFailure -> errorColor
-                isActive -> if (Theme.isMonochromeBlack(currentCtx)) Color.WHITE else accent
+                anySharingActive -> if (Theme.isMonochromeBlack(currentCtx)) Color.WHITE else accent
                 else -> secondaryInk
             }
             val badgeFill = when {
-                isActive || isFailure -> ColorUtils.setAlphaComponent(highlightColor, if (isNight) 42 else 28)
+                anySharingActive || isFailure ->
+                    ColorUtils.setAlphaComponent(highlightColor, if (isNight) 42 else 28)
                 else -> Theme.resolveNestedBoxBackground(currentCtx)
             }
             val iconInk = when {
-                isActive || isFailure -> highlightColor
+                anySharingActive || isFailure -> highlightColor
                 else -> primaryInk
             }
 
@@ -1249,8 +1315,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                         raw,
                         badgeFill,
                         iconInk,
-                        sizeDp = 36,
-                        iconSizeDp = 18,
+                        sizeDp = 34,
+                        iconSizeDp = 17,
                         shape = ExpressiveShape.SQUIRCLE,
                     ),
                 )
@@ -1259,9 +1325,9 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             badgeTv.setTextColor(highlightColor)
             badgeTv.background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                cornerRadius = dp2px(8).toFloat()
+                cornerRadius = dp2px(7).toFloat()
                 setColor(badgeFill)
-                if (isActive || isFailure) {
+                if (anySharingActive || isFailure) {
                     setStroke(dp2px(1), ColorUtils.setAlphaComponent(highlightColor, if (isAnyAmoled) 150 else 96))
                 }
             }
@@ -1276,34 +1342,53 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private fun refreshSubscriptionCard() {
         val targetId = activeTargetProfileId()
         viewLifecycleOwner.lifecycleScope.launch {
-            val subGroup = withContext(Dispatchers.IO) {
-                val activeGroup = if (targetId > 0L) {
+            val loaded = withContext(Dispatchers.IO) {
+                val group = if (targetId > 0L) {
                     SagerDatabase.proxyDao.getById(targetId)?.groupId
                         ?.takeIf { it > 0L }
                         ?.let { SagerDatabase.groupDao.getById(it) }
                 } else {
                     null
-                }
-                activeGroup?.takeIf { it.isSubscription && it.subInfo.valid }
-                    ?: SagerDatabase.groupDao.allGroups().firstOrNull { it.isSubscription && it.subInfo.valid }
+                } ?: SagerDatabase.groupDao.getById(DataStore.currentGroupId())
+                    ?: SagerDatabase.groupDao.allGroups().firstOrNull()
+                val memberCount = group?.let { SagerDatabase.proxyDao.countByGroup(it.id).toInt() } ?: 0
+                group to memberCount
             }
             val ctx = context ?: return@launch
             val card = cardSubscription ?: return@launch
+            val subGroup = loaded.first
+            val memberCount = loaded.second
             if (subGroup == null) {
                 portalUri = null
+                subPortalBtn?.isVisible = false
+                subQuotaContainer?.isVisible = false
                 card.isVisible = false
                 return@launch
             }
 
             val info = subGroup.subInfo
+            val hasSubMeta = subGroup.isSubscription && info.valid
             val now = System.currentTimeMillis() / 1000L
             val accent = ExpressiveSettingsHelper.resolveAccentColor(ctx)
             val primaryInk = ctx.getColorAttr(android.R.attr.textColorPrimary)
             val secondaryInk = ctx.getColorAttr(android.R.attr.textColorSecondary)
             val errorColor = resolveErrorColor(ctx, accent)
 
+            subIcon?.setImageResource(
+                if (subGroup.isSubscription) {
+                    R.drawable.ic_baseline_link_24
+                } else {
+                    R.drawable.ic_baseline_folder_open_24
+                },
+            )
+            subIcon?.setColorFilter(if (Theme.isMonochromeBlack(ctx)) Color.WHITE else accent)
+
             val groupName = subGroup.displayName()
-            val provider = info.title.trim().takeIf { it.isNotEmpty() && it != groupName }
+            val provider = if (hasSubMeta) {
+                info.title.trim().takeIf { it.isNotEmpty() && it != groupName }
+            } else {
+                null
+            }
             subTitleText?.text = if (provider == null) {
                 groupName
             } else {
@@ -1311,22 +1396,30 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                     .append(provider, ForegroundColorSpan(secondaryInk), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
 
-            if (info.expire > 0L) {
-                val urgent = (info.expire - now) / 86400L <= 3L
-                subExpiryText?.isVisible = true
-                subExpiryText?.text = SubscriptionInfoCard.expiryText(ctx, info.expire, now)
-                subExpiryText?.setTextColor(if (urgent) errorColor else secondaryInk)
-            } else {
-                subExpiryText?.isVisible = false
+            val countLabel = getString(R.string.home_group_profiles_count, memberCount)
+            subExpiryText?.isVisible = true
+            when {
+                hasSubMeta && info.expire > 0L -> {
+                    val urgent = (info.expire - now) / 86400L <= 3L
+                    subExpiryText?.text = "${SubscriptionInfoCard.expiryText(ctx, info.expire, now)} · $countLabel"
+                    subExpiryText?.setTextColor(if (urgent) errorColor else secondaryInk)
+                }
+                subGroup.isSubscription -> {
+                    subExpiryText?.text = "${getString(R.string.home_group_label_subscription)} · $countLabel"
+                    subExpiryText?.setTextColor(secondaryInk)
+                }
+                else -> {
+                    subExpiryText?.text = "${getString(R.string.home_group_label_local)} · $countLabel"
+                    subExpiryText?.setTextColor(secondaryInk)
+                }
             }
 
-            portalUri = parseHttpUri(info.webUrl)
+            portalUri = if (hasSubMeta) parseHttpUri(info.webUrl) else null
             subPortalBtn?.isVisible = portalUri != null
 
-            subProgressBar?.isVisible = info.hasQuota
-            subQuotaText?.isVisible = info.hasQuota
-            subRemainingText?.isVisible = info.hasQuota
-            if (info.hasQuota) {
+            val showQuota = hasSubMeta && info.hasQuota
+            subQuotaContainer?.isVisible = showQuota
+            if (showQuota) {
                 val percent = info.percentUsed.toInt().coerceIn(0, 100)
                 val barProgress = if (info.total > 0L) {
                     if (info.used > 0L && percent == 0) 2 else percent

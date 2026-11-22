@@ -3122,4 +3122,19 @@
     <string name="home_hotspot_ready_subtitle">Hotspot ve LAN vekili için dokunun</string>
     <string name="home_hotspot_sharing_via">%1$s ile paylaşılıyor</string>
     <string name="home_sub_remaining">Kalan %1$s</string>
+    <string name="home_connections_count">%1$d bağlantı</string>
+    <string name="home_group_profiles_count">%1$d profil</string>
+    <string name="home_group_label_subscription">Abonelik</string>
+    <string name="home_group_label_local">Yerel Grup</string>
+    <string name="home_route_rules_active">%1$d aktif kural</string>
+    <string name="home_route_default_only">Varsayılan çıkış</string>
+    <string name="home_app_proxy_title">Uygulamalar</string>
+    <string name="home_app_proxy_all">Tüm Uygulamalar</string>
+    <string name="home_app_proxy_bypass">Seçilileri Atla</string>
+    <string name="home_app_proxy_only">Sadece Seçililer</string>
+    <string name="home_app_proxy_count">%1$d uygulama seçili</string>
+    <string name="home_app_proxy_all_sub">Tüm cihaz trafiği tünellenir</string>
+    <string name="home_hotspot_chip_hotspot">Hotspot</string>
+    <string name="home_hotspot_chip_lan_proxy">LAN Vekili</string>
+    <string name="home_hotspot_chip_gateway">Oto Geçit</string>
 </resources>

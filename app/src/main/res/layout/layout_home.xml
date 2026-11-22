@@ -18,23 +18,22 @@
         android:layout_height="match_parent"
         android:clipToPadding="false"
         android:fillViewport="true"
-        android:paddingTop="4dp"
-        android:paddingBottom="100dp">
+        android:paddingTop="2dp"
+        android:paddingBottom="96dp">
 
         <LinearLayout
             android:id="@+id/home_content_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="14dp"
+            android:paddingHorizontal="12dp"
             android:paddingTop="2dp">
 
-            <!-- Interactive Connection Status Hero + Stats Info Strip -->
+            <!-- Row 1: Compact Interactive Status Hero + Stats Info Strip -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/home_card_status_banner"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="104dp">
+                android:layout_height="wrap_content">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -46,9 +45,9 @@
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="12dp"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="8dp">
+                        android:paddingHorizontal="10dp"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="6dp">
 
                         <FrameLayout
                             android:id="@+id/home_status_power_btn"
@@ -61,8 +60,8 @@
 
                             <FrameLayout
                                 android:id="@+id/home_status_icon_box"
-                                android:layout_width="40dp"
-                                android:layout_height="40dp"
+                                android:layout_width="38dp"
+                                android:layout_height="38dp"
                                 android:layout_gravity="center">
 
                                 <ImageView
@@ -86,7 +85,7 @@
                                 android:visibility="invisible"
                                 app:indicatorColor="?attr/colorPrimary"
                                 app:indicatorInset="0dp"
-                                app:indicatorSize="46dp"
+                                app:indicatorSize="44dp"
                                 app:trackColor="@android:color/transparent"
                                 app:trackThickness="2.5dp" />
 
@@ -95,7 +94,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="10dp"
+                            android:layout_marginStart="8dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -146,13 +145,13 @@
                                 android:id="@+id/home_status_subtitle"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
+                                android:layout_marginTop="2dp"
                                 android:ellipsize="end"
                                 android:includeFontPadding="false"
                                 android:maxLines="1"
                                 android:textColor="?android:attr/textColorSecondary"
                                 android:textSize="12sp"
-                                tools:text="gRPC Trojan ➡️ ChatGPT IP4" />
+                                tools:text="[openproxylist.com] 16196041" />
 
                         </LinearLayout>
 
@@ -160,16 +159,16 @@
                             android:id="@+id/home_status_mode_tag"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
+                            android:layout_marginStart="6dp"
                             android:fontFamily="sans-serif-medium"
                             android:fontFeatureSettings="tnum"
                             android:includeFontPadding="false"
                             android:maxLines="1"
-                            android:paddingHorizontal="8dp"
-                            android:paddingVertical="4dp"
+                            android:paddingHorizontal="7dp"
+                            android:paddingVertical="3dp"
                             android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="11sp"
-                            tools:text="VPN · 1" />
+                            android:textSize="10.5sp"
+                            tools:text="2 conn" />
 
                     </LinearLayout>
 
@@ -177,15 +176,15 @@
                         android:id="@+id/home_status_test_bar"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="10dp"
-                        android:layout_marginBottom="10dp"
+                        android:layout_marginHorizontal="8dp"
+                        android:layout_marginBottom="8dp"
                         android:clickable="true"
                         android:focusable="true"
                         android:foreground="?attr/selectableItemBackground"
                         android:gravity="center_vertical"
-                        android:minHeight="48dp"
+                        android:minHeight="40dp"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="12dp">
+                        android:paddingHorizontal="10dp">
 
                         <ImageView
                             android:id="@+id/home_status_test_icon"
@@ -230,7 +229,7 @@
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="11.5sp"
                             android:visibility="gone"
-                            tools:text="🇩🇪 Germany"
+                            tools:text="🇮🇹 Italy"
                             tools:visibility="visible" />
 
                     </LinearLayout>
@@ -239,22 +238,183 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Compact Card: Network Speed -->
+            <!-- Row 2: Active Group / Subscription & Quick Profile Switcher -->
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/home_card_network_speed"
+                android:id="@+id/home_card_subscription"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:clickable="true"
                 android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                android:minHeight="48dp">
+                android:foreground="?attr/selectableItemBackground">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="12dp">
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="8dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:id="@+id/home_sub_icon"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_baseline_folder_open_24"
+                            app:tint="?attr/colorPrimary" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/home_sub_title"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:fontFamily="sans-serif-medium"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="13sp"
+                                tools:text="openproxylist" />
+
+                            <TextView
+                                android:id="@+id/home_sub_expiry"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:ellipsize="end"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="11sp"
+                                tools:text="Subscription · 18 profiles" />
+
+                        </LinearLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/home_sub_portal_btn"
+                            style="@style/Widget.Material3Expressive.Button.IconButton.Tonal"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="6dp"
+                            android:contentDescription="@string/subinfo_portal"
+                            android:insetLeft="0dp"
+                            android:insetTop="0dp"
+                            android:insetRight="0dp"
+                            android:insetBottom="0dp"
+                            android:minWidth="0dp"
+                            android:minHeight="0dp"
+                            android:padding="0dp"
+                            android:visibility="gone"
+                            app:icon="@drawable/baseline_public_24"
+                            app:iconGravity="textStart"
+                            app:iconPadding="0dp"
+                            app:iconSize="16dp"
+                            tools:visibility="visible" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/home_sub_switch_btn"
+                            style="@style/Widget.Material3Expressive.Button.TonalButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:layout_marginStart="6dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minWidth="0dp"
+                            android:minHeight="0dp"
+                            android:paddingHorizontal="10dp"
+                            android:paddingVertical="0dp"
+                            android:text="@string/action_switch"
+                            android:textSize="11.5sp"
+                            app:icon="@drawable/ic_baseline_compare_arrows_24"
+                            app:iconPadding="4dp"
+                            app:iconSize="15dp" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/home_sub_quota_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="7dp"
+                        android:orientation="vertical"
+                        android:visibility="gone"
+                        tools:visibility="visible">
+
+                        <com.google.android.material.progressindicator.LinearProgressIndicator
+                            android:id="@+id/home_sub_progress"
+                            style="@style/Widget.Material3Expressive.LinearProgressIndicator.Wavy"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:max="100"
+                            app:trackCornerRadius="2dp"
+                            app:trackThickness="4dp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="5dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/home_sub_quota_text"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:ellipsize="end"
+                                android:fontFeatureSettings="tnum"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="11sp"
+                                tools:text="1.01 TiB / 976.56 TiB (0%)" />
+
+                            <TextView
+                                android:id="@+id/home_sub_remaining_text"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:fontFeatureSettings="tnum"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="11sp"
+                                tools:text="Left 975.58 TiB" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Row 3: Compact Card: Network Speed (2x4) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/home_card_network_speed"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="10dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -264,8 +424,8 @@
 
                         <ImageView
                             android:id="@+id/home_icon_network_speed"
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
                             android:contentDescription="@null"
                             android:src="@drawable/ic_baseline_speed_24"
                             app:tint="?android:attr/textColorPrimary" />
@@ -274,7 +434,7 @@
                             android:id="@+id/home_title_network_speed"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="7dp"
+                            android:layout_marginStart="6dp"
                             android:layout_weight="1"
                             android:ellipsize="end"
                             android:fontFamily="sans-serif-medium"
@@ -282,7 +442,7 @@
                             android:maxLines="1"
                             android:text="@string/home_network_speed"
                             android:textColor="?android:attr/textColorPrimary"
-                            android:textSize="13.5sp" />
+                            android:textSize="13sp" />
 
                         <TextView
                             android:id="@+id/home_speed_rate_text"
@@ -293,7 +453,7 @@
                             android:includeFontPadding="false"
                             android:maxLines="1"
                             android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="11.5sp"
+                            android:textSize="11sp"
                             tools:text="↑ 0 B/s   ↓ 0 B/s" />
 
                     </LinearLayout>
@@ -302,7 +462,7 @@
                         android:id="@+id/home_speed_legend_row"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="5dp"
+                        android:layout_marginTop="4dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -320,7 +480,7 @@
                             android:maxLines="1"
                             android:text="@string/service_mode_vpn"
                             android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="11sp" />
+                            android:textSize="10.5sp" />
 
                         <View
                             android:id="@+id/home_speed_dot_direct"
@@ -337,7 +497,7 @@
                             android:maxLines="1"
                             android:text="@string/live_graph_direct"
                             android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="11sp" />
+                            android:textSize="10.5sp" />
 
                         <View
                             android:layout_width="0dp"
@@ -351,7 +511,7 @@
                             android:maxLines="1"
                             android:text="─ ↓  ┄ ↑"
                             android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="10.5sp"
+                            android:textSize="10sp"
                             tools:ignore="HardcodedText" />
 
                     </LinearLayout>
@@ -359,19 +519,19 @@
                     <io.nekohasekai.sagernet.widget.LiveChartView
                         android:id="@+id/home_speed_chart"
                         android:layout_width="match_parent"
-                        android:layout_height="64dp"
-                        android:layout_marginTop="5dp" />
+                        android:layout_height="56dp"
+                        android:layout_marginTop="4dp" />
 
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Row 3: 2-Column Compact Bento Row (2x2 + 2x2): Traffic Usage (50%) + Network Egress (50%) -->
+            <!-- Row 4: 2-Column Compact Bento Row: Traffic Usage (50%) + Network Egress (50%) -->
             <LinearLayout
                 android:id="@+id/home_bento_row_1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:baselineAligned="false"
                 android:orientation="horizontal">
 
@@ -382,14 +542,13 @@
                     android:layout_weight="1"
                     android:clickable="true"
                     android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    android:minHeight="112dp">
+                    android:foreground="?attr/selectableItemBackground">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
-                        android:padding="12dp">
+                        android:padding="10dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -399,8 +558,8 @@
 
                             <ImageView
                                 android:id="@+id/home_icon_traffic_usage"
-                                android:layout_width="16dp"
-                                android:layout_height="16dp"
+                                android:layout_width="15dp"
+                                android:layout_height="15dp"
                                 android:contentDescription="@null"
                                 android:src="@drawable/ic_baseline_multiline_chart_24"
                                 app:tint="?android:attr/textColorPrimary" />
@@ -416,27 +575,26 @@
                                 android:maxLines="1"
                                 android:text="@string/tools_traffic_usage"
                                 android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="13sp" />
+                                android:textSize="12.5sp" />
 
                         </LinearLayout>
 
                         <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_marginTop="8dp"
-                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="7dp"
                             android:gravity="center_vertical"
                             android:orientation="horizontal">
 
                             <io.nekohasekai.sagernet.ui.widget.TrafficRingView
                                 android:id="@+id/home_traffic_ring"
-                                android:layout_width="56dp"
-                                android:layout_height="56dp" />
+                                android:layout_width="48dp"
+                                android:layout_height="48dp" />
 
                             <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="12dp"
+                                android:layout_marginStart="10dp"
                                 android:layout_weight="1"
                                 android:orientation="vertical">
 
@@ -448,8 +606,8 @@
 
                                     <ImageView
                                         android:id="@+id/home_traffic_up_icon"
-                                        android:layout_width="13dp"
-                                        android:layout_height="13dp"
+                                        android:layout_width="12dp"
+                                        android:layout_height="12dp"
                                         android:contentDescription="@null"
                                         android:src="@drawable/ic_baseline_upload_24"
                                         app:tint="?attr/colorPrimary" />
@@ -464,7 +622,7 @@
                                         android:includeFontPadding="false"
                                         android:maxLines="1"
                                         android:textColor="?android:attr/textColorPrimary"
-                                        android:textSize="13sp"
+                                        android:textSize="12.5sp"
                                         tools:text="46.45" />
 
                                     <TextView
@@ -475,7 +633,7 @@
                                         android:includeFontPadding="false"
                                         android:maxLines="1"
                                         android:textColor="?android:attr/textColorSecondary"
-                                        android:textSize="11.5sp"
+                                        android:textSize="11sp"
                                         tools:text="GB" />
 
                                 </LinearLayout>
@@ -483,14 +641,14 @@
                                 <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginTop="6dp"
+                                    android:layout_marginTop="4dp"
                                     android:gravity="center_vertical"
                                     android:orientation="horizontal">
 
                                     <ImageView
                                         android:id="@+id/home_traffic_down_icon"
-                                        android:layout_width="13dp"
-                                        android:layout_height="13dp"
+                                        android:layout_width="12dp"
+                                        android:layout_height="12dp"
                                         android:contentDescription="@null"
                                         android:src="@drawable/ic_baseline_download_24"
                                         app:tint="?attr/colorPrimary" />
@@ -505,7 +663,7 @@
                                         android:includeFontPadding="false"
                                         android:maxLines="1"
                                         android:textColor="?android:attr/textColorPrimary"
-                                        android:textSize="13sp"
+                                        android:textSize="12.5sp"
                                         tools:text="326" />
 
                                     <TextView
@@ -516,7 +674,7 @@
                                         android:includeFontPadding="false"
                                         android:maxLines="1"
                                         android:textColor="?android:attr/textColorSecondary"
-                                        android:textSize="11.5sp"
+                                        android:textSize="11sp"
                                         tools:text="GB" />
 
                                 </LinearLayout>
@@ -525,14 +683,14 @@
                                     android:id="@+id/home_traffic_total_text"
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginTop="6dp"
+                                    android:layout_marginTop="4dp"
                                     android:ellipsize="end"
                                     android:fontFeatureSettings="tnum"
                                     android:includeFontPadding="false"
                                     android:maxLines="1"
                                     android:textColor="?android:attr/textColorSecondary"
-                                    android:textSize="11sp"
-                                    tools:text="Total 372 GB" />
+                                    android:textSize="10.5sp"
+                                    tools:text="Total 373 GB" />
 
                             </LinearLayout>
 
@@ -546,18 +704,17 @@
                     android:id="@+id/home_card_network_egress"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="6dp"
                     android:layout_weight="1"
                     android:clickable="true"
                     android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    android:minHeight="112dp">
+                    android:foreground="?attr/selectableItemBackground">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
-                        android:padding="12dp">
+                        android:padding="10dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -567,8 +724,8 @@
 
                             <ImageView
                                 android:id="@+id/home_icon_network_egress"
-                                android:layout_width="16dp"
-                                android:layout_height="16dp"
+                                android:layout_width="15dp"
+                                android:layout_height="15dp"
                                 android:contentDescription="@null"
                                 android:src="@drawable/ic_test_ip_24"
                                 app:tint="?android:attr/textColorPrimary" />
@@ -585,7 +742,7 @@
                                 android:maxLines="1"
                                 android:text="@string/home_network"
                                 android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="13sp" />
+                                android:textSize="12.5sp" />
 
                             <TextView
                                 android:id="@+id/home_network_latency_text"
@@ -596,7 +753,7 @@
                                 android:includeFontPadding="false"
                                 android:maxLines="1"
                                 android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="11sp"
+                                android:textSize="10.5sp"
                                 tools:text="114 ms" />
 
                         </LinearLayout>
@@ -605,21 +762,21 @@
                             android:id="@+id/home_network_ip_text"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="12dp"
+                            android:layout_marginTop="9dp"
                             android:ellipsize="end"
                             android:fontFamily="sans-serif-medium"
                             android:fontFeatureSettings="tnum"
                             android:includeFontPadding="false"
                             android:maxLines="1"
                             android:textColor="?android:attr/textColorPrimary"
-                            android:textSize="13sp"
-                            tools:text="🇹🇷 185.157.217.124" />
+                            android:textSize="12.5sp"
+                            tools:text="🇹🇷 202.50.253.18" />
 
                         <TextView
                             android:id="@+id/home_network_meta_text"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="4dp"
                             android:ellipsize="end"
                             android:includeFontPadding="false"
                             android:maxLines="1"
@@ -633,16 +790,16 @@
 
             </LinearLayout>
 
-            <!-- Row 4: 1:1 Square CPU & RAM Sparkline Cards (50% / 50%) -->
+            <!-- Row 5: Compact 2x1 CPU & RAM Sparkline Cards (50% / 50%) -->
             <LinearLayout
                 android:id="@+id/home_bento_row_cpu_ram"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:baselineAligned="false"
                 android:orientation="horizontal">
 
-                <io.nekohasekai.sagernet.ui.widget.SquareMaterialCardView
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/home_card_cpu_chart"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -653,9 +810,10 @@
 
                     <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
+                        android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="12dp">
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="8dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -665,8 +823,8 @@
 
                             <ImageView
                                 android:id="@+id/home_icon_cpu"
-                                android:layout_width="15dp"
-                                android:layout_height="15dp"
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
                                 android:contentDescription="@null"
                                 android:src="@drawable/baseline_developer_board_24"
                                 app:tint="?android:attr/textColorPrimary" />
@@ -675,7 +833,7 @@
                                 android:id="@+id/home_title_cpu"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="6dp"
+                                android:layout_marginStart="5dp"
                                 android:layout_weight="1"
                                 android:ellipsize="end"
                                 android:fontFamily="sans-serif-medium"
@@ -683,40 +841,38 @@
                                 android:maxLines="1"
                                 android:text="@string/live_graph_cpu"
                                 android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="13sp" />
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:id="@+id/home_cpu_value_text"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:fontFamily="sans-serif-medium"
+                                android:fontFeatureSettings="tnum"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="14.5sp"
+                                tools:text="0%" />
 
                         </LinearLayout>
-
-                        <TextView
-                            android:id="@+id/home_cpu_value_text"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:ellipsize="end"
-                            android:fontFamily="sans-serif-medium"
-                            android:fontFeatureSettings="tnum"
-                            android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:textColor="?android:attr/textColorPrimary"
-                            android:textSize="22sp"
-                            tools:text="0.1%" />
 
                         <io.nekohasekai.sagernet.widget.LiveChartView
                             android:id="@+id/home_cpu_chart"
                             android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_marginTop="8dp"
-                            android:layout_weight="1" />
+                            android:layout_height="40dp"
+                            android:layout_marginTop="5dp" />
 
                     </LinearLayout>
 
-                </io.nekohasekai.sagernet.ui.widget.SquareMaterialCardView>
+                </com.google.android.material.card.MaterialCardView>
 
-                <io.nekohasekai.sagernet.ui.widget.SquareMaterialCardView
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/home_card_ram_chart"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="6dp"
                     android:layout_weight="1"
                     android:clickable="true"
                     android:focusable="true"
@@ -724,9 +880,10 @@
 
                     <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
+                        android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="12dp">
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="8dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -736,8 +893,8 @@
 
                             <ImageView
                                 android:id="@+id/home_icon_ram"
-                                android:layout_width="15dp"
-                                android:layout_height="15dp"
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
                                 android:contentDescription="@null"
                                 android:src="@drawable/ic_device_data_usage"
                                 app:tint="?android:attr/textColorPrimary" />
@@ -746,7 +903,7 @@
                                 android:id="@+id/home_title_ram"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="6dp"
+                                android:layout_marginStart="5dp"
                                 android:layout_weight="1"
                                 android:ellipsize="end"
                                 android:fontFamily="sans-serif-medium"
@@ -754,43 +911,41 @@
                                 android:maxLines="1"
                                 android:text="@string/live_graph_ram"
                                 android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="13sp" />
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:id="@+id/home_ram_value_text"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:fontFamily="sans-serif-medium"
+                                android:fontFeatureSettings="tnum"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="14.5sp"
+                                tools:text="295 MB" />
 
                         </LinearLayout>
-
-                        <TextView
-                            android:id="@+id/home_ram_value_text"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:ellipsize="end"
-                            android:fontFamily="sans-serif-medium"
-                            android:fontFeatureSettings="tnum"
-                            android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:textColor="?android:attr/textColorPrimary"
-                            android:textSize="22sp"
-                            tools:text="298 MB" />
 
                         <io.nekohasekai.sagernet.widget.LiveChartView
                             android:id="@+id/home_ram_chart"
                             android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_marginTop="8dp"
-                            android:layout_weight="1" />
+                            android:layout_height="40dp"
+                            android:layout_marginTop="5dp" />
 
                     </LinearLayout>
 
-                </io.nekohasekai.sagernet.ui.widget.SquareMaterialCardView>
+                </com.google.android.material.card.MaterialCardView>
 
             </LinearLayout>
 
-            <!-- Row 5: Compact 1-Row Strip: Route 1x1 Tile (~36%) + Local IP 2x1 Tile (~64%) -->
+            <!-- Row 6: Compact 2x1 Routing + 2x1 Apps VPN Mode Cards (50% / 50%) -->
             <LinearLayout
                 android:id="@+id/home_bento_row_compact"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:baselineAligned="false"
                 android:orientation="horizontal">
 
@@ -801,12 +956,11 @@
                     android:layout_weight="1"
                     android:clickable="true"
                     android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    android:minHeight="58dp">
+                    android:foreground="?attr/selectableItemBackground">
 
                     <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:padding="10dp">
 
@@ -818,14 +972,14 @@
 
                             <ImageView
                                 android:id="@+id/home_icon_running_mode"
-                                android:layout_width="14dp"
-                                android:layout_height="14dp"
+                                android:layout_width="15dp"
+                                android:layout_height="15dp"
                                 android:contentDescription="@null"
-                                android:src="@drawable/ic_baseline_alt_route_24"
+                                android:src="@drawable/ic_maps_directions"
                                 app:tint="?attr/colorPrimary" />
 
                             <TextView
-                                android:id="@+id/home_mode_pill_rule_text"
+                                android:id="@+id/home_title_running_mode"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="6dp"
@@ -834,42 +988,68 @@
                                 android:fontFamily="sans-serif-medium"
                                 android:includeFontPadding="false"
                                 android:maxLines="1"
-                                android:text="@string/home_route_rule"
+                                android:text="@string/menu_route"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="12.5sp" />
 
+                            <TextView
+                                android:id="@+id/home_route_outbound_badge"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="4dp"
+                                android:fontFamily="sans-serif-medium"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:paddingHorizontal="6dp"
+                                android:paddingVertical="2dp"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="10.5sp"
+                                tools:text="Proxy" />
+
                         </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/home_mode_pill_rule_text"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textSize="12.5sp"
+                            tools:text="Default" />
 
                         <TextView
                             android:id="@+id/home_route_summary_text"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="5dp"
+                            android:layout_marginTop="3dp"
                             android:ellipsize="end"
                             android:includeFontPadding="false"
                             android:maxLines="1"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="11sp"
-                            tools:text="Proxy · Bypass" />
+                            tools:text="3 active rules" />
 
                     </LinearLayout>
 
                 </com.google.android.material.card.MaterialCardView>
 
                 <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/home_card_local_ip"
+                    android:id="@+id/home_card_app_proxy"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1.75"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
                     android:clickable="true"
                     android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    android:minHeight="58dp">
+                    android:foreground="?attr/selectableItemBackground">
 
                     <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:padding="10dp">
 
@@ -880,15 +1060,15 @@
                             android:orientation="horizontal">
 
                             <ImageView
-                                android:id="@+id/home_icon_local_ip"
-                                android:layout_width="14dp"
-                                android:layout_height="14dp"
+                                android:id="@+id/home_icon_app_proxy"
+                                android:layout_width="15dp"
+                                android:layout_height="15dp"
                                 android:contentDescription="@null"
-                                android:src="@drawable/ic_baseline_layers_24"
+                                android:src="@drawable/ic_navigation_apps"
                                 app:tint="?android:attr/textColorPrimary" />
 
                             <TextView
-                                android:id="@+id/home_title_local_ip"
+                                android:id="@+id/home_title_app_proxy"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="6dp"
@@ -897,56 +1077,50 @@
                                 android:fontFamily="sans-serif-medium"
                                 android:includeFontPadding="false"
                                 android:maxLines="1"
-                                android:text="@string/home_local_ip"
+                                android:text="@string/home_app_proxy_title"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="12.5sp" />
 
                             <TextView
-                                android:id="@+id/home_local_ip_iface"
+                                android:id="@+id/home_app_proxy_badge"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="6dp"
+                                android:layout_marginStart="4dp"
+                                android:fontFamily="sans-serif-medium"
                                 android:includeFontPadding="false"
                                 android:maxLines="1"
+                                android:paddingHorizontal="6dp"
+                                android:paddingVertical="2dp"
                                 android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="11sp"
-                                tools:text="eth0" />
+                                android:textSize="10.5sp"
+                                tools:text="Off" />
 
                         </LinearLayout>
 
-                        <LinearLayout
+                        <TextView
+                            android:id="@+id/home_app_proxy_mode_text"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="5dp"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
+                            android:layout_marginTop="6dp"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textSize="12.5sp"
+                            tools:text="All Apps" />
 
-                            <TextView
-                                android:id="@+id/home_local_ip_value"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:ellipsize="end"
-                                android:fontFamily="sans-serif-medium"
-                                android:fontFeatureSettings="tnum"
-                                android:includeFontPadding="false"
-                                android:maxLines="1"
-                                android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="12sp"
-                                tools:text="10.0.2.15" />
-
-                            <TextView
-                                android:id="@+id/home_local_ip_meta"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="6dp"
-                                android:includeFontPadding="false"
-                                android:maxLines="1"
-                                android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="11sp"
-                                tools:text="Ethernet · /24" />
-
-                        </LinearLayout>
+                        <TextView
+                            android:id="@+id/home_app_proxy_meta_text"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="3dp"
+                            android:ellipsize="end"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:textColor="?android:attr/textColorSecondary"
+                            android:textSize="11sp"
+                            tools:text="All device traffic routed" />
 
                     </LinearLayout>
 
@@ -954,22 +1128,21 @@
 
             </LinearLayout>
 
-            <!-- Row 6: Upgraded Compact Hotspot & Proxy Share Card -->
+            <!-- Row 7: Accurate Compact Hotspot & Proxy Share Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/home_card_hotspot_share"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:clickable="true"
                 android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                android:minHeight="88dp">
+                android:foreground="?attr/selectableItemBackground">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="12dp">
+                    android:padding="10dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -979,15 +1152,15 @@
 
                         <ImageView
                             android:id="@+id/home_hotspot_icon"
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
+                            android:layout_width="34dp"
+                            android:layout_height="34dp"
                             android:contentDescription="@null"
                             tools:src="@drawable/ic_hardware_router" />
 
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="10dp"
+                            android:layout_marginStart="9dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -1001,7 +1174,7 @@
                                 android:maxLines="1"
                                 android:text="@string/lan_sharing"
                                 android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="13.5sp" />
+                                android:textSize="13sp" />
 
                             <TextView
                                 android:id="@+id/home_hotspot_subtitle"
@@ -1012,8 +1185,8 @@
                                 android:includeFontPadding="false"
                                 android:maxLines="1"
                                 android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="11.5sp"
-                                tools:text="Tap to configure hotspot &amp; LAN proxy" />
+                                android:textSize="11sp"
+                                tools:text="Port 2080 · Auth: None" />
 
                         </LinearLayout>
 
@@ -1021,15 +1194,15 @@
                             android:id="@+id/home_hotspot_badge"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
+                            android:layout_marginStart="6dp"
                             android:fontFamily="sans-serif-medium"
                             android:includeFontPadding="false"
                             android:maxLines="1"
-                            android:paddingHorizontal="9dp"
-                            android:paddingVertical="4dp"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="3dp"
                             android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="11sp"
-                            tools:text="Standby" />
+                            android:textSize="10.5sp"
+                            tools:text="Off" />
 
                         <ImageView
                             android:id="@+id/home_hotspot_chevron"
@@ -1045,7 +1218,7 @@
                         android:id="@+id/home_hotspot_chips_row"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="9dp"
+                        android:layout_marginTop="7dp"
                         android:baselineAligned="false"
                         android:orientation="horizontal">
 
@@ -1056,7 +1229,7 @@
                             android:layout_weight="1"
                             android:orientation="vertical"
                             android:paddingHorizontal="8dp"
-                            android:paddingVertical="6dp">
+                            android:paddingVertical="5dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -1064,7 +1237,7 @@
                                 android:ellipsize="end"
                                 android:includeFontPadding="false"
                                 android:maxLines="1"
-                                android:text="@string/home_hotspot_mode"
+                                android:text="@string/home_hotspot_chip_hotspot"
                                 android:textColor="?android:attr/textColorSecondary"
                                 android:textSize="10sp" />
 
@@ -1079,7 +1252,7 @@
                                 android:maxLines="1"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="11.5sp"
-                                tools:text="Auto" />
+                                tools:text="Off" />
 
                         </LinearLayout>
 
@@ -1091,7 +1264,7 @@
                             android:layout_weight="1"
                             android:orientation="vertical"
                             android:paddingHorizontal="8dp"
-                            android:paddingVertical="6dp">
+                            android:paddingVertical="5dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -1099,7 +1272,7 @@
                                 android:ellipsize="end"
                                 android:includeFontPadding="false"
                                 android:maxLines="1"
-                                android:text="@string/lan_sharing_port_label"
+                                android:text="@string/home_hotspot_chip_lan_proxy"
                                 android:textColor="?android:attr/textColorSecondary"
                                 android:textSize="10sp" />
 
@@ -1115,7 +1288,7 @@
                                 android:maxLines="1"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="11.5sp"
-                                tools:text=":2080" />
+                                tools:text="Off" />
 
                         </LinearLayout>
 
@@ -1127,7 +1300,7 @@
                             android:layout_weight="1"
                             android:orientation="vertical"
                             android:paddingHorizontal="8dp"
-                            android:paddingVertical="6dp">
+                            android:paddingVertical="5dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -1135,7 +1308,7 @@
                                 android:ellipsize="end"
                                 android:includeFontPadding="false"
                                 android:maxLines="1"
-                                android:text="@string/home_hotspot_lan"
+                                android:text="@string/home_hotspot_chip_gateway"
                                 android:textColor="?android:attr/textColorSecondary"
                                 android:textSize="10sp" />
 
@@ -1150,148 +1323,9 @@
                                 android:maxLines="1"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="11.5sp"
-                                tools:text="Local" />
+                                tools:text="Off" />
 
                         </LinearLayout>
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Row 7: Subscription & Online Panel Card -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/home_card_subscription"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                android:minHeight="48dp"
-                android:visibility="gone"
-                tools:visibility="visible">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingStart="12dp"
-                    android:paddingTop="8dp"
-                    android:paddingEnd="8dp"
-                    android:paddingBottom="12dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:minHeight="48dp"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:id="@+id/home_sub_icon"
-                            android:layout_width="15dp"
-                            android:layout_height="15dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_baseline_link_24"
-                            app:tint="?android:attr/textColorPrimary" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="7dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:id="@+id/home_sub_title"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:ellipsize="end"
-                                android:fontFamily="sans-serif-medium"
-                                android:includeFontPadding="false"
-                                android:maxLines="1"
-                                android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="13sp"
-                                tools:text="sub64 · panel.theyusa.tr" />
-
-                            <TextView
-                                android:id="@+id/home_sub_expiry"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:ellipsize="end"
-                                android:includeFontPadding="false"
-                                android:maxLines="1"
-                                android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="11sp"
-                                tools:text="9957d 4h left" />
-
-                        </LinearLayout>
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/home_sub_portal_btn"
-                            style="@style/Widget.Material3Expressive.Button.IconButton.Tonal"
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:contentDescription="@string/subinfo_portal"
-                            android:insetLeft="0dp"
-                            android:insetTop="0dp"
-                            android:insetRight="0dp"
-                            android:insetBottom="0dp"
-                            android:padding="0dp"
-                            android:visibility="gone"
-                            app:icon="@drawable/baseline_public_24"
-                            app:iconGravity="textStart"
-                            app:iconPadding="0dp"
-                            app:iconSize="18dp"
-                            tools:visibility="visible" />
-
-                    </LinearLayout>
-
-                    <com.google.android.material.progressindicator.LinearProgressIndicator
-                        android:id="@+id/home_sub_progress"
-                        style="@style/Widget.Material3Expressive.LinearProgressIndicator.Wavy"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:layout_marginEnd="4dp"
-                        android:max="100"
-                        app:trackCornerRadius="2dp"
-                        app:trackThickness="4dp" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginEnd="4dp"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:id="@+id/home_sub_quota_text"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:ellipsize="end"
-                            android:fontFeatureSettings="tnum"
-                            android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:textColor="?android:attr/textColorPrimary"
-                            android:textSize="11.5sp"
-                            tools:text="1001.35 GiB / 976.56 TiB (0%)" />
-
-                        <TextView
-                            android:id="@+id/home_sub_remaining_text"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:fontFeatureSettings="tnum"
-                            android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:textColor="?android:attr/textColorSecondary"
-                            android:textSize="11sp"
-                            tools:text="Left 975.58 TiB" />
 
                     </LinearLayout>
 
