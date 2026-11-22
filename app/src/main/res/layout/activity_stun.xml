@@ -137,51 +137,39 @@
                             android:id="@+id/radioGroupPreset"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal">
+                            android:orientation="vertical">
 
                             <RadioButton
                                 android:id="@+id/radioPresetBalanced"
-                                android:layout_width="0dp"
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:ellipsize="end"
-                                android:maxLines="1"
-                                android:minHeight="36dp"
+                                android:minHeight="34dp"
                                 android:text="@string/stun_preset_balanced"
-                                android:textSize="12sp" />
+                                android:textSize="13sp" />
 
                             <RadioButton
                                 android:id="@+id/radioPresetFull"
-                                android:layout_width="0dp"
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:ellipsize="end"
-                                android:maxLines="1"
-                                android:minHeight="36dp"
+                                android:minHeight="34dp"
                                 android:text="@string/stun_preset_full"
-                                android:textSize="12sp" />
+                                android:textSize="13sp" />
 
                             <RadioButton
                                 android:id="@+id/radioPresetFast"
-                                android:layout_width="0dp"
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:ellipsize="end"
-                                android:maxLines="1"
-                                android:minHeight="36dp"
+                                android:minHeight="34dp"
                                 android:text="@string/stun_preset_fast"
-                                android:textSize="12sp" />
+                                android:textSize="13sp" />
 
                             <RadioButton
                                 android:id="@+id/radioPresetCustom"
-                                android:layout_width="0dp"
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:ellipsize="end"
-                                android:maxLines="1"
-                                android:minHeight="36dp"
+                                android:minHeight="34dp"
                                 android:text="@string/stun_preset_custom"
-                                android:textSize="12sp" />
+                                android:textSize="13sp" />
                         </RadioGroup>
                     </LinearLayout>
 
