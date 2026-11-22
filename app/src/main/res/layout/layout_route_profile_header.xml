@@ -40,7 +40,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            app:chipSpacingHorizontal="4dp"
+            app:chipSpacingHorizontal="6dp"
             app:selectionRequired="true"
             app:singleLine="true"
             app:singleSelection="true">
@@ -51,10 +51,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:minWidth="0dp"
-                android:textSize="11.5sp"
-                app:chipEndPadding="6dp"
+                android:textSize="12sp"
+                app:chipEndPadding="4dp"
                 app:chipMinHeight="32dp"
-                app:chipStartPadding="6dp" />
+                app:chipStartPadding="4dp"
+                app:textEndPadding="8dp"
+                app:textStartPadding="8dp" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/outbound_direct"
@@ -62,10 +64,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:minWidth="0dp"
-                android:textSize="11.5sp"
-                app:chipEndPadding="6dp"
+                android:textSize="12sp"
+                app:chipEndPadding="4dp"
                 app:chipMinHeight="32dp"
-                app:chipStartPadding="6dp" />
+                app:chipStartPadding="4dp"
+                app:textEndPadding="8dp"
+                app:textStartPadding="8dp" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/outbound_block"
@@ -73,10 +77,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:minWidth="0dp"
-                android:textSize="11.5sp"
-                app:chipEndPadding="6dp"
+                android:textSize="12sp"
+                app:chipEndPadding="4dp"
                 app:chipMinHeight="32dp"
-                app:chipStartPadding="6dp" />
+                app:chipStartPadding="4dp"
+                app:textEndPadding="8dp"
+                app:textStartPadding="8dp" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/outbound_warp"
@@ -84,10 +90,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:minWidth="0dp"
-                android:textSize="11.5sp"
-                app:chipEndPadding="6dp"
+                android:textSize="12sp"
+                app:chipEndPadding="4dp"
                 app:chipMinHeight="32dp"
-                app:chipStartPadding="6dp" />
+                app:chipStartPadding="4dp"
+                app:textEndPadding="8dp"
+                app:textStartPadding="8dp" />
 
         </com.google.android.material.chip.ChipGroup>
 
